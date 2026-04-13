@@ -2,11 +2,12 @@
  * Intent: Convert bento box layouts into 1-bit eInk-compatible frame buffers
  * Context: Called by @infobento/api to generate display data sent to the device
  * Pattern: Pure functions — all rendering is deterministic with no side effects
- * Future: Add bitmap font rendering, icon set, Floyd-Steinberg dithering
+ * Future: Add box renderers for countdown, weather, QR, quote
  */
 
-import type { BentoConfig, DeviceProfile } from '@infobento/core';
-import { DISPLAY_WIDTH, DISPLAY_HEIGHT } from '@infobento/core';
+import type { BentoConfig, DeviceProfile, LayoutBox } from '@infobento/core';
+import { DISPLAY_WIDTH, DISPLAY_HEIGHT, calculateLayout } from '@infobento/core';
+import { renderTextBox, renderPlaceholderBox } from './boxes/text.js';
 
 /** 1-bit frame buffer: each byte holds 8 horizontal pixels */
 export interface FrameBuffer {
@@ -32,10 +33,31 @@ export function createFrameBuffer(
 }
 
 /**
- * intent: Render a bento config into a 1-bit frame buffer
- * method: Placeholder — returns empty frame buffer for now
- * effect: Will produce device-ready binary data in future phases
+ * intent: Render a single layout box by dispatching to the appropriate box renderer
+ * method: Switch on box type — only 'text' is implemented, others get placeholder
  */
-export function render(_config: BentoConfig, device?: DeviceProfile): FrameBuffer {
-  return createFrameBuffer(device);
+function renderBox(fb: FrameBuffer, layoutBox: LayoutBox): void {
+  const { box } = layoutBox;
+
+  if (box.type === 'text' && box.config?.type === 'text') {
+    renderTextBox(fb, layoutBox, box.config);
+  } else {
+    renderPlaceholderBox(fb, layoutBox);
+  }
+}
+
+/**
+ * intent: Render a bento config into a 1-bit frame buffer
+ * method: Calculate layout, then render each box into the frame buffer
+ * effect: Returns device-ready binary data (6000 bytes for 240x200)
+ */
+export function render(config: BentoConfig, device?: DeviceProfile): FrameBuffer {
+  const layout = calculateLayout(config, device);
+  const fb = createFrameBuffer(layout.device);
+
+  for (const layoutBox of layout.boxes) {
+    renderBox(fb, layoutBox);
+  }
+
+  return fb;
 }

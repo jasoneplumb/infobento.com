@@ -1,0 +1,91 @@
+import { describe, it, expect } from 'vitest';
+import { calculateLayout, DISPLAY_WIDTH, DISPLAY_HEIGHT, BOX_DIVIDER_PX } from './index.js';
+import type { BentoConfig, BentoBox } from './types.js';
+
+function makeBox(id: string, type: BentoBox['type'] = 'text'): BentoBox {
+  return { id, type, label: `Box ${id}` };
+}
+
+function makeConfig(boxes: BentoBox[]): BentoConfig {
+  return { boxes, refreshesPerDay: 1 };
+}
+
+describe('calculateLayout', () => {
+  it('returns empty layout for empty config', () => {
+    const result = calculateLayout(makeConfig([]));
+    expect(result.boxes).toHaveLength(0);
+  });
+
+  it('single box fills the entire display', () => {
+    const result = calculateLayout(makeConfig([makeBox('1')]));
+    expect(result.boxes).toHaveLength(1);
+    expect(result.boxes[0]!.x).toBe(0);
+    expect(result.boxes[0]!.y).toBe(0);
+    expect(result.boxes[0]!.width).toBe(DISPLAY_WIDTH);
+    expect(result.boxes[0]!.height).toBe(DISPLAY_HEIGHT);
+  });
+
+  it('two boxes split evenly with divider', () => {
+    const result = calculateLayout(makeConfig([makeBox('1'), makeBox('2')]));
+    expect(result.boxes).toHaveLength(2);
+
+    const [first, second] = result.boxes;
+    expect(first!.y).toBe(0);
+    expect(second!.y).toBe(first!.height + BOX_DIVIDER_PX);
+    expect(first!.height + second!.height + BOX_DIVIDER_PX).toBe(DISPLAY_HEIGHT);
+  });
+
+  it('all boxes span full width', () => {
+    const result = calculateLayout(makeConfig([makeBox('1'), makeBox('2'), makeBox('3')]));
+    for (const lb of result.boxes) {
+      expect(lb.width).toBe(DISPLAY_WIDTH);
+      expect(lb.x).toBe(0);
+    }
+  });
+
+  it('QR box gets larger allocation than non-QR boxes', () => {
+    const result = calculateLayout(
+      makeConfig([makeBox('1', 'text'), makeBox('2', 'qr'), makeBox('3', 'text')]),
+    );
+    const qrBox = result.boxes.find((lb) => lb.box.type === 'qr')!;
+    const textBoxes = result.boxes.filter((lb) => lb.box.type === 'text');
+
+    // QR should be significantly taller than each text box
+    for (const tb of textBoxes) {
+      expect(qrBox.height).toBeGreaterThan(tb.height);
+    }
+  });
+
+  it('boxes do not overlap or exceed display bounds', () => {
+    const boxes = [makeBox('1'), makeBox('2'), makeBox('3'), makeBox('4')];
+    const result = calculateLayout(makeConfig(boxes));
+
+    for (let i = 1; i < result.boxes.length; i++) {
+      const prev = result.boxes[i - 1]!;
+      const curr = result.boxes[i]!;
+      // Current box starts after previous box + divider
+      expect(curr.y).toBeGreaterThanOrEqual(prev.y + prev.height);
+    }
+
+    // Last box does not exceed display
+    const last = result.boxes[result.boxes.length - 1]!;
+    expect(last.y + last.height).toBeLessThanOrEqual(DISPLAY_HEIGHT);
+  });
+
+  it('handles 6 boxes (maximum)', () => {
+    const boxes = Array.from({ length: 6 }, (_, i) => makeBox(String(i + 1)));
+    const result = calculateLayout(makeConfig(boxes));
+    expect(result.boxes).toHaveLength(6);
+
+    // Each box should have at least MIN_BOX_HEIGHT (20px)
+    for (const lb of result.boxes) {
+      expect(lb.height).toBeGreaterThanOrEqual(20);
+    }
+  });
+
+  it('includes device in result', () => {
+    const result = calculateLayout(makeConfig([makeBox('1')]));
+    expect(result.device.widthPx).toBe(DISPLAY_WIDTH);
+    expect(result.device.heightPx).toBe(DISPLAY_HEIGHT);
+  });
+});
