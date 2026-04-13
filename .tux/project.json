@@ -455,7 +455,7 @@
     {
       "type": "note",
       "title": "Open Question Decisions — Round 1 and 2",
-      "body": "Decisions made during initial planning sessions:\n\n## Round 1 (resolved)\n- MVP box types: weather (Open-Meteo), quote (ZenQuotes), countdown, QR, text — all free, no auth\n- Web framework: Hono + Vite (same-port architecture like phasebot)\n- Web app private during dev, co-hosted with tiles- and webmap.dev later\n- Version starts at 0.1.0\n\n## Round 2 (in progress)\n1. MVP scope: start with text + countdown + weather to prove pipeline, then add QR + quote\n2. Weather location: Open-Meteo geocoding API, user types city name\n3. Config persistence: localStorage + JSON export/import (no server state)\n4. Refresh scheduling: web UI sets schedule, phone app executes it, device just responds\n5. Design language: clean/minimal with sharp borders, receipt-style typography\n6. Name/branding: pending confirmation — InfoBento as working title\n\n## Still open\n- BLE version: 4.2 vs 5.0\n- Battery capacity target\n- Background BLE on iOS constraints\n- Compression for frame transfer",
+      "body": "Decisions made during initial planning sessions:\n\n## Round 1 (resolved)\n- MVP box types: weather (Open-Meteo), quote (ZenQuotes), countdown, QR, text — all free, no auth\n- Web framework: Hono + Vite (same-port architecture like phasebot)\n- Web app private during dev, co-hosted with tiles- and webmap.dev later\n- Version starts at 0.1.0\n\n## Round 2 (resolved)\n1. MVP scope: text + countdown + weather first (proves pipeline), then QR + quote\n2. Weather location: Open-Meteo geocoding API, user types city name\n3. Config persistence: localStorage + JSON export/import (no server state)\n4. Refresh scheduling: web UI sets schedule, phone app executes it, device responds\n5. Design language: clean/minimal with sharp borders, receipt-style typography\n6. Name: InfoBento (confirmed final)\n\n## Round 3 (resolved)\n1. Implementation order: text -> countdown -> weather -> QR -> quote\n2. Mobile web layout: stack vertically (preview on top, config below)\n3. Font: embedded small fixed-width bitmap font (5x7 or 6x8 pixel, embedded-systems style)\n4. QR sizing: larger allocation — half display height or more, not constrained to a thin box\n5. Name confirmed: InfoBento is final\n\n## Still open\n- BLE version: 4.2 vs 5.0\n- Battery capacity target\n- Background BLE on iOS constraints\n- Compression for frame transfer\n- Specific bitmap font selection (5x7 vs 6x8 vs other)\n- Exact QR box height allocation",
       "tags": [
         "decisions",
         "open-questions",
@@ -465,7 +465,47 @@
       "relatedIds": [],
       "metadata": {},
       "createdAt": 1776109817150,
-      "updatedAt": 1776109817150
+      "updatedAt": 1776110078647
+    },
+    {
+      "type": "requirement",
+      "label": "REQ-007",
+      "statement": "QR code box type gets a larger vertical allocation (approximately half display height) to ensure scannability",
+      "source": "Open question resolution — small QR codes in thin boxes are not scannable",
+      "category": "functional",
+      "priority": "must",
+      "rationale": "A QR code in a 35px-tall box would be too small to scan reliably. Larger allocation ensures real-world utility.",
+      "status": "accepted",
+      "userClassIds": [
+        "659af1c0-7967-4009-84ca-7febdab16a3d"
+      ],
+      "id": "ddd8be86-8b72-447a-bc33-99a735151968",
+      "relatedIds": [],
+      "metadata": {},
+      "createdAt": 1776110089950,
+      "updatedAt": 1776110089950
+    },
+    {
+      "type": "design-principle",
+      "name": "Embedded Bitmap Font",
+      "statement": "Use a small fixed-width bitmap font embedded in the renderer — no system font dependencies",
+      "description": "The renderer must work as a pure function with no external dependencies. A fixed-width bitmap font (5x7 or 6x8 pixels) is embedded directly in the renderer code as pixel data arrays. This ensures identical output across all environments and matches the embedded-systems aesthetic.",
+      "source": "Open question resolution — font must be self-contained for edge deployment and device fidelity",
+      "examples": [
+        "5x7 pixel font for compact text",
+        "6x8 pixel font for slightly more legible body text",
+        "Bold variant via double-strike or thicker glyphs"
+      ],
+      "counterExamples": [
+        "System fonts rendered via Canvas API",
+        "TrueType/OpenType font loading",
+        "Anti-aliased text rendering"
+      ],
+      "id": "b612a2ca-48f0-466e-a0d5-de3b39b209b9",
+      "relatedIds": [],
+      "metadata": {},
+      "createdAt": 1776110090095,
+      "updatedAt": 1776110090095
     }
   ],
   "extensions": {}
