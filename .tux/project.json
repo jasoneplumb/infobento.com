@@ -4,7 +4,7 @@
   "description": "",
   "domain": "consumer-electronics",
   "version": 1,
-  "currentPhase": "analyze",
+  "currentPhase": "design",
   "createdAt": 1776109685435,
   "artifacts": [
     {
@@ -480,6 +480,43 @@
       "metadata": {},
       "createdAt": 1776110090095,
       "updatedAt": 1776110090095
+    },
+    {
+      "type": "prototype",
+      "name": "Text Box Rendering Pipeline",
+      "description": "End-to-end rendering pipeline proving config -> layout -> font -> draw -> frame buffer. Text box is the first fully implemented box type.",
+      "fidelity": "high",
+      "format": "TypeScript (packages/core + packages/renderer)",
+      "scope": "Core types, layout engine, embedded bitmap font, drawing primitives, text box renderer",
+      "designArtifactIds": ["45f1b6df-a76f-4c48-8ab2-bd1cfc067f00"],
+      "location": "packages/renderer/src/boxes/text.ts",
+      "knownLimitations": [
+        "Only text box type implemented — other types render as placeholders",
+        "No PNG preview endpoint yet",
+        "Font is 5x7 only — no bold variant or larger sizes",
+        "No center alignment implemented yet",
+        "Maximum 6 boxes enforced by layout truncation"
+      ],
+      "id": "dc655ce4-a20a-498c-bce0-d6bdbdbe44c0",
+      "relatedIds": [],
+      "metadata": {},
+      "createdAt": 1776112977017,
+      "updatedAt": 1776112977017
+    },
+    {
+      "type": "finding",
+      "title": "Type system allowed box type / config mismatch",
+      "description": "Original BentoBox interface used a single optional BoxConfig field, allowing { type: weather, config: { type: text } } without type error. Fixed with discriminated union (TextBentoBox | UnconfiguredBentoBox).",
+      "findingType": "problem",
+      "severity": "minor",
+      "evidence": "Claude code review round 2, item #4 — TypeScript accepted mismatched type/config pairs",
+      "recommendation": "Maintain discriminated union pattern as new box types are added. Each box type gets its own interface pairing type with config.",
+      "status": "fixed",
+      "id": "1d1e725b-0c62-484e-ab4b-da814ff2df28",
+      "relatedIds": [],
+      "metadata": {},
+      "createdAt": 1776112977161,
+      "updatedAt": 1776112977161
     }
   ],
   "extensions": {}

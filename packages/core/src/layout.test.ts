@@ -65,9 +65,9 @@ describe('calculateLayout', () => {
     const last = result.boxes[result.boxes.length - 1]!;
     expect(last.y + last.height).toBeLessThanOrEqual(DISPLAY_HEIGHT);
 
-    // Non-QR box must have at least MIN_BOX_HEIGHT
+    // Non-QR box must have at least MIN_BOX_HEIGHT (24)
     const textBox = result.boxes.find((lb) => lb.box.type === 'text')!;
-    expect(textBox.height).toBeGreaterThanOrEqual(20);
+    expect(textBox.height).toBeGreaterThanOrEqual(24);
 
     // No negative heights
     for (const lb of result.boxes) {
@@ -82,8 +82,8 @@ describe('calculateLayout', () => {
     for (let i = 1; i < result.boxes.length; i++) {
       const prev = result.boxes[i - 1]!;
       const curr = result.boxes[i]!;
-      // Current box starts after previous box + divider
-      expect(curr.y).toBeGreaterThanOrEqual(prev.y + prev.height);
+      // Current box starts exactly after previous box + divider
+      expect(curr.y).toBe(prev.y + prev.height + BOX_DIVIDER_PX);
     }
 
     // Last box does not exceed display
@@ -96,10 +96,16 @@ describe('calculateLayout', () => {
     const result = calculateLayout(makeConfig(boxes));
     expect(result.boxes).toHaveLength(6);
 
-    // Each box should have at least MIN_BOX_HEIGHT (20px)
-    for (const lb of result.boxes) {
-      expect(lb.height).toBeGreaterThanOrEqual(20);
+    // Each non-last box should have at least MIN_BOX_HEIGHT (24px)
+    for (let i = 0; i < result.boxes.length - 1; i++) {
+      expect(result.boxes[i]!.height).toBeGreaterThanOrEqual(24);
     }
+  });
+
+  it('truncates to 6 boxes when more are provided', () => {
+    const boxes = Array.from({ length: 10 }, (_, i) => makeBox(String(i + 1)));
+    const result = calculateLayout(makeConfig(boxes));
+    expect(result.boxes).toHaveLength(6);
   });
 
   it('includes device in result', () => {

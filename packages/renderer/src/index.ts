@@ -39,6 +39,8 @@ export function createFrameBuffer(
 function renderBox(fb: FrameBuffer, layoutBox: LayoutBox): void {
   const { box } = layoutBox;
 
+  // tradeoff: text boxes without config fall through to placeholder rather than
+  // crashing — the web UI will enforce config presence, but the renderer is lenient
   if (box.type === 'text' && box.config?.type === 'text') {
     renderTextBox(fb, layoutBox, box.config);
   } else {

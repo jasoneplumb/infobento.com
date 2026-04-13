@@ -1,7 +1,7 @@
 /**
  * Intent: Refined type system for bento box configs, layout, and rendering
  * Context: Imported by all packages — types.ts is the source of truth for data shapes
- * Pattern: Discriminated unions for box configs, readonly throughout for immutability
+ * Pattern: Discriminated unions for type-safe box type <-> config pairing
  * Future: Add CountdownBoxConfig, WeatherBoxConfig, QRBoxConfig, QuoteBoxConfig
  */
 
@@ -13,7 +13,7 @@ export interface TextBoxConfig {
   readonly align?: 'left' | 'center';
 }
 
-// Future box configs will be added here and to the union below
+// Future box configs will be added here and to BentoBox union below
 
 /** Discriminated union of all box-specific configurations */
 export type BoxConfig = TextBoxConfig;
@@ -31,13 +31,29 @@ export type BentoBoxType =
   | 'qr'
   | 'text';
 
-/** A single bento box in the layout */
-export interface BentoBox {
+/** Base fields shared by all bento boxes */
+interface BentoBoxBase {
   readonly id: string;
-  readonly type: BentoBoxType;
   readonly label: string;
-  readonly config?: BoxConfig;
 }
+
+/** Text box with typed config */
+interface TextBentoBox extends BentoBoxBase {
+  readonly type: 'text';
+  readonly config?: TextBoxConfig;
+}
+
+/** Box types that don't have a config yet (placeholder) */
+interface UnconfiguredBentoBox extends BentoBoxBase {
+  readonly type: Exclude<BentoBoxType, 'text'>;
+  readonly config?: undefined;
+}
+
+/**
+ * A single bento box in the layout.
+ * Discriminated union ensures box.type and box.config.type always agree.
+ */
+export type BentoBox = TextBentoBox | UnconfiguredBentoBox;
 
 /** Full device configuration */
 export interface BentoConfig {

@@ -9,10 +9,13 @@ import type { BentoConfig, DeviceProfile, LayoutBox, LayoutResult } from './type
 import { BOX_DIVIDER_PX, DEFAULT_DEVICE } from './constants.js';
 
 /**
- * intent: Minimum height for a non-QR bento box (ensures text is readable)
- * constraint: 5x7 font + 2px padding top/bottom + 1px border = ~18px minimum
+ * intent: Minimum height for a non-QR bento box (ensures body text renders)
+ * constraint: HEADER_HEIGHT (11) + divider (1) + INNER_PAD (2) + FONT_HEIGHT (7) + border (2) + 1 = 24
  */
-const MIN_BOX_HEIGHT = 20;
+const MIN_BOX_HEIGHT = 24;
+
+/** Maximum number of boxes that fit without overflow */
+const MAX_BOXES = 6;
 
 /**
  * intent: QR boxes get approximately half the display height for scannability
@@ -35,6 +38,11 @@ export function calculateLayout(
 
   if (boxes.length === 0) {
     return { boxes: [], device };
+  }
+
+  if (boxes.length > MAX_BOXES) {
+    // Truncate to MAX_BOXES rather than producing broken layout
+    return calculateLayout({ ...config, boxes: boxes.slice(0, MAX_BOXES) }, device);
   }
 
   const dividerCount = boxes.length - 1;
@@ -79,10 +87,10 @@ export function calculateLayout(
     const isLast = i === boxes.length - 1;
     const isQR = box.type === 'qr';
 
-    // Last box absorbs any remaining pixels from rounding
+    // Last box absorbs any remaining pixels from rounding (clamped to 0)
     let height: number;
     if (isLast) {
-      height = totalHeight - y;
+      height = Math.max(0, totalHeight - y);
     } else {
       height = isQR ? qrHeight : nonQRHeight;
     }
