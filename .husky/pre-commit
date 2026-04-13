@@ -1,0 +1,40 @@
+# Check for secrets in staged files
+echo "Checking for secrets..."
+if git diff --cached --name-only | grep -E '\.(env|key|pem|p12|pfx)$'; then
+  echo "Attempting to commit potential secret files"
+  echo "Files: $(git diff --cached --name-only | grep -E '\.(env|key|pem|p12|pfx)$')"
+  exit 1
+fi
+
+# Check for debugger statements in production code (blocking)
+echo "Checking for debug statements..."
+staged_files=$(git diff --cached --name-only --diff-filter=ACM | grep -E '\.(ts|tsx|js|jsx)$' | grep -v '\.test\.' | grep -v '\.spec\.' || true)
+if [ -n "$staged_files" ]; then
+  debugger_output=$(echo "$staged_files" | xargs grep -nE '\bdebugger\b' 2>/dev/null || true)
+  if [ -n "$debugger_output" ]; then
+    echo "debugger statement found in staged files"
+    echo "$debugger_output"
+    exit 1
+  fi
+fi
+
+# Check package.json versions match across workspaces
+echo "Checking package.json versions..."
+versions=$(grep -h '"version"' package.json packages/*/package.json 2>/dev/null | cut -d'"' -f4 | sort -u)
+if [ $(echo "$versions" | wc -l) -gt 1 ]; then
+  echo "Package versions don't match:"
+  echo "$versions"
+  exit 1
+fi
+
+# Skip expensive checks if no source files are staged
+if ! git diff --cached --name-only | grep -qE '\.(ts|tsx|js|jsx)$'; then
+  echo "No source files staged — skipping type-check and lint"
+  exit 0
+fi
+
+# Type-check
+npm run typecheck || exit 1
+
+# Lint and format staged files
+npx lint-staged

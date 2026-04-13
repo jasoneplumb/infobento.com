@@ -1,0 +1,50 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Coverage
+coverage
+*.lcov
+.nyc_output
+
+# Dependencies
+node_modules/
+
+# TypeScript
+*.tsbuildinfo
+packages/*/dist/
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Build output
+dist
+
+# Cache
+.cache
+.parcel-cache
+
+# Clones (worktrees)
+clones/
+
+# Claude Code
+.claude/settings.local.json

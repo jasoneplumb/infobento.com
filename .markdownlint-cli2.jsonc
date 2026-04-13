@@ -1,0 +1,40 @@
+// Configuration for markdownlint-cli2
+{
+  "config": {
+    "default": true,
+    // Disable line length rule (too strict for code blocks)
+    "MD013": false,
+    // Allow certain HTML elements
+    "MD033": {
+      "allowed_elements": ["br", "details", "summary"],
+    },
+    // Don't require files to start with a heading
+    "MD041": false,
+    // Allow duplicate headings (common in changelogs)
+    "MD024": {
+      "siblings_only": true,
+    },
+    // Allow bare URLs (common in documentation)
+    "MD034": false,
+    // Relax blank line requirements around lists
+    "MD032": false,
+    // Relax blank line requirements around headings
+    "MD022": false,
+    // Allow multiple blank lines
+    "MD012": false,
+    // Allow emphasis as heading
+    "MD036": false,
+    // Allow fenced code blocks without language
+    "MD040": false,
+    // Allow heading levels to skip
+    "MD001": false,
+    // Relax blank line requirements around code fences
+    "MD031": false,
+    // Relax blank line requirements around tables
+    "MD058": false,
+    // Disable table column style
+    "MD060": false,
+  },
+  "globs": ["**/*.md"],
+  "ignores": ["**/node_modules/**", "**/.git/**", "**/coverage/**", "**/dist/**"],
+}

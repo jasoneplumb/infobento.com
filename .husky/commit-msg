@@ -1,0 +1,24 @@
+commit_msg=$(cat "$1")
+
+# Check for conventional commit format
+if ! echo "$commit_msg" | grep -qE "^(feat|fix|docs|style|refactor|test|chore|perf|ci|build|revert)(\(.+\))?: .+"; then
+  echo "Invalid commit message format"
+  echo "Expected: <type>(<scope>): <description>"
+  echo "Example: feat(auth): add passwordless login"
+  echo ""
+  echo "Types: feat, fix, docs, style, refactor, test, chore, perf, ci, build, revert"
+  exit 1
+fi
+
+# Check for minimum message length (excluding Co-Authored-By)
+first_line=$(echo "$commit_msg" | head -n 1)
+if [ ${#first_line} -lt 10 ]; then
+  echo "Commit message too short (minimum 10 characters)"
+  exit 1
+fi
+
+# Auto-append Co-Authored-By if not present
+if ! echo "$commit_msg" | grep -q "Co-Authored-By:"; then
+  echo "" >> "$1"
+  echo "Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>" >> "$1"
+fi
