@@ -1,0 +1,472 @@
+{
+  "id": "15b14d22-3871-4074-a350-f4ffc78651b4",
+  "name": "InfoBento",
+  "description": "",
+  "domain": "consumer-electronics",
+  "version": 1,
+  "currentPhase": "analyze",
+  "createdAt": 1776109685435,
+  "artifacts": [
+    {
+      "type": "work-role",
+      "name": "Device Owner",
+      "description": "Individual who owns and carries an InfoBento display, configuring it to show personally relevant information",
+      "responsibilities": [
+        "Configure bento boxes via web UI",
+        "Carry device or place in window",
+        "Keep phone paired for daily sync",
+        "Charge device via sunlight exposure"
+      ],
+      "id": "7f7a8122-1767-4414-8231-77cb80d1372c",
+      "relatedIds": [],
+      "metadata": {},
+      "createdAt": 1776109694040,
+      "updatedAt": 1776109694040
+    },
+    {
+      "type": "work-role",
+      "name": "Gifter",
+      "description": "Person who purchases and pre-configures an InfoBento as a gift for someone else",
+      "responsibilities": [
+        "Select and order device",
+        "Configure initial bento layout for recipient",
+        "Pair device to recipients phone or hand off config"
+      ],
+      "id": "1d049ae1-fdef-4271-b6cd-73e244028579",
+      "relatedIds": [],
+      "metadata": {},
+      "createdAt": 1776109694174,
+      "updatedAt": 1776109694174
+    },
+    {
+      "type": "user-class",
+      "name": "Daily Glancer",
+      "description": "Busy professional who wants a passive, zero-interaction display of key daily info — weather, next event, motivational quote — visible at a glance without reaching for a phone",
+      "workRoleIds": [
+        "7f7a8122-1767-4414-8231-77cb80d1372c"
+      ],
+      "goals": [
+        "See todays weather and schedule without unlocking phone",
+        "Reduce screen time by offloading ambient info to a passive display",
+        "Customize what info matters most to them"
+      ],
+      "frustrations": [
+        "Checking phone for simple info leads to distraction rabbit holes",
+        "Smart home displays are too expensive and power-hungry",
+        "Existing e-paper gadgets are not customizable"
+      ],
+      "isPrimary": true,
+      "id": "b3572422-6629-426d-9df2-20a4c3eaa3e6",
+      "relatedIds": [],
+      "metadata": {},
+      "createdAt": 1776109709610,
+      "updatedAt": 1776109709610
+    },
+    {
+      "type": "user-class",
+      "name": "Desk Decorator",
+      "description": "Person who values aesthetic, minimal desk accessories and wants a small display that shows a rotating quote, countdown to vacation, or personal QR code",
+      "workRoleIds": [
+        "7f7a8122-1767-4414-8231-77cb80d1372c"
+      ],
+      "goals": [
+        "Have a visually pleasing desk accessory that is also functional",
+        "Show countdown to meaningful events",
+        "Display a personal link or QR code for networking"
+      ],
+      "frustrations": [
+        "Digital photo frames are too large and power-hungry",
+        "Sticky notes with countdowns look unprofessional",
+        "No small, elegant way to display a personal QR code"
+      ],
+      "isPrimary": true,
+      "id": "659af1c0-7967-4009-84ca-7febdab16a3d",
+      "relatedIds": [],
+      "metadata": {},
+      "createdAt": 1776109709756,
+      "updatedAt": 1776109709756
+    },
+    {
+      "type": "user-class",
+      "name": "Gift Giver",
+      "description": "Someone who wants to give a thoughtful, personalized tech gift that is useful without being overwhelming",
+      "workRoleIds": [
+        "1d049ae1-fdef-4271-b6cd-73e244028579"
+      ],
+      "goals": [
+        "Give a unique gift that feels personal and curated",
+        "Pre-configure the device so the recipient can use it immediately",
+        "Gift something that does not require technical knowledge to enjoy"
+      ],
+      "frustrations": [
+        "Most tech gifts require complex setup",
+        "Generic gifts lack personal touch",
+        "Subscription-based gifts feel like an obligation"
+      ],
+      "isPrimary": false,
+      "id": "aa446239-b830-4169-9515-a8399230d061",
+      "relatedIds": [],
+      "metadata": {},
+      "createdAt": 1776109709899,
+      "updatedAt": 1776109709899
+    },
+    {
+      "type": "design-principle",
+      "name": "Zero Daily Interaction",
+      "statement": "The device should require no daily user interaction — configure once, glance forever",
+      "description": "InfoBento is a passive display. After initial setup via the web UI, the device syncs automatically through the paired phone and refreshes on schedule. The user never touches the device to operate it.",
+      "source": "Core product vision — reduce screen time, not add to it",
+      "examples": [
+        "Auto-sync via BLE when phone is nearby",
+        "Schedule-based refresh with no manual trigger",
+        "Solar charging eliminates battery management"
+      ],
+      "counterExamples": [
+        "Requiring button press to refresh",
+        "Daily app interaction to trigger sync",
+        "Manual charging schedule"
+      ],
+      "id": "2f336a21-e1aa-49dd-a87b-095f8db5e453",
+      "relatedIds": [],
+      "metadata": {},
+      "createdAt": 1776109732319,
+      "updatedAt": 1776109732319
+    },
+    {
+      "type": "design-principle",
+      "name": "Pure Function Architecture",
+      "statement": "The API must be stateless — same config in, same frame buffer out, every time",
+      "description": "No server-side state, no user accounts for MVP, no databases. The cloud API is a pure function that takes a BentoConfig and returns rendered frame data. Config lives on the client (localStorage + phone).",
+      "source": "Technical constraint — edge deployability, power budget, simplicity",
+      "examples": [
+        "POST /api/render takes config JSON, returns binary frame",
+        "Config stored in browser localStorage",
+        "Phone caches last frame for offline use"
+      ],
+      "counterExamples": [
+        "Server-side user profiles",
+        "Database-backed config storage",
+        "Session tokens or cookies"
+      ],
+      "id": "42cdec7b-400b-41fe-b9ec-b0f492ccc8ca",
+      "relatedIds": [],
+      "metadata": {},
+      "createdAt": 1776109732474,
+      "updatedAt": 1776109732474
+    },
+    {
+      "type": "design-principle",
+      "name": "1-Bit Elegance",
+      "statement": "Design for the constraint — 240x200 black-and-white pixels should feel intentional, not limited",
+      "description": "The eInk display is 1-bit only. Rather than fighting this constraint, embrace it. Clean borders, sharp typography, high contrast. Think e-paper watch faces and receipt aesthetics — dense but legible.",
+      "source": "Hardware constraint — 2.9 inch 1-bit eInk display",
+      "examples": [
+        "Sharp 1px borders between bento boxes",
+        "Bold headers with lighter body text",
+        "High-contrast icons designed for 1-bit"
+      ],
+      "counterExamples": [
+        "Attempting grayscale dithering for photos",
+        "Anti-aliased fonts that become muddy at 1-bit",
+        "Decorative elements that waste scarce pixels"
+      ],
+      "id": "34631cfb-fb45-4ff2-a55e-db05463bb527",
+      "relatedIds": [],
+      "metadata": {},
+      "createdAt": 1776109732619,
+      "updatedAt": 1776109732619
+    },
+    {
+      "type": "design-principle",
+      "name": "Free by Default",
+      "statement": "MVP box types must work without accounts, API keys, or subscriptions",
+      "description": "The five MVP box types (weather, quote, countdown, QR, text) all use free data sources or local computation. No user should need to create an account anywhere to use the basic product.",
+      "source": "User research — friction in setup kills adoption for consumer hardware",
+      "examples": [
+        "Weather via Open-Meteo (no API key)",
+        "Quotes via ZenQuotes (no auth)",
+        "Countdown and QR are pure local computation",
+        "Text is user-entered"
+      ],
+      "counterExamples": [
+        "Requiring Google Calendar OAuth for MVP",
+        "Paid weather API with key management",
+        "Mandatory account creation before first use"
+      ],
+      "id": "46f93e1e-857b-4f4f-814c-1fc5ad79a478",
+      "relatedIds": [],
+      "metadata": {},
+      "createdAt": 1776109732755,
+      "updatedAt": 1776109732755
+    },
+    {
+      "type": "requirement",
+      "label": "REQ-001",
+      "statement": "User can configure 4-6 bento boxes on a 240x200 pixel display via web interface",
+      "source": "Voice spec — user wants modular customizable information boxes",
+      "category": "functional",
+      "priority": "must",
+      "rationale": "Core product value proposition — modular, personalized information display",
+      "status": "accepted",
+      "userClassIds": [
+        "b3572422-6629-426d-9df2-20a4c3eaa3e6",
+        "659af1c0-7967-4009-84ca-7febdab16a3d"
+      ],
+      "id": "8300e2d5-b0c9-4d61-93f6-5edb2d14cdad",
+      "relatedIds": [],
+      "metadata": {},
+      "createdAt": 1776109750909,
+      "updatedAt": 1776109750909
+    },
+    {
+      "type": "requirement",
+      "label": "REQ-002",
+      "statement": "Device syncs display data through paired phone via BLE without requiring WiFi",
+      "source": "Voice spec — device should not be dependent on specific WiFi SSID",
+      "category": "functional",
+      "priority": "must",
+      "rationale": "Portability is key — device travels with user in wallet, phone bridges connectivity",
+      "status": "accepted",
+      "userClassIds": [
+        "b3572422-6629-426d-9df2-20a4c3eaa3e6"
+      ],
+      "id": "557e42c6-ca3d-4502-8a22-dd2685ba7e33",
+      "relatedIds": [],
+      "metadata": {},
+      "createdAt": 1776109751061,
+      "updatedAt": 1776109751061
+    },
+    {
+      "type": "requirement",
+      "label": "REQ-003",
+      "statement": "Display refreshes 1-2 times per day on solar power alone under normal indoor lighting",
+      "source": "Voice spec — solar panel plus rechargeable battery",
+      "category": "non-functional",
+      "priority": "must",
+      "rationale": "Zero-maintenance power — user should never need to charge the device manually",
+      "status": "proposed",
+      "userClassIds": [
+        "b3572422-6629-426d-9df2-20a4c3eaa3e6",
+        "659af1c0-7967-4009-84ca-7febdab16a3d"
+      ],
+      "id": "3c35b787-b1ae-40cc-bf59-bac86f32e669",
+      "relatedIds": [],
+      "metadata": {},
+      "createdAt": 1776109751197,
+      "updatedAt": 1776109751197
+    },
+    {
+      "type": "requirement",
+      "label": "REQ-004",
+      "statement": "MVP supports 5 box types without requiring any user accounts: weather, quote, countdown, QR, text",
+      "source": "Open question resolution — free data sources prioritized for MVP",
+      "category": "functional",
+      "priority": "must",
+      "rationale": "Reduces onboarding friction to zero — unbox, configure, done",
+      "status": "accepted",
+      "userClassIds": [
+        "b3572422-6629-426d-9df2-20a4c3eaa3e6",
+        "659af1c0-7967-4009-84ca-7febdab16a3d",
+        "aa446239-b830-4169-9515-a8399230d061"
+      ],
+      "id": "03715995-8215-4dc4-a96c-3e9f1764a059",
+      "relatedIds": [],
+      "metadata": {},
+      "createdAt": 1776109751333,
+      "updatedAt": 1776109751333
+    },
+    {
+      "type": "requirement",
+      "label": "REQ-005",
+      "statement": "Web UI and API served from same port in production with full HMR in development",
+      "source": "Open question resolution — same-port architecture like phasebot, Hono framework",
+      "category": "non-functional",
+      "priority": "must",
+      "rationale": "Simplifies deployment (single process) and dev experience (Vite HMR + API proxy)",
+      "status": "accepted",
+      "userClassIds": [],
+      "id": "de4948f4-3d71-4f9e-8673-42a5dcd44f62",
+      "relatedIds": [],
+      "metadata": {},
+      "createdAt": 1776109751489,
+      "updatedAt": 1776109751489
+    },
+    {
+      "type": "requirement",
+      "label": "REQ-006",
+      "statement": "Config persists in browser localStorage with JSON export/import for portability",
+      "source": "Open question resolution — no server-side state for MVP",
+      "category": "functional",
+      "priority": "must",
+      "rationale": "Avoids auth complexity while keeping config portable between devices",
+      "status": "accepted",
+      "userClassIds": [
+        "b3572422-6629-426d-9df2-20a4c3eaa3e6",
+        "659af1c0-7967-4009-84ca-7febdab16a3d"
+      ],
+      "id": "aae48c2b-0d63-423c-be38-a780f47a866f",
+      "relatedIds": [],
+      "metadata": {},
+      "createdAt": 1776109751621,
+      "updatedAt": 1776109751621
+    },
+    {
+      "type": "scenario",
+      "name": "Morning glance before leaving",
+      "userClassIds": [
+        "b3572422-6629-426d-9df2-20a4c3eaa3e6"
+      ],
+      "setting": "Kitchen counter, 7:15 AM, grabbing keys and wallet before commute",
+      "narrative": "Sam picks up their wallet and glances at the InfoBento card tucked in the clear pocket. The display shows todays weather (62F, partly cloudy), a countdown (14 days to vacation), and a motivational quote. Sam grabs a jacket based on the weather and heads out. Total interaction time: zero — the display refreshed at 6 AM via the phone sitting on the nightstand.",
+      "status": "draft",
+      "preconditions": [
+        "Device is paired to phone",
+        "Config has weather, countdown, and quote boxes",
+        "Phone was in BLE range at scheduled refresh time"
+      ],
+      "postconditions": [
+        "User has ambient awareness of weather and upcoming event without touching any device"
+      ],
+      "frames": [],
+      "id": "37a68e08-667f-49a1-94dd-aac6024cb697",
+      "relatedIds": [],
+      "metadata": {},
+      "createdAt": 1776109783521,
+      "updatedAt": 1776109783521
+    },
+    {
+      "type": "scenario",
+      "name": "First-time web configuration",
+      "userClassIds": [
+        "b3572422-6629-426d-9df2-20a4c3eaa3e6",
+        "659af1c0-7967-4009-84ca-7febdab16a3d"
+      ],
+      "setting": "Home office, laptop open, just unboxed the InfoBento device",
+      "narrative": "Alex opens infobento.com on their laptop. The web UI shows an empty 240x200 canvas. They click Add Box and choose Weather — a city name field appears, they type Portland and select from the autocomplete. They add a Countdown box, set the target date to their anniversary. They add a Text box and type a short personal motto. The live preview updates after each change, showing exactly what the eInk display will look like. They click Export Config and save the JSON to pair with the phone app later.",
+      "status": "draft",
+      "preconditions": [
+        "Web UI is accessible",
+        "No account required"
+      ],
+      "postconditions": [
+        "User has a saved BentoConfig with 3 boxes",
+        "Config is in localStorage and optionally exported as JSON"
+      ],
+      "frames": [],
+      "id": "f55865c1-bf78-440d-ab19-804879964a88",
+      "relatedIds": [],
+      "metadata": {},
+      "createdAt": 1776109783659,
+      "updatedAt": 1776109783659
+    },
+    {
+      "type": "scenario",
+      "name": "Gifting a pre-configured device",
+      "userClassIds": [
+        "aa446239-b830-4169-9515-a8399230d061"
+      ],
+      "setting": "Living room, wrapping gifts for a friends birthday",
+      "narrative": "Jordan buys an InfoBento for their friend who loves hiking. They open the web UI and configure 3 boxes: weather for the friends city, a countdown to their next planned hike, and a QR code linking to their shared trail playlist. Jordan exports the config as JSON and includes a card with pairing instructions. The friend opens the gift, pairs it with their phone in under a minute, and the display shows Jordans curated layout.",
+      "status": "draft",
+      "preconditions": [
+        "Web UI accessible without account",
+        "Config is exportable as JSON file"
+      ],
+      "postconditions": [
+        "Recipient has a working device with a personalized config they did not have to create themselves"
+      ],
+      "frames": [],
+      "id": "c2f2634a-9a77-47b2-8706-004b7db623d7",
+      "relatedIds": [],
+      "metadata": {},
+      "createdAt": 1776109783804,
+      "updatedAt": 1776109783804
+    },
+    {
+      "type": "wireframe",
+      "name": "eInk Display Layout",
+      "screenName": "DeviceDisplay",
+      "description": "The 240x200 pixel eInk screen showing 4-6 stacked bento boxes with 1px borders",
+      "fidelity": "low",
+      "status": "draft",
+      "elements": [
+        "Header area: box type icon + label (bold, 10px height)",
+        "Content area: box-specific data (weather temp, countdown days, quote text, QR image, static text)",
+        "1px horizontal dividers between boxes",
+        "Full 240px width per box",
+        "Variable height per box (28-45px depending on count)"
+      ],
+      "annotations": [
+        "1-bit only — no grayscale, no anti-aliasing",
+        "MSB-first bit packing, 30 bytes per row",
+        "Boxes stack vertically with no horizontal subdivision",
+        "Font must be legible at 8-12px on physical 2.9 inch display"
+      ],
+      "externalRef": null,
+      "userClassIds": [
+        "b3572422-6629-426d-9df2-20a4c3eaa3e6",
+        "659af1c0-7967-4009-84ca-7febdab16a3d"
+      ],
+      "scenarioIds": [
+        "37a68e08-667f-49a1-94dd-aac6024cb697"
+      ],
+      "id": "45f1b6df-a76f-4c48-8ab2-bd1cfc067f00",
+      "relatedIds": [],
+      "metadata": {},
+      "createdAt": 1776109802135,
+      "updatedAt": 1776109802135
+    },
+    {
+      "type": "wireframe",
+      "name": "Web Configuration Editor",
+      "screenName": "ConfigEditor",
+      "description": "Main web UI screen where users add, remove, reorder bento boxes and see a live preview",
+      "fidelity": "low",
+      "status": "draft",
+      "elements": [
+        "Left panel: 240x200 live preview (scaled up 2-3x for visibility)",
+        "Right panel: box list with drag handles for reordering",
+        "Add Box button with type picker dropdown",
+        "Per-box config form (city for weather, date for countdown, URL for QR, text input for text)",
+        "Export Config / Import Config buttons",
+        "Refresh schedule selector (1x or 2x per day)"
+      ],
+      "annotations": [
+        "Preview should render identically to actual eInk output (1-bit, sharp pixels)",
+        "No account required — config lives in localStorage",
+        "Responsive layout for mobile browsers (phone config use case)"
+      ],
+      "externalRef": null,
+      "userClassIds": [
+        "b3572422-6629-426d-9df2-20a4c3eaa3e6",
+        "659af1c0-7967-4009-84ca-7febdab16a3d",
+        "aa446239-b830-4169-9515-a8399230d061"
+      ],
+      "scenarioIds": [
+        "f55865c1-bf78-440d-ab19-804879964a88",
+        "c2f2634a-9a77-47b2-8706-004b7db623d7"
+      ],
+      "id": "ba5ac02b-0ae8-4b5c-8559-a1bd2f2b76a2",
+      "relatedIds": [],
+      "metadata": {},
+      "createdAt": 1776109802284,
+      "updatedAt": 1776109802284
+    },
+    {
+      "type": "note",
+      "title": "Open Question Decisions — Round 1 and 2",
+      "body": "Decisions made during initial planning sessions:\n\n## Round 1 (resolved)\n- MVP box types: weather (Open-Meteo), quote (ZenQuotes), countdown, QR, text — all free, no auth\n- Web framework: Hono + Vite (same-port architecture like phasebot)\n- Web app private during dev, co-hosted with tiles- and webmap.dev later\n- Version starts at 0.1.0\n\n## Round 2 (in progress)\n1. MVP scope: start with text + countdown + weather to prove pipeline, then add QR + quote\n2. Weather location: Open-Meteo geocoding API, user types city name\n3. Config persistence: localStorage + JSON export/import (no server state)\n4. Refresh scheduling: web UI sets schedule, phone app executes it, device just responds\n5. Design language: clean/minimal with sharp borders, receipt-style typography\n6. Name/branding: pending confirmation — InfoBento as working title\n\n## Still open\n- BLE version: 4.2 vs 5.0\n- Battery capacity target\n- Background BLE on iOS constraints\n- Compression for frame transfer",
+      "tags": [
+        "decisions",
+        "open-questions",
+        "planning"
+      ],
+      "id": "c43ea69b-cc01-4f3e-a925-1df57dace2b7",
+      "relatedIds": [],
+      "metadata": {},
+      "createdAt": 1776109817150,
+      "updatedAt": 1776109817150
+    }
+  ],
+  "extensions": {}
+}
