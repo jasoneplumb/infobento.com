@@ -4,7 +4,7 @@
   "description": "",
   "domain": "consumer-electronics",
   "version": 1,
-  "currentPhase": "analyze",
+  "currentPhase": "design",
   "createdAt": 1776109685435,
   "artifacts": [
     {
@@ -42,9 +42,7 @@
       "type": "user-class",
       "name": "Daily Glancer",
       "description": "Busy professional who wants a passive, zero-interaction display of key daily info — weather, next event, motivational quote — visible at a glance without reaching for a phone",
-      "workRoleIds": [
-        "7f7a8122-1767-4414-8231-77cb80d1372c"
-      ],
+      "workRoleIds": ["7f7a8122-1767-4414-8231-77cb80d1372c"],
       "goals": [
         "See todays weather and schedule without unlocking phone",
         "Reduce screen time by offloading ambient info to a passive display",
@@ -66,9 +64,7 @@
       "type": "user-class",
       "name": "Desk Decorator",
       "description": "Person who values aesthetic, minimal desk accessories and wants a small display that shows a rotating quote, countdown to vacation, or personal QR code",
-      "workRoleIds": [
-        "7f7a8122-1767-4414-8231-77cb80d1372c"
-      ],
+      "workRoleIds": ["7f7a8122-1767-4414-8231-77cb80d1372c"],
       "goals": [
         "Have a visually pleasing desk accessory that is also functional",
         "Show countdown to meaningful events",
@@ -90,9 +86,7 @@
       "type": "user-class",
       "name": "Gift Giver",
       "description": "Someone who wants to give a thoughtful, personalized tech gift that is useful without being overwhelming",
-      "workRoleIds": [
-        "1d049ae1-fdef-4271-b6cd-73e244028579"
-      ],
+      "workRoleIds": ["1d049ae1-fdef-4271-b6cd-73e244028579"],
       "goals": [
         "Give a unique gift that feels personal and curated",
         "Pre-configure the device so the recipient can use it immediately",
@@ -227,9 +221,7 @@
       "priority": "must",
       "rationale": "Portability is key — device travels with user in wallet, phone bridges connectivity",
       "status": "accepted",
-      "userClassIds": [
-        "b3572422-6629-426d-9df2-20a4c3eaa3e6"
-      ],
+      "userClassIds": ["b3572422-6629-426d-9df2-20a4c3eaa3e6"],
       "id": "557e42c6-ca3d-4502-8a22-dd2685ba7e33",
       "relatedIds": [],
       "metadata": {},
@@ -313,9 +305,7 @@
     {
       "type": "scenario",
       "name": "Morning glance before leaving",
-      "userClassIds": [
-        "b3572422-6629-426d-9df2-20a4c3eaa3e6"
-      ],
+      "userClassIds": ["b3572422-6629-426d-9df2-20a4c3eaa3e6"],
       "setting": "Kitchen counter, 7:15 AM, grabbing keys and wallet before commute",
       "narrative": "Sam picks up their wallet and glances at the InfoBento card tucked in the clear pocket. The display shows todays weather (62F, partly cloudy), a countdown (14 days to vacation), and a motivational quote. Sam grabs a jacket based on the weather and heads out. Total interaction time: zero — the display refreshed at 6 AM via the phone sitting on the nightstand.",
       "status": "draft",
@@ -344,10 +334,7 @@
       "setting": "Home office, laptop open, just unboxed the InfoBento device",
       "narrative": "Alex opens infobento.com on their laptop. The web UI shows an empty 240x200 canvas. They click Add Box and choose Weather — a city name field appears, they type Portland and select from the autocomplete. They add a Countdown box, set the target date to their anniversary. They add a Text box and type a short personal motto. The live preview updates after each change, showing exactly what the eInk display will look like. They click Export Config and save the JSON to pair with the phone app later.",
       "status": "draft",
-      "preconditions": [
-        "Web UI is accessible",
-        "No account required"
-      ],
+      "preconditions": ["Web UI is accessible", "No account required"],
       "postconditions": [
         "User has a saved BentoConfig with 3 boxes",
         "Config is in localStorage and optionally exported as JSON"
@@ -362,16 +349,11 @@
     {
       "type": "scenario",
       "name": "Gifting a pre-configured device",
-      "userClassIds": [
-        "aa446239-b830-4169-9515-a8399230d061"
-      ],
+      "userClassIds": ["aa446239-b830-4169-9515-a8399230d061"],
       "setting": "Living room, wrapping gifts for a friends birthday",
       "narrative": "Jordan buys an InfoBento for their friend who loves hiking. They open the web UI and configure 3 boxes: weather for the friends city, a countdown to their next planned hike, and a QR code linking to their shared trail playlist. Jordan exports the config as JSON and includes a card with pairing instructions. The friend opens the gift, pairs it with their phone in under a minute, and the display shows Jordans curated layout.",
       "status": "draft",
-      "preconditions": [
-        "Web UI accessible without account",
-        "Config is exportable as JSON file"
-      ],
+      "preconditions": ["Web UI accessible without account", "Config is exportable as JSON file"],
       "postconditions": [
         "Recipient has a working device with a personalized config they did not have to create themselves"
       ],
@@ -407,9 +389,7 @@
         "b3572422-6629-426d-9df2-20a4c3eaa3e6",
         "659af1c0-7967-4009-84ca-7febdab16a3d"
       ],
-      "scenarioIds": [
-        "37a68e08-667f-49a1-94dd-aac6024cb697"
-      ],
+      "scenarioIds": ["37a68e08-667f-49a1-94dd-aac6024cb697"],
       "id": "45f1b6df-a76f-4c48-8ab2-bd1cfc067f00",
       "relatedIds": [],
       "metadata": {},
@@ -456,11 +436,7 @@
       "type": "note",
       "title": "Open Question Decisions — Round 1 and 2",
       "body": "Decisions made during initial planning sessions:\n\n## Round 1 (resolved)\n- MVP box types: weather (Open-Meteo), quote (ZenQuotes), countdown, QR, text — all free, no auth\n- Web framework: Hono + Vite (same-port architecture like phasebot)\n- Web app private during dev, co-hosted with tiles- and webmap.dev later\n- Version starts at 0.1.0\n\n## Round 2 (resolved)\n1. MVP scope: text + countdown + weather first (proves pipeline), then QR + quote\n2. Weather location: Open-Meteo geocoding API, user types city name\n3. Config persistence: localStorage + JSON export/import (no server state)\n4. Refresh scheduling: web UI sets schedule, phone app executes it, device responds\n5. Design language: clean/minimal with sharp borders, receipt-style typography\n6. Name: InfoBento (confirmed final)\n\n## Round 3 (resolved)\n1. Implementation order: text -> countdown -> weather -> QR -> quote\n2. Mobile web layout: stack vertically (preview on top, config below)\n3. Font: embedded small fixed-width bitmap font (5x7 or 6x8 pixel, embedded-systems style)\n4. QR sizing: larger allocation — half display height or more, not constrained to a thin box\n5. Name confirmed: InfoBento is final\n\n## Still open\n- BLE version: 4.2 vs 5.0\n- Battery capacity target\n- Background BLE on iOS constraints\n- Compression for frame transfer\n- Specific bitmap font selection (5x7 vs 6x8 vs other)\n- Exact QR box height allocation",
-      "tags": [
-        "decisions",
-        "open-questions",
-        "planning"
-      ],
+      "tags": ["decisions", "open-questions", "planning"],
       "id": "c43ea69b-cc01-4f3e-a925-1df57dace2b7",
       "relatedIds": [],
       "metadata": {},
@@ -476,9 +452,7 @@
       "priority": "must",
       "rationale": "A QR code in a 35px-tall box would be too small to scan reliably. Larger allocation ensures real-world utility.",
       "status": "accepted",
-      "userClassIds": [
-        "659af1c0-7967-4009-84ca-7febdab16a3d"
-      ],
+      "userClassIds": ["659af1c0-7967-4009-84ca-7febdab16a3d"],
       "id": "ddd8be86-8b72-447a-bc33-99a735151968",
       "relatedIds": [],
       "metadata": {},
@@ -506,6 +480,43 @@
       "metadata": {},
       "createdAt": 1776110090095,
       "updatedAt": 1776110090095
+    },
+    {
+      "type": "prototype",
+      "name": "Text Box Rendering Pipeline",
+      "description": "End-to-end rendering pipeline proving config -> layout -> font -> draw -> frame buffer. Text box is the first fully implemented box type.",
+      "fidelity": "high",
+      "format": "TypeScript (packages/core + packages/renderer)",
+      "scope": "Core types, layout engine, embedded bitmap font, drawing primitives, text box renderer",
+      "designArtifactIds": ["45f1b6df-a76f-4c48-8ab2-bd1cfc067f00"],
+      "location": "packages/renderer/src/boxes/text.ts",
+      "knownLimitations": [
+        "Only text box type implemented — other types render as placeholders",
+        "No PNG preview endpoint yet",
+        "Font is 5x7 only — no bold variant or larger sizes",
+        "No center alignment implemented yet",
+        "Maximum 6 boxes enforced by layout truncation"
+      ],
+      "id": "dc655ce4-a20a-498c-bce0-d6bdbdbe44c0",
+      "relatedIds": [],
+      "metadata": {},
+      "createdAt": 1776112977017,
+      "updatedAt": 1776112977017
+    },
+    {
+      "type": "finding",
+      "title": "Type system allowed box type / config mismatch",
+      "description": "Original BentoBox interface used a single optional BoxConfig field, allowing { type: weather, config: { type: text } } without type error. Fixed with discriminated union (TextBentoBox | UnconfiguredBentoBox).",
+      "findingType": "problem",
+      "severity": "minor",
+      "evidence": "Claude code review round 2, item #4 — TypeScript accepted mismatched type/config pairs",
+      "recommendation": "Maintain discriminated union pattern as new box types are added. Each box type gets its own interface pairing type with config.",
+      "status": "fixed",
+      "id": "1d1e725b-0c62-484e-ab4b-da814ff2df28",
+      "relatedIds": [],
+      "metadata": {},
+      "createdAt": 1776112977161,
+      "updatedAt": 1776112977161
     }
   ],
   "extensions": {}
