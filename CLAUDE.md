@@ -23,8 +23,25 @@ npm run build && npm test && npm run lint && npm run format:check
 infobento.com/
 ├── packages/core/      @infobento/core: types, bento box definitions, layout engine
 ├── packages/renderer/  @infobento/renderer: 1-bit eInk frame buffer generation
-├── packages/api/       @infobento/api: stateless pure-function cloud API
-└── packages/web/       @infobento/web: web configuration interface (private)
+├── packages/api/       @infobento/api: Hono server — stateless API + static file serving
+└── packages/web/       @infobento/web: Vite + React configuration interface (private)
+```
+
+## Dev Server Architecture
+
+Same-port pattern (like phasebot):
+
+- **Dev:** Vite dev server (port 5173) with HMR. Proxies `/api` to Hono (port 4000).
+- **Prod:** Hono serves both API routes and built web static files from a single port.
+
+```bash
+# Development (two terminals)
+npm run dev -w @infobento/api    # Hono API on :4000 (tsx watch)
+npm run dev -w @infobento/web    # Vite HMR on :5173, proxies /api to :4000
+
+# Production
+npm run build                    # Build all packages + Vite
+npm start -w @infobento/api      # Hono serves everything on :4000
 ```
 
 ## Module Boundaries
@@ -80,6 +97,7 @@ The renderer produces 1-bit frame buffers (6000 bytes for 240x200). The API is s
 
 ## Deployment
 
-- **Web app:** Private during initial development. Will eventually be co-hosted alongside tiles- (Planned Activities) and webmap.dev on the same server.
-- **API:** Stateless, edge-deployable. No server-side state.
+- **Single-port production:** Hono serves API + web UI from one port (default 4000). Will eventually be co-hosted alongside tiles- and webmap.dev on the same server.
+- **API:** Stateless pure functions, edge-deployable (Hono runs on Node, Cloudflare Workers, Deno, Bun).
+- **Web app:** Private during initial development.
 - **GitHub repo:** Private. Use `review-requested` label on PRs to trigger Claude review.

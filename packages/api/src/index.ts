@@ -2,7 +2,7 @@
  * Intent: Stateless pure-function API for generating eInk display frames
  * Context: Called by the device (via phone bridge) to get updated display data
  * Pattern: Pure functions — no server state, edge-deployable
- * Future: Add Hono server, POST /render, POST /preview, GET /box-types endpoints
+ * Future: Add data source fetchers for weather, quotes, etc.
  */
 
 import type { BentoConfig } from '@infobento/core';

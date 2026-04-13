@@ -48,8 +48,26 @@ InfoBento is a portable eInk display device that shows modular boxes of customiz
 - **api** depends on core and renderer (orchestrates rendering)
 - **web** depends on core (for types), calls api via HTTP (not direct import)
 
+## Server Architecture
+
+Same-port pattern (like phasebot): Hono serves both API and web UI.
+
+```
+Development:
+  Vite (:5173)  ──proxy /api──►  Hono (:4000)
+   └── HMR for React               └── API routes only
+
+Production:
+  Hono (:4000)
+   ├── /api/*        → API routes (pure functions)
+   └── /*            → Static files from web/dist (SPA fallback)
+```
+
+- **Hono** chosen for: edge deployability (Node, Cloudflare Workers, Deno, Bun), lightweight, pure-function friendly
+- **Vite proxy** in dev: `/api` requests forwarded to Hono; all other requests served by Vite with HMR
+
 ## Deployment
 
-- **Web app:** Private during development. Will be co-hosted with tiles- and webmap.dev.
-- **API:** Stateless, edge-deployable (Cloudflare Workers, Vercel Edge, etc.)
+- **Single port:** Hono serves API + web UI from one port (default 4000). Private during development. Will be co-hosted with tiles- and webmap.dev.
+- **Edge option:** API can also deploy standalone to Cloudflare Workers, Vercel Edge, etc.
 - **Device firmware:** Separate repo (future)

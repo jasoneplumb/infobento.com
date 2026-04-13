@@ -1,29 +1,39 @@
 # API Reference
 
-The InfoBento API is a stateless pure-function service. Every endpoint takes input and returns output with no server-side state.
+The InfoBento API is a **Hono** HTTP server with stateless pure-function endpoints. In production, it serves both API routes and the built web UI from a single port (default 4000).
 
 ## Design Principles
 
 1. **Pure functions** — Same input always produces same output
 2. **No server state** — Config comes from the client, not a database
-3. **Edge-deployable** — Runs on Cloudflare Workers, Vercel Edge, etc.
+3. **Edge-deployable** — Hono runs on Node, Cloudflare Workers, Deno, Bun
 4. **Binary output** — Frame buffers are packed 1-bit-per-pixel arrays
+5. **Same-port serving** — API + static web UI from one server (like phasebot)
 
-## Planned Endpoints
+## Running
 
-### POST /api/render
+```bash
+# Development (API only, Vite proxies /api)
+npm run dev -w @infobento/api     # tsx watch on :4000
 
-Render a bento config into a binary frame buffer.
+# Production (API + static web UI)
+npm run build
+npm start -w @infobento/api       # Hono on :4000
+```
 
-**Request:** `BentoConfig` JSON
-**Response:** Binary frame buffer (6000 bytes for 240x200)
+## Endpoints
 
-### POST /api/preview
+### GET /api/health
 
-Render a bento config into a PNG preview image.
+Health check endpoint.
 
-**Request:** `BentoConfig` JSON
-**Response:** PNG image
+**Response:** `{ status: "ok", version: "0.1.0" }`
+
+### GET /api/box-types
+
+List available bento box types and their configuration options.
+
+**Response:** Array of `{ type, label, requiresAuth }` objects
 
 ### POST /api/validate
 
@@ -32,14 +42,17 @@ Validate a bento config without rendering.
 **Request:** `BentoConfig` JSON
 **Response:** `{ valid: boolean, errors: string[] }`
 
-### GET /api/box-types
+### POST /api/render
 
-List available bento box types and their configuration options.
+Render a bento config into a binary frame buffer.
 
-**Response:** Array of box type definitions
+**Request:** `BentoConfig` JSON
+**Response:** Binary frame buffer (6000 bytes for 240x200)
+**Headers:** `X-Frame-Width`, `X-Frame-Height`
 
-### GET /api/health
+### POST /api/preview (planned)
 
-Health check endpoint.
+Render a bento config into a PNG preview image.
 
-**Response:** `{ status: "ok", version: "0.1.0" }`
+**Request:** `BentoConfig` JSON
+**Response:** PNG image
