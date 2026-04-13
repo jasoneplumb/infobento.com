@@ -12,7 +12,7 @@ import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { serveStatic } from '@hono/node-server/serve-static';
 import { serve } from '@hono/node-server';
-import { generateFrame, validateConfig } from './index.js';
+import { generateFrame, generatePreview, validateConfig } from './index.js';
 import { DISPLAY_WIDTH, DISPLAY_HEIGHT } from '@infobento/core';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -58,6 +58,19 @@ app.post('/api/render', async (c) => {
       'X-Frame-Width': String(frame.width),
       'X-Frame-Height': String(frame.height),
     },
+  });
+});
+
+app.post('/api/preview', async (c) => {
+  const config = await c.req.json();
+  const validation = validateConfig(config);
+  if (!validation.valid) {
+    return c.json({ error: 'Invalid config', details: validation.errors }, 400);
+  }
+  const scale = Number(c.req.query('scale') ?? '3');
+  const png = generatePreview(config, scale);
+  return new Response(png, {
+    headers: { 'Content-Type': 'image/png' },
   });
 });
 

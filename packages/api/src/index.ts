@@ -7,7 +7,7 @@
 
 import type { BentoConfig } from '@infobento/core';
 import type { FrameBuffer } from '@infobento/renderer';
-import { render } from '@infobento/renderer';
+import { render, frameToPng } from '@infobento/renderer';
 
 /**
  * intent: Generate a frame buffer from a bento configuration
@@ -16,6 +16,12 @@ import { render } from '@infobento/renderer';
  */
 export function generateFrame(config: BentoConfig): FrameBuffer {
   return render(config);
+}
+
+/** Generate a PNG preview image from a bento configuration */
+export function generatePreview(config: BentoConfig, scale = 3): Uint8Array {
+  const fb = render(config);
+  return frameToPng(fb, scale);
 }
 
 /** Validate a bento configuration without rendering */
