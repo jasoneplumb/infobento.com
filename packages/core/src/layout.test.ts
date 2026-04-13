@@ -56,6 +56,25 @@ describe('calculateLayout', () => {
     }
   });
 
+  it('handles multiple QR boxes without overflow', () => {
+    const result = calculateLayout(
+      makeConfig([makeBox('1', 'qr'), makeBox('2', 'qr'), makeBox('3', 'text')]),
+    );
+
+    // All boxes must fit within display
+    const last = result.boxes[result.boxes.length - 1]!;
+    expect(last.y + last.height).toBeLessThanOrEqual(DISPLAY_HEIGHT);
+
+    // Non-QR box must have at least MIN_BOX_HEIGHT
+    const textBox = result.boxes.find((lb) => lb.box.type === 'text')!;
+    expect(textBox.height).toBeGreaterThanOrEqual(20);
+
+    // No negative heights
+    for (const lb of result.boxes) {
+      expect(lb.height).toBeGreaterThan(0);
+    }
+  });
+
   it('boxes do not overlap or exceed display bounds', () => {
     const boxes = [makeBox('1'), makeBox('2'), makeBox('3'), makeBox('4')];
     const result = calculateLayout(makeConfig(boxes));

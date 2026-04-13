@@ -17,19 +17,8 @@ export type {
   LayoutResult,
 } from './types.js';
 
+// Re-export constants
+export { DISPLAY_WIDTH, DISPLAY_HEIGHT, BOX_DIVIDER_PX, DEFAULT_DEVICE } from './constants.js';
+
 // Re-export layout engine
 export { calculateLayout } from './layout.js';
-
-/** Pixel dimensions of the eInk display */
-export const DISPLAY_WIDTH = 240;
-export const DISPLAY_HEIGHT = 200;
-
-/** Padding between bento boxes (divider line) */
-export const BOX_DIVIDER_PX = 1;
-
-/** Default device profile for the 2.9" display */
-export const DEFAULT_DEVICE = {
-  widthPx: DISPLAY_WIDTH,
-  heightPx: DISPLAY_HEIGHT,
-  deviceId: 'infobento-2.9',
-} as const;

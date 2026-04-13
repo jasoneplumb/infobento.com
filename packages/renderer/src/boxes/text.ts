@@ -7,7 +7,7 @@
 
 import type { FrameBuffer } from '../index.js';
 import type { LayoutBox, TextBoxConfig } from '@infobento/core';
-import { drawRect, drawText, drawTextWrapped } from '../draw.js';
+import { setPixel, drawRect, drawText, drawTextWrapped } from '../draw.js';
 import { FONT_HEIGHT, CHAR_ADVANCE } from '../font.js';
 
 /** Padding inside the box border */
@@ -32,17 +32,10 @@ export function renderTextBox(fb: FrameBuffer, layout: LayoutBox, config: TextBo
   const labelX = x + INNER_PAD + 1;
   drawText(fb, labelX, labelY, layout.box.label.toUpperCase(), width - INNER_PAD * 2 - 2);
 
-  // Draw divider line below header
+  // Draw dotted divider line below header
   const dividerY = y + HEADER_HEIGHT;
   for (let dx = x + 1; dx < x + width - 1; dx++) {
-    // Dotted line: every other pixel
-    if (dx % 2 === 0) {
-      const byteWidth = Math.ceil(fb.width / 8);
-      const byteIndex = dividerY * byteWidth + Math.floor(dx / 8);
-      const bitIndex = 7 - (dx % 8);
-      const current = fb.data[byteIndex];
-      if (current != null) fb.data[byteIndex] = current | (1 << bitIndex);
-    }
+    if (dx % 2 === 0) setPixel(fb, dx, dividerY);
   }
 
   // Draw text content in body area

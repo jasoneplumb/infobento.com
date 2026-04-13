@@ -6,7 +6,7 @@
  */
 
 import type { BentoConfig, DeviceProfile, LayoutBox, LayoutResult } from './types.js';
-import { BOX_DIVIDER_PX, DEFAULT_DEVICE } from './index.js';
+import { BOX_DIVIDER_PX, DEFAULT_DEVICE } from './constants.js';
 
 /**
  * intent: Minimum height for a non-QR bento box (ensures text is readable)
@@ -50,8 +50,13 @@ export function calculateLayout(
   let nonQRHeight: number;
 
   if (hasQR && nonQRCount > 0) {
-    // QR gets ~half, rest split among non-QR boxes
-    qrHeight = Math.floor(availableHeight * QR_HEIGHT_RATIO);
+    // QR gets ~half, but cap total QR allocation to avoid overflow with multiple QR boxes
+    const maxQRShare = availableHeight - nonQRCount * MIN_BOX_HEIGHT;
+    const totalQRHeight = Math.min(
+      Math.floor(availableHeight * QR_HEIGHT_RATIO) * qrCount,
+      maxQRShare,
+    );
+    qrHeight = Math.floor(totalQRHeight / qrCount);
     const remainingHeight = availableHeight - qrHeight * qrCount;
     nonQRHeight = Math.floor(remainingHeight / nonQRCount);
   } else if (hasQR) {
@@ -82,7 +87,10 @@ export function calculateLayout(
       height = isQR ? qrHeight : nonQRHeight;
     }
 
-    height = Math.max(height, MIN_BOX_HEIGHT);
+    // Only clamp non-last boxes — last box absorbs rounding residue
+    if (!isLast) {
+      height = Math.max(height, MIN_BOX_HEIGHT);
+    }
 
     layoutBoxes.push({
       box,
