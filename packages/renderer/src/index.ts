@@ -8,16 +8,11 @@
 import type { BentoConfig, DeviceProfile, LayoutBox } from '@infobento/core';
 import { DISPLAY_WIDTH, DISPLAY_HEIGHT, calculateLayout } from '@infobento/core';
 import { renderTextBox, renderPlaceholderBox } from './boxes/text.js';
+import type { FrameBuffer } from './types.js';
 
-// Re-export PNG conversion
+// Re-export PNG conversion and types
 export { frameToPng } from './png.js';
-
-/** 1-bit frame buffer: each byte holds 8 horizontal pixels */
-export interface FrameBuffer {
-  readonly width: number;
-  readonly height: number;
-  readonly data: Uint8Array;
-}
+export type { FrameBuffer } from './types.js';
 
 /**
  * intent: Create an empty (white) frame buffer for the target display

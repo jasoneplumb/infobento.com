@@ -1,7 +1,9 @@
 import { describe, it, expect } from 'vitest';
+import { PNG } from 'pngjs';
 import { render } from './index.js';
 import { frameToPng } from './png.js';
 import type { BentoConfig } from '@infobento/core';
+import type { FrameBuffer } from './types.js';
 
 const textConfig: BentoConfig = {
   boxes: [
@@ -52,5 +54,24 @@ describe('frameToPng', () => {
     // Still valid PNG even with no boxes (all white)
     expect(png[0]).toBe(0x89);
     expect(png.length).toBeGreaterThan(0);
+  });
+
+  it('renders white pixels for unset bits', () => {
+    // All-zero frame buffer = all white (unset)
+    const whiteFb: FrameBuffer = { width: 8, height: 1, data: new Uint8Array([0x00]) };
+    const pngBytes = frameToPng(whiteFb, 1);
+    const decoded = PNG.sync.read(Buffer.from(pngBytes));
+    // R channel of pixel 0 should be 0xff (white)
+    expect(decoded.data[0]).toBe(0xff);
+  });
+
+  it('renders black pixels for set bits', () => {
+    // High bit set = pixel 0 is black
+    const blackFb: FrameBuffer = { width: 8, height: 1, data: new Uint8Array([0b10000000]) };
+    const pngBytes = frameToPng(blackFb, 1);
+    const decoded = PNG.sync.read(Buffer.from(pngBytes));
+    // pixel (0,0) should be black (R=0), pixel (1,0) should be white (R=255)
+    expect(decoded.data[0]).toBe(0x00);
+    expect(decoded.data[4]).toBe(0xff);
   });
 });

@@ -6,7 +6,7 @@
  */
 
 import { PNG } from 'pngjs';
-import type { FrameBuffer } from './index.js';
+import type { FrameBuffer } from './types.js';
 
 /**
  * intent: Convert a 1-bit frame buffer to a scaled PNG image
@@ -35,10 +35,12 @@ export function frameToPng(fb: FrameBuffer, scale = 3): Uint8Array {
         for (let dx = 0; dx < scale; dx++) {
           const outX = srcX * scale + dx;
           const outY = srcY * scale + dy;
-          // colorType 0 (grayscale): 2 bytes per pixel (gray + alpha)
-          const idx = (outY * outWidth + outX) * 2;
-          png.data[idx] = gray;
-          png.data[idx + 1] = 0xff; // fully opaque
+          // pngjs data buffer is always 4-byte RGBA regardless of colorType
+          const idx = (outY * outWidth + outX) * 4;
+          png.data[idx] = gray; // R
+          png.data[idx + 1] = gray; // G
+          png.data[idx + 2] = gray; // B
+          png.data[idx + 3] = 0xff; // A
         }
       }
     }

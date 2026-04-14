@@ -67,8 +67,11 @@ app.post('/api/preview', async (c) => {
   if (!validation.valid) {
     return c.json({ error: 'Invalid config', details: validation.errors }, 400);
   }
-  const scale = Number(c.req.query('scale') ?? '3');
-  const png = generatePreview(config, scale);
+  const rawScale = Number(c.req.query('scale') ?? '3');
+  if (!Number.isInteger(rawScale) || rawScale < 1 || rawScale > 8) {
+    return c.json({ error: 'scale must be an integer between 1 and 8' }, 400);
+  }
+  const png = generatePreview(config, rawScale);
   return new Response(png, {
     headers: { 'Content-Type': 'image/png' },
   });
