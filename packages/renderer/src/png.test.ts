@@ -1,7 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { PNG } from 'pngjs';
-import { render } from './index.js';
-import { frameToPng } from './png.js';
+import { render, frameToPng } from './index.js';
 import type { BentoConfig } from '@infobento/core';
 import type { FrameBuffer } from './types.js';
 

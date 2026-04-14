@@ -14,6 +14,9 @@ import type { FrameBuffer } from './types.js';
  * effect: At scale=3, a 240×200 frame becomes a 720×600 PNG (~few KB)
  */
 export function frameToPng(fb: FrameBuffer, scale = 3): Uint8Array {
+  if (!Number.isInteger(scale) || scale < 1) {
+    throw new RangeError(`scale must be a positive integer, got ${scale}`);
+  }
   const outWidth = fb.width * scale;
   const outHeight = fb.height * scale;
   const png = new PNG({ width: outWidth, height: outHeight, colorType: 0 });
