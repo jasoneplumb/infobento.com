@@ -80,16 +80,16 @@ const configC: BentoConfig = {
   boxes: [
     {
       id: '1',
-      label: 'Jason Plumber',
+      label: 'Bento McBoxface',
       type: 'text',
-      config: { type: 'text', text: 'Engineering @ InfoBento' },
+      config: { type: 'text', text: 'Chief Pixel Wrangler @ InfoBento' },
     },
     { id: '2', label: 'QR', type: 'qr' },
     {
       id: '3',
       label: 'Links',
       type: 'text',
-      config: { type: 'text', text: 'github.com/jasoneplumb  linkedin.com/in/jasoneplumb' },
+      config: { type: 'text', text: 'github.com/bentomcboxface  linkedin.com/in/definitely-real' },
     },
   ],
   refreshesPerDay: 1,
