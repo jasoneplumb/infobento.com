@@ -1,267 +1,384 @@
 /**
- * Generate preview images with fabricated plausible data for different box configurations.
- * Outputs individual PNGs and a contact sheet.
+ * Generate preview images using the new design language:
+ * - Two font sizes: hero (2x scale of 5x7 = 10x14) and data (5x7)
+ * - Whitespace separation instead of borders
+ * - Differentiated visual treatment per box type
+ * - 3-4 items max per screen for best readability
  */
 
-import { render, frameToPng, createFrameBuffer } from '@infobento/renderer';
-import type { BentoConfig } from '@infobento/core';
-import { drawRect, drawText, drawTextWrapped, drawHLine } from '../packages/renderer/src/draw.js';
-import { FONT_HEIGHT } from '../packages/renderer/src/font.js';
+import { createFrameBuffer, frameToPng } from '@infobento/renderer';
+import type { FrameBuffer } from '@infobento/renderer';
+import {
+  setPixel,
+  drawRect,
+  drawText,
+  drawTextWrapped,
+  drawHLine,
+} from '../packages/renderer/src/draw.js';
+import { FONT_DATA, FONT_WIDTH, FONT_HEIGHT } from '../packages/renderer/src/font.js';
 import { writeFileSync } from 'node:fs';
 import { PNG } from 'pngjs';
 
 const SCALE = 4;
+const W = 240;
+const H = 200;
 
-// --- Config A: Morning Commuter (5 boxes, dense) ---
-const configA: BentoConfig = {
-  boxes: [
-    {
-      id: '1',
-      label: 'Weather',
-      type: 'text',
-      config: { type: 'text', text: 'Portland 62F Partly Cloudy  H:68 L:55' },
-    },
-    {
-      id: '2',
-      label: 'Next',
-      type: 'text',
-      config: { type: 'text', text: '9:00 AM  Standup w/ team' },
-    },
-    {
-      id: '3',
-      label: 'Countdown',
-      type: 'text',
-      config: { type: 'text', text: '14 days to Maui' },
-    },
-    {
-      id: '4',
-      label: 'Inbox',
-      type: 'text',
-      config: { type: 'text', text: '3 emails  7 slack  1 teams' },
-    },
-    {
-      id: '5',
-      label: 'Quote',
-      type: 'text',
-      config: {
-        type: 'text',
-        text: 'The best time to plant a tree was 20 years ago. The second best time is now.',
-      },
-    },
-  ],
-  refreshesPerDay: 2,
-};
+// --- Hero font: 2x scaled version of the 5x7 bitmap font ---
 
-// --- Config B: Desk Display (3 boxes, spacious) ---
-const configB: BentoConfig = {
-  boxes: [
-    {
-      id: '1',
-      label: 'Today',
-      type: 'text',
-      config: { type: 'text', text: 'Monday April 21, 2026' },
-    },
-    {
-      id: '2',
-      label: 'Focus',
-      type: 'text',
-      config: { type: 'text', text: 'Ship the renderer. Everything else can wait.' },
-    },
-    {
-      id: '3',
-      label: 'Streak',
-      type: 'text',
-      config: { type: 'text', text: '12 days without skipping a workout' },
-    },
-  ],
-  refreshesPerDay: 1,
-};
+const HERO_SCALE = 2;
+const HERO_W = FONT_WIDTH * HERO_SCALE; // 10
+const HERO_H = FONT_HEIGHT * HERO_SCALE; // 14
+const HERO_ADVANCE = (FONT_WIDTH + 1) * HERO_SCALE; // 12
 
-// --- Config C: Networking Card (custom split layout — name left, QR right) ---
-function renderNetworkingCard() {
-  const fb = createFrameBuffer();
-  const W = 240;
-  const PAD = 3;
-  const qrSize = 80;
-  const qrX = W - qrSize - 1; // right-aligned inside outer border
-  const topH = qrSize + 2; // top section height (QR + borders)
-
-  // Outer border for top section
-  drawRect(fb, 0, 0, W, topH);
-
-  // QR placeholder box on the right
-  drawRect(fb, qrX, 1, qrSize, qrSize);
-  // Draw a fake QR pattern inside
-  const qrInner = qrSize - 8;
-  const qrIX = qrX + 4;
-  const qrIY = 5;
-  // Corner squares (QR finder patterns)
-  for (const [cx, cy] of [
-    [qrIX, qrIY],
-    [qrIX + qrInner - 14, qrIY],
-    [qrIX, qrIY + qrInner - 14],
-  ] as const) {
-    drawRect(fb, cx, cy, 14, 14);
-    drawRect(fb, cx + 2, cy + 2, 10, 10);
-    // Fill inner 6x6
-    for (let dy = 4; dy < 10; dy++) {
-      drawHLine(fb, cx + 4, cy + dy, 6);
-    }
-  }
-  // Scatter some dots for the data region
-  for (let dy = 20; dy < qrInner - 4; dy += 4) {
-    for (let dx = 20; dx < qrInner - 4; dx += 4) {
-      if ((dx * 7 + dy * 13) % 5 < 3) {
-        drawHLine(fb, qrIX + dx, qrIY + dy, 2);
-        drawHLine(fb, qrIX + dx, qrIY + dy + 1, 2);
+function drawHeroChar(fb: FrameBuffer, x: number, y: number, char: string): void {
+  const glyph = FONT_DATA[char];
+  if (!glyph) return;
+  for (let row = 0; row < FONT_HEIGHT; row++) {
+    const rowData = glyph[row];
+    if (rowData == null) continue;
+    for (let col = 0; col < FONT_WIDTH; col++) {
+      if (rowData & (1 << (FONT_WIDTH - 1 - col))) {
+        // Fill a HERO_SCALE x HERO_SCALE block
+        for (let dy = 0; dy < HERO_SCALE; dy++) {
+          for (let dx = 0; dx < HERO_SCALE; dx++) {
+            setPixel(fb, x + col * HERO_SCALE + dx, y + row * HERO_SCALE + dy);
+          }
+        }
       }
     }
   }
+}
 
-  // Vertical divider between text and QR
-  const divX = qrX - 1;
-  for (let y = 1; y < topH - 1; y++) {
-    if (y % 2 === 0) drawHLine(fb, divX, y, 1);
+function drawHeroText(
+  fb: FrameBuffer,
+  x: number,
+  y: number,
+  text: string,
+  maxWidth?: number,
+): void {
+  let cx = x;
+  const limit = maxWidth != null ? x + maxWidth : W;
+  for (const char of text) {
+    if (cx + HERO_W > limit) break;
+    drawHeroChar(fb, cx, y, char);
+    cx += HERO_ADVANCE;
+  }
+}
+
+// --- Drawing helpers ---
+
+/** Draw a thin horizontal rule (1px solid line) */
+function drawRule(fb: FrameBuffer, x: number, y: number, width: number): void {
+  drawHLine(fb, x, y, width);
+}
+
+/** Draw small uppercase label text */
+function drawLabel(fb: FrameBuffer, x: number, y: number, text: string): void {
+  drawText(fb, x, y, text.toUpperCase(), W - x);
+}
+
+/** Draw a fake QR code with finder patterns */
+function drawFakeQR(fb: FrameBuffer, x: number, y: number, size: number): void {
+  drawRect(fb, x, y, size, size);
+  const pad = 3;
+  const finderSize = Math.min(12, Math.floor(size / 5));
+  const inner = finderSize - 4;
+
+  // Three finder patterns: TL, TR, BL
+  for (const [fx, fy] of [
+    [x + pad, y + pad],
+    [x + size - pad - finderSize, y + pad],
+    [x + pad, y + size - pad - finderSize],
+  ] as const) {
+    drawRect(fb, fx, fy, finderSize, finderSize);
+    drawRect(fb, fx + 2, fy + 2, finderSize - 4, finderSize - 4);
+    for (let dy = 0; dy < inner; dy++) {
+      drawHLine(
+        fb,
+        fx + 2 + Math.floor((finderSize - 4 - inner) / 2),
+        fy + 2 + Math.floor((finderSize - 4 - inner) / 2) + dy,
+        inner,
+      );
+    }
   }
 
-  // Name and title on the left
-  const textW = divX - PAD * 2;
-  drawText(fb, PAD, PAD, 'BENTO MCBOXFACE', textW);
-  // Dotted divider under name
-  const divY = PAD + FONT_HEIGHT + 2;
-  for (let x = PAD; x < divX - PAD; x++) {
-    if (x % 2 === 0) drawHLine(fb, x, divY, 1);
+  // Scattered data dots
+  const dataStart = pad + finderSize + 2;
+  const dataEnd = size - pad - 2;
+  for (let dy = dataStart; dy < dataEnd; dy += 3) {
+    for (let dx = dataStart; dx < dataEnd; dx += 3) {
+      if ((dx * 7 + dy * 13) % 5 < 3) {
+        setPixel(fb, x + dx, y + dy);
+        setPixel(fb, x + dx + 1, y + dy);
+        setPixel(fb, x + dx, y + dy + 1);
+        setPixel(fb, x + dx + 1, y + dy + 1);
+      }
+    }
   }
-  drawTextWrapped(fb, PAD, divY + 3, 'Chief Pixel Wrangler @ InfoBento', textW, topH - divY - 6);
+}
 
-  // Bottom box: links
-  const botY = topH + 1;
-  const botH = 200 - botY;
-  drawRect(fb, 0, botY, W, botH);
-  drawText(fb, PAD, botY + PAD, 'LINKS', W - PAD * 2);
-  const linkDivY = botY + PAD + FONT_HEIGHT + 2;
-  for (let x = 1; x < W - 1; x++) {
-    if (x % 2 === 0) drawHLine(fb, x, linkDivY, 1);
-  }
-  drawTextWrapped(
-    fb,
-    PAD,
-    linkDivY + 3,
-    'github.com/bentomcboxface  linkedin.com/in/definitely-real',
-    W - PAD * 2,
-    botH - (linkDivY - botY) - 6,
-  );
+// ============================================================
+// Config A: Morning Commuter — hero weather, compact data rows
+// ============================================================
+function renderCommuter(): FrameBuffer {
+  const fb = createFrameBuffer();
+  let y = 4;
+
+  // Weather: hero temperature + conditions
+  drawLabel(fb, 4, y, 'weather');
+  y += FONT_HEIGHT + 3;
+  drawHeroText(fb, 4, y, '62F');
+  // Conditions next to hero temp
+  drawText(fb, 4 + 4 * HERO_ADVANCE + 4, y + 2, 'Partly Cloudy', W - 60);
+  drawText(fb, 4 + 4 * HERO_ADVANCE + 4, y + 2 + FONT_HEIGHT + 2, 'H:68  L:55', W - 60);
+  y += HERO_H + 6;
+
+  // Thin rule separator
+  drawRule(fb, 4, y, W - 8);
+  y += 5;
+
+  // Next event
+  drawLabel(fb, 4, y, 'next');
+  y += FONT_HEIGHT + 2;
+  drawHeroText(fb, 4, y, '9:00');
+  drawText(fb, 4 + 5 * HERO_ADVANCE + 4, y + 4, 'Standup w/ team', W - 80);
+  y += HERO_H + 6;
+
+  drawRule(fb, 4, y, W - 8);
+  y += 5;
+
+  // Countdown
+  drawLabel(fb, 4, y, 'countdown');
+  y += FONT_HEIGHT + 2;
+  drawHeroText(fb, 4, y, '14');
+  drawText(fb, 4 + 3 * HERO_ADVANCE + 4, y + 4, 'days to Maui', W - 50);
+  y += HERO_H + 6;
+
+  drawRule(fb, 4, y, W - 8);
+  y += 5;
+
+  // Inbox counts — compact row
+  drawLabel(fb, 4, y, 'inbox');
+  y += FONT_HEIGHT + 2;
+  drawText(fb, 4, y, '3 email  7 slack  1 teams', W - 8);
 
   return fb;
 }
 
-// --- Config D: Kitchen Counter (4 boxes, practical) ---
-const configD: BentoConfig = {
-  boxes: [
-    {
-      id: '1',
-      label: 'Weather',
-      type: 'text',
-      config: { type: 'text', text: '58F Rainy  Precip 80%  Wind 12mph NW' },
-    },
-    {
-      id: '2',
-      label: 'Agenda',
-      type: 'text',
-      config: {
-        type: 'text',
-        text: '8:30 School drop-off  10:00 Dentist  3:15 Pickup  6:00 Dinner @ Pok Pok',
-      },
-    },
-    {
-      id: '3',
-      label: 'Groceries',
-      type: 'text',
-      config: { type: 'text', text: 'Eggs  Milk  Sourdough  Cilantro  Limes' },
-    },
-    {
-      id: '4',
-      label: 'Doors',
-      type: 'text',
-      config: { type: 'text', text: 'Front: Locked  Garage: Locked  Back: UNLOCKED' },
-    },
-  ],
-  refreshesPerDay: 2,
-};
+// ============================================================
+// Config B: Desk Display — spacious, 3 items, big focus text
+// ============================================================
+function renderDesk(): FrameBuffer {
+  const fb = createFrameBuffer();
+  let y = 6;
 
-// --- Config E: Minimal (2 boxes, zen) ---
-const configE: BentoConfig = {
-  boxes: [
-    {
-      id: '1',
-      label: 'Thought',
-      type: 'text',
-      config: {
-        type: 'text',
-        text: 'Simplicity is the ultimate sophistication. -- Leonardo da Vinci',
-      },
-    },
-    { id: '2', label: 'Days Alive', type: 'text', config: { type: 'text', text: '13,297' } },
-  ],
-  refreshesPerDay: 1,
-};
+  // Date: hero
+  drawLabel(fb, 4, y, 'today');
+  y += FONT_HEIGHT + 3;
+  drawHeroText(fb, 4, y, 'Mon Apr 21');
+  y += HERO_H + 2;
+  drawText(fb, 4, y, '2026', W - 8);
+  y += FONT_HEIGHT + 10;
 
-// --- Config F: Busy Parent (6 boxes, max density) ---
-const configF: BentoConfig = {
-  boxes: [
-    {
-      id: '1',
-      label: 'Weather',
-      type: 'text',
-      config: { type: 'text', text: '72F Sunny  UV: High' },
-    },
-    {
-      id: '2',
-      label: 'Next Event',
-      type: 'text',
-      config: { type: 'text', text: '2:30 PM Soccer practice' },
-    },
-    {
-      id: '3',
-      label: 'Todo',
-      type: 'text',
-      config: { type: 'text', text: 'Return library books' },
-    },
-    {
-      id: '4',
-      label: 'Messages',
-      type: 'text',
-      config: { type: 'text', text: '2 texts  5 email  0 slack' },
-    },
-    {
-      id: '5',
-      label: 'Countdown',
-      type: 'text',
-      config: { type: 'text', text: '8 days to Spring Break' },
-    },
-    {
-      id: '6',
-      label: 'Reminder',
-      type: 'text',
-      config: { type: 'text', text: 'Piano recital Thursday 7pm' },
-    },
-  ],
-  refreshesPerDay: 2,
-};
+  drawRule(fb, 4, y, W - 8);
+  y += 8;
 
-const standardConfigs = [
-  { name: 'A-commuter', config: configA },
-  { name: 'B-desk', config: configB },
-  { name: 'D-kitchen', config: configD },
-  { name: 'E-minimal', config: configE },
-  { name: 'F-maxdensity', config: configF },
+  // Focus: wrapped text, larger section
+  drawLabel(fb, 4, y, 'focus');
+  y += FONT_HEIGHT + 4;
+  drawTextWrapped(fb, 4, y, 'Ship the renderer. Everything else can wait.', W - 8, 40);
+  y += 40 + 10;
+
+  drawRule(fb, 4, y, W - 8);
+  y += 8;
+
+  // Streak: hero number
+  drawLabel(fb, 4, y, 'streak');
+  y += FONT_HEIGHT + 3;
+  drawHeroText(fb, 4, y, '12');
+  drawText(fb, 4 + 3 * HERO_ADVANCE + 4, y + 4, 'days without', W - 50);
+  drawText(fb, 4 + 3 * HERO_ADVANCE + 4, y + 4 + FONT_HEIGHT + 2, 'skipping a workout', W - 50);
+
+  return fb;
+}
+
+// ============================================================
+// Config C: Networking Card — name left, QR right, links below
+// ============================================================
+function renderNetworking(): FrameBuffer {
+  const fb = createFrameBuffer();
+  const qrSize = 90;
+  const qrX = W - qrSize - 6;
+  const textW = qrX - 10;
+
+  // Top section: name + title on left, QR on right
+  let y = 8;
+  drawHeroText(fb, 6, y, 'BENTO');
+  y += HERO_H + 2;
+  drawHeroText(fb, 6, y, 'MCBOXFACE');
+  y += HERO_H + 6;
+  drawText(fb, 6, y, 'Chief Pixel Wrangler', textW);
+  y += FONT_HEIGHT + 2;
+  drawText(fb, 6, y, '@ InfoBento', textW);
+
+  // QR on the right
+  drawFakeQR(fb, qrX, 6, qrSize);
+
+  // Rule across full width
+  const ruleY = 8 + qrSize + 4;
+  drawRule(fb, 4, ruleY, W - 8);
+
+  // Links section below
+  let linkY = ruleY + 6;
+  drawLabel(fb, 6, linkY, 'links');
+  linkY += FONT_HEIGHT + 4;
+  drawText(fb, 6, linkY, 'github.com/bentomcboxface', W - 12);
+  linkY += FONT_HEIGHT + 3;
+  drawText(fb, 6, linkY, 'linkedin.com/in/definitely-real', W - 12);
+
+  return fb;
+}
+
+// ============================================================
+// Config D: Kitchen Counter — weather hero + agenda + groceries
+// ============================================================
+function renderKitchen(): FrameBuffer {
+  const fb = createFrameBuffer();
+  let y = 4;
+
+  // Weather hero
+  drawLabel(fb, 4, y, 'weather');
+  y += FONT_HEIGHT + 3;
+  drawHeroText(fb, 4, y, '58F');
+  drawText(fb, 4 + 4 * HERO_ADVANCE + 4, y + 2, 'Rainy', W - 60);
+  drawText(fb, 4 + 4 * HERO_ADVANCE + 4, y + 2 + FONT_HEIGHT + 2, 'Precip 80%  Wind 12mph', W - 60);
+  y += HERO_H + 6;
+
+  drawRule(fb, 4, y, W - 8);
+  y += 5;
+
+  // Agenda — compact multi-line
+  drawLabel(fb, 4, y, 'agenda');
+  y += FONT_HEIGHT + 2;
+  drawText(fb, 4, y, '8:30  School drop-off', W - 8);
+  y += FONT_HEIGHT + 2;
+  drawText(fb, 4, y, '10:00 Dentist', W - 8);
+  y += FONT_HEIGHT + 2;
+  drawText(fb, 4, y, '3:15  Pickup', W - 8);
+  y += FONT_HEIGHT + 2;
+  drawText(fb, 4, y, '6:00  Dinner @ Pok Pok', W - 8);
+  y += FONT_HEIGHT + 6;
+
+  drawRule(fb, 4, y, W - 8);
+  y += 5;
+
+  // Groceries
+  drawLabel(fb, 4, y, 'groceries');
+  y += FONT_HEIGHT + 2;
+  drawText(fb, 4, y, 'Eggs  Milk  Sourdough', W - 8);
+  y += FONT_HEIGHT + 2;
+  drawText(fb, 4, y, 'Cilantro  Limes', W - 8);
+  y += FONT_HEIGHT + 6;
+
+  drawRule(fb, 4, y, W - 8);
+  y += 5;
+
+  // Doors — status row
+  drawLabel(fb, 4, y, 'doors');
+  y += FONT_HEIGHT + 2;
+  drawText(fb, 4, y, 'Front:Locked Garage:Locked', W - 8);
+  y += FONT_HEIGHT + 2;
+  drawText(fb, 4, y, 'Back: UNLOCKED', W - 8);
+
+  return fb;
+}
+
+// ============================================================
+// Config E: Minimal — giant quote, days-alive hero number
+// ============================================================
+function renderMinimal(): FrameBuffer {
+  const fb = createFrameBuffer();
+  let y = 10;
+
+  // Big quote — take most of the screen
+  drawTextWrapped(fb, 8, y, 'Simplicity is the ultimate sophistication.', W - 16, 60);
+  y += 55;
+  drawText(fb, 8, y, '-- Leonardo da Vinci', W - 16);
+  y += FONT_HEIGHT + 20;
+
+  drawRule(fb, 4, y, W - 8);
+  y += 10;
+
+  // Days alive — hero number centered
+  drawLabel(fb, 4, y, 'days alive');
+  y += FONT_HEIGHT + 4;
+  drawHeroText(fb, 4, y, '13,297');
+
+  return fb;
+}
+
+// ============================================================
+// Config F: Busy Parent — 4 items with hero weather (was 6, now 4)
+// ============================================================
+function renderBusyParent(): FrameBuffer {
+  const fb = createFrameBuffer();
+  let y = 4;
+
+  // Weather hero
+  drawLabel(fb, 4, y, 'weather');
+  y += FONT_HEIGHT + 3;
+  drawHeroText(fb, 4, y, '72F');
+  drawText(fb, 4 + 4 * HERO_ADVANCE + 4, y + 2, 'Sunny  UV: High', W - 60);
+  y += HERO_H + 6;
+
+  drawRule(fb, 4, y, W - 8);
+  y += 5;
+
+  // Next event — hero time
+  drawLabel(fb, 4, y, 'next event');
+  y += FONT_HEIGHT + 2;
+  drawHeroText(fb, 4, y, '2:30');
+  drawText(fb, 4 + 5 * HERO_ADVANCE + 4, y + 4, 'Soccer practice', W - 80);
+  y += HERO_H + 6;
+
+  drawRule(fb, 4, y, W - 8);
+  y += 5;
+
+  // Countdown — hero number
+  drawLabel(fb, 4, y, 'countdown');
+  y += FONT_HEIGHT + 2;
+  drawHeroText(fb, 4, y, '8');
+  drawText(fb, 4 + 2 * HERO_ADVANCE + 4, y + 4, 'days to Spring Break', W - 40);
+  y += HERO_H + 6;
+
+  drawRule(fb, 4, y, W - 8);
+  y += 5;
+
+  // Messages — compact counts
+  drawLabel(fb, 4, y, 'messages');
+  y += FONT_HEIGHT + 2;
+  drawText(fb, 4, y, '2 texts  5 email  0 slack', W - 8);
+
+  return fb;
+}
+
+// ============================================================
+// Render all configs and build contact sheet
+// ============================================================
+
+const renderers = [
+  { name: 'A-commuter', render: renderCommuter },
+  { name: 'B-desk', render: renderDesk },
+  { name: 'C-networking', render: renderNetworking },
+  { name: 'D-kitchen', render: renderKitchen },
+  { name: 'E-minimal', render: renderMinimal },
+  { name: 'F-maxdensity', render: renderBusyParent },
 ];
 
-// Render individual PNGs
 const pngs: { name: string; data: Uint8Array }[] = [];
 
-for (const { name, config } of standardConfigs) {
-  const fb = render(config);
+for (const { name, render } of renderers) {
+  const fb = render();
   const png = frameToPng(fb, SCALE);
   const path = `previews/${name}.png`;
   writeFileSync(path, png);
@@ -269,21 +386,11 @@ for (const { name, config } of standardConfigs) {
   console.log(`  ${path} (${png.length} bytes)`);
 }
 
-// Config C uses custom split layout (name left, QR right)
-{
-  const fb = renderNetworkingCard();
-  const png = frameToPng(fb, SCALE);
-  writeFileSync('previews/C-networking.png', png);
-  // Insert at position 2 so contact sheet order is A, B, C, D, E, F
-  pngs.splice(2, 0, { name: 'C-networking', data: png });
-  console.log(`  previews/C-networking.png (${png.length} bytes)`);
-}
-
 // Build contact sheet: 3 columns x 2 rows
 const COLS = 3;
 const ROWS = 2;
-const cellW = 240 * SCALE;
-const cellH = 200 * SCALE;
+const cellW = W * SCALE;
+const cellH = H * SCALE;
 const gap = 16;
 const labelH = 32;
 const sheetW = COLS * cellW + (COLS - 1) * gap + gap * 2;
@@ -309,12 +416,10 @@ for (let i = 0; i < pngs.length; i++) {
   const offsetX = gap + col * (cellW + gap);
   const offsetY = gap + row * (cellH + labelH + gap);
 
-  // Parse the individual PNG
   const entry = pngs[i];
   if (!entry) continue;
   const img = PNG.sync.read(Buffer.from(entry.data));
 
-  // Copy pixels
   for (let y = 0; y < img.height && y < cellH; y++) {
     for (let x = 0; x < img.width && x < cellW; x++) {
       const srcIdx = (y * img.width + x) * 4;
