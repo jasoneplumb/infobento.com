@@ -91,15 +91,16 @@ function renderCommuter(): FrameBuffer {
   const fb = createFrameBuffer();
   let y = 4;
 
-  // Section 1: Weather — hero temperature + conditions below
+  // Section 1: Weather — hero temp + condition beside, H/L on own line
   drawLabel(fb, 4, y, 'weather');
   y += FONT_HEIGHT + 3;
   drawHeroText(fb, 4, y, '62F');
-  drawText(fb, 4 + heroWidth('62F') + 4, y + 4, 'Partly', W - 8);
-  drawText(fb, 4 + heroWidth('62F') + 4, y + 4 + FONT_HEIGHT + 2, 'Cloudy', W - 8);
-  y += HERO_H + 4;
-  drawText(fb, 4, y, 'H:68  L:55', W - 8);
-  y += FONT_HEIGHT + 6;
+  const condX = 4 + heroWidth('62F') + 6;
+  drawText(fb, condX, y + 2, 'Partly', W - condX);
+  drawText(fb, condX, y + 2 + FONT_HEIGHT + 1, 'Cloudy', W - condX);
+  y += HERO_H + 2;
+  drawText(fb, 4, y, 'H:68 L:55', W - 8);
+  y += FONT_HEIGHT + 4;
 
   drawRule(fb, 4, y, W - 8);
   y += 5;
@@ -183,42 +184,42 @@ function renderDesk(): FrameBuffer {
 // ============================================================
 function renderNetworking(): FrameBuffer {
   const fb = createFrameBuffer();
-  const qrSize = 68;
-  const qrX = W - qrSize - 4;
-  const textW = qrX - 8;
+  const qrSize = 80;
 
-  // Top section: name on left, QR on right
+  // Name in hero — two lines, full width
   let y = 6;
   drawHeroText(fb, 4, y, 'BENTO');
   y += HERO_H + 2;
-  drawHeroText(fb, 4, y, 'MCBOX');
-  y += HERO_H + 2;
-  drawHeroText(fb, 4, y, 'FACE');
+  drawHeroText(fb, 4, y, 'MCBOXFACE');
   y += HERO_H + 6;
 
-  // Title below name
-  drawText(fb, 4, y, 'Pixel Wrangler', textW);
+  // Title — full width, below name
+  drawText(fb, 4, y, 'Pixel Wrangler', W - 8);
   y += FONT_HEIGHT + 2;
-  drawText(fb, 4, y, '@ InfoBento', textW);
+  drawText(fb, 4, y, '@ InfoBento', W - 8);
+  y += FONT_HEIGHT + 6;
 
-  // QR on the right, vertically centered with name block
-  drawFakeQR(fb, qrX, 6, qrSize);
+  drawRule(fb, 4, y, W - 8);
+  y += 6;
 
-  // Rule across full width
-  const ruleY = 6 + qrSize + 8;
-  drawRule(fb, 4, ruleY, W - 8);
+  // QR centered
+  const qrCenterX = Math.floor((W - qrSize) / 2);
+  drawFakeQR(fb, qrCenterX, y, qrSize);
+  y += qrSize + 6;
 
-  // Links section below
-  let linkY = ruleY + 6;
-  drawLabel(fb, 4, linkY, 'links');
-  linkY += FONT_HEIGHT + 4;
-  drawText(fb, 4, linkY, 'github.com/', W - 8);
-  linkY += FONT_HEIGHT + 2;
-  drawText(fb, 4, linkY, '  bentomcboxface', W - 8);
-  linkY += FONT_HEIGHT + 4;
-  drawText(fb, 4, linkY, 'linkedin.com/in/', W - 8);
-  linkY += FONT_HEIGHT + 2;
-  drawText(fb, 4, linkY, '  definitely-real', W - 8);
+  drawRule(fb, 4, y, W - 8);
+  y += 6;
+
+  // Links section — manually split to avoid mid-word wrap
+  drawLabel(fb, 4, y, 'links');
+  y += FONT_HEIGHT + 4;
+  drawText(fb, 4, y, 'github.com/', W - 8);
+  y += FONT_HEIGHT + 1;
+  drawText(fb, 12, y, 'bentomcboxface', W - 16);
+  y += FONT_HEIGHT + 3;
+  drawText(fb, 4, y, 'linkedin.com/in/', W - 8);
+  y += FONT_HEIGHT + 1;
+  drawText(fb, 12, y, 'definitely-real', W - 16);
 
   return fb;
 }
@@ -246,13 +247,13 @@ function renderKitchen(): FrameBuffer {
   // Section 2: Agenda
   drawLabel(fb, 4, y, 'agenda');
   y += FONT_HEIGHT + 2;
-  drawText(fb, 4, y, '8:30  School drop', W - 8);
+  drawText(fb, 4, y, '8:30 School dropoff', W - 8);
   y += FONT_HEIGHT + 2;
   drawText(fb, 4, y, '10:00 Dentist', W - 8);
   y += FONT_HEIGHT + 2;
-  drawText(fb, 4, y, '3:15  Pickup', W - 8);
+  drawText(fb, 4, y, '3:15 Pickup', W - 8);
   y += FONT_HEIGHT + 2;
-  drawText(fb, 4, y, '6:00  Dinner', W - 8);
+  drawText(fb, 4, y, '6:00 Pok Pok dinner', W - 8);
   y += FONT_HEIGHT + 6;
 
   drawRule(fb, 4, y, W - 8);
