@@ -12,6 +12,7 @@ export type {
   WeatherBoxConfig,
   CountdownBoxConfig,
   QRBoxConfig,
+  QuoteBoxConfig,
   BoxConfig,
   BentoBoxType,
   BentoBox,

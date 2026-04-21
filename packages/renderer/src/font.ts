@@ -16,7 +16,7 @@ export const FONT_SPACING = 1;
 
 /**
  * intent: Total advance width per character (glyph + spacing)
- * effect: At 6px per char, 240px width fits 40 characters per line
+ * effect: At 6px per char, 128px width fits 21 characters per line
  */
 export const CHAR_ADVANCE = FONT_WIDTH + FONT_SPACING;
 

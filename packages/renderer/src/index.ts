@@ -11,6 +11,7 @@ import { renderTextBox, renderPlaceholderBox } from './boxes/text.js';
 import { renderWeatherBox } from './boxes/weather.js';
 import { renderCountdownBox } from './boxes/countdown.js';
 import { renderQRBox } from './boxes/qr.js';
+import { renderQuoteBox } from './boxes/quote.js';
 import type { FrameBuffer } from './types.js';
 
 // Re-export PNG conversion and types
@@ -20,7 +21,7 @@ export type { FrameBuffer } from './types.js';
 /**
  * intent: Create an empty (white) frame buffer for the target display
  * method: Allocates a Uint8Array sized for 1-bit-per-pixel packing
- * effect: (width * height) / 8 bytes — 6000 bytes for 240x200
+ * effect: (width * height) / 8 bytes — 4736 bytes for 128x296
  */
 export function createFrameBuffer(
   device: DeviceProfile = { widthPx: DISPLAY_WIDTH, heightPx: DISPLAY_HEIGHT, deviceId: '' },
@@ -50,6 +51,8 @@ function renderBox(fb: FrameBuffer, layoutBox: LayoutBox): void {
     renderCountdownBox(fb, layoutBox, box.config);
   } else if (box.type === 'qr' && box.config?.type === 'qr') {
     renderQRBox(fb, layoutBox, box.config);
+  } else if (box.type === 'quote' && box.config?.type === 'quote') {
+    renderQuoteBox(fb, layoutBox, box.config);
   } else {
     renderPlaceholderBox(fb, layoutBox);
   }
@@ -58,7 +61,7 @@ function renderBox(fb: FrameBuffer, layoutBox: LayoutBox): void {
 /**
  * intent: Render a bento config into a 1-bit frame buffer
  * method: Calculate layout, then render each box into the frame buffer
- * effect: Returns device-ready binary data (6000 bytes for 240x200)
+ * effect: Returns device-ready binary data (4736 bytes for 128x296)
  */
 export function render(config: BentoConfig, device?: DeviceProfile): FrameBuffer {
   const layout = calculateLayout(config, device);

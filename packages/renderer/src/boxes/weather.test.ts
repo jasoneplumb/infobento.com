@@ -26,7 +26,7 @@ describe('renderWeatherBox', () => {
     };
 
     const fb = render(config);
-    expect(fb.data.length).toBe(6000);
+    expect(fb.data.length).toBe(4736);
     // Should have rendered pixels (not blank)
     expect(fb.data.some((b) => b !== 0)).toBe(true);
   });
@@ -48,7 +48,7 @@ describe('renderWeatherBox', () => {
     };
 
     const fb = render(config);
-    expect(fb.data.length).toBe(6000);
+    expect(fb.data.length).toBe(4736);
     // Should still render something (city name + "No data")
     expect(fb.data.some((b) => b !== 0)).toBe(true);
   });
@@ -60,7 +60,7 @@ describe('renderWeatherBox', () => {
     };
 
     const fb = render(config);
-    expect(fb.data.length).toBe(6000);
+    expect(fb.data.length).toBe(4736);
     expect(fb.data.some((b) => b !== 0)).toBe(true);
   });
 
@@ -87,7 +87,7 @@ describe('renderWeatherBox', () => {
     };
 
     const fb = render(config);
-    expect(fb.data.length).toBe(6000);
+    expect(fb.data.length).toBe(4736);
     expect(fb.data.some((b) => b !== 0)).toBe(true);
   });
 
@@ -108,7 +108,7 @@ describe('renderWeatherBox', () => {
     };
 
     const fb = render(config);
-    expect(fb.data.length).toBe(6000);
+    expect(fb.data.length).toBe(4736);
     expect(fb.data.some((b) => b !== 0)).toBe(true);
   });
 

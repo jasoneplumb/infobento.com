@@ -4,7 +4,7 @@ import type { BentoConfig } from '@infobento/core';
 import { DISPLAY_WIDTH, DISPLAY_HEIGHT } from '@infobento/core';
 
 describe('render', () => {
-  it('produces a 6000-byte frame buffer for default display', () => {
+  it('produces a 4736-byte frame buffer for default display', () => {
     const config: BentoConfig = {
       boxes: [
         {
@@ -20,7 +20,7 @@ describe('render', () => {
     const fb = render(config);
     expect(fb.width).toBe(DISPLAY_WIDTH);
     expect(fb.height).toBe(DISPLAY_HEIGHT);
-    expect(fb.data.length).toBe(6000); // 240/8 * 200
+    expect(fb.data.length).toBe(4736); // 128/8 * 296
   });
 
   it('renders text box with non-zero pixels', () => {
@@ -69,11 +69,11 @@ describe('render', () => {
     };
 
     const fb = render(config);
-    expect(fb.data.length).toBe(6000);
+    expect(fb.data.length).toBe(4736);
 
     // Should have pixels in multiple vertical regions
-    const topHasPixels = fb.data.slice(0, 300).some((b) => b !== 0); // first ~10 rows
-    const bottomHasPixels = fb.data.slice(4500).some((b) => b !== 0); // last ~50 rows
+    const topHasPixels = fb.data.slice(0, 160).some((b) => b !== 0); // first ~10 rows
+    const bottomHasPixels = fb.data.slice(3936).some((b) => b !== 0); // last ~50 rows
     expect(topHasPixels).toBe(true);
     expect(bottomHasPixels).toBe(true);
   });
@@ -85,7 +85,7 @@ describe('render', () => {
     };
 
     const fb = render(config);
-    expect(fb.data.length).toBe(6000);
+    expect(fb.data.length).toBe(4736);
     // Should still render something (placeholder label)
     expect(fb.data.some((b) => b !== 0)).toBe(true);
   });
@@ -97,7 +97,7 @@ describe('render', () => {
     };
 
     const fb = render(config);
-    expect(fb.data.length).toBe(6000);
+    expect(fb.data.length).toBe(4736);
     // Empty config = blank display
     expect(fb.data.every((b) => b === 0)).toBe(true);
   });
@@ -106,9 +106,9 @@ describe('render', () => {
 describe('createFrameBuffer', () => {
   it('creates buffer with correct dimensions', () => {
     const fb = createFrameBuffer();
-    expect(fb.width).toBe(240);
-    expect(fb.height).toBe(200);
-    expect(fb.data.length).toBe(6000);
+    expect(fb.width).toBe(128);
+    expect(fb.height).toBe(296);
+    expect(fb.data.length).toBe(4736);
   });
 
   it('creates all-zero buffer', () => {

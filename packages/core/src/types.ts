@@ -40,8 +40,19 @@ export interface QRBoxConfig {
   readonly url: string;
 }
 
+export interface QuoteBoxConfig {
+  readonly type: 'quote';
+  readonly text: string;
+  readonly author?: string;
+}
+
 /** Discriminated union of all box-specific configurations */
-export type BoxConfig = TextBoxConfig | WeatherBoxConfig | CountdownBoxConfig | QRBoxConfig;
+export type BoxConfig =
+  | TextBoxConfig
+  | WeatherBoxConfig
+  | CountdownBoxConfig
+  | QRBoxConfig
+  | QuoteBoxConfig;
 
 // --- Core types ---
 
@@ -86,9 +97,15 @@ interface QRBentoBox extends BentoBoxBase {
   readonly config?: QRBoxConfig;
 }
 
+/** Quote box with typed config */
+interface QuoteBentoBox extends BentoBoxBase {
+  readonly type: 'quote';
+  readonly config?: QuoteBoxConfig;
+}
+
 /** Box types that don't have a config yet (placeholder) */
 interface UnconfiguredBentoBox extends BentoBoxBase {
-  readonly type: Exclude<BentoBoxType, 'text' | 'weather' | 'countdown' | 'qr'>;
+  readonly type: Exclude<BentoBoxType, 'text' | 'weather' | 'countdown' | 'qr' | 'quote'>;
   readonly config?: undefined;
 }
 
@@ -101,6 +118,7 @@ export type BentoBox =
   | WeatherBentoBox
   | CountdownBentoBox
   | QRBentoBox
+  | QuoteBentoBox
   | UnconfiguredBentoBox;
 
 /** Full device configuration */

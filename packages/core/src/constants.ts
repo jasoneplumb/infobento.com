@@ -8,8 +8,8 @@
 import type { DeviceProfile } from './types.js';
 
 /** Pixel dimensions of the eInk display */
-export const DISPLAY_WIDTH = 240;
-export const DISPLAY_HEIGHT = 200;
+export const DISPLAY_WIDTH = 128;
+export const DISPLAY_HEIGHT = 296;
 
 /** Padding between bento boxes (divider line) */
 export const BOX_DIVIDER_PX = 1;
