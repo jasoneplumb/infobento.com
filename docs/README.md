@@ -35,9 +35,9 @@ docs/
 │   └── API.md                Pure function API reference
 │
 ├── hardware/
-│   ├── DISPLAY.md            eInk display specs (2.9", 240x200)
-│   ├── POWER.md              Solar + battery power budget
-│   └── BLE.md                Bluetooth protocol design
+│   ├── DISPLAY.md            eInk display specs, form factor, refresh modes
+│   ├── POWER.md              Dual-mode power budget (solar + MagSafe)
+│   └── BLE.md                BLE protocol for both operating modes
 │
 └── rfcs/                     Architecture decision records
 ```

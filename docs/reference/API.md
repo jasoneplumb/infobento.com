@@ -47,12 +47,13 @@ Validate a bento config without rendering.
 Render a bento config into a binary frame buffer.
 
 **Request:** `BentoConfig` JSON
-**Response:** Binary frame buffer (6000 bytes for 240x200)
+**Response:** Binary frame buffer (6000 bytes for 240x200 — will change with final display resolution)
 **Headers:** `X-Frame-Width`, `X-Frame-Height`
 
-### POST /api/preview (planned)
+### POST /api/preview
 
-Render a bento config into a PNG preview image.
+Render a bento config into a PNG preview image. Supports optional `scale` query parameter for upscaling (default: 1).
 
 **Request:** `BentoConfig` JSON
-**Response:** PNG image
+**Query:** `?scale=N` (integer, optional)
+**Response:** PNG image (`image/png`)

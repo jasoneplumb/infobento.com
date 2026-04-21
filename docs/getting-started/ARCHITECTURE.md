@@ -2,14 +2,14 @@
 
 ## System Overview
 
-InfoBento is a portable eInk display device that shows modular boxes of customizable information. The system has four components:
+InfoBento is a MagSafe-mounted eInk companion display that lives on the back of your iPhone. It's a clamshell: one side is a 2.9" black-and-white eInk screen, the other is a solar panel. A 320-degree hinge lets you stand it on a counter with the solar panel aimed at a window, or fold it flat against your phone.
 
 ```
 ┌──────────────┐     BLE      ┌─────────────┐     HTTPS     ┌───────────────┐
 │    Device     │◄────────────►│    Phone     │◄─────────────►│   Cloud API   │
 │  2.9" eInk    │              │  (BLE bridge) │               │  (stateless)   │
-│  240x200 1-bit │              │              │               │               │
-│  Solar+battery │              └─────────────┘               └───────────────┘
+│  ESP32-C3     │              │              │               │               │
+│  Solar+MagSafe│              └─────────────┘               └───────────────┘
 └──────────────┘                                                     ▲
                                                                      │
                                                                ┌─────┴─────┐
@@ -18,20 +18,29 @@ InfoBento is a portable eInk display device that shows modular boxes of customiz
                                                                └───────────┘
 ```
 
+### Physical Modes
+
+| Mode             | Form Factor                     | Refresh Rate      | Power Source           |
+| ---------------- | ------------------------------- | ----------------- | ---------------------- |
+| Phone-mounted    | Flat on iPhone back via MagSafe | Every few minutes | MagSafe reverse-charge |
+| Counter-standing | Hinged open, solar at window    | 1-2x per day      | Solar panel            |
+| Collapsed        | Folded shut, on phone or pocket | None (sleeping)   | MagSafe reverse-charge |
+
 ### Data Flow
 
 1. **User** configures bento boxes via **Web UI**
-2. **Cloud API** stores config (pure function: config in, frame buffer out)
-3. **Phone** periodically requests updated frame from API via HTTPS
+2. **Cloud API** is a pure function: config in, frame buffer out
+3. **Phone** requests updated frame from API via HTTPS (frequency depends on mode)
 4. **Phone** pushes frame to **Device** via Bluetooth Low Energy
-5. **Device** refreshes eInk display (1-2x per day), then sleeps
+5. **Device** refreshes eInk display, then sleeps or stays in low-power connected state
 
 ### Key Design Decisions
 
 - **Stateless API** — Pure functions, no server-side state. Config in, frame buffer out. Edge-deployable.
 - **Phone as bridge** — Device doesn't need WiFi. Phone handles connectivity, caching, and scheduling.
-- **1-bit rendering** — eInk is black/white only. Renderer outputs packed bit arrays (240x200 = 6000 bytes).
-- **Ultra-low power** — Device only wakes for BLE sync and display refresh. Solar panel maintains battery.
+- **1-bit rendering** — eInk is black/white only. Renderer outputs packed bit arrays.
+- **Dual power modes** — Solar for standalone counter use; MagSafe reverse-charge for phone-mounted use.
+- **Zero device interaction** — No buttons, no app to open. Configure once via web, glance forever.
 
 ## Package Architecture
 
