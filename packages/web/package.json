@@ -10,7 +10,8 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@infobento/core": "*"
+    "@infobento/core": "*",
+    "@infobento/renderer": "*"
   },
   "devDependencies": {
     "vite": "^6.0.0"

@@ -9,4 +9,11 @@ export default defineConfig({
   build: {
     outDir: 'dist',
   },
+  resolve: {
+    alias: {
+      // pngjs is Node-only (uses Buffer); the web preview renders via <canvas>
+      // instead of PNG, so we stub the import to avoid bundling issues.
+      pngjs: '/dev/null',
+    },
+  },
 });
