@@ -10,14 +10,9 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@infobento/core": "*",
-    "react": "^19.0.0",
-    "react-dom": "^19.0.0"
+    "@infobento/core": "*"
   },
   "devDependencies": {
-    "@types/react": "^19.0.0",
-    "@types/react-dom": "^19.0.0",
-    "@vitejs/plugin-react": "^4.3.0",
     "vite": "^6.0.0"
   }
 }

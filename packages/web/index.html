@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>InfoBento Box Editor</title>
+    <link rel="stylesheet" href="/src/style.css" />
+  </head>
+  <body>
+    <header>
+      <h1>InfoBento Box Editor</h1>
+      <span class="badge">EDITOR</span>
+    </header>
+
+    <main>
+      <div id="preview-panel">
+        <h2>eInk Preview</h2>
+        <div id="eink-display"></div>
+        <div class="preview-meta">
+          240 &times; 200 px &middot; 1-bit<br />
+          black/white &middot; eInk
+        </div>
+      </div>
+
+      <div id="config-panel">
+        <div class="config-toolbar">
+          <h2>Bento Boxes</h2>
+          <div class="add-box-wrapper">
+            <select id="add-type-select">
+              <option value="text">Text</option>
+              <option value="countdown">Countdown</option>
+              <option value="weather">Weather</option>
+              <option value="qr">QR Code</option>
+              <option value="quote">Quote</option>
+            </select>
+            <button class="btn-primary" id="btn-add">+ Add Box</button>
+          </div>
+          <button class="btn-secondary" id="btn-export">&darr; Export JSON</button>
+        </div>
+        <div id="box-list"></div>
+      </div>
+    </main>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
