@@ -1,7 +1,7 @@
 {
   "id": "15b14d22-3871-4074-a350-f4ffc78651b4",
   "name": "InfoBento",
-  "description": "MagSafe-mounted eInk companion display that lives on the back of your iPhone. Clamshell form factor with 320-degree hinge — open and stand it up with the solar panel aimed at a window, or leave it flat on the phone as a glanceable second screen. $25 target, Kickstarter launch.",
+  "description": "MagSafe-mounted eInk companion display that lives on the back of your iPhone. Clamshell form factor with 320-degree hinge — open and stand it up with the solar panel aimed at a window, or leave it flat on the phone as a glanceable second screen. $35 target, Kickstarter launch. ~8mm folded thickness.",
   "domain": "consumer-electronics",
   "version": 1,
   "currentPhase": "implement",
@@ -157,18 +157,20 @@
     {
       "type": "design-principle",
       "name": "1-Bit Elegance",
-      "statement": "Design for the constraint — 240x200 black-and-white pixels should feel intentional, not limited",
-      "description": "The eInk display is 1-bit only. Rather than fighting this constraint, embrace it. Clean borders, sharp typography, high contrast. Think e-paper watch faces and receipt aesthetics — dense but legible.",
-      "source": "Hardware constraint — 2.9 inch 1-bit eInk display",
+      "statement": "Design for the constraint — black-and-white pixels should feel intentional, not limited",
+      "description": "The eInk display is 1-bit only. Rather than fighting this constraint, embrace it. Whitespace-driven hierarchy, two font sizes (hero Spleen 8x16 + data 5x7), thin rules as dividers, differentiated box layouts per content type. Think e-paper watch faces and receipt aesthetics — dense but legible.",
+      "source": "Hardware constraint + design research (round 6). Updated after Tidbyt/Watchy/TRMNL/YotaPhone research showed whitespace > borders.",
       "examples": [
-        "Sharp 1px borders between bento boxes",
-        "Bold headers with lighter body text",
+        "Hero font for primary data (62F, 9:00, 14 days)",
+        "Thin horizontal rules as section dividers (not box borders)",
+        "Whitespace gaps between sections instead of 1px borders",
         "High-contrast icons designed for 1-bit"
       ],
       "counterExamples": [
         "Attempting grayscale dithering for photos",
         "Anti-aliased fonts that become muddy at 1-bit",
-        "Decorative elements that waste scarce pixels"
+        "1px borders around every box (old design, replaced)",
+        "More than two font sizes (creates visual noise)"
       ],
       "id": "34631cfb-fb45-4ff2-a55e-db05463bb527",
       "relatedIds": [],
@@ -202,7 +204,7 @@
     {
       "type": "requirement",
       "label": "REQ-001",
-      "statement": "User can configure 4-6 bento boxes on a 240x200 pixel display via web interface",
+      "statement": "User can configure 3-6 bento boxes on the eInk display via web interface",
       "source": "Voice spec — user wants modular customizable information boxes",
       "category": "functional",
       "priority": "must",
@@ -225,7 +227,7 @@
       "source": "Voice spec — device should not be dependent on specific WiFi SSID",
       "category": "functional",
       "priority": "must",
-      "rationale": "Portability is key — device travels with user in wallet, phone bridges connectivity",
+      "rationale": "Portability is key — device travels with user on phone back or in pocket, phone bridges connectivity",
       "status": "accepted",
       "userClassIds": ["b3572422-6629-426d-9df2-20a4c3eaa3e6"],
       "id": "557e42c6-ca3d-4502-8a22-dd2685ba7e33",
@@ -237,12 +239,12 @@
     {
       "type": "requirement",
       "label": "REQ-003",
-      "statement": "Display refreshes 1-2 times per day on solar power alone under normal indoor lighting",
-      "source": "Voice spec — solar panel plus rechargeable battery",
+      "statement": "Display refreshes 1-2 times per day on solar power alone under normal indoor lighting (counter-standing mode). Phone-mounted mode refreshes every few minutes via MagSafe charging.",
+      "source": "Voice spec + hardware research (issue #22). AEM10941 solar IC harvests 5-15mAh/day at 200 lux, device needs ~1mAh/day in counter mode.",
       "category": "non-functional",
       "priority": "must",
-      "rationale": "Zero-maintenance power — user should never need to charge the device manually",
-      "status": "proposed",
+      "rationale": "Zero-maintenance power — user should never need to charge the device manually. Dual power modes match the two physical modes.",
+      "status": "accepted",
       "userClassIds": [
         "b3572422-6629-426d-9df2-20a4c3eaa3e6",
         "659af1c0-7967-4009-84ca-7febdab16a3d"
@@ -376,21 +378,23 @@
       "type": "wireframe",
       "name": "eInk Display Layout",
       "screenName": "DeviceDisplay",
-      "description": "The eInk screen showing 4-6 stacked bento boxes with 1px borders. Note: codebase currently uses 240x200 but standard 2.9-inch eInk panels are 296x128 — resolution needs to be reconciled with final hardware selection.",
-      "fidelity": "low",
-      "status": "draft",
+      "description": "The eInk screen showing 3-4 bento sections with whitespace separation and hero/data font hierarchy. Resolution TBD (codebase uses 240x200, standard 2.9-inch panels are 296x128). See previews/ for current renderings.",
+      "fidelity": "medium",
+      "status": "active",
       "elements": [
-        "Header area: box type icon + label (bold, 10px height)",
-        "Content area: box-specific data (weather temp, countdown days, quote text, QR image, static text)",
-        "1px horizontal dividers between boxes",
-        "Full 240px width per box",
-        "Variable height per box (28-45px depending on count)"
+        "Small uppercase label per section (5x7 data font)",
+        "Hero data in Spleen 8x16 (temperatures, times, counts)",
+        "Secondary data in 5x7 alongside or below hero text",
+        "Thin horizontal rules as section dividers",
+        "Whitespace gaps (5-8px) between sections",
+        "Horizontal subdivision supported (e.g., name left + QR right)"
       ],
       "annotations": [
         "1-bit only — no grayscale, no anti-aliasing",
         "MSB-first bit packing, 30 bytes per row",
-        "Boxes stack vertically with no horizontal subdivision",
-        "Font must be legible at 8-12px on physical 2.9 inch display"
+        "3-4 sections optimal; 5-6 gets cramped at this resolution",
+        "Two font sizes only: hero (Spleen 8x16) and data (5x7)",
+        "No box borders — whitespace and rules provide structure"
       ],
       "externalRef": null,
       "userClassIds": [
@@ -408,21 +412,24 @@
       "type": "wireframe",
       "name": "Web Configuration Editor",
       "screenName": "ConfigEditor",
-      "description": "Main web UI screen where users add, remove, reorder bento boxes and see a live preview",
-      "fidelity": "low",
-      "status": "draft",
+      "description": "Main web UI screen where users add, remove, reorder bento boxes and see a live preview. Vanilla JS with reactive state pattern (no framework). Client-side renderer for instant preview.",
+      "fidelity": "medium",
+      "status": "active",
       "elements": [
-        "Left panel: 240x200 live preview (scaled up 2-3x for visibility)",
-        "Right panel: box list with drag handles for reordering",
+        "Left panel: live eInk preview rendered client-side (scaled 2-3x, 1-bit accurate)",
+        "Right panel: box list with up/down arrow buttons for reordering",
         "Add Box button with type picker dropdown",
-        "Per-box config form (city for weather, date for countdown, URL for QR, text input for text)",
-        "Export Config / Import Config buttons",
-        "Refresh schedule selector (1x or 2x per day)"
+        "Per-box config form (city for weather, date+label for countdown, URL for QR, textarea for text, text+author for quote)",
+        "Remove button per box",
+        "Export Config button (JSON download)",
+        "Inline-editable box labels"
       ],
       "annotations": [
-        "Preview should render identically to actual eInk output (1-bit, sharp pixels)",
+        "Preview renders client-side using @infobento/renderer — no API round-trip",
         "No account required — config lives in localStorage",
-        "Responsive layout for mobile browsers (phone config use case)"
+        "Responsive layout: stack preview over config on mobile",
+        "Vanilla JS with reactive state (prototypes/svelte-editor.html pattern)",
+        "Kickstarter MVP: live preview + add/remove + configure text/countdown/weather + export"
       ],
       "externalRef": null,
       "userClassIds": [
@@ -443,7 +450,7 @@
     {
       "type": "note",
       "title": "Open Question Decisions — Rounds 1-5",
-      "body": "Decisions made during planning sessions:\n\n## Round 1 (resolved)\n- MVP box types: weather (Open-Meteo), quote (ZenQuotes), countdown, QR, text — all free, no auth\n- Web framework: Hono + Vite (same-port architecture like phasebot)\n- Web app private during dev, co-hosted with tiles- and webmap.dev later\n- Version starts at 0.1.0\n\n## Round 2 (resolved)\n1. MVP scope: text + countdown + weather first (proves pipeline), then QR + quote\n2. Weather location: Open-Meteo geocoding API, user types city name\n3. Config persistence: localStorage + JSON export/import (no server state)\n4. Refresh scheduling: web UI sets schedule, phone app executes it, device responds\n5. Design language: clean/minimal with sharp borders, receipt-style typography\n6. Name: InfoBento (confirmed final)\n\n## Round 3 (resolved)\n1. Implementation order: text -> countdown -> weather -> QR -> quote\n2. Mobile web layout: stack vertically (preview on top, config below)\n3. Font: embedded small fixed-width bitmap font (5x7 or 6x8 pixel, embedded-systems style)\n4. QR sizing: larger allocation — half display height or more, not constrained to a thin box\n5. Name confirmed: InfoBento is final\n\n## Round 4 — Market & Positioning (resolved 2026-04-21)\n1. Primary user: Daily Glancer (the founder)\n2. Distribution: Kickstarter\n3. Price target: $25\n4. Hardware: ESP32-C3 + eInk + battery w/ solar drip charger + solar panel kickstand (details ongoing)\n5. Competitive positioning: needs further exploration — see value prop prompt\n\n## Round 5 — Form Factor & Interaction Model (resolved 2026-04-21)\n1. Form factor: clamshell with 320-degree hinge. Two halves: eInk display + solar panel\n2. Primary mode: MagSafe-mounted on back of iPhone, eInk facing out. User flips phone to peek.\n3. Secondary mode: standing on counter/desk, hinge open, solar panel aimed at window, display facing room\n4. Collapsed mode: solar panel covers display, can reverse-charge via iPhone MagSafe\n5. Size constraint: must fit on iPhone 15 Pro back (146.6 x 70.6mm), may partially cover camera\n6. Interaction model: zero interaction with InfoBento itself. No buttons, no app to open.\n7. Refresh rate: must increase in phone-mounted mode (minutes, not hours) vs standalone (1-2x/day)\n8. MVP stays simple (weather, countdown, text, QR, quote). Authenticated integrations (calendar, messages, smart home) come post-MVP.\n9. Kitchen counter is the hero Kickstarter scenario. Phone-mounted is the daily use case.\n\n## Round 6 — Phase Scoping (resolved 2026-04-21)\n\n### Phase 2 (core)\n1. Add validation library (Zod or Valibot) for config schemas\n2. Each box renderer handles its own data fetching/parsing — no shared data source types\n3. Horizontal subdivision (side-by-side boxes) is a Phase 2 deliverable\n4. Abstract display resolution so hardware change is painless\n\n### Phase 3 (renderer)\n1. CUT Floyd-Steinberg dithering — no MVP box types produce grayscale\n2. 1-bit icon set for box type headers IS MVP\n3. CUT frame buffer diffing — meaningless without firmware\n4. QR moves up in priority (strong Kickstarter demo use case). Order: countdown -> weather -> QR -> quote\n5. Hero font: Spleen 8x16 (selected over Tamzen 8x16, Tamzen 10x20, and 2x-scaled 5x7 baseline). Best balance of curve quality and vertical space. Data font stays 5x7.\n\n### Phase 4 (API)\n1. Structured error responses with field-level detail (for web UI form validation)\n2. Move PNG conversion from renderer to api package\n3. Health endpoint reads version from package.json (no manual bump)\n4. Box-types endpoint only lists implemented/available types\n\n### Phase 5 (web)\n1. CUT Web Bluetooth — no device to pair with yet\n2. Simple up/down arrow buttons for reorder (not drag-and-drop)\n3. Framework: vanilla JS with reactive state pattern (selected over Preact — prototypes/svelte-editor.html preferred)\n4. Client-side renderer for instant preview (no API round-trip)\n5. Kickstarter MVP scope: live preview + add/remove boxes + configure text/countdown/weather + export JSON\n\n## Still open\n- BLE version: 4.2 vs 5.0\n- Battery capacity target\n- Background BLE on iOS constraints\n- Compression for frame transfer\n- Display resolution: codebase uses 240x200 but standard 2.9-inch eInk panels are 296x128\n- MagSafe magnet ring integration — off-the-shelf module or custom PCB layout?\n- Hinge mechanism — material, durability, cost at $25 BOM\n- Power budget for higher refresh rate in phone-mounted mode\n- eInk partial refresh strategy for minute-level updates\n- Anti-aliasing: not possible with 1-bit framebuffer. Better glyph quality achieved via purpose-designed bitmap fonts (Spleen) rather than scaling.\n\n## Round 7 — Hardware Design Decisions (resolved 2026-04-21)\n1. Glass eInk panel (not flex) — flex adds $7-10/unit for 0.9mm savings, not worth it at this stage\n2. Accept ~8mm folded thickness — position as 'slim enough for a back pocket' (comparable to MagSafe Battery Pack at 11.3mm, thinner than most phone cases with card holders)\n3. Price target bumped from $25 to $35 — BOM analysis showed charging subsystem ($13-18) + hinge ($4-30) + display ($5-8) leaves no margin at $25\n4. See issue #22 for full hardware design exploration and proposed component layout",
+      "body": "Decisions made during planning sessions:\n\n## Round 1 (resolved)\n- MVP box types: weather (Open-Meteo), quote (ZenQuotes), countdown, QR, text — all free, no auth\n- Web framework: Hono + Vite (same-port architecture like phasebot)\n- Web app private during dev, co-hosted with tiles- and webmap.dev later\n- Version starts at 0.1.0\n\n## Round 2 (resolved)\n1. MVP scope: text + countdown + weather first (proves pipeline), then QR + quote\n2. Weather location: Open-Meteo geocoding API, user types city name\n3. Config persistence: localStorage + JSON export/import (no server state)\n4. Refresh scheduling: web UI sets schedule, phone app executes it, device responds\n5. Design language: clean/minimal with sharp borders, receipt-style typography\n6. Name: InfoBento (confirmed final)\n\n## Round 3 (resolved)\n1. Implementation order: text -> countdown -> weather -> QR -> quote\n2. Mobile web layout: stack vertically (preview on top, config below)\n3. Font: embedded small fixed-width bitmap font (5x7 or 6x8 pixel, embedded-systems style)\n4. QR sizing: larger allocation — half display height or more, not constrained to a thin box\n5. Name confirmed: InfoBento is final\n\n## Round 4 — Market & Positioning (resolved 2026-04-21)\n1. Primary user: Daily Glancer (the founder)\n2. Distribution: Kickstarter\n3. Price target: $35 (bumped from $25 after BOM analysis)\n4. Hardware: ESP32-C3 + eInk + battery w/ solar drip charger + solar panel kickstand (details in issue #22)\n5. Competitive positioning: resolved — 'See less. Know enough.' anti-phone angle\n\n## Round 5 — Form Factor & Interaction Model (resolved 2026-04-21)\n1. Form factor: clamshell with 320-degree hinge. Two halves: eInk display + solar panel\n2. Primary mode: MagSafe-mounted on back of iPhone, eInk facing out. User flips phone to peek.\n3. Secondary mode: standing on counter/desk, hinge open, solar panel aimed at window, display facing room\n4. Collapsed mode: solar panel covers display, can reverse-charge via iPhone MagSafe\n5. Size constraint: must fit on iPhone 15 Pro back (146.6 x 70.6mm), may partially cover camera\n6. Interaction model: zero interaction with InfoBento itself. No buttons, no app to open.\n7. Refresh rate: must increase in phone-mounted mode (minutes, not hours) vs standalone (1-2x/day)\n8. MVP stays simple (weather, countdown, text, QR, quote). Authenticated integrations (calendar, messages, smart home) come post-MVP.\n9. Kitchen counter is the hero Kickstarter scenario. Phone-mounted is the daily use case.\n\n## Round 6 — Phase Scoping (resolved 2026-04-21)\n\n### Phase 2 (core)\n1. Add validation library (Zod or Valibot) for config schemas\n2. Each box renderer handles its own data fetching/parsing — no shared data source types\n3. Horizontal subdivision (side-by-side boxes) is a Phase 2 deliverable\n4. Abstract display resolution so hardware change is painless\n\n### Phase 3 (renderer)\n1. CUT Floyd-Steinberg dithering — no MVP box types produce grayscale\n2. 1-bit icon set for box type headers IS MVP\n3. CUT frame buffer diffing — meaningless without firmware\n4. QR moves up in priority (strong Kickstarter demo use case). Order: countdown -> weather -> QR -> quote\n5. Hero font: Spleen 8x16 (selected over Tamzen 8x16, Tamzen 10x20, and 2x-scaled 5x7 baseline). Best balance of curve quality and vertical space. Data font stays 5x7.\n\n### Phase 4 (API)\n1. Structured error responses with field-level detail (for web UI form validation)\n2. Move PNG conversion from renderer to api package\n3. Health endpoint reads version from package.json (no manual bump)\n4. Box-types endpoint only lists implemented/available types\n\n### Phase 5 (web)\n1. CUT Web Bluetooth — no device to pair with yet\n2. Simple up/down arrow buttons for reorder (not drag-and-drop)\n3. Framework: vanilla JS with reactive state pattern (selected over Preact — prototypes/svelte-editor.html preferred)\n4. Client-side renderer for instant preview (no API round-trip)\n5. Kickstarter MVP scope: live preview + add/remove boxes + configure text/countdown/weather + export JSON\n\n## Still open (hardware)\n- Display resolution: codebase uses 240x200 but standard 2.9-inch panels are 296x128 — blocks confident layout work\n- Battery placement: display half (ballast) vs solar half (shorter charging path)\n- Hinge sourcing: off-the-shelf Reell/Sugatsune ($15-30) vs Alibaba alternatives ($1-4)\n- Background BLE on iOS constraints (critical for phone-mounted mode)\n- eInk partial refresh strategy for minute-level updates in phone-mounted mode\n- BLE connection interval tuning for phone-mounted mode\n\n## Resolved (no longer open)\n- BLE version: 5.0 (ESP32-C3 supports it natively)\n- Battery capacity: ~100mAh target (352035 form factor)\n- Anti-aliasing: not possible at 1-bit, solved with purpose-designed Spleen 8x16 font\n- Hinge style: book-style along 70.6mm short edge, 320-degree cam-follower\n- MagSafe: full N52 ring on solar half, Qi coil inside ring\n- Price: $35 (bumped from $25)\n- Thickness: ~8mm folded (accepted)\n- Display panel: glass (not flex)\n\n## Round 7 — Hardware Design Decisions (resolved 2026-04-21)\n1. Glass eInk panel (not flex) — flex adds $7-10/unit for 0.9mm savings, not worth it at this stage\n2. Accept ~8mm folded thickness — position as 'slim enough for a back pocket' (comparable to MagSafe Battery Pack at 11.3mm, thinner than most phone cases with card holders)\n3. Price target bumped from $25 to $35 — BOM analysis showed charging subsystem ($13-18) + hinge ($4-30) + display ($5-8) leaves no margin at $25\n4. See issue #22 for full hardware design exploration and proposed component layout",
       "tags": ["decisions", "open-questions", "planning", "preview", "form-factor", "hardware"],
       "id": "c43ea69b-cc01-4f3e-a925-1df57dace2b7",
       "relatedIds": [],
@@ -469,19 +476,20 @@
     },
     {
       "type": "design-principle",
-      "name": "Embedded Bitmap Font",
-      "statement": "Use a small fixed-width bitmap font embedded in the renderer — no system font dependencies",
-      "description": "The renderer must work as a pure function with no external dependencies. A fixed-width bitmap font (5x7 or 6x8 pixels) is embedded directly in the renderer code as pixel data arrays. This ensures identical output across all environments and matches the embedded-systems aesthetic.",
-      "source": "Open question resolution — font must be self-contained for edge deployment and device fidelity",
+      "name": "Two-Font Bitmap System",
+      "statement": "Two embedded bitmap fonts — Spleen 8x16 for hero data, built-in 5x7 for labels and body text — no system font dependencies",
+      "description": "The renderer embeds two fixed-width bitmap fonts as pixel data arrays. Spleen 8x16 (purpose-designed, MIT licensed) for hero numbers and primary data (temperatures, times, countdown numbers). Built-in 5x7 for labels, secondary text, and compact data rows. Two sizes only — the contrast jump IS the visual hierarchy. No medium size.",
+      "source": "Font comparison (round 6) — Spleen 8x16 selected over Tamzen 8x16, Tamzen 10x20, and 2x-scaled 5x7 baseline. Best curve quality at minimal vertical cost.",
       "examples": [
-        "5x7 pixel font for compact text",
-        "6x8 pixel font for slightly more legible body text",
-        "Bold variant via double-strike or thicker glyphs"
+        "Spleen 8x16: '62F', '9:00', '14 days', '13,297'",
+        "Built-in 5x7: 'WEATHER', 'Partly Cloudy', 'H:68 L:55'",
+        "Two sizes create clear hierarchy without borders"
       ],
       "counterExamples": [
         "System fonts rendered via Canvas API",
         "TrueType/OpenType font loading",
-        "Anti-aliased text rendering"
+        "Anti-aliased text rendering",
+        "Three or more font sizes (creates visual noise)"
       ],
       "id": "b612a2ca-48f0-466e-a0d5-de3b39b209b9",
       "relatedIds": [],
@@ -500,10 +508,10 @@
       "location": "packages/renderer/src/boxes/text.ts",
       "knownLimitations": [
         "Only text box type implemented — other types render as placeholders",
-        "No PNG preview endpoint yet",
-        "Font is 5x7 only — no bold variant or larger sizes",
+        "Font is 5x7 only — Spleen 8x16 hero font exists in preview scripts but not yet embedded in renderer",
         "No center alignment implemented yet",
-        "Maximum 6 boxes enforced by layout truncation"
+        "Maximum 6 boxes enforced by layout truncation",
+        "Layout engine only does vertical stacking — horizontal subdivision prototyped in preview scripts but not in core"
       ],
       "id": "dc655ce4-a20a-498c-bce0-d6bdbdbe44c0",
       "relatedIds": [],
@@ -572,8 +580,8 @@
     {
       "type": "note",
       "title": "Hardware Platform",
-      "body": "## Confirmed\n- MCU: ESP32-C3 (RISC-V, BLE 5.0, low power)\n- Display: 2.9-inch eInk (resolution TBD — standard panels are 296x128, codebase uses 240x200)\n- Power: rechargeable battery + solar drip charger\n- Solar panel: one half of the clamshell, doubles as kickstand and display cover\n- Mounting: MagSafe-compatible magnet ring for iPhone attachment\n- Hinge: 320-degree, allows flat/standing/collapsed modes\n\n## Size constraint\n- Must fit on iPhone 15 Pro back: 146.6 x 70.6mm\n- 2.9-inch eInk module is ~80 x 37mm active area — fits comfortably\n- May partially cover camera if needed for larger display option\n\n## Open hardware questions\n- BLE version: 4.2 vs 5.0 (ESP32-C3 supports 5.0)\n- Battery capacity target\n- Hinge mechanism and durability at $25 BOM\n- MagSafe magnet integration approach\n- Display resolution reconciliation with software\n- Power budget for minute-level refresh in phone-mounted mode",
-      "tags": ["hardware", "esp32", "eink", "magsafe", "form-factor"],
+      "body": "## Component Layout (from issue #22)\n\n### Display half (phone-facing when folded back)\n- ESP32-C3-MINI-1 (16.6x13.2x2.4mm) — antenna at board edge, away from MagSafe metal\n- 2.9-inch glass eInk panel (79x37x1.2mm) — portrait orientation on 70.6mm width\n- LiPo battery 100mAh (35x20x3.5mm) — acts as ballast for MagSafe stability\n- Half thickness: ~4.4mm\n\n### Solar half (outward-facing, has MagSafe)\n- MagSafe magnet ring (54mm OD, 46mm ID)\n- Qi receiver coil (inside magnet ring)\n- Solar panel (~70x100mm, amorphous Si, 0.22mm)\n- AEM10941 solar harvesting IC + MCP73831 LiPo charger\n- STWLC38 or BQ51013 Qi receiver IC\n- Half thickness: ~3.25mm (without battery)\n\n### Hinge\n- Book-style along 70.6mm short edge\n- 320-degree cam-follower or dual-pivot friction hinge\n- FPC through hinge: 2-4 wires (power + solar leads only)\n- Off-the-shelf Reell TI-C5M or Sugatsune at $15-30/unit\n\n### Thickness\n- Folded: ~8mm (accepted — comparable to MagSafe Battery Pack)\n- Glass panel kept over flex (saves $7-10/unit)\n\n### BOM target: $35\n- Charging subsystem: $13-18\n- Hinge: $4-30 (biggest cost variable)\n- eInk display: $5-8 (glass)\n- ESP32-C3-MINI-1: $2-3\n- PCB + passives: $3-5\n\n## Still open\n- Display resolution: 240x200 (code) vs 296x128 (standard panels)\n- Battery placement: display half (ballast) vs solar half (shorter path)\n- Hinge sourcing: off-the-shelf vs cheap alternatives\n- BLE 5.0 MTU strategy for phone-mounted mode\n- Background BLE on iOS constraints\n- eInk partial refresh for minute-level updates",
+      "tags": ["hardware", "esp32", "eink", "magsafe", "form-factor", "bom"],
       "id": "e5f6a7b8-hardware-platform-0001",
       "relatedIds": [],
       "metadata": {},
@@ -631,13 +639,13 @@
     },
     {
       "type": "finding",
-      "title": "eInk display design research — layout patterns",
+      "title": "eInk display design research — layout patterns (addressed)",
       "description": "Research across Tidbyt, Watchy, TRMNL, thermal printer art, and eInk phone accessories (YotaPhone, InkCase, HiSense) yielded consistent design principles for small 1-bit displays:\n\n1. ONE DOMINANT ELEMENT — a single large hero element (time, temperature) taking 40-50% of height reads best. Cramming too much kills legibility.\n2. TWO FONT SIZES MAX — large hero + small data. No medium. The contrast jump IS the hierarchy.\n3. WHITESPACE BEATS BORDERS — generous padding between sections feels cleaner than 1px borders around everything. Current renderer over-uses borders.\n4. RECEIPT-STYLE LAYOUT — label left-aligned, value right-aligned, monospace. Horizontal rules as dividers.\n5. 3-4 DATA ITEMS MAX — rotate screens for more info rather than crowding one frame.\n6. STATIC > INTERACTIVE — eInk phone accessories that tried to be mini-Android (YotaPhone, HiSense) disappointed users. Single-purpose static frames (InkCase clock faces) worked best.\n7. NO TOUCH REQUIRED — designs assuming eInk touch input universally failed. Treat the back as display-only.\n\nThe current renderer treats all boxes identically (border + uppercase label + dotted divider + wrapped text). The research points toward differentiated visual treatment per box type as the next rendering improvement.",
       "findingType": "recommendation",
       "severity": "minor",
       "evidence": "Web research: Tidbyt review (macwright.com), Watchy docs (sqfmi), TRMNL (trmnl.com), YotaPhone review (Engadget, Phone Scoop), InkCase (Kickstarter), thermal-sans-mono (GitHub)",
       "recommendation": "Implement hero font size for primary data (weather temp, countdown number). Reduce border usage — use whitespace gaps instead. Differentiate box renderers visually by type. Consider screen rotation (2-3 states cycling) as an alternative to cramming 6 boxes.",
-      "status": "open",
+      "status": "addressed",
       "id": "b2c3d4e5-design-research-0001",
       "relatedIds": [],
       "metadata": {},
