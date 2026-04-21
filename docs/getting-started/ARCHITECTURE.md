@@ -2,7 +2,7 @@
 
 ## System Overview
 
-InfoBento is a MagSafe-mounted eInk companion display that lives on the back of your iPhone. It's a clamshell: one side is a 2.9" black-and-white eInk screen, the other is a solar panel. A 320-degree hinge lets you stand it on a counter with the solar panel aimed at a window, or fold it flat against your phone.
+InfoBento is a MagSafe-mounted eInk companion display that lives on the back of your iPhone. It's a clamshell: one side is a 2.9" black-and-white eInk screen, the other is a solar panel. A 180-degree hinge lets you stand it on a counter with the solar panel aimed at a window, or fold it flat against your phone.
 
 ```
 ┌──────────────┐     BLE      ┌─────────────┐     HTTPS     ┌───────────────┐

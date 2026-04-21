@@ -2,7 +2,7 @@
 
 ## Design Constraints
 
-- **Form factor:** MagSafe clamshell — eInk display + solar panel connected by 320-degree hinge
+- **Form factor:** MagSafe clamshell — eInk display + solar panel connected by 180-degree hinge
 - **Size:** Must fit on iPhone 15 Pro back (146.6 x 70.6mm)
 - **MCU:** ESP32-C3 (RISC-V, BLE 5.0)
 - **Solar panel:** One half of the clamshell, also serves as kickstand and display cover

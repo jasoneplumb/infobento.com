@@ -2,13 +2,13 @@
 
 _See less. Know enough._
 
-A MagSafe-mounted eInk companion display that lives on the back of your iPhone. Clamshell form factor with a 320-degree hinge — open it to stand on a counter with the solar panel aimed at a window, or leave it flat on your phone as a glanceable second screen.
+A MagSafe-mounted eInk companion display that lives on the back of your iPhone. Clamshell form factor with a 180-degree hinge — open it to stand on a counter with the solar panel aimed at a window, or leave it flat on your phone as a glanceable second screen.
 
 ## Overview
 
 InfoBento puts the information you'd unlock your phone to check — weather, next meeting, countdown to vacation — on the _outside_ of your phone. Flip it over, glance, move on. No unlock, no app, no rabbit hole.
 
-At home, stand it on the kitchen counter. The hinged solar panel aims at the window and keeps it charged indefinitely. Configure your boxes once from a web page, and it just works — for months, silently, on sunlight. $35 target via Kickstarter.
+At home, stand it on the kitchen counter. The hinged solar panel aims at the window and keeps it charged indefinitely. Configure your boxes once from a web page, and it just works — for months, silently, on sunlight. $30 target via Kickstarter.
 
 ### Hardware
 
@@ -17,7 +17,7 @@ At home, stand it on the kitchen counter. The hinged solar panel aims at the win
 - **Power:** Rechargeable battery + solar drip charger; passive MagSafe reverse-charge from iPhone when collapsed
 - **Connectivity:** Bluetooth Low Energy (via phone bridge)
 - **Form factor:** MagSafe clamshell — fits on iPhone 15 Pro back (146.6 x 70.6mm)
-- **Hinge:** 320-degree, enables three modes: phone-mounted, counter-standing, collapsed/charging
+- **Hinge:** 180-degree, enables three modes: phone-mounted, counter-standing, collapsed/charging
 
 ### Physical Modes
 
