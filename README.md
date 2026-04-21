@@ -8,7 +8,7 @@ A MagSafe-mounted eInk companion display that lives on the back of your iPhone. 
 
 InfoBento puts the information you'd unlock your phone to check — weather, next meeting, countdown to vacation — on the _outside_ of your phone. Flip it over, glance, move on. No unlock, no app, no rabbit hole.
 
-At home, stand it on the kitchen counter. The hinged solar panel aims at the window and keeps it charged indefinitely. Configure your boxes once from a web page, and it just works — for months, silently, on sunlight. $25 target via Kickstarter.
+At home, stand it on the kitchen counter. The hinged solar panel aims at the window and keeps it charged indefinitely. Configure your boxes once from a web page, and it just works — for months, silently, on sunlight. $35 target via Kickstarter.
 
 ### Hardware
 
