@@ -1,0 +1,843 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>InfoBento Box Editor — Vanilla Reactive Prototype</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #f5f5f5;
+      --surface: #ffffff;
+      --border: #d0d0d0;
+      --text: #1a1a1a;
+      --muted: #666;
+      --accent: #2563eb;
+      --accent-hover: #1d4ed8;
+      --danger: #dc2626;
+      --danger-hover: #b91c1c;
+      --header-bg: #1a1a1a;
+      --header-text: #f5f5f5;
+      --mono: 'Courier New', Courier, monospace;
+      --radius: 6px;
+    }
+
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      font-size: 14px;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ── Header ─────────────────────────────────────────────────────────── */
+    header {
+      background: var(--header-bg);
+      color: var(--header-text);
+      padding: 12px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    header h1 {
+      font-family: var(--mono);
+      font-size: 15px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+    }
+    header .badge {
+      font-family: var(--mono);
+      font-size: 11px;
+      background: #333;
+      border: 1px solid #555;
+      color: #aaa;
+      padding: 2px 8px;
+      border-radius: 3px;
+    }
+
+    /* ── Main layout ─────────────────────────────────────────────────────── */
+    main {
+      display: flex;
+      flex: 1;
+      gap: 0;
+      overflow: hidden;
+    }
+
+    /* ── Preview panel ───────────────────────────────────────────────────── */
+    #preview-panel {
+      width: 280px;
+      min-width: 280px;
+      background: #2a2a2a;
+      border-right: 1px solid #111;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 24px 20px;
+      gap: 16px;
+    }
+    #preview-panel h2 {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: #888;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      align-self: flex-start;
+    }
+
+    /* eInk display: 240x200 scaled 2x = 480x400 — too large for sidebar,
+       so scale to 240x200 actual CSS pixels and let user see it 1:1.       */
+    #eink-display {
+      width: 240px;
+      height: 200px;
+      background: #000;
+      border: 2px solid #444;
+      border-radius: 3px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      padding: 4px;
+      gap: 2px;
+      position: relative;
+    }
+    /* Pixel-grid texture overlay to evoke eInk */
+    #eink-display::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background-image: repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 1px,
+        rgba(255,255,255,0.015) 1px,
+        rgba(255,255,255,0.015) 2px
+      );
+      pointer-events: none;
+      z-index: 10;
+    }
+
+    .eink-box {
+      font-family: var(--mono);
+      font-size: 9px;
+      color: #fff;
+      line-height: 1.3;
+      border-bottom: 1px solid #222;
+      padding: 3px 4px;
+      flex-shrink: 0;
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+    }
+    .eink-box:last-child { border-bottom: none; }
+    .eink-box .eink-label {
+      font-size: 7px;
+      color: #888;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      display: block;
+    }
+    .eink-box .eink-value {
+      display: block;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .eink-empty {
+      font-family: var(--mono);
+      font-size: 9px;
+      color: #333;
+      text-align: center;
+      padding: 20px 8px;
+    }
+
+    .preview-meta {
+      font-family: var(--mono);
+      font-size: 10px;
+      color: #555;
+      text-align: center;
+      line-height: 1.6;
+    }
+
+    /* ── Config panel ────────────────────────────────────────────────────── */
+    #config-panel {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .config-toolbar {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 10px 20px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .config-toolbar h2 {
+      font-size: 13px;
+      font-weight: 600;
+      flex: 1;
+    }
+
+    /* ── Buttons ─────────────────────────────────────────────────────────── */
+    button {
+      font-family: inherit;
+      font-size: 13px;
+      cursor: pointer;
+      border: none;
+      border-radius: var(--radius);
+      padding: 6px 12px;
+      transition: background 0.1s;
+    }
+    .btn-primary {
+      background: var(--accent);
+      color: #fff;
+    }
+    .btn-primary:hover { background: var(--accent-hover); }
+
+    .btn-danger {
+      background: transparent;
+      color: var(--danger);
+      border: 1px solid var(--danger);
+      padding: 4px 8px;
+      font-size: 12px;
+    }
+    .btn-danger:hover { background: var(--danger); color: #fff; }
+
+    .btn-ghost {
+      background: transparent;
+      color: var(--muted);
+      border: 1px solid var(--border);
+      padding: 4px 7px;
+      font-size: 12px;
+      line-height: 1;
+    }
+    .btn-ghost:hover { background: var(--border); }
+    .btn-ghost:disabled { opacity: 0.3; cursor: default; }
+
+    .btn-secondary {
+      background: transparent;
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+    .btn-secondary:hover { background: var(--bg); }
+
+    /* Add box dropdown wrapper */
+    .add-box-wrapper {
+      position: relative;
+      display: inline-flex;
+      gap: 0;
+    }
+    .add-box-wrapper select {
+      font-family: inherit;
+      font-size: 13px;
+      padding: 6px 8px;
+      border: 1px solid var(--border);
+      border-right: none;
+      border-radius: var(--radius) 0 0 var(--radius);
+      background: var(--surface);
+      color: var(--text);
+      cursor: pointer;
+    }
+    .add-box-wrapper button {
+      border-radius: 0 var(--radius) var(--radius) 0;
+    }
+
+    /* Export button */
+    #btn-export {
+      background: #1a1a1a;
+      color: #f5f5f5;
+      font-family: var(--mono);
+      font-size: 12px;
+    }
+    #btn-export:hover { background: #333; }
+
+    /* ── Box list ────────────────────────────────────────────────────────── */
+    #box-list {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .box-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+
+    .box-card-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 12px;
+      background: #fafafa;
+      border-bottom: 1px solid var(--border);
+    }
+    .box-drag-handle {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      margin-right: 2px;
+      opacity: 0.3;
+    }
+    .box-drag-handle span {
+      display: block;
+      width: 16px;
+      height: 2px;
+      background: var(--text);
+      border-radius: 1px;
+    }
+
+    .box-type-badge {
+      font-family: var(--mono);
+      font-size: 10px;
+      font-weight: 700;
+      padding: 2px 6px;
+      border-radius: 3px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+    .type-text    { background: #e0f2fe; color: #0369a1; }
+    .type-countdown { background: #fef3c7; color: #92400e; }
+    .type-weather { background: #d1fae5; color: #065f46; }
+    .type-qr      { background: #ede9fe; color: #5b21b6; }
+    .type-quote   { background: #fce7f3; color: #9d174d; }
+
+    .box-label-display {
+      flex: 1;
+      font-size: 13px;
+      font-weight: 500;
+    }
+    .box-order-controls {
+      display: flex;
+      gap: 4px;
+    }
+    .box-card-body {
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    /* ── Form fields ─────────────────────────────────────────────────────── */
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .field label {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+    .field input,
+    .field textarea,
+    .field select {
+      font-family: inherit;
+      font-size: 13px;
+      padding: 7px 10px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--surface);
+      color: var(--text);
+      width: 100%;
+      transition: border-color 0.1s;
+    }
+    .field input:focus,
+    .field textarea:focus,
+    .field select:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+    .field textarea {
+      resize: vertical;
+      min-height: 72px;
+      font-family: var(--mono);
+      font-size: 12px;
+    }
+    .field-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    /* ── Empty state ─────────────────────────────────────────────────────── */
+    .empty-state {
+      text-align: center;
+      padding: 48px 24px;
+      color: var(--muted);
+    }
+    .empty-state p { font-size: 14px; margin-bottom: 6px; }
+    .empty-state small { font-size: 12px; color: #aaa; }
+
+    /* ── Scrollbar styling ───────────────────────────────────────────────── */
+    #box-list::-webkit-scrollbar { width: 6px; }
+    #box-list::-webkit-scrollbar-track { background: transparent; }
+    #box-list::-webkit-scrollbar-thumb { background: #d0d0d0; border-radius: 3px; }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>InfoBento Box Editor</h1>
+  <span class="badge">PROTOTYPE · vanilla-reactive</span>
+</header>
+
+<main>
+  <div id="preview-panel">
+    <h2>eInk Preview</h2>
+    <div id="eink-display"></div>
+    <div class="preview-meta">
+      240 × 200 px · 1-bit<br>
+      black/white · eInk
+    </div>
+  </div>
+
+  <div id="config-panel">
+    <div class="config-toolbar">
+      <h2>Bento Boxes</h2>
+      <div class="add-box-wrapper">
+        <select id="add-type-select">
+          <option value="text">Text</option>
+          <option value="countdown">Countdown</option>
+          <option value="weather">Weather</option>
+          <option value="qr">QR Code</option>
+          <option value="quote">Quote</option>
+        </select>
+        <button class="btn-primary" id="btn-add">+ Add Box</button>
+      </div>
+      <button class="btn-secondary" id="btn-export">⬇ Export JSON</button>
+    </div>
+    <div id="box-list"></div>
+  </div>
+</main>
+
+<script>
+  // ─────────────────────────────────────────────────────────────────────────
+  // REACTIVE STATE
+  // A plain object + a render() function. No virtual DOM, no framework.
+  // Mutations go through setState() which schedules a synchronous re-render.
+  // Two-way binding is achieved by reading from state on render, writing back
+  // via input listeners — the same mental model as Svelte stores but simpler.
+  // ─────────────────────────────────────────────────────────────────────────
+
+  let _nextId = 4;
+  function uid() { return _nextId++; }
+
+  const state = {
+    boxes: [
+      {
+        id: 1,
+        type: 'weather',
+        label: 'Weather',
+        config: { city: 'San Francisco' }
+      },
+      {
+        id: 2,
+        type: 'countdown',
+        label: 'Countdown',
+        config: { date: '2026-12-31', countdownLabel: 'New Year' }
+      },
+      {
+        id: 3,
+        type: 'text',
+        label: 'Text',
+        config: { content: 'Hello, InfoBento!' }
+      }
+    ]
+  };
+
+  // ── setState: mutate + re-render ─────────────────────────────────────────
+  function setState(mutate) {
+    mutate(state);
+    render();
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // ACTIONS
+  // ─────────────────────────────────────────────────────────────────────────
+
+  function addBox(type) {
+    const defaults = {
+      text:      { content: '' },
+      countdown: { date: '', countdownLabel: '' },
+      weather:   { city: '' },
+      qr:        { url: '' },
+      quote:     { content: '', author: '' }
+    };
+    const labels = {
+      text: 'Text', countdown: 'Countdown', weather: 'Weather',
+      qr: 'QR Code', quote: 'Quote'
+    };
+    setState(s => {
+      s.boxes.push({
+        id: uid(),
+        type,
+        label: labels[type],
+        config: Object.assign({}, defaults[type])
+      });
+    });
+  }
+
+  function removeBox(id) {
+    setState(s => {
+      s.boxes = s.boxes.filter(b => b.id !== id);
+    });
+  }
+
+  function moveBox(id, dir) {
+    setState(s => {
+      const idx = s.boxes.findIndex(b => b.id === id);
+      if (idx < 0) return;
+      const target = idx + dir;
+      if (target < 0 || target >= s.boxes.length) return;
+      const tmp = s.boxes[idx];
+      s.boxes[idx] = s.boxes[target];
+      s.boxes[target] = tmp;
+    });
+  }
+
+  function updateConfig(id, key, value) {
+    // Direct mutation — no re-render needed for live typing;
+    // we re-render the preview only to keep it in sync.
+    const box = state.boxes.find(b => b.id === id);
+    if (!box) return;
+    box.config[key] = value;
+    renderPreview(); // cheap — only update the preview
+  }
+
+  function updateLabel(id, value) {
+    const box = state.boxes.find(b => b.id === id);
+    if (!box) return;
+    box.label = value;
+    renderPreview();
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // EXPORT
+  // ─────────────────────────────────────────────────────────────────────────
+
+  function exportJSON() {
+    const data = {
+      version: 1,
+      boxes: state.boxes.map(b => ({
+        type: b.type,
+        label: b.label,
+        config: Object.assign({}, b.config)
+      }))
+    };
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'infobento-config.json';
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // PREVIEW RENDER — lightweight, only rebuilds the eInk DOM
+  // ─────────────────────────────────────────────────────────────────────────
+
+  function previewValue(box) {
+    const c = box.config;
+    switch (box.type) {
+      case 'text':
+        return c.content || '(empty)';
+      case 'countdown': {
+        if (!c.date) return '(no date set)';
+        const diff = Math.ceil((new Date(c.date) - Date.now()) / 86400000);
+        const label = c.countdownLabel || 'Event';
+        return diff > 0 ? label + ': ' + diff + 'd' : (diff === 0 ? label + ': today' : label + ': past');
+      }
+      case 'weather':
+        return c.city ? c.city : '(no city)';
+      case 'qr':
+        return c.url ? c.url.replace(/^https?:\/\//, '') : '(no URL)';
+      case 'quote':
+        return (c.content || '(empty)') + (c.author ? ' — ' + c.author : '');
+      default:
+        return '?';
+    }
+  }
+
+  function renderPreview() {
+    const display = document.getElementById('eink-display');
+    if (!display) return;
+    if (state.boxes.length === 0) {
+      display.innerHTML = '<div class="eink-empty">no boxes</div>';
+      return;
+    }
+
+    // Rebuild eInk children
+    const fragment = document.createDocumentFragment();
+    state.boxes.forEach(box => {
+      const div = document.createElement('div');
+      div.className = 'eink-box';
+
+      const labelSpan = document.createElement('span');
+      labelSpan.className = 'eink-label';
+      labelSpan.textContent = box.type.toUpperCase();
+
+      const valueSpan = document.createElement('span');
+      valueSpan.className = 'eink-value';
+      valueSpan.textContent = previewValue(box);
+
+      div.appendChild(labelSpan);
+      div.appendChild(valueSpan);
+      fragment.appendChild(div);
+    });
+
+    display.innerHTML = '';
+    display.appendChild(fragment);
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // CONFIG FORM BUILDERS — one per box type
+  // Returns a DocumentFragment of field divs.
+  // ─────────────────────────────────────────────────────────────────────────
+
+  function makeField(labelText, inputEl) {
+    const wrapper = document.createElement('div');
+    wrapper.className = 'field';
+    const label = document.createElement('label');
+    label.textContent = labelText;
+    wrapper.appendChild(label);
+    wrapper.appendChild(inputEl);
+    return wrapper;
+  }
+
+  function input(type, value, onInput) {
+    const el = document.createElement('input');
+    el.type = type;
+    el.value = value;
+    el.addEventListener('input', e => onInput(e.target.value));
+    return el;
+  }
+
+  function textarea(value, onInput) {
+    const el = document.createElement('textarea');
+    el.value = value;
+    el.addEventListener('input', e => onInput(e.target.value));
+    return el;
+  }
+
+  function buildTextForm(box) {
+    const frag = document.createDocumentFragment();
+    frag.appendChild(makeField('Content', textarea(
+      box.config.content,
+      v => updateConfig(box.id, 'content', v)
+    )));
+    return frag;
+  }
+
+  function buildCountdownForm(box) {
+    const frag = document.createDocumentFragment();
+    const row = document.createElement('div');
+    row.className = 'field-row';
+    row.appendChild(makeField('Target Date', input('date', box.config.date,
+      v => updateConfig(box.id, 'date', v)
+    )));
+    row.appendChild(makeField('Event Label', input('text', box.config.countdownLabel,
+      v => updateConfig(box.id, 'countdownLabel', v)
+    )));
+    frag.appendChild(row);
+    return frag;
+  }
+
+  function buildWeatherForm(box) {
+    const frag = document.createDocumentFragment();
+    frag.appendChild(makeField('City Name', input('text', box.config.city,
+      v => updateConfig(box.id, 'city', v)
+    )));
+    return frag;
+  }
+
+  function buildQRForm(box) {
+    const frag = document.createDocumentFragment();
+    frag.appendChild(makeField('URL', input('url', box.config.url,
+      v => updateConfig(box.id, 'url', v)
+    )));
+    return frag;
+  }
+
+  function buildQuoteForm(box) {
+    const frag = document.createDocumentFragment();
+    frag.appendChild(makeField('Quote Text', textarea(
+      box.config.content,
+      v => updateConfig(box.id, 'content', v)
+    )));
+    frag.appendChild(makeField('Author (optional)', input('text', box.config.author,
+      v => updateConfig(box.id, 'author', v)
+    )));
+    return frag;
+  }
+
+  const formBuilders = {
+    text:      buildTextForm,
+    countdown: buildCountdownForm,
+    weather:   buildWeatherForm,
+    qr:        buildQRForm,
+    quote:     buildQuoteForm
+  };
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // CARD BUILDER — one card DOM node per box
+  // ─────────────────────────────────────────────────────────────────────────
+
+  function buildCard(box, idx, total) {
+    const card = document.createElement('div');
+    card.className = 'box-card';
+    card.dataset.id = box.id;
+
+    // ── Header
+    const header = document.createElement('div');
+    header.className = 'box-card-header';
+
+    // Drag handle (decorative — no drag logic in this prototype)
+    const handle = document.createElement('div');
+    handle.className = 'box-drag-handle';
+    handle.innerHTML = '<span></span><span></span><span></span>';
+
+    // Type badge
+    const badge = document.createElement('span');
+    badge.className = 'box-type-badge type-' + box.type;
+    badge.textContent = box.type;
+
+    // Label input (inline editable)
+    const labelInput = document.createElement('input');
+    labelInput.type = 'text';
+    labelInput.value = box.label;
+    labelInput.className = 'box-label-display';
+    labelInput.style.cssText = 'border:none;background:transparent;font-size:13px;font-weight:500;padding:0;color:var(--text);';
+    labelInput.addEventListener('input', e => updateLabel(box.id, e.target.value));
+
+    // Order controls
+    const orderDiv = document.createElement('div');
+    orderDiv.className = 'box-order-controls';
+
+    const btnUp = document.createElement('button');
+    btnUp.className = 'btn-ghost';
+    btnUp.textContent = '▲';
+    btnUp.title = 'Move up';
+    btnUp.disabled = idx === 0;
+    btnUp.addEventListener('click', () => moveBox(box.id, -1));
+
+    const btnDown = document.createElement('button');
+    btnDown.className = 'btn-ghost';
+    btnDown.textContent = '▼';
+    btnDown.title = 'Move down';
+    btnDown.disabled = idx === total - 1;
+    btnDown.addEventListener('click', () => moveBox(box.id, 1));
+
+    // Remove button
+    const btnRemove = document.createElement('button');
+    btnRemove.className = 'btn-danger';
+    btnRemove.textContent = '✕';
+    btnRemove.title = 'Remove box';
+    btnRemove.addEventListener('click', () => removeBox(box.id));
+
+    orderDiv.appendChild(btnUp);
+    orderDiv.appendChild(btnDown);
+
+    header.appendChild(handle);
+    header.appendChild(badge);
+    header.appendChild(labelInput);
+    header.appendChild(orderDiv);
+    header.appendChild(btnRemove);
+
+    // ── Body (type-specific form)
+    const body = document.createElement('div');
+    body.className = 'box-card-body';
+
+    const builder = formBuilders[box.type];
+    if (builder) body.appendChild(builder(box));
+
+    card.appendChild(header);
+    card.appendChild(body);
+    return card;
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // MAIN RENDER — rebuilds the box list + preview
+  // Called on every state change. The label input inside each card re-focuses
+  // automatically because we track active element and restore focus.
+  // ─────────────────────────────────────────────────────────────────────────
+
+  function render() {
+    // Capture focus so we can restore it after DOM rebuild
+    const active = document.activeElement;
+    const activeCardId = active && active.closest && active.closest('[data-id]')
+      ? active.closest('[data-id]').dataset.id
+      : null;
+    const activeFieldType = active ? active.type || active.tagName.toLowerCase() : null;
+    const activeSelStart = (active && typeof active.selectionStart === 'number') ? active.selectionStart : null;
+    const activeSelEnd   = (active && typeof active.selectionEnd   === 'number') ? active.selectionEnd   : null;
+
+    const list = document.getElementById('box-list');
+    if (!list) return;
+
+    list.innerHTML = '';
+
+    if (state.boxes.length === 0) {
+      const empty = document.createElement('div');
+      empty.className = 'empty-state';
+      empty.innerHTML = '<p>No boxes yet.</p><small>Use "Add Box" above to get started.</small>';
+      list.appendChild(empty);
+    } else {
+      const frag = document.createDocumentFragment();
+      state.boxes.forEach((box, idx) => {
+        frag.appendChild(buildCard(box, idx, state.boxes.length));
+      });
+      list.appendChild(frag);
+    }
+
+    renderPreview();
+
+    // Restore focus heuristic: find the card with the same id and same input type
+    if (activeCardId) {
+      const card = list.querySelector('[data-id="' + activeCardId + '"]');
+      if (card) {
+        let target = null;
+        if (activeFieldType === 'text' || activeFieldType === 'url' || activeFieldType === 'date') {
+          const inputs = card.querySelectorAll('input[type="' + activeFieldType + '"]');
+          target = inputs[0] || null;
+        } else if (activeFieldType === 'textarea') {
+          target = card.querySelector('textarea');
+        }
+        if (target) {
+          target.focus();
+          if (activeSelStart !== null) {
+            try { target.setSelectionRange(activeSelStart, activeSelEnd); } catch(e) {}
+          }
+        }
+      }
+    }
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // BOOTSTRAP — wire up toolbar buttons and do initial render
+  // ─────────────────────────────────────────────────────────────────────────
+
+  document.getElementById('btn-add').addEventListener('click', () => {
+    const sel = document.getElementById('add-type-select');
+    addBox(sel.value);
+  });
+
+  document.getElementById('btn-export').addEventListener('click', exportJSON);
+
+  // Initial render
+  render();
+</script>
+</body>
+</html>
