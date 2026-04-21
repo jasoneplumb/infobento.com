@@ -7,6 +7,12 @@
 
 import type { FrameBuffer } from './index.js';
 import { FONT_DATA, FONT_WIDTH, FONT_HEIGHT, CHAR_ADVANCE } from './font.js';
+import {
+  HERO_FONT_DATA,
+  HERO_FONT_WIDTH,
+  HERO_FONT_HEIGHT,
+  HERO_CHAR_ADVANCE,
+} from './hero-font.js';
 
 /**
  * intent: Set a single pixel in the 1-bit packed frame buffer
@@ -146,4 +152,51 @@ export function drawTextWrapped(
     // Add space after word
     cx += CHAR_ADVANCE;
   }
+}
+
+/**
+ * intent: Render a single character from the Spleen 8x16 hero bitmap font
+ * method: Read 16 rows of 8-bit data from HERO_FONT_DATA, set pixels accordingly
+ * effect: Draws an 8x16 character at (x, y) — top-left corner
+ */
+export function drawHeroChar(fb: FrameBuffer, x: number, y: number, char: string): void {
+  const glyph = HERO_FONT_DATA[char];
+  if (!glyph) return; // unsupported character — skip silently
+
+  for (let row = 0; row < HERO_FONT_HEIGHT; row++) {
+    const rowData = glyph[row];
+    if (rowData == null) continue;
+    for (let col = 0; col < HERO_FONT_WIDTH; col++) {
+      // Bit 7 = leftmost pixel, bit 0 = rightmost
+      if (rowData & (1 << (HERO_FONT_WIDTH - 1 - col))) {
+        setPixel(fb, x + col, y + row);
+      }
+    }
+  }
+}
+
+/**
+ * intent: Render a string of text in the Spleen 8x16 hero font on a single line
+ * method: Draw characters left-to-right with HERO_CHAR_ADVANCE spacing
+ * effect: Returns the number of characters drawn and total pixel width used
+ */
+export function drawHeroText(
+  fb: FrameBuffer,
+  x: number,
+  y: number,
+  text: string,
+  maxWidth?: number,
+): { charsDrawn: number; width: number } {
+  let cx = x;
+  let drawn = 0;
+  const limit = maxWidth != null ? x + maxWidth : fb.width;
+
+  for (const char of text) {
+    if (cx + HERO_FONT_WIDTH > limit) break;
+    drawHeroChar(fb, cx, y, char);
+    cx += HERO_CHAR_ADVANCE;
+    drawn++;
+  }
+
+  return { charsDrawn: drawn, width: cx - x };
 }

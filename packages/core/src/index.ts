@@ -8,6 +8,10 @@
 // Re-export all types
 export type {
   TextBoxConfig,
+  WeatherData,
+  WeatherBoxConfig,
+  CountdownBoxConfig,
+  QRBoxConfig,
   BoxConfig,
   BentoBoxType,
   BentoBox,

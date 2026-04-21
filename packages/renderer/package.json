@@ -19,7 +19,8 @@
   },
   "dependencies": {
     "@infobento/core": "*",
-    "pngjs": "^7.0.0"
+    "pngjs": "^7.0.0",
+    "qrcode-generator": "^1.4.4"
   },
   "devDependencies": {
     "@types/pngjs": "^6.0.5"

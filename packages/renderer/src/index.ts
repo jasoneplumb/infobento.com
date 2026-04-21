@@ -8,6 +8,9 @@
 import type { BentoConfig, DeviceProfile, LayoutBox } from '@infobento/core';
 import { DISPLAY_WIDTH, DISPLAY_HEIGHT, calculateLayout } from '@infobento/core';
 import { renderTextBox, renderPlaceholderBox } from './boxes/text.js';
+import { renderWeatherBox } from './boxes/weather.js';
+import { renderCountdownBox } from './boxes/countdown.js';
+import { renderQRBox } from './boxes/qr.js';
 import type { FrameBuffer } from './types.js';
 
 // Re-export PNG conversion and types
@@ -37,10 +40,16 @@ export function createFrameBuffer(
 function renderBox(fb: FrameBuffer, layoutBox: LayoutBox): void {
   const { box } = layoutBox;
 
-  // tradeoff: text boxes without config fall through to placeholder rather than
+  // tradeoff: boxes without config fall through to placeholder rather than
   // crashing — the web UI will enforce config presence, but the renderer is lenient
   if (box.type === 'text' && box.config?.type === 'text') {
     renderTextBox(fb, layoutBox, box.config);
+  } else if (box.type === 'weather' && box.config?.type === 'weather') {
+    renderWeatherBox(fb, layoutBox, box.config);
+  } else if (box.type === 'countdown' && box.config?.type === 'countdown') {
+    renderCountdownBox(fb, layoutBox, box.config);
+  } else if (box.type === 'qr' && box.config?.type === 'qr') {
+    renderQRBox(fb, layoutBox, box.config);
   } else {
     renderPlaceholderBox(fb, layoutBox);
   }

@@ -13,10 +13,35 @@ export interface TextBoxConfig {
   readonly align?: 'left' | 'center';
 }
 
-// Future box configs will be added here and to BentoBox union below
+/** Pre-fetched weather data — the renderer never fetches, only displays */
+export interface WeatherData {
+  readonly temperature: number;
+  readonly condition: string;
+  readonly high: number;
+  readonly low: number;
+}
+
+export interface WeatherBoxConfig {
+  readonly type: 'weather';
+  readonly city: string;
+  readonly lat?: number;
+  readonly lon?: number;
+  readonly data?: WeatherData;
+}
+
+export interface CountdownBoxConfig {
+  readonly type: 'countdown';
+  readonly targetDate: string; // ISO date, e.g. '2026-12-31'
+  readonly label: string; // e.g. 'Vacation', 'Launch Day'
+}
+
+export interface QRBoxConfig {
+  readonly type: 'qr';
+  readonly url: string;
+}
 
 /** Discriminated union of all box-specific configurations */
-export type BoxConfig = TextBoxConfig;
+export type BoxConfig = TextBoxConfig | WeatherBoxConfig | CountdownBoxConfig | QRBoxConfig;
 
 // --- Core types ---
 
@@ -43,9 +68,27 @@ interface TextBentoBox extends BentoBoxBase {
   readonly config?: TextBoxConfig;
 }
 
+/** Weather box with typed config */
+interface WeatherBentoBox extends BentoBoxBase {
+  readonly type: 'weather';
+  readonly config?: WeatherBoxConfig;
+}
+
+/** Countdown box with typed config */
+interface CountdownBentoBox extends BentoBoxBase {
+  readonly type: 'countdown';
+  readonly config?: CountdownBoxConfig;
+}
+
+/** QR code box with typed config */
+interface QRBentoBox extends BentoBoxBase {
+  readonly type: 'qr';
+  readonly config?: QRBoxConfig;
+}
+
 /** Box types that don't have a config yet (placeholder) */
 interface UnconfiguredBentoBox extends BentoBoxBase {
-  readonly type: Exclude<BentoBoxType, 'text'>;
+  readonly type: Exclude<BentoBoxType, 'text' | 'weather' | 'countdown' | 'qr'>;
   readonly config?: undefined;
 }
 
@@ -53,7 +96,12 @@ interface UnconfiguredBentoBox extends BentoBoxBase {
  * A single bento box in the layout.
  * Discriminated union ensures box.type and box.config.type always agree.
  */
-export type BentoBox = TextBentoBox | UnconfiguredBentoBox;
+export type BentoBox =
+  | TextBentoBox
+  | WeatherBentoBox
+  | CountdownBentoBox
+  | QRBentoBox
+  | UnconfiguredBentoBox;
 
 /** Full device configuration */
 export interface BentoConfig {

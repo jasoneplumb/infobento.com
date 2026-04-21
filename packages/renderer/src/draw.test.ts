@@ -1,7 +1,17 @@
 import { describe, it, expect } from 'vitest';
 import { createFrameBuffer } from './index.js';
-import { setPixel, drawHLine, drawRect, drawChar, drawText, drawTextWrapped } from './draw.js';
+import {
+  setPixel,
+  drawHLine,
+  drawRect,
+  drawChar,
+  drawText,
+  drawTextWrapped,
+  drawHeroChar,
+  drawHeroText,
+} from './draw.js';
 import { FONT_WIDTH, CHAR_ADVANCE } from './font.js';
+import { HERO_FONT_WIDTH, HERO_FONT_HEIGHT, HERO_CHAR_ADVANCE } from './hero-font.js';
 
 function getPixel(fb: ReturnType<typeof createFrameBuffer>, x: number, y: number): boolean {
   const byteWidth = Math.ceil(fb.width / 8);
@@ -120,5 +130,77 @@ describe('drawTextWrapped', () => {
     }
     expect(hasLine1).toBe(true);
     expect(hasLine2).toBe(true);
+  });
+});
+
+describe('hero font dimensions', () => {
+  it('has correct dimensions', () => {
+    expect(HERO_FONT_WIDTH).toBe(8);
+    expect(HERO_FONT_HEIGHT).toBe(16);
+    expect(HERO_CHAR_ADVANCE).toBe(9);
+  });
+});
+
+describe('drawHeroChar', () => {
+  it('renders correct pixels for "0"', () => {
+    const fb = createFrameBuffer({ widthPx: 16, heightPx: 20, deviceId: '' });
+    drawHeroChar(fb, 0, 0, '0');
+
+    // Spleen '0' glyph row 2 (0-indexed) = 0x7C = 0b01111100
+    // Pixels at (1,2), (2,2), (3,2), (4,2), (5,2) should be on
+    expect(getPixel(fb, 0, 2)).toBe(false); // bit 7 off
+    expect(getPixel(fb, 1, 2)).toBe(true); // bit 6 on
+    expect(getPixel(fb, 2, 2)).toBe(true); // bit 5 on
+    expect(getPixel(fb, 3, 2)).toBe(true); // bit 4 on
+    expect(getPixel(fb, 4, 2)).toBe(true); // bit 3 on
+    expect(getPixel(fb, 5, 2)).toBe(true); // bit 2 on
+    expect(getPixel(fb, 6, 2)).toBe(false); // bit 1 off
+    expect(getPixel(fb, 7, 2)).toBe(false); // bit 0 off
+
+    // Row 3 = 0xC6 = 0b11000110
+    expect(getPixel(fb, 0, 3)).toBe(true); // bit 7
+    expect(getPixel(fb, 1, 3)).toBe(true); // bit 6
+    expect(getPixel(fb, 2, 3)).toBe(false); // bit 5
+    expect(getPixel(fb, 6, 3)).toBe(true); // bit 1
+    expect(getPixel(fb, 7, 3)).toBe(false); // bit 0
+
+    // Should have pixels set overall
+    let pixelCount = 0;
+    for (let y = 0; y < HERO_FONT_HEIGHT; y++) {
+      for (let x = 0; x < HERO_FONT_WIDTH; x++) {
+        if (getPixel(fb, x, y)) pixelCount++;
+      }
+    }
+    expect(pixelCount).toBeGreaterThan(0);
+  });
+
+  it('does nothing for unsupported characters', () => {
+    const fb = createFrameBuffer({ widthPx: 16, heightPx: 20, deviceId: '' });
+    drawHeroChar(fb, 0, 0, '\x01'); // control character
+    expect(fb.data.every((b) => b === 0)).toBe(true);
+  });
+});
+
+describe('drawHeroText', () => {
+  it('draws multiple characters with spacing', () => {
+    const fb = createFrameBuffer({ widthPx: 240, heightPx: 20, deviceId: '' });
+    const result = drawHeroText(fb, 0, 0, 'Hi');
+    expect(result.charsDrawn).toBe(2);
+    expect(result.width).toBe(2 * HERO_CHAR_ADVANCE);
+  });
+
+  it('respects maxWidth', () => {
+    const fb = createFrameBuffer({ widthPx: 240, heightPx: 20, deviceId: '' });
+    // maxWidth=17: char at x=0 (0+8<=17 yes), x=9 (9+8=17<=17 yes), x=18 (18+8=26>17 no)
+    // So 2 chars fit in 17px
+    const result = drawHeroText(fb, 0, 0, 'Hello', 17);
+    expect(result.charsDrawn).toBe(2);
+  });
+
+  it('fits exactly when maxWidth allows full characters', () => {
+    const fb = createFrameBuffer({ widthPx: 240, heightPx: 20, deviceId: '' });
+    // maxWidth=26: char at x=0 (0+8<=26 yes), x=9 (9+8=17<=26 yes), x=18 (18+8=26<=26 yes), x=27 > 26 no
+    const result = drawHeroText(fb, 0, 0, 'Hello', 26);
+    expect(result.charsDrawn).toBe(3);
   });
 });
