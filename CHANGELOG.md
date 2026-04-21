@@ -1,5 +1,28 @@
 # Changelog
 
+## [0.3.0] - 2026-04-21
+
+### Added
+
+- PNG preview endpoint `POST /api/preview` with optional `?scale=N` upscaling (#19)
+- REQ-008: live PNG preview requirement for web config experience
+- MagSafe clamshell form factor design — 320-degree hinge, three physical modes (phone-mounted, counter-standing, collapsed)
+- Hardware platform decision: ESP32-C3, solar drip charger, MagSafe reverse-charge
+- Value proposition: "See less. Know enough." — anti-phone positioning for $25 Kickstarter
+- Dual-mode power budget: low-power counter mode (1-2x/day) and phone-mounted mode (minute-level partial refresh)
+- Phone-back peek scenario and updated morning glance scenario for new form factor
+- Display resolution finding: 240x200 (codebase) vs 296x128 (standard 2.9" panels)
+
+### Changed
+
+- Project phase advanced from `design` to `implement`
+- README rewritten around MagSafe clamshell form factor and value proposition
+- Hardware docs (display, power, BLE) updated for dual operating modes and ESP32-C3
+- Architecture docs updated with physical modes table and new system overview
+- "Zero Daily Interaction" design principle refined to "Zero Device Interaction"
+- Device Owner role and Desk Decorator user class updated for new form factor
+- API docs: preview endpoint updated from "planned" to implemented
+
 ## [0.2.0] - 2026-04-13
 
 ### Added
