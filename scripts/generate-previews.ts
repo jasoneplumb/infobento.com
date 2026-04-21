@@ -1,6 +1,6 @@
 /**
  * Generate preview images using the new design language:
- * - Two font sizes: hero (2x scale of 5x7 = 10x14) and data (5x7)
+ * - Two font sizes: hero (Spleen 8x16) and data (built-in 5x7)
  * - Whitespace separation instead of borders
  * - Differentiated visual treatment per box type
  * - 3-4 items max per screen for best readability
@@ -15,54 +15,115 @@ import {
   drawTextWrapped,
   drawHLine,
 } from '../packages/renderer/src/draw.js';
-import { FONT_DATA, FONT_WIDTH, FONT_HEIGHT } from '../packages/renderer/src/font.js';
-import { writeFileSync } from 'node:fs';
+import { FONT_HEIGHT } from '../packages/renderer/src/font.js';
+import { readFileSync, writeFileSync } from 'node:fs';
 import { PNG } from 'pngjs';
 
 const SCALE = 4;
 const W = 240;
 const H = 200;
 
-// --- Hero font: 2x scaled version of the 5x7 bitmap font ---
+// --- BDF font parser ---
 
-const HERO_SCALE = 2;
-const HERO_W = FONT_WIDTH * HERO_SCALE; // 10
-const HERO_H = FONT_HEIGHT * HERO_SCALE; // 14
-const HERO_ADVANCE = (FONT_WIDTH + 1) * HERO_SCALE; // 12
+interface BDFGlyph {
+  width: number;
+  height: number;
+  xoff: number;
+  yoff: number;
+  rows: number[];
+}
 
-function drawHeroChar(fb: FrameBuffer, x: number, y: number, char: string): void {
-  const glyph = FONT_DATA[char];
-  if (!glyph) return;
-  for (let row = 0; row < FONT_HEIGHT; row++) {
-    const rowData = glyph[row];
+interface BDFFont {
+  width: number;
+  height: number;
+  glyphs: Record<string, BDFGlyph>;
+}
+
+function parseBDF(path: string): BDFFont {
+  const lines = readFileSync(path, 'utf8').split('\n');
+  const glyphs: Record<string, BDFGlyph> = {};
+  let fontWidth = 0,
+    fontHeight = 0;
+  let currentChar = -1;
+  let inBitmap = false;
+  let bitmapRows: number[] = [];
+  let bbxW = 0,
+    bbxH = 0,
+    bbxXoff = 0,
+    bbxYoff = 0;
+
+  for (const line of lines) {
+    const t = line.trim();
+    if (t.startsWith('FONTBOUNDINGBOX ')) {
+      const p = t.split(/\s+/);
+      fontWidth = parseInt(p[1] ?? '0', 10);
+      fontHeight = parseInt(p[2] ?? '0', 10);
+    } else if (t.startsWith('ENCODING ')) {
+      currentChar = parseInt(t.split(/\s+/)[1] ?? '-1', 10);
+    } else if (t.startsWith('BBX ')) {
+      const p = t.split(/\s+/);
+      bbxW = parseInt(p[1] ?? '0', 10);
+      bbxH = parseInt(p[2] ?? '0', 10);
+      bbxXoff = parseInt(p[3] ?? '0', 10);
+      bbxYoff = parseInt(p[4] ?? '0', 10);
+    } else if (t === 'BITMAP') {
+      inBitmap = true;
+      bitmapRows = [];
+    } else if (t === 'ENDCHAR') {
+      if (currentChar >= 32 && currentChar < 127) {
+        glyphs[String.fromCharCode(currentChar)] = {
+          width: bbxW,
+          height: bbxH,
+          xoff: bbxXoff,
+          yoff: bbxYoff,
+          rows: bitmapRows,
+        };
+      }
+      inBitmap = false;
+      currentChar = -1;
+    } else if (inBitmap) {
+      bitmapRows.push(parseInt(t, 16));
+    }
+  }
+
+  return { width: fontWidth, height: fontHeight, glyphs };
+}
+
+// --- Hero font: Spleen 8x16 ---
+
+const heroFont = parseBDF('/tmp/fonts/spleen-8x16.bdf');
+const HERO_H = heroFont.height;
+
+function drawBDFChar(fb: FrameBuffer, font: BDFFont, x: number, y: number, char: string): number {
+  const glyph = font.glyphs[char];
+  if (!glyph) return font.width;
+  const bytesPerRow = Math.ceil(glyph.width / 8);
+  const totalBits = bytesPerRow * 8;
+
+  for (let row = 0; row < glyph.height; row++) {
+    const rowData = glyph.rows[row];
     if (rowData == null) continue;
-    for (let col = 0; col < FONT_WIDTH; col++) {
-      if (rowData & (1 << (FONT_WIDTH - 1 - col))) {
-        // Fill a HERO_SCALE x HERO_SCALE block
-        for (let dy = 0; dy < HERO_SCALE; dy++) {
-          for (let dx = 0; dx < HERO_SCALE; dx++) {
-            setPixel(fb, x + col * HERO_SCALE + dx, y + row * HERO_SCALE + dy);
-          }
-        }
+    for (let col = 0; col < glyph.width; col++) {
+      const bitPos = totalBits - 1 - col;
+      if (rowData & (1 << bitPos)) {
+        setPixel(fb, x + glyph.xoff + col, y + (font.height - glyph.height - glyph.yoff) + row);
       }
     }
   }
+  return glyph.width + 1;
 }
 
-function drawHeroText(
-  fb: FrameBuffer,
-  x: number,
-  y: number,
-  text: string,
-  maxWidth?: number,
-): void {
+function drawHeroText(fb: FrameBuffer, x: number, y: number, text: string): number {
   let cx = x;
-  const limit = maxWidth != null ? x + maxWidth : W;
   for (const char of text) {
-    if (cx + HERO_W > limit) break;
-    drawHeroChar(fb, cx, y, char);
-    cx += HERO_ADVANCE;
+    cx += drawBDFChar(fb, heroFont, cx, y, char);
   }
+  return cx - x; // return total width drawn
+}
+
+/** Measure hero text width without drawing */
+function heroWidth(text: string): number {
+  return text.length * (heroFont.width + 1);
 }
 
 // --- Drawing helpers ---
@@ -129,8 +190,8 @@ function renderCommuter(): FrameBuffer {
   y += FONT_HEIGHT + 3;
   drawHeroText(fb, 4, y, '62F');
   // Conditions next to hero temp
-  drawText(fb, 4 + 4 * HERO_ADVANCE + 4, y + 2, 'Partly Cloudy', W - 60);
-  drawText(fb, 4 + 4 * HERO_ADVANCE + 4, y + 2 + FONT_HEIGHT + 2, 'H:68  L:55', W - 60);
+  drawText(fb, 4 + heroWidth('62F') + 6, y + 2, 'Partly Cloudy', W - 60);
+  drawText(fb, 4 + heroWidth('62F') + 6, y + 2 + FONT_HEIGHT + 2, 'H:68  L:55', W - 60);
   y += HERO_H + 6;
 
   // Thin rule separator
@@ -141,7 +202,7 @@ function renderCommuter(): FrameBuffer {
   drawLabel(fb, 4, y, 'next');
   y += FONT_HEIGHT + 2;
   drawHeroText(fb, 4, y, '9:00');
-  drawText(fb, 4 + 5 * HERO_ADVANCE + 4, y + 4, 'Standup w/ team', W - 80);
+  drawText(fb, 4 + heroWidth('9:00') + 6, y + 4, 'Standup w/ team', W - 80);
   y += HERO_H + 6;
 
   drawRule(fb, 4, y, W - 8);
@@ -151,7 +212,7 @@ function renderCommuter(): FrameBuffer {
   drawLabel(fb, 4, y, 'countdown');
   y += FONT_HEIGHT + 2;
   drawHeroText(fb, 4, y, '14');
-  drawText(fb, 4 + 3 * HERO_ADVANCE + 4, y + 4, 'days to Maui', W - 50);
+  drawText(fb, 4 + heroWidth('14') + 6, y + 4, 'days to Maui', W - 50);
   y += HERO_H + 6;
 
   drawRule(fb, 4, y, W - 8);
@@ -196,8 +257,8 @@ function renderDesk(): FrameBuffer {
   drawLabel(fb, 4, y, 'streak');
   y += FONT_HEIGHT + 3;
   drawHeroText(fb, 4, y, '12');
-  drawText(fb, 4 + 3 * HERO_ADVANCE + 4, y + 4, 'days without', W - 50);
-  drawText(fb, 4 + 3 * HERO_ADVANCE + 4, y + 4 + FONT_HEIGHT + 2, 'skipping a workout', W - 50);
+  drawText(fb, 4 + heroWidth('12') + 6, y + 4, 'days without', W - 50);
+  drawText(fb, 4 + heroWidth('12') + 6, y + 4 + FONT_HEIGHT + 2, 'skipping a workout', W - 50);
 
   return fb;
 }
@@ -250,8 +311,8 @@ function renderKitchen(): FrameBuffer {
   drawLabel(fb, 4, y, 'weather');
   y += FONT_HEIGHT + 3;
   drawHeroText(fb, 4, y, '58F');
-  drawText(fb, 4 + 4 * HERO_ADVANCE + 4, y + 2, 'Rainy', W - 60);
-  drawText(fb, 4 + 4 * HERO_ADVANCE + 4, y + 2 + FONT_HEIGHT + 2, 'Precip 80%  Wind 12mph', W - 60);
+  drawText(fb, 4 + heroWidth('58F') + 6, y + 2, 'Rainy', W - 60);
+  drawText(fb, 4 + heroWidth('58F') + 6, y + 2 + FONT_HEIGHT + 2, 'Precip 80%  Wind 12mph', W - 60);
   y += HERO_H + 6;
 
   drawRule(fb, 4, y, W - 8);
@@ -328,7 +389,7 @@ function renderBusyParent(): FrameBuffer {
   drawLabel(fb, 4, y, 'weather');
   y += FONT_HEIGHT + 3;
   drawHeroText(fb, 4, y, '72F');
-  drawText(fb, 4 + 4 * HERO_ADVANCE + 4, y + 2, 'Sunny  UV: High', W - 60);
+  drawText(fb, 4 + heroWidth('72F') + 6, y + 2, 'Sunny  UV: High', W - 60);
   y += HERO_H + 6;
 
   drawRule(fb, 4, y, W - 8);
@@ -338,7 +399,7 @@ function renderBusyParent(): FrameBuffer {
   drawLabel(fb, 4, y, 'next event');
   y += FONT_HEIGHT + 2;
   drawHeroText(fb, 4, y, '2:30');
-  drawText(fb, 4 + 5 * HERO_ADVANCE + 4, y + 4, 'Soccer practice', W - 80);
+  drawText(fb, 4 + heroWidth('2:30') + 6, y + 4, 'Soccer practice', W - 80);
   y += HERO_H + 6;
 
   drawRule(fb, 4, y, W - 8);
@@ -348,7 +409,7 @@ function renderBusyParent(): FrameBuffer {
   drawLabel(fb, 4, y, 'countdown');
   y += FONT_HEIGHT + 2;
   drawHeroText(fb, 4, y, '8');
-  drawText(fb, 4 + 2 * HERO_ADVANCE + 4, y + 4, 'days to Spring Break', W - 40);
+  drawText(fb, 4 + heroWidth('8') + 6, y + 4, 'days to Spring Break', W - 40);
   y += HERO_H + 6;
 
   drawRule(fb, 4, y, W - 8);
