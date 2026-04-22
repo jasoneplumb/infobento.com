@@ -200,6 +200,44 @@ main {
   flex: 1;
 }
 
+/* -- Display toggle -------------------------------------------------------- */
+
+.display-toggle {
+  display: inline-flex;
+  gap: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.display-toggle button {
+  font-family: var(--mono);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 5px 12px;
+  border: none;
+  border-radius: 0;
+  background: var(--surface);
+  color: var(--muted);
+  cursor: pointer;
+  transition:
+    background 0.1s,
+    color 0.1s;
+}
+
+.display-toggle button:not(:last-child) {
+  border-right: 1px solid var(--border);
+}
+
+.display-toggle button.active {
+  background: var(--header-bg);
+  color: var(--header-text);
+}
+
+.display-toggle button:hover:not(.active) {
+  background: var(--bg);
+}
+
 /* -- Buttons --------------------------------------------------------------- */
 
 button {

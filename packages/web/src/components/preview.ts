@@ -67,9 +67,10 @@ function toBentoBox(editor: EditorBox): BentoBox {
  * Convert the editor state boxes array into a full BentoConfig for the renderer.
  */
 function toBentoConfig(boxes: readonly EditorBox[]): BentoConfig {
+  const { activeDisplay } = getState();
   return {
     boxes: boxes.map(toBentoBox),
-    displayId: 'D',
+    displayId: activeDisplay,
     refreshesPerDay: 1,
   };
 }

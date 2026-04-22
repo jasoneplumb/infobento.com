@@ -3,14 +3,31 @@
  * Wires up toolbar buttons, registers render callbacks, and performs initial render.
  */
 
+import type { DisplayId } from '@infobento/core';
 import type { EditorBoxType } from './state';
-import { addBox, exportJSON, onPreviewRender, onRender } from './state';
+import {
+  addBox,
+  exportJSON,
+  getActiveDisplay,
+  onPreviewRender,
+  onRender,
+  switchDisplay,
+} from './state';
 import { renderBoxList } from './components/box-list';
 import { renderPreview } from './components/preview';
 
 // -- Register render callbacks ----------------------------------------------
 
+function updateToggleUI(): void {
+  const btnD = document.getElementById('btn-display-d');
+  const btnP = document.getElementById('btn-display-p');
+  const active = getActiveDisplay();
+  btnD?.classList.toggle('active', active === 'D');
+  btnP?.classList.toggle('active', active === 'P');
+}
+
 function render(): void {
+  updateToggleUI();
   renderBoxList();
   renderPreview();
 }
@@ -30,6 +47,12 @@ btnAdd?.addEventListener('click', () => {
 });
 
 btnExport?.addEventListener('click', exportJSON);
+
+const btnDisplayD = document.getElementById('btn-display-d');
+const btnDisplayP = document.getElementById('btn-display-p');
+
+btnDisplayD?.addEventListener('click', () => switchDisplay('D' as DisplayId));
+btnDisplayP?.addEventListener('click', () => switchDisplay('P' as DisplayId));
 
 // -- Initial render ---------------------------------------------------------
 
