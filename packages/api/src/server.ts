@@ -5,9 +5,13 @@
  * Future: Add serveStatic for production, WebSocket for live preview
  */
 
-import { existsSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
+
+// Read version from package.json at startup
+const __pkgPath = resolve(dirname(fileURLToPath(import.meta.url)), '../package.json');
+const __version = JSON.parse(readFileSync(__pkgPath, 'utf8')).version as string;
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { serveStatic } from '@hono/node-server/serve-static';
@@ -24,7 +28,7 @@ app.use('/*', cors());
 // --- API routes ---
 
 app.get('/api/health', (c) => {
-  return c.json({ status: 'ok', version: '0.2.0' });
+  return c.json({ status: 'ok', version: __version });
 });
 
 app.get('/api/box-types', (c) => {
