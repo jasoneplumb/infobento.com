@@ -7,8 +7,9 @@
 
 import type { FrameBuffer } from '../index.js';
 import type { LayoutBox, TextBoxConfig } from '@infobento/core';
-import { drawText, drawTextWrapped, drawHLine } from '../draw.js';
+import { drawText, drawTextWrapped, drawHLine, drawIcon } from '../draw.js';
 import { FONT_HEIGHT, CHAR_ADVANCE } from '../font.js';
+import { BOX_ICONS, ICON_WIDTH } from '../icons.js';
 
 /** Top padding before label */
 const TOP_PAD = 4;
@@ -25,8 +26,11 @@ export function renderTextBox(fb: FrameBuffer, layout: LayoutBox, config: TextBo
   const { x, y, width, height } = layout;
   let cy = y + TOP_PAD;
 
-  // Uppercase label (5x7 font)
-  drawText(fb, x + TOP_PAD, cy, layout.box.label.toUpperCase(), width - TOP_PAD * 2);
+  // Icon + uppercase label (5x7 font)
+  const icon = BOX_ICONS['text'];
+  if (icon) drawIcon(fb, x + TOP_PAD, cy, icon);
+  const labelX = x + TOP_PAD + ICON_WIDTH + 3;
+  drawText(fb, labelX, cy, layout.box.label.toUpperCase(), width - TOP_PAD * 2 - ICON_WIDTH - 3);
   cy += FONT_HEIGHT + LABEL_GAP;
 
   // Thin horizontal rule

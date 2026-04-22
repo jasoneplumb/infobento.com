@@ -7,8 +7,9 @@
 
 import type { FrameBuffer } from '../index.js';
 import type { LayoutBox, WeatherBoxConfig } from '@infobento/core';
-import { drawText, drawTextWrapped, drawHeroText, drawHLine } from '../draw.js';
+import { drawText, drawTextWrapped, drawHeroText, drawHLine, drawIcon } from '../draw.js';
 import { FONT_HEIGHT } from '../font.js';
+import { BOX_ICONS, ICON_WIDTH } from '../icons.js';
 import { HERO_FONT_HEIGHT, HERO_CHAR_ADVANCE } from '../hero-font.js';
 
 /** Whitespace padding */
@@ -27,8 +28,11 @@ export function renderWeatherBox(
   const { x, y, width, height } = layout;
   let cy = y + PAD;
 
-  // Uppercase label (5x7 font)
-  drawText(fb, x + PAD, cy, 'WEATHER', width - PAD * 2);
+  // Icon + uppercase label (5x7 font)
+  const icon = BOX_ICONS['weather'];
+  if (icon) drawIcon(fb, x + PAD, cy, icon);
+  const labelX = x + PAD + ICON_WIDTH + 3;
+  drawText(fb, labelX, cy, 'WEATHER', width - PAD * 2 - ICON_WIDTH - 3);
   cy += FONT_HEIGHT + PAD;
 
   const contentWidth = width - PAD * 2;

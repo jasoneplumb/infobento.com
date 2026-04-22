@@ -8,8 +8,9 @@
 import qrcode from 'qrcode-generator';
 import type { FrameBuffer } from '../index.js';
 import type { LayoutBox, QRBoxConfig } from '@infobento/core';
-import { setPixel, drawRect, drawText } from '../draw.js';
+import { setPixel, drawRect, drawText, drawIcon } from '../draw.js';
 import { FONT_HEIGHT } from '../font.js';
+import { BOX_ICONS, ICON_WIDTH } from '../icons.js';
 
 /** Whitespace padding */
 const PAD = 4;
@@ -26,8 +27,11 @@ export function renderQRBox(fb: FrameBuffer, layout: LayoutBox, config: QRBoxCon
   const { x, y, width, height } = layout;
   let cy = y + PAD;
 
-  // Uppercase label (5x7 font)
-  drawText(fb, x + PAD, cy, layout.box.label.toUpperCase(), width - PAD * 2);
+  // Icon + uppercase label (5x7 font)
+  const icon = BOX_ICONS['qr'];
+  if (icon) drawIcon(fb, x + PAD, cy, icon);
+  const labelX = x + PAD + ICON_WIDTH + 3;
+  drawText(fb, labelX, cy, layout.box.label.toUpperCase(), width - PAD * 2 - ICON_WIDTH - 3);
   cy += FONT_HEIGHT + PAD;
 
   // Body area below label

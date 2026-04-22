@@ -13,6 +13,7 @@ import {
   HERO_FONT_HEIGHT,
   HERO_CHAR_ADVANCE,
 } from './hero-font.js';
+import { ICON_WIDTH, ICON_HEIGHT } from './icons.js';
 
 /**
  * intent: Set a single pixel in the 1-bit packed frame buffer
@@ -199,4 +200,22 @@ export function drawHeroText(
   }
 
   return { charsDrawn: drawn, width: cx - x };
+}
+
+/**
+ * intent: Render a 7x7 icon from the bitmap icon set
+ * method: Read 7 rows of 7-bit data, set pixels accordingly
+ * effect: Draws a 7x7 icon at (x, y) — top-left corner
+ */
+export function drawIcon(fb: FrameBuffer, x: number, y: number, icon: readonly number[]): void {
+  for (let row = 0; row < ICON_HEIGHT; row++) {
+    const rowData = icon[row];
+    if (rowData == null) continue;
+    for (let col = 0; col < ICON_WIDTH; col++) {
+      // Bit 6 = leftmost pixel, bit 0 = rightmost
+      if (rowData & (1 << (ICON_WIDTH - 1 - col))) {
+        setPixel(fb, x + col, y + row);
+      }
+    }
+  }
 }
