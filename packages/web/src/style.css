@@ -479,6 +479,22 @@ button {
   gap: 10px;
 }
 
+/* -- Validation states ----------------------------------------------------- */
+
+.field-error {
+  border-color: var(--danger) !important;
+}
+
+.field-error:focus {
+  border-color: var(--danger) !important;
+}
+
+.error-message {
+  font-size: 11px;
+  color: var(--danger);
+  margin-top: 2px;
+}
+
 /* -- Empty state ----------------------------------------------------------- */
 
 .empty-state {
@@ -510,4 +526,126 @@ button {
 #box-list::-webkit-scrollbar-thumb {
   background: #d0d0d0;
   border-radius: 3px;
+}
+
+/* -- Mobile responsive ----------------------------------------------------- */
+
+@media (max-width: 768px) {
+  /* Stack layout vertically */
+  main {
+    flex-direction: column;
+    overflow: auto;
+  }
+
+  /* Header: tighter on mobile */
+  header {
+    padding: 10px 14px;
+  }
+
+  header h1 {
+    font-size: 14px;
+  }
+
+  /* Preview panel: full width, compact */
+  #preview-panel {
+    width: 100%;
+    min-width: 0;
+    border-right: none;
+    border-bottom: 1px solid #111;
+    padding: 16px 14px;
+    gap: 12px;
+    flex-shrink: 0;
+  }
+
+  /* Scale eInk display to fit viewport width */
+  #eink-display {
+    width: 100%;
+    max-width: 240px;
+    height: auto;
+    aspect-ratio: 240 / 200;
+  }
+
+  .preview-meta {
+    font-size: 9px;
+  }
+
+  /* Config panel: full width, scrollable */
+  #config-panel {
+    flex: 1;
+    overflow: visible;
+    min-height: 0;
+  }
+
+  /* Toolbar: wrap items */
+  .config-toolbar {
+    padding: 10px 14px;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .config-toolbar h2 {
+    font-size: 12px;
+    width: 100%;
+    flex: none;
+  }
+
+  /* Display toggle stays prominent */
+  .display-toggle button {
+    padding: 6px 14px;
+    font-size: 12px;
+  }
+
+  /* Add box wrapper: full row on narrow screens */
+  .add-box-wrapper {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .add-box-wrapper select {
+    min-width: 0;
+    flex: 1;
+  }
+
+  /* Box list: tighter padding */
+  #box-list {
+    padding: 12px 14px;
+    gap: 10px;
+  }
+
+  .box-card-header {
+    padding: 8px 10px;
+  }
+
+  .box-card-body {
+    padding: 10px;
+  }
+
+  /* Reduce font sizes slightly */
+  body {
+    font-size: 13px;
+  }
+
+  button {
+    font-size: 12px;
+  }
+
+  .field label {
+    font-size: 10px;
+  }
+
+  .field input,
+  .field textarea,
+  .field select {
+    font-size: 12px;
+    padding: 6px 8px;
+  }
+
+  .field textarea {
+    min-height: 60px;
+    font-size: 11px;
+  }
+
+  .field-row {
+    grid-template-columns: 1fr;
+  }
 }
