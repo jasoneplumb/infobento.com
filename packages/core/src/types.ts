@@ -71,6 +71,8 @@ export type BentoBoxType =
 interface BentoBoxBase {
   readonly id: string;
   readonly label: string;
+  /** Optional horizontal subdivision — 'left' and 'right' boxes share a row */
+  readonly split?: 'left' | 'right';
 }
 
 /** Text box with typed config */
