@@ -1,51 +1,65 @@
 # InfoBento
 
-A MagSafe-mounted eInk companion display that lives on the back of your iPhone. Clamshell form factor with a 180-degree hinge — open it to stand on a counter with the solar panel aimed at a window, or leave it flat on your phone as a glanceable second screen.
+A MagSafe-mounted dual-eInk companion display that lives on the back of your iPhone. Two 2.9" displays back-to-back in a clamshell: one for your phone, one for your counter. 180-degree hinge, solar charging, zero interaction.
 
 ## Overview
 
 InfoBento puts the information you'd unlock your phone to check — weather, next meeting, countdown to vacation — on the _outside_ of your phone. Flip it over, glance, move on. No unlock, no app, no rabbit hole.
 
-At home, stand it on the kitchen counter. The hinged solar panel aims at the window and keeps it charged indefinitely. Configure your boxes once from a web page, and it just works — for months, silently, on sunlight. $30 target via Kickstarter.
+At home, open it and stand it on the kitchen counter. A different display faces you with a relaxed layout — quote, full agenda, countdown — while the solar panel charges from window light. Fold it closed and snap it back on your phone. No re-render, no delay — each display holds its own frame. $30 target via Kickstarter.
 
 ### Hardware
 
-- **Display:** 2.9" eInk, 1-bit black/white (resolution TBD — codebase uses 240x200, standard panels are 296x128)
-- **MCU:** ESP32-C3 (RISC-V, BLE 5.0, low power)
-- **Power:** Rechargeable battery + solar drip charger; passive MagSafe reverse-charge from iPhone when collapsed
+- **Displays:** Two 2.9" eInk panels (128x296, 1-bit), back-to-back on one PCB
+  - **D (outer):** Phone-mounted display — real-time data, partial refresh every 2-5 min
+  - **P (inner):** Counter/peek display — ambient content, full refresh 1-2x/day
+- **MCU:** ESP32-C3 MINI-1 (RISC-V, BLE 5.0, 8µA deep sleep)
+- **Power:** 100mAh LiPo + AEM10941 solar harvester + MagSafe Qi reverse-charge
 - **Connectivity:** Bluetooth Low Energy (via phone bridge)
 - **Form factor:** MagSafe clamshell — fits on iPhone 15 Pro back (146.6 x 70.6mm)
-- **Hinge:** 180-degree, enables three modes: phone-mounted, counter-standing, collapsed/charging
+- **Hinge:** 180-degree friction hinge, book-style along short edge
+- **Thickness:** ~6.5mm folded
+
+### Four Surfaces (D, P, S, M)
+
+```
+Display half          Solar half
+┌──────────┐         ┌──────────┐
+│ D (outer)│         │ M (outer)│  MagSafe magnets + Qi coil
+│ eInk #1  │         │          │
+├──────────┤         ├──────────┤
+│ P (inner)│         │ S (inner)│  Solar panel
+│ eInk #2  │         │          │
+└──────────┘         └──────────┘
+      └── 180° hinge ──┘
+```
 
 ### Physical Modes
 
 ```
-Phone-mounted          Counter-standing         Collapsed
-┌─────────┐           ┌─────────┐              ┌─────────┐
-│  eInk   │           │  eInk   │              │  Solar  │
-│ display  │           │ display  │              │  panel  │
-├─────────┤           ├────┐    │              ├─────────┤
-│ MagSafe │           │    │ Solar              │  eInk   │
-│ iPhone  │           │    │ panel              │ (hidden) │
-└─────────┘           └────┘    │              └─────────┘
-                      ▲ window                  ▲ on iPhone
-Peek without          Solar charges,            Charges via
-unlocking             display faces room        MagSafe
+CLOSED (0°)         PEEK (90°)          COUNTER (~100°)
+D faces out         P faces user        P faces user
+
+  D│P S│M│phone│    │P  D│              P│
+  └────┘ └─────┘    └────┘───           ─┘\___S___
+                    hinge  S M          hinge  M(base)
+Phone-mounted       Quick glance        Solar charging
+D = real-time       P = ambient         P = ambient
 ```
 
 ### Architecture
 
 ```
-┌──────────────┐     BLE      ┌───────┐     HTTPS     ┌───────────┐
-│    Device     │◄────────────►│ Phone │◄─────────────►│ Cloud API │
-│  eInk + solar │              │ (app) │               │ (stateless)│
-│  MagSafe mount│              └───────┘               └───────────┘
-└──────────────┘                                            ▲
-                                                            │
-                                                      ┌─────┴─────┐
-                                                      │  Web UI    │
-                                                      │ (config)   │
-                                                      └───────────┘
+┌────────────────┐     BLE      ┌───────┐     HTTPS     ┌───────────┐
+│     Device      │◄────────────►│ Phone │◄─────────────►│ Cloud API │
+│ D + P displays  │              │ (app) │               │ (stateless)│
+│ Solar + MagSafe │              └───────┘               └───────────┘
+└────────────────┘                                            ▲
+                                                              │
+                                                        ┌─────┴─────┐
+                                                        │  Web UI    │
+                                                        │ (config)   │
+                                                        └───────────┘
 ```
 
 ## Quick Start
