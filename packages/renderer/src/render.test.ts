@@ -75,8 +75,12 @@ describe('render', () => {
     expect(fb.data.length).toBe(4736);
 
     // Should have pixels in multiple vertical regions
+    // With 3 boxes on 296px display, each box ~98px tall.
+    // Top region: first box content (label, rule, text)
     const topHasPixels = fb.data.slice(0, 160).some((b) => b !== 0); // first ~10 rows
-    const bottomHasPixels = fb.data.slice(3936).some((b) => b !== 0); // last ~50 rows
+    // Bottom region: third box starts around row 198, content at ~202-230
+    // 16 bytes per row (128/8), row 200 = byte 3200
+    const bottomHasPixels = fb.data.slice(3200, 3840).some((b) => b !== 0); // rows ~200-240
     expect(topHasPixels).toBe(true);
     expect(bottomHasPixels).toBe(true);
   });

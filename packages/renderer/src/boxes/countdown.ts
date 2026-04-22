@@ -1,20 +1,18 @@
 /**
- * Intent: Render a countdown bento box — border, label header, days remaining
+ * Intent: Render a countdown bento box — hero day count with label and subtitle
  * Context: Called by the main render() dispatcher for boxes with type 'countdown'
  * Pattern: Pure function — reads LayoutBox + config, draws into frame buffer
- * Future: Hero font for large day count, icon support
+ * Design: Whitespace-based layout with hero font for day count
  */
 
 import type { FrameBuffer } from '../index.js';
 import type { LayoutBox, CountdownBoxConfig } from '@infobento/core';
-import { setPixel, drawRect, drawText, drawTextWrapped } from '../draw.js';
-import { FONT_HEIGHT, CHAR_ADVANCE } from '../font.js';
+import { drawText, drawHeroText, drawHLine } from '../draw.js';
+import { FONT_HEIGHT } from '../font.js';
+import { HERO_FONT_HEIGHT, HERO_CHAR_ADVANCE } from '../hero-font.js';
 
-/** Padding inside the box border */
-const INNER_PAD = 2;
-
-/** Height reserved for the label header (font + padding) */
-const HEADER_HEIGHT = FONT_HEIGHT + INNER_PAD * 2;
+/** Whitespace padding */
+const PAD = 4;
 
 /**
  * intent: Calculate the number of whole days between today and a target date
@@ -31,8 +29,8 @@ export function daysUntil(targetDate: string, now: Date = new Date()): number {
 
 /**
  * intent: Render a complete countdown bento box into the frame buffer
- * method: Draw border, render label in header area, render day count + subtitle in body
- * effect: Fills the allocated LayoutBox region with bordered countdown content
+ * method: Uppercase label, hero day count, small subtitle text, thin rule divider
+ * effect: Fills the allocated LayoutBox region without borders
  */
 export function renderCountdownBox(
   fb: FrameBuffer,
@@ -41,49 +39,37 @@ export function renderCountdownBox(
   now?: Date,
 ): void {
   const { x, y, width, height } = layout;
+  let cy = y + PAD;
 
-  // Draw box border
-  drawRect(fb, x, y, width, height);
-
-  // Draw label in header area (uppercase for consistency with text box)
-  const labelY = y + INNER_PAD;
-  const labelX = x + INNER_PAD + 1;
-  drawText(fb, labelX, labelY, layout.box.label.toUpperCase(), width - INNER_PAD * 2 - 2);
-
-  // Draw dotted divider line below header
-  const dividerY = y + HEADER_HEIGHT;
-  for (let dx = x + 1; dx < x + width - 1; dx++) {
-    if (dx % 2 === 0) setPixel(fb, dx, dividerY);
-  }
+  // Uppercase label (5x7 font)
+  drawText(fb, x + PAD, cy, 'COUNTDOWN', width - PAD * 2);
+  cy += FONT_HEIGHT + PAD;
 
   // Calculate days remaining
   const days = daysUntil(config.targetDate, now);
   const daysStr = String(days);
 
-  // Body area below divider
-  const bodyX = x + INNER_PAD + 1;
-  const bodyY = dividerY + INNER_PAD + 1;
-  const bodyWidth = width - INNER_PAD * 2 - 2;
-  const bodyHeight = height - HEADER_HEIGHT - INNER_PAD - 2;
+  // Hero day count
+  drawHeroText(fb, x + PAD, cy, daysStr);
 
-  if (bodyHeight <= 0 || bodyWidth <= 0) return;
+  // "days to [label]" beside the hero text
+  const heroWidth = daysStr.length * HERO_CHAR_ADVANCE;
+  const subtitleX = x + PAD + heroWidth + PAD;
+  const subtitleMaxW = width - PAD * 2 - heroWidth - PAD;
+  if (subtitleMaxW > 0) {
+    const subtitle = days === 0 ? 'PAST' : `days to`;
+    drawText(fb, subtitleX, cy + 4, subtitle, subtitleMaxW);
+  }
+  cy += HERO_FONT_HEIGHT + 2;
 
-  // Draw day count centered horizontally
-  const daysWidth = daysStr.length * CHAR_ADVANCE;
-  const daysX = x + Math.floor((width - daysWidth) / 2);
-  drawText(fb, daysX, bodyY, daysStr, bodyWidth);
+  // Label text below hero (e.g., the event name)
+  if (days > 0 && cy + FONT_HEIGHT <= y + height - PAD) {
+    drawText(fb, x + PAD, cy, config.label, width - PAD * 2);
+    cy += FONT_HEIGHT + PAD;
+  }
 
-  // Draw subtitle below: "days to [label]" or "PAST" if 0 days
-  const subtitleY = bodyY + FONT_HEIGHT + INNER_PAD;
-  if (subtitleY + FONT_HEIGHT <= y + height - 1) {
-    const subtitle = days === 0 ? 'PAST' : `days to ${config.label}`;
-    drawTextWrapped(
-      fb,
-      bodyX,
-      subtitleY,
-      subtitle,
-      bodyWidth,
-      bodyHeight - FONT_HEIGHT - INNER_PAD,
-    );
+  // Thin rule at bottom as section divider
+  if (cy + 2 <= y + height) {
+    drawHLine(fb, x + PAD, cy, width - PAD * 2);
   }
 }

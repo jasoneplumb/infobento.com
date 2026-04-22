@@ -1,8 +1,8 @@
 /**
- * Intent: Render a QR code bento box — border, label header, and centered QR code
+ * Intent: Render a QR code bento box — label, thin outline, centered QR code
  * Context: Called by the main render() dispatcher for boxes with type 'qr'
  * Pattern: Pure function — reads LayoutBox + config, draws into frame buffer
- * Future: Support custom error correction levels, icon overlay
+ * Design: Uppercase label above, thin 1px outline around QR, quiet zone inside
  */
 
 import qrcode from 'qrcode-generator';
@@ -11,42 +11,30 @@ import type { LayoutBox, QRBoxConfig } from '@infobento/core';
 import { setPixel, drawRect, drawText } from '../draw.js';
 import { FONT_HEIGHT } from '../font.js';
 
-/** Padding inside the box border */
-const INNER_PAD = 2;
-
-/** Height reserved for the label header (font + padding) */
-const HEADER_HEIGHT = FONT_HEIGHT + INNER_PAD * 2;
+/** Whitespace padding */
+const PAD = 4;
 
 /** Minimum quiet zone around QR code in modules (for scannability) */
 const QUIET_ZONE_MODULES = 2;
 
 /**
  * intent: Render a complete QR code bento box into the frame buffer
- * method: Draw border, render label header, generate and center-render scaled QR
+ * method: Uppercase label, thin 1px outline around QR, centered scaled QR with quiet zone
  * effect: Fills the allocated LayoutBox region with a scannable QR code
  */
 export function renderQRBox(fb: FrameBuffer, layout: LayoutBox, config: QRBoxConfig): void {
   const { x, y, width, height } = layout;
+  let cy = y + PAD;
 
-  // Draw box border
-  drawRect(fb, x, y, width, height);
+  // Uppercase label (5x7 font)
+  drawText(fb, x + PAD, cy, layout.box.label.toUpperCase(), width - PAD * 2);
+  cy += FONT_HEIGHT + PAD;
 
-  // Draw label in header area (uppercase for consistency with text boxes)
-  const labelY = y + INNER_PAD;
-  const labelX = x + INNER_PAD + 1;
-  drawText(fb, labelX, labelY, layout.box.label.toUpperCase(), width - INNER_PAD * 2 - 2);
-
-  // Draw dotted divider line below header
-  const dividerY = y + HEADER_HEIGHT;
-  for (let dx = x + 1; dx < x + width - 1; dx++) {
-    if (dx % 2 === 0) setPixel(fb, dx, dividerY);
-  }
-
-  // Calculate body area below header
-  const bodyX = x + 1; // inside border
-  const bodyY = dividerY + 1;
-  const bodyWidth = width - 2;
-  const bodyHeight = height - HEADER_HEIGHT - 2;
+  // Body area below label
+  const bodyX = x + PAD;
+  const bodyY = cy;
+  const bodyWidth = width - PAD * 2;
+  const bodyHeight = height - (cy - y) - PAD;
 
   if (bodyHeight <= 0 || bodyWidth <= 0) return;
 
@@ -59,19 +47,27 @@ export function renderQRBox(fb: FrameBuffer, layout: LayoutBox, config: QRBoxCon
   const totalModules = moduleCount + QUIET_ZONE_MODULES * 2;
 
   // Scale to fill available space while maintaining square pixels
-  const scale = Math.max(1, Math.floor(Math.min(bodyWidth, bodyHeight) / totalModules));
+  const availableSize = Math.min(bodyWidth, bodyHeight);
+  // Reserve 2px for the outline border on each side
+  const innerSize = availableSize - 4;
+  const scale = Math.max(1, Math.floor(innerSize / totalModules));
 
   // Total rendered size of QR (including quiet zone)
   const qrSize = totalModules * scale;
 
-  // Center QR within body area
-  const qrStartX = bodyX + Math.floor((bodyWidth - qrSize) / 2);
-  const qrStartY = bodyY + Math.floor((bodyHeight - qrSize) / 2);
+  // Outline size = QR size + 2px border on each side
+  const outlineSize = qrSize + 4;
 
-  // The quiet zone stays white (unset pixels = white on eInk), so we only
-  // need to draw the dark modules. Offset by the quiet zone margin.
-  const dataOffsetX = qrStartX + QUIET_ZONE_MODULES * scale;
-  const dataOffsetY = qrStartY + QUIET_ZONE_MODULES * scale;
+  // Center outline within body area
+  const outlineX = bodyX + Math.floor((bodyWidth - outlineSize) / 2);
+  const outlineY = bodyY + Math.floor((bodyHeight - outlineSize) / 2);
+
+  // Draw thin 1px outline around the QR code
+  drawRect(fb, outlineX, outlineY, outlineSize, outlineSize);
+
+  // QR data starts inside the outline + quiet zone
+  const dataOffsetX = outlineX + 2 + QUIET_ZONE_MODULES * scale;
+  const dataOffsetY = outlineY + 2 + QUIET_ZONE_MODULES * scale;
 
   for (let row = 0; row < moduleCount; row++) {
     for (let col = 0; col < moduleCount; col++) {

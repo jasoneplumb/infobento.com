@@ -1,61 +1,53 @@
 /**
- * Intent: Render a text bento box — border, label header, and wrapped text content
+ * Intent: Render a text bento box — label header, thin rule, and wrapped text content
  * Context: Called by the main render() dispatcher for boxes with type 'text'
  * Pattern: Pure function — reads LayoutBox + config, draws into frame buffer
- * Future: Support center alignment, bold labels
+ * Design: Whitespace-based layout with no borders — matches hero font design language
  */
 
 import type { FrameBuffer } from '../index.js';
 import type { LayoutBox, TextBoxConfig } from '@infobento/core';
-import { setPixel, drawRect, drawText, drawTextWrapped } from '../draw.js';
+import { drawText, drawTextWrapped, drawHLine } from '../draw.js';
 import { FONT_HEIGHT, CHAR_ADVANCE } from '../font.js';
 
-/** Padding inside the box border */
-const INNER_PAD = 2;
+/** Top padding before label */
+const TOP_PAD = 4;
 
-/** Height reserved for the label header (font + padding) */
-const HEADER_HEIGHT = FONT_HEIGHT + INNER_PAD * 2;
+/** Gap between label and rule */
+const LABEL_GAP = 4;
 
 /**
  * intent: Render a complete text bento box into the frame buffer
- * method: Draw border, render label in header area, render wrapped text in body
- * effect: Fills the allocated LayoutBox region with bordered text content
+ * method: Uppercase label, thin rule divider, wrapped body text with whitespace padding
+ * effect: Fills the allocated LayoutBox region without borders
  */
 export function renderTextBox(fb: FrameBuffer, layout: LayoutBox, config: TextBoxConfig): void {
   const { x, y, width, height } = layout;
+  let cy = y + TOP_PAD;
 
-  // Draw box border
-  drawRect(fb, x, y, width, height);
+  // Uppercase label (5x7 font)
+  drawText(fb, x + TOP_PAD, cy, layout.box.label.toUpperCase(), width - TOP_PAD * 2);
+  cy += FONT_HEIGHT + LABEL_GAP;
 
-  // Draw label in header area (bold-ish: uppercase)
-  const labelY = y + INNER_PAD;
-  const labelX = x + INNER_PAD + 1;
-  drawText(fb, labelX, labelY, layout.box.label.toUpperCase(), width - INNER_PAD * 2 - 2);
+  // Thin horizontal rule
+  drawHLine(fb, x + TOP_PAD, cy, width - TOP_PAD * 2);
+  cy += LABEL_GAP;
 
-  // Draw dotted divider line below header
-  const dividerY = y + HEADER_HEIGHT;
-  for (let dx = x + 1; dx < x + width - 1; dx++) {
-    if (dx % 2 === 0) setPixel(fb, dx, dividerY);
-  }
-
-  // Draw text content in body area
-  const bodyX = x + INNER_PAD + 1;
-  const bodyY = dividerY + INNER_PAD + 1;
-  const bodyWidth = width - INNER_PAD * 2 - 2;
-  const bodyHeight = height - HEADER_HEIGHT - INNER_PAD - 2;
+  // Wrapped body text
+  const bodyWidth = width - TOP_PAD * 2;
+  const bodyHeight = y + height - cy - TOP_PAD;
 
   if (bodyHeight > 0 && bodyWidth > 0) {
-    drawTextWrapped(fb, bodyX, bodyY, config.text, bodyWidth, bodyHeight);
+    drawTextWrapped(fb, x + TOP_PAD, cy, config.text, bodyWidth, bodyHeight);
   }
 }
 
 /**
  * intent: Render a generic labeled box for types that don't have a renderer yet
- * method: Draw border and centered type label — placeholder until real renderer exists
+ * method: Centered type label — placeholder until real renderer exists
  */
 export function renderPlaceholderBox(fb: FrameBuffer, layout: LayoutBox): void {
   const { x, y, width, height } = layout;
-  drawRect(fb, x, y, width, height);
 
   // Center the type label
   const label = layout.box.type.toUpperCase();
