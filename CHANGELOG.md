@@ -1,5 +1,45 @@
 # Changelog
 
+## [0.4.0] - 2026-04-21
+
+### Added
+
+- All 5 MVP box types: countdown, weather, QR (qrcode-generator), quote, text
+- Spleen 8x16 hero font embedded in renderer with `drawHeroText`/`drawHeroChar`
+- Hero font + whitespace layout in all box renderers (replaces border-based design)
+- Dual-display type system: `displayId: 'D' | 'P'` on BentoConfig
+- Display toggle in web editor (D Phone / P Counter tabs)
+- Client-side 1-bit canvas renderer in web editor (replaces CSS mock)
+- localStorage persistence — config auto-saves and restores on page load
+- JSON import button (completes export/import cycle)
+- Vanilla JS web editor scaffold with reactive state (no framework)
+- 128x296 portrait display resolution (standard 2.9" eInk panel)
+- Preview images regenerated using real renderer pipeline
+- OpenSCAD mockup for 3D printing (hardware/infobento.scad + STL)
+- Physical mode diagrams: closed, peek 90°, counter ~100°, flat 180°
+- Dual-display mode diagram with D/P/S/M surface labels
+- 3-color (BWR) rendering prototype
+- Font comparison: Spleen 8x16 vs Tamzen vs baseline
+
+### Changed
+
+- Display resolution: 240x200 → 128x296 (frame buffer 6000 → 4736 bytes)
+- Form factor: 320° hinge → 180° standard friction hinge
+- Price target: $25 → $30
+- Battery placement: display half → solar half (grip flex safety)
+- Folded thickness: ~8mm → ~7.2mm (dual display, thinner battery)
+- Dual-display architecture: two 2.9" eInk panels back-to-back
+- Preview script: 437 lines custom drawing → 230 lines render() calls
+- Web editor: React stub → vanilla JS with reactive state
+- Box renderers: borders → whitespace + thin rules + hero font
+
+### Documentation
+
+- Hardware design exploration (issue #22): component layout, GPIO allocation, BOM analysis
+- 8 rounds of open question decisions captured in project model
+- README rewritten for dual-display clamshell form factor
+- All hardware docs updated (display, power, BLE, architecture)
+
 ## [0.3.0] - 2026-04-21
 
 ### Added
