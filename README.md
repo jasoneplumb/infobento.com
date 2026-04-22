@@ -1,7 +1,5 @@
 # InfoBento
 
-_See less. Know enough._
-
 A MagSafe-mounted eInk companion display that lives on the back of your iPhone. Clamshell form factor with a 180-degree hinge — open it to stand on a counter with the solar panel aimed at a window, or leave it flat on your phone as a glanceable second screen.
 
 ## Overview
