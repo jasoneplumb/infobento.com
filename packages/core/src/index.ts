@@ -28,3 +28,7 @@ export { DISPLAY_WIDTH, DISPLAY_HEIGHT, BOX_DIVIDER_PX, DEFAULT_DEVICE } from '.
 
 // Re-export layout engine
 export { calculateLayout } from './layout.js';
+
+// Re-export validation
+export { validateBentoConfig, BentoConfigSchema } from './validation.js';
+export type { ValidationError, ValidationResult } from './validation.js';

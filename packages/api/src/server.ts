@@ -38,23 +38,21 @@ app.get('/api/box-types', (c) => {
     { type: 'countdown', label: 'Countdown', requiresAuth: false },
     { type: 'qr', label: 'QR Code', requiresAuth: false },
     { type: 'text', label: 'Static Text', requiresAuth: false },
-    { type: 'calendar', label: 'Calendar', requiresAuth: true },
-    { type: 'tasks', label: 'Tasks', requiresAuth: true },
-    { type: 'stocks', label: 'Stocks', requiresAuth: true },
   ]);
 });
 
 app.post('/api/validate', async (c) => {
-  const config = await c.req.json();
-  return c.json(validateConfig(config));
+  const body: unknown = await c.req.json();
+  return c.json(validateConfig(body));
 });
 
 app.post('/api/render', async (c) => {
-  const config = await c.req.json();
-  const validation = validateConfig(config);
+  const body: unknown = await c.req.json();
+  const validation = validateConfig(body);
   if (!validation.valid) {
     return c.json({ error: 'Invalid config', details: validation.errors }, 400);
   }
+  const config = body as import('@infobento/core').BentoConfig;
   const frame = generateFrame(config);
   return new Response(frame.data, {
     headers: {
@@ -66,11 +64,12 @@ app.post('/api/render', async (c) => {
 });
 
 app.post('/api/preview', async (c) => {
-  const config = await c.req.json();
-  const validation = validateConfig(config);
+  const body: unknown = await c.req.json();
+  const validation = validateConfig(body);
   if (!validation.valid) {
     return c.json({ error: 'Invalid config', details: validation.errors }, 400);
   }
+  const config = body as import('@infobento/core').BentoConfig;
   const rawScale = Number(c.req.query('scale') ?? '3');
   if (!Number.isInteger(rawScale) || rawScale < 1 || rawScale > 8) {
     return c.json({ error: 'scale must be an integer between 1 and 8' }, 400);

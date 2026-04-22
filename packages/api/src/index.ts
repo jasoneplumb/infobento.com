@@ -6,8 +6,17 @@
  */
 
 import type { BentoConfig } from '@infobento/core';
+import { validateBentoConfig } from '@infobento/core';
+import type { ValidationResult } from '@infobento/core';
 import type { FrameBuffer } from '@infobento/renderer';
 import { render, frameToPng } from '@infobento/renderer';
+
+// Re-export frameToPng for API consumers (also available from @infobento/renderer for web)
+export { frameToPng } from '@infobento/renderer';
+
+// Re-export validation types for API consumers
+export { validateBentoConfig } from '@infobento/core';
+export type { ValidationResult, ValidationError } from '@infobento/core';
 
 /**
  * intent: Generate a frame buffer from a bento configuration
@@ -24,17 +33,7 @@ export function generatePreview(config: BentoConfig, scale = 3): Uint8Array {
   return frameToPng(fb, scale);
 }
 
-/** Validate a bento configuration without rendering */
-export function validateConfig(config: BentoConfig): { valid: boolean; errors: string[] } {
-  const errors: string[] = [];
-
-  if (config.boxes.length === 0) {
-    errors.push('Config must have at least one bento box');
-  }
-
-  if (config.boxes.length > 6) {
-    errors.push('Config cannot exceed 6 bento boxes');
-  }
-
-  return { valid: errors.length === 0, errors };
+/** Validate a bento configuration using Zod schema validation */
+export function validateConfig(input: unknown): ValidationResult {
+  return validateBentoConfig(input);
 }
