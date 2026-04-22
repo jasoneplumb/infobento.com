@@ -138,6 +138,7 @@ export function getState(): EditorState {
 export function setState(mutate: (s: EditorState) => void): void {
   mutate(state);
   syncBoxesAlias(state);
+  persistToLocalStorage();
   _renderFn?.();
 }
 
@@ -205,6 +206,130 @@ export function switchDisplay(id: DisplayId): void {
 
 export function getActiveDisplay(): DisplayId {
   return state.activeDisplay;
+}
+
+// -- LocalStorage persistence -----------------------------------------------
+
+const STORAGE_KEY = 'infobento-config';
+
+function persistToLocalStorage(): void {
+  try {
+    const data = {
+      version: 1,
+      activeDisplay: state.activeDisplay,
+      D: state.boxesD.map((b) => ({ type: b.type, label: b.label, config: { ...b.config } })),
+      P: state.boxesP.map((b) => ({ type: b.type, label: b.label, config: { ...b.config } })),
+    };
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+  } catch {
+    // Storage full or unavailable — silently ignore
+  }
+}
+
+function hydrateBoxes(
+  raw: Array<{ type: string; label: string; config: Record<string, string> }>,
+): EditorBox[] {
+  return raw.map((b) => ({
+    id: uid(),
+    type: b.type as EditorBoxType,
+    label: b.label,
+    config: { ...b.config } as EditorBoxConfig,
+  }));
+}
+
+function loadFromLocalStorage(): boolean {
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (!saved) return false;
+    const parsed: unknown = JSON.parse(saved);
+    if (
+      typeof parsed !== 'object' ||
+      parsed === null ||
+      !('version' in parsed) ||
+      !('D' in parsed) ||
+      !('P' in parsed)
+    ) {
+      return false;
+    }
+    const obj = parsed as {
+      version: number;
+      activeDisplay?: string;
+      D: Array<{ type: string; label: string; config: Record<string, string> }>;
+      P: Array<{ type: string; label: string; config: Record<string, string> }>;
+    };
+    if (!Array.isArray(obj.D) || !Array.isArray(obj.P)) return false;
+
+    state.boxesD = hydrateBoxes(obj.D);
+    state.boxesP = hydrateBoxes(obj.P);
+    if (obj.activeDisplay === 'D' || obj.activeDisplay === 'P') {
+      state.activeDisplay = obj.activeDisplay as DisplayId;
+    }
+    syncBoxesAlias(state);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+// Attempt to restore state from localStorage on module load
+loadFromLocalStorage();
+
+// -- Import -----------------------------------------------------------------
+
+export function importJSON(): void {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = '.json';
+  input.style.display = 'none';
+
+  input.addEventListener('change', () => {
+    const file = input.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const parsed: unknown = JSON.parse(reader.result as string);
+        if (
+          typeof parsed !== 'object' ||
+          parsed === null ||
+          !('version' in parsed) ||
+          !('D' in parsed) ||
+          !('P' in parsed)
+        ) {
+          alert('Invalid InfoBento config file: missing required fields.');
+          return;
+        }
+        const obj = parsed as {
+          version: number;
+          D: {
+            displayId?: string;
+            boxes: Array<{ type: string; label: string; config: Record<string, string> }>;
+          };
+          P: {
+            displayId?: string;
+            boxes: Array<{ type: string; label: string; config: Record<string, string> }>;
+          };
+        };
+        if (!Array.isArray(obj.D?.boxes) || !Array.isArray(obj.P?.boxes)) {
+          alert('Invalid InfoBento config file: D and P must contain boxes arrays.');
+          return;
+        }
+
+        setState((s) => {
+          s.boxesD = hydrateBoxes(obj.D.boxes);
+          s.boxesP = hydrateBoxes(obj.P.boxes);
+        });
+      } catch {
+        alert('Failed to parse JSON file. Please check the file format.');
+      }
+    };
+    reader.readAsText(file);
+  });
+
+  document.body.appendChild(input);
+  input.click();
+  document.body.removeChild(input);
 }
 
 // -- Export -----------------------------------------------------------------

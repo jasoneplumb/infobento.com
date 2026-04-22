@@ -9,6 +9,7 @@ import {
   addBox,
   exportJSON,
   getActiveDisplay,
+  importJSON,
   onPreviewRender,
   onRender,
   switchDisplay,
@@ -39,6 +40,7 @@ onPreviewRender(renderPreview);
 
 const btnAdd = document.getElementById('btn-add');
 const typeSelect = document.getElementById('add-type-select') as HTMLSelectElement | null;
+const btnImport = document.getElementById('btn-import');
 const btnExport = document.getElementById('btn-export');
 
 btnAdd?.addEventListener('click', () => {
@@ -46,6 +48,7 @@ btnAdd?.addEventListener('click', () => {
   addBox(typeSelect.value as EditorBoxType);
 });
 
+btnImport?.addEventListener('click', importJSON);
 btnExport?.addEventListener('click', exportJSON);
 
 const btnDisplayD = document.getElementById('btn-display-d');
