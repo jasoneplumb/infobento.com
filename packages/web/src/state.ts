@@ -6,7 +6,7 @@
  * setState(), two-way binding via input listeners + render().
  */
 
-import type { BentoBoxType, DisplayId } from '@infobento/core';
+import type { BentoBoxType, DisplayId, WeatherData } from '@infobento/core';
 
 // -- Editor box model (UI-local, not the core BentoBox type) ---------------
 
@@ -21,6 +21,7 @@ export interface CountdownConfig {
 
 export interface WeatherConfig {
   city: string;
+  data?: WeatherData;
 }
 
 export interface QRConfig {
@@ -187,6 +188,13 @@ export function updateConfig(id: number, key: string, value: string): void {
   const box = state.boxes.find((b) => b.id === id);
   if (!box) return;
   (box.config as unknown as Record<string, string>)[key] = value;
+  renderPreview();
+}
+
+export function updateWeatherData(id: number, data: WeatherData): void {
+  const box = state.boxes.find((b) => b.id === id);
+  if (!box || box.type !== 'weather') return;
+  (box.config as WeatherConfig).data = data;
   renderPreview();
 }
 

@@ -77,6 +77,23 @@ app.post('/api/preview', async (c) => {
   });
 });
 
+app.get('/api/quote', async (c) => {
+  try {
+    const res = await fetch('https://zenquotes.io/api/random');
+    if (!res.ok) {
+      return c.json({ error: 'ZenQuotes API returned an error' }, 502);
+    }
+    const data: unknown = await res.json();
+    if (!Array.isArray(data) || data.length === 0) {
+      return c.json({ error: 'Unexpected response from ZenQuotes' }, 502);
+    }
+    const quote = data[0] as { q?: string; a?: string };
+    return c.json({ q: quote.q ?? '', a: quote.a ?? '' });
+  } catch {
+    return c.json({ error: 'Failed to fetch quote from ZenQuotes' }, 502);
+  }
+});
+
 // --- Static file serving (production) ---
 
 const webDist = resolve(__dirname, '../../web/dist');

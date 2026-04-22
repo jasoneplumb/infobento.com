@@ -43,7 +43,7 @@ function toBentoBox(editor: EditorBox): BentoBox {
       return {
         ...base,
         type: 'weather',
-        config: { type: 'weather', city: c.city },
+        config: { type: 'weather', city: c.city, data: c.data },
       };
     }
     case 'qr': {
@@ -124,7 +124,7 @@ export function renderPreview(): void {
 
   if (boxes.length === 0) {
     _canvas = null;
-    display.innerHTML = '<div class="eink-empty">no boxes</div>';
+    display.innerHTML = '<div class="eink-empty">Add a box to see your display</div>';
     return;
   }
 
