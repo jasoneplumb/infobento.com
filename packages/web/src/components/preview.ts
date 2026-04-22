@@ -69,6 +69,7 @@ function toBentoBox(editor: EditorBox): BentoBox {
 function toBentoConfig(boxes: readonly EditorBox[]): BentoConfig {
   return {
     boxes: boxes.map(toBentoBox),
+    displayId: 'D',
     refreshesPerDay: 1,
   };
 }

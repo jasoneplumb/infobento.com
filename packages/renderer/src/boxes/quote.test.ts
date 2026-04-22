@@ -84,6 +84,7 @@ describe('renderQuoteBox', () => {
           config: { type: 'quote', text: 'Hello world.', author: 'Dev' },
         },
       ],
+      displayId: 'D',
       refreshesPerDay: 1,
     };
 

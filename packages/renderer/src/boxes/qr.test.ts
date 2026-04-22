@@ -38,6 +38,7 @@ describe('renderQRBox', () => {
           config: { type: 'qr', url: 'https://infobento.com' },
         },
       ],
+      displayId: 'D',
       refreshesPerDay: 1,
     };
 
@@ -54,6 +55,7 @@ describe('renderQRBox', () => {
           config: { type: 'qr', url: 'https://infobento.com' },
         },
       ],
+      displayId: 'D',
       refreshesPerDay: 1,
     };
 
@@ -142,6 +144,7 @@ describe('renderQRBox', () => {
           config: { type: 'qr', url: 'https://infobento.com' },
         },
       ],
+      displayId: 'D',
       refreshesPerDay: 1,
     };
 

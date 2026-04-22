@@ -121,8 +121,12 @@ export type BentoBox =
   | QuoteBentoBox
   | UnconfiguredBentoBox;
 
-/** Full device configuration */
+/** Which physical display this config targets */
+export type DisplayId = 'D' | 'P';
+
+/** Full device configuration — one per display */
 export interface BentoConfig {
+  readonly displayId: DisplayId;
   readonly boxes: readonly BentoBox[];
   readonly refreshesPerDay: 1 | 2;
 }

@@ -14,6 +14,7 @@ describe('render', () => {
           config: { type: 'text', text: 'Hello InfoBento' },
         },
       ],
+      displayId: 'D',
       refreshesPerDay: 1,
     };
 
@@ -33,6 +34,7 @@ describe('render', () => {
           config: { type: 'text', text: 'Hello World' },
         },
       ],
+      displayId: 'D',
       refreshesPerDay: 1,
     };
 
@@ -65,6 +67,7 @@ describe('render', () => {
           config: { type: 'text', text: 'Box three' },
         },
       ],
+      displayId: 'D',
       refreshesPerDay: 2,
     };
 
@@ -81,6 +84,7 @@ describe('render', () => {
   it('renders placeholder for unsupported box types', () => {
     const config: BentoConfig = {
       boxes: [{ id: '1', type: 'weather', label: 'Weather' }],
+      displayId: 'D',
       refreshesPerDay: 1,
     };
 
@@ -93,6 +97,7 @@ describe('render', () => {
   it('handles empty config gracefully', () => {
     const config: BentoConfig = {
       boxes: [],
+      displayId: 'D',
       refreshesPerDay: 1,
     };
 
