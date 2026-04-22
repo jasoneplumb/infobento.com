@@ -5,6 +5,10 @@
 // Two halves connected by a hinge channel along the short edge.
 // Print each half separately, connect with a Reell TI-C5M hinge
 // or a simple pin hinge for the mockup.
+//
+// Display half: uniform 3.2mm — two full-size eInk panels back-to-back
+// Battery (GM251534 2.5mm, 100mAh) and ESP32-C3 sit between panels
+// alongside the eInk area, not below it.
 
 // === Device dimensions ===
 device_width = 70.6;      // Short edge (matches iPhone 15 Pro width)
@@ -21,19 +25,22 @@ panel_depth = 1.2;         // Glass panel thickness
 panel_x_offset = (device_width - panel_width) / 2;  // Centered horizontally
 panel_y_offset = 10;       // Offset from hinge edge
 
-// ESP32-C3-MINI-1 recess (between panels, below eInk area)
+// ESP32-C3-MINI-1 recess (between panels, beside eInk area)
+// Positioned at board edge for antenna clearance from MagSafe metal
 esp_width = 13.2;
 esp_height = 16.6;
 esp_depth = 2.4;
 esp_x_offset = 5;          // Near board edge for antenna clearance
 esp_y_offset = panel_y_offset + panel_height + 5;
 
-// Battery recess (between panels, below eInk area)
-battery_width = 20;
-battery_height = 35;
-battery_depth = 3.0;       // Slightly less than gap to leave shell
-battery_x_offset = device_width - battery_width - 8;
-battery_y_offset = panel_y_offset + panel_height + 5;
+// Battery recess (between panels, beside eInk panels)
+// GM251534: 2.5mm thick, 100mAh, 15x34mm — fits in the 3.2mm gap
+// Positioned alongside the panels (not below), enabling full-size displays
+battery_width = 15;
+battery_height = 34;
+battery_depth = 2.5;
+battery_x_offset = 4;      // Left side, beside centered panels
+battery_y_offset = panel_y_offset + 2;
 
 // === Solar half ===
 solar_half_thickness = 3.25;
