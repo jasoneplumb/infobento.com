@@ -503,19 +503,18 @@
     },
     {
       "type": "prototype",
-      "name": "Text Box Rendering Pipeline",
-      "description": "End-to-end rendering pipeline proving config -> layout -> font -> draw -> frame buffer. Text box is the first fully implemented box type.",
+      "name": "Rendering Pipeline",
+      "description": "Full rendering pipeline: config -> layout -> hero font + whitespace layout -> draw -> frame buffer. All 5 MVP box types implemented with Spleen 8x16 hero font and whitespace-based design. Dual-display support via displayId.",
       "fidelity": "high",
       "format": "TypeScript (packages/core + packages/renderer)",
       "scope": "Core types, layout engine, embedded bitmap font, drawing primitives, text box renderer",
       "designArtifactIds": ["45f1b6df-a76f-4c48-8ab2-bd1cfc067f00"],
       "location": "packages/renderer/src/boxes/text.ts",
       "knownLimitations": [
-        "Only text box type implemented — other types render as placeholders",
-        "Font is 5x7 only — Spleen 8x16 hero font exists in preview scripts but not yet embedded in renderer",
         "No center alignment implemented yet",
         "Maximum 6 boxes enforced by layout truncation",
-        "Layout engine only does vertical stacking — horizontal subdivision prototyped in preview scripts but not in core"
+        "Layout engine only does vertical stacking — horizontal subdivision prototyped in preview scripts but not in core",
+        "No 1-bit icon set for box headers yet"
       ],
       "id": "dc655ce4-a20a-498c-bce0-d6bdbdbe44c0",
       "relatedIds": [],
