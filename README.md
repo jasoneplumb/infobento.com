@@ -18,7 +18,7 @@ At home, open it and stand it on the kitchen counter. A different display faces 
 - **Connectivity:** Bluetooth Low Energy (via phone bridge)
 - **Form factor:** MagSafe clamshell — fits on iPhone 15 Pro back (146.6 x 70.6mm)
 - **Hinge:** 180-degree friction hinge, book-style along short edge
-- **Thickness:** ~6.5mm folded
+- **Thickness:** ~7.2mm folded
 
 ### Four Surfaces (D, P, S, M)
 
