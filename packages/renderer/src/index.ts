@@ -13,6 +13,11 @@ import { renderForecastBox } from './boxes/forecast.js';
 import { renderCountdownBox } from './boxes/countdown.js';
 import { renderQRBox } from './boxes/qr.js';
 import { renderQuoteBox } from './boxes/quote.js';
+import { renderDateBox } from './boxes/date.js';
+import { renderMoonBox } from './boxes/moon.js';
+import { renderSunBox } from './boxes/sun.js';
+import { renderAQIBox } from './boxes/aqi.js';
+import { renderProgressBox } from './boxes/progress.js';
 import type { FrameBuffer } from './types.js';
 
 // Re-export PNG conversion and types
@@ -56,6 +61,16 @@ function renderBox(fb: FrameBuffer, layoutBox: LayoutBox): void {
     renderQRBox(fb, layoutBox, box.config);
   } else if (box.type === 'quote' && box.config?.type === 'quote') {
     renderQuoteBox(fb, layoutBox, box.config);
+  } else if (box.type === 'date' && box.config?.type === 'date') {
+    renderDateBox(fb, layoutBox, box.config);
+  } else if (box.type === 'moon' && box.config?.type === 'moon') {
+    renderMoonBox(fb, layoutBox, box.config);
+  } else if (box.type === 'sun' && box.config?.type === 'sun') {
+    renderSunBox(fb, layoutBox, box.config);
+  } else if (box.type === 'aqi' && box.config?.type === 'aqi') {
+    renderAQIBox(fb, layoutBox, box.config);
+  } else if (box.type === 'progress' && box.config?.type === 'progress') {
+    renderProgressBox(fb, layoutBox, box.config);
   } else {
     renderPlaceholderBox(fb, layoutBox);
   }

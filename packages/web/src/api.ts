@@ -4,7 +4,7 @@
  * (no API key). Quotes proxy through the Hono API.
  */
 
-import type { WeatherData, ForecastEntry } from '@infobento/core';
+import type { WeatherData, ForecastEntry, SunData, AQIData } from '@infobento/core';
 
 // -- Geocoding (Nominatim / OpenStreetMap) ----------------------------------
 
@@ -174,6 +174,143 @@ export async function fetchForecast(location: string): Promise<ForecastEntry[] |
     }
 
     return entries.length > 0 ? entries : null;
+  } catch {
+    return null;
+  }
+}
+
+// -- Sunrise/Sunset (Open-Meteo daily) -------------------------------------
+
+interface OpenMeteoDailySun {
+  daily: {
+    sunrise: string[];
+    sunset: string[];
+  };
+}
+
+/**
+ * Format minutes duration into "Xh Ym" string
+ */
+function formatDayLength(sunriseIso: string, sunsetIso: string): string {
+  const rise = new Date(sunriseIso);
+  const set = new Date(sunsetIso);
+  const totalMinutes = Math.round((set.getTime() - rise.getTime()) / 60000);
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+  return `${String(hours)}h ${String(minutes)}m`;
+}
+
+/**
+ * Geocode a location and fetch today's sunrise/sunset from Open-Meteo daily forecast.
+ * Returns null if the location cannot be found or the request fails.
+ */
+export async function fetchSunTimes(location: string): Promise<SunData | null> {
+  const place = await geocode(location);
+  if (!place) return null;
+
+  try {
+    const url =
+      `https://api.open-meteo.com/v1/forecast` +
+      `?latitude=${String(place.latitude)}` +
+      `&longitude=${String(place.longitude)}` +
+      `&daily=sunrise,sunset` +
+      `&timezone=auto&forecast_days=1`;
+    const res = await fetch(url);
+    if (!res.ok) return null;
+
+    const data = (await res.json()) as OpenMeteoDailySun;
+    const sunriseIso = data.daily.sunrise[0];
+    const sunsetIso = data.daily.sunset[0];
+    if (!sunriseIso || !sunsetIso) return null;
+
+    // Extract HH:MM from ISO datetime like '2026-04-23T06:12'
+    const sunrise = sunriseIso.length >= 16 ? sunriseIso.slice(11, 16) : sunriseIso;
+    const sunset = sunsetIso.length >= 16 ? sunsetIso.slice(11, 16) : sunsetIso;
+    const dayLength = formatDayLength(sunriseIso, sunsetIso);
+
+    return { sunrise, sunset, dayLength };
+  } catch {
+    return null;
+  }
+}
+
+// -- Air Quality (Open-Meteo Air Quality API) --------------------------------
+
+interface OpenMeteoAirQuality {
+  current: {
+    european_aqi: number;
+    pm2_5?: number;
+    pm10?: number;
+    nitrogen_dioxide?: number;
+    ozone?: number;
+    sulphur_dioxide?: number;
+    uv_index?: number;
+  };
+}
+
+/**
+ * Map European AQI value to US EPA category string
+ */
+function aqiCategory(aqi: number): string {
+  if (aqi <= 50) return 'Good';
+  if (aqi <= 100) return 'Moderate';
+  if (aqi <= 150) return 'Unhealthy for Sensitive';
+  if (aqi <= 200) return 'Unhealthy';
+  if (aqi <= 300) return 'Very Unhealthy';
+  return 'Hazardous';
+}
+
+/**
+ * Determine dominant pollutant from Open-Meteo current data
+ */
+function dominantPollutant(current: OpenMeteoAirQuality['current']): string {
+  const candidates: Array<[string, number | undefined]> = [
+    ['PM2.5', current.pm2_5],
+    ['PM10', current.pm10],
+    ['NO2', current.nitrogen_dioxide],
+    ['O3', current.ozone],
+    ['SO2', current.sulphur_dioxide],
+  ];
+
+  let maxName = 'PM2.5';
+  let maxValue = -1;
+  for (const [name, value] of candidates) {
+    if (value != null && value > maxValue) {
+      maxValue = value;
+      maxName = name;
+    }
+  }
+  return maxName;
+}
+
+/**
+ * Geocode a location and fetch current air quality from Open-Meteo Air Quality API.
+ * Returns null if the location cannot be found or the request fails.
+ */
+export async function fetchAirQuality(location: string): Promise<AQIData | null> {
+  const place = await geocode(location);
+  if (!place) return null;
+
+  try {
+    const url =
+      `https://air-quality-api.open-meteo.com/v1/air-quality` +
+      `?latitude=${String(place.latitude)}` +
+      `&longitude=${String(place.longitude)}` +
+      `&current=european_aqi,pm2_5,pm10,nitrogen_dioxide,ozone,sulphur_dioxide,uv_index`;
+    const res = await fetch(url);
+    if (!res.ok) return null;
+
+    const data = (await res.json()) as OpenMeteoAirQuality;
+    const { current } = data;
+    const aqi = current.european_aqi;
+    if (aqi == null) return null;
+
+    return {
+      aqi: Math.round(aqi),
+      category: aqiCategory(aqi),
+      dominantPollutant: dominantPollutant(current),
+      uvIndex: current.uv_index,
+    };
   } catch {
     return null;
   }

@@ -60,6 +60,52 @@ const QuoteBoxConfigSchema = z.object({
   author: z.string().optional(),
 });
 
+const DateBoxConfigSchema = z.object({
+  type: z.literal('date'),
+  showWeekNumber: z.boolean().optional(),
+  showDayOfYear: z.boolean().optional(),
+});
+
+const MoonBoxConfigSchema = z.object({
+  type: z.literal('moon'),
+});
+
+const SunDataSchema = z.object({
+  sunrise: z.string(),
+  sunset: z.string(),
+  dayLength: z.string(),
+});
+
+const SunBoxConfigSchema = z.object({
+  type: z.literal('sun'),
+  city: z.string().min(1, 'City is required'),
+  lat: z.number().optional(),
+  lon: z.number().optional(),
+  data: SunDataSchema.optional(),
+});
+
+const AQIDataSchema = z.object({
+  aqi: z.number(),
+  category: z.string(),
+  dominantPollutant: z.string(),
+  uvIndex: z.number().optional(),
+});
+
+const AQIBoxConfigSchema = z.object({
+  type: z.literal('aqi'),
+  city: z.string().min(1, 'City is required'),
+  lat: z.number().optional(),
+  lon: z.number().optional(),
+  data: AQIDataSchema.optional(),
+});
+
+const ProgressBoxConfigSchema = z.object({
+  type: z.literal('progress'),
+  label: z.string().optional(),
+  startDate: z.string().optional(),
+  endDate: z.string().optional(),
+});
+
 // --- BentoBox schema ---
 
 const BentoBoxBaseSchema = z.object({
@@ -98,6 +144,31 @@ const QuoteBentoBoxSchema = BentoBoxBaseSchema.extend({
   config: QuoteBoxConfigSchema.optional(),
 });
 
+const DateBentoBoxSchema = BentoBoxBaseSchema.extend({
+  type: z.literal('date'),
+  config: DateBoxConfigSchema.optional(),
+});
+
+const MoonBentoBoxSchema = BentoBoxBaseSchema.extend({
+  type: z.literal('moon'),
+  config: MoonBoxConfigSchema.optional(),
+});
+
+const SunBentoBoxSchema = BentoBoxBaseSchema.extend({
+  type: z.literal('sun'),
+  config: SunBoxConfigSchema.optional(),
+});
+
+const AQIBentoBoxSchema = BentoBoxBaseSchema.extend({
+  type: z.literal('aqi'),
+  config: AQIBoxConfigSchema.optional(),
+});
+
+const ProgressBentoBoxSchema = BentoBoxBaseSchema.extend({
+  type: z.literal('progress'),
+  config: ProgressBoxConfigSchema.optional(),
+});
+
 const BentoBoxSchema = z.discriminatedUnion('type', [
   TextBentoBoxSchema,
   WeatherBentoBoxSchema,
@@ -105,6 +176,11 @@ const BentoBoxSchema = z.discriminatedUnion('type', [
   CountdownBentoBoxSchema,
   QRBentoBoxSchema,
   QuoteBentoBoxSchema,
+  DateBentoBoxSchema,
+  MoonBentoBoxSchema,
+  SunBentoBoxSchema,
+  AQIBentoBoxSchema,
+  ProgressBentoBoxSchema,
 ]);
 
 // --- Full config schema ---

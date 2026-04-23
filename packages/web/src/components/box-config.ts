@@ -10,9 +10,19 @@ import type {
   QRConfig,
   QuoteConfig,
   WeatherConfig,
+  DateConfig,
+  SunConfig,
+  AQIConfig,
+  ProgressConfig,
 } from '../state';
-import { updateConfig, updateForecastEntries, updateWeatherData } from '../state';
-import { fetchForecast, fetchWeather, fetchQuote } from '../api';
+import {
+  updateConfig,
+  updateForecastEntries,
+  updateWeatherData,
+  updateSunData,
+  updateAQIData,
+} from '../state';
+import { fetchForecast, fetchWeather, fetchQuote, fetchSunTimes, fetchAirQuality } from '../api';
 
 // -- Validation rules -------------------------------------------------------
 
@@ -288,6 +298,156 @@ function buildQuoteForm(box: EditorBox): DocumentFragment {
   return frag;
 }
 
+function buildDateForm(box: EditorBox): DocumentFragment {
+  const frag = document.createDocumentFragment();
+  const cfg = box.config as DateConfig;
+
+  function makeCheckbox(labelText: string, key: string, checked: boolean): HTMLDivElement {
+    const wrapper = document.createElement('div');
+    wrapper.className = 'field field-checkbox';
+    const label = document.createElement('label');
+    const cb = document.createElement('input');
+    cb.type = 'checkbox';
+    cb.checked = checked;
+    cb.addEventListener('change', () => updateConfig(box.id, key, String(cb.checked)));
+    label.appendChild(cb);
+    label.appendChild(document.createTextNode(` ${labelText}`));
+    wrapper.appendChild(label);
+    return wrapper;
+  }
+
+  frag.appendChild(makeCheckbox('Show week number', 'showWeekNumber', cfg.showWeekNumber));
+  frag.appendChild(makeCheckbox('Show day of year', 'showDayOfYear', cfg.showDayOfYear));
+  return frag;
+}
+
+function buildMoonForm(_box: EditorBox): DocumentFragment {
+  const frag = document.createDocumentFragment();
+  const info = document.createElement('div');
+  info.className = 'weather-status';
+  info.textContent = 'Moon phase is computed automatically.';
+  frag.appendChild(info);
+  return frag;
+}
+
+function buildSunForm(box: EditorBox): DocumentFragment {
+  const frag = document.createDocumentFragment();
+  const cfg = box.config as SunConfig;
+
+  const statusEl = document.createElement('div');
+  statusEl.className = 'weather-status';
+  if (cfg.data) {
+    statusEl.textContent = `Rise: ${cfg.data.sunrise} Set: ${cfg.data.sunset} (${cfg.data.dayLength})`;
+  }
+
+  const doFetch = async (): Promise<void> => {
+    const city = cfg.city;
+    if (!city.trim()) return;
+    statusEl.textContent = 'Fetching sun times\u2026';
+    const data = await fetchSunTimes(city);
+    if (data) {
+      updateSunData(box.id, data);
+      statusEl.textContent = `Rise: ${data.sunrise} Set: ${data.sunset} (${data.dayLength})`;
+    } else {
+      statusEl.textContent = 'Location not found or fetch failed.';
+    }
+  };
+
+  const cityInput = inputEl('text', cfg.city, (v) => updateConfig(box.id, 'city', v));
+  cityInput.placeholder = 'e.g. Portland, OR';
+  cityInput.addEventListener('blur', () => void doFetch());
+  cityInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      cityInput.blur();
+    }
+  });
+
+  frag.appendChild(makeField('Location', cityInput, validateRequired('a location')));
+  frag.appendChild(statusEl);
+
+  if (cfg.city.trim() && !cfg.data) {
+    void doFetch();
+  }
+
+  return frag;
+}
+
+function buildAQIForm(box: EditorBox): DocumentFragment {
+  const frag = document.createDocumentFragment();
+  const cfg = box.config as AQIConfig;
+
+  const statusEl = document.createElement('div');
+  statusEl.className = 'weather-status';
+  if (cfg.data) {
+    const uvStr = cfg.data.uvIndex != null ? ` UV:${String(cfg.data.uvIndex)}` : '';
+    statusEl.textContent = `AQI ${String(cfg.data.aqi)} (${cfg.data.category})${uvStr} — ${cfg.data.dominantPollutant}`;
+  }
+
+  const doFetch = async (): Promise<void> => {
+    const city = cfg.city;
+    if (!city.trim()) return;
+    statusEl.textContent = 'Fetching air quality\u2026';
+    const data = await fetchAirQuality(city);
+    if (data) {
+      updateAQIData(box.id, data);
+      const uvStr = data.uvIndex != null ? ` UV:${String(data.uvIndex)}` : '';
+      statusEl.textContent = `AQI ${String(data.aqi)} (${data.category})${uvStr} — ${data.dominantPollutant}`;
+    } else {
+      statusEl.textContent = 'Location not found or fetch failed.';
+    }
+  };
+
+  const cityInput = inputEl('text', cfg.city, (v) => updateConfig(box.id, 'city', v));
+  cityInput.placeholder = 'e.g. Portland, OR';
+  cityInput.addEventListener('blur', () => void doFetch());
+  cityInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      cityInput.blur();
+    }
+  });
+
+  frag.appendChild(makeField('Location', cityInput, validateRequired('a location')));
+  frag.appendChild(statusEl);
+
+  if (cfg.city.trim() && !cfg.data) {
+    void doFetch();
+  }
+
+  return frag;
+}
+
+function buildProgressForm(box: EditorBox): DocumentFragment {
+  const frag = document.createDocumentFragment();
+  const cfg = box.config as ProgressConfig;
+  const row = document.createElement('div');
+  row.className = 'field-row';
+  row.appendChild(
+    makeField(
+      'Label',
+      inputEl('text', cfg.progressLabel, (v) => updateConfig(box.id, 'progressLabel', v)),
+    ),
+  );
+  frag.appendChild(row);
+  const dateRow = document.createElement('div');
+  dateRow.className = 'field-row';
+  dateRow.appendChild(
+    makeField(
+      'Start Date (optional)',
+      inputEl('date', cfg.startDate, (v) => updateConfig(box.id, 'startDate', v)),
+    ),
+  );
+  dateRow.appendChild(
+    makeField(
+      'End Date (optional)',
+      inputEl('date', cfg.endDate, (v) => updateConfig(box.id, 'endDate', v)),
+    ),
+  );
+  frag.appendChild(dateRow);
+  return frag;
+}
+
 // -- Registry ---------------------------------------------------------------
 
 const formBuilders: Record<EditorBoxType, (box: EditorBox) => DocumentFragment> = {
@@ -297,6 +457,11 @@ const formBuilders: Record<EditorBoxType, (box: EditorBox) => DocumentFragment> 
   forecast: buildForecastForm,
   qr: buildQRForm,
   quote: buildQuoteForm,
+  date: buildDateForm,
+  moon: buildMoonForm,
+  sun: buildSunForm,
+  aqi: buildAQIForm,
+  progress: buildProgressForm,
 };
 
 export function buildConfigForm(box: EditorBox): DocumentFragment {

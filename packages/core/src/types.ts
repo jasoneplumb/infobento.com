@@ -61,6 +61,52 @@ export interface QuoteBoxConfig {
   readonly author?: string;
 }
 
+export interface DateBoxConfig {
+  readonly type: 'date';
+  readonly showWeekNumber?: boolean;
+  readonly showDayOfYear?: boolean;
+}
+
+export interface MoonBoxConfig {
+  readonly type: 'moon';
+}
+
+export interface SunData {
+  readonly sunrise: string;
+  readonly sunset: string;
+  readonly dayLength: string;
+}
+
+export interface SunBoxConfig {
+  readonly type: 'sun';
+  readonly city: string;
+  readonly lat?: number;
+  readonly lon?: number;
+  readonly data?: SunData;
+}
+
+export interface AQIData {
+  readonly aqi: number;
+  readonly category: string;
+  readonly dominantPollutant: string;
+  readonly uvIndex?: number;
+}
+
+export interface AQIBoxConfig {
+  readonly type: 'aqi';
+  readonly city: string;
+  readonly lat?: number;
+  readonly lon?: number;
+  readonly data?: AQIData;
+}
+
+export interface ProgressBoxConfig {
+  readonly type: 'progress';
+  readonly label?: string;
+  readonly startDate?: string;
+  readonly endDate?: string;
+}
+
 /** Discriminated union of all box-specific configurations */
 export type BoxConfig =
   | TextBoxConfig
@@ -68,7 +114,12 @@ export type BoxConfig =
   | ForecastBoxConfig
   | CountdownBoxConfig
   | QRBoxConfig
-  | QuoteBoxConfig;
+  | QuoteBoxConfig
+  | DateBoxConfig
+  | MoonBoxConfig
+  | SunBoxConfig
+  | AQIBoxConfig
+  | ProgressBoxConfig;
 
 // --- Core types ---
 
@@ -82,7 +133,12 @@ export type BentoBoxType =
   | 'countdown'
   | 'stocks'
   | 'qr'
-  | 'text';
+  | 'text'
+  | 'date'
+  | 'moon'
+  | 'sun'
+  | 'aqi'
+  | 'progress';
 
 /** Base fields shared by all bento boxes */
 interface BentoBoxBase {
@@ -128,11 +184,51 @@ interface QuoteBentoBox extends BentoBoxBase {
   readonly config?: QuoteBoxConfig;
 }
 
+/** Date box with typed config */
+interface DateBentoBox extends BentoBoxBase {
+  readonly type: 'date';
+  readonly config?: DateBoxConfig;
+}
+
+/** Moon box with typed config */
+interface MoonBentoBox extends BentoBoxBase {
+  readonly type: 'moon';
+  readonly config?: MoonBoxConfig;
+}
+
+/** Sun box with typed config */
+interface SunBentoBox extends BentoBoxBase {
+  readonly type: 'sun';
+  readonly config?: SunBoxConfig;
+}
+
+/** AQI box with typed config */
+interface AQIBentoBox extends BentoBoxBase {
+  readonly type: 'aqi';
+  readonly config?: AQIBoxConfig;
+}
+
+/** Progress box with typed config */
+interface ProgressBentoBox extends BentoBoxBase {
+  readonly type: 'progress';
+  readonly config?: ProgressBoxConfig;
+}
+
 /** Box types that don't have a config yet (placeholder) */
 interface UnconfiguredBentoBox extends BentoBoxBase {
   readonly type: Exclude<
     BentoBoxType,
-    'text' | 'weather' | 'forecast' | 'countdown' | 'qr' | 'quote'
+    | 'text'
+    | 'weather'
+    | 'forecast'
+    | 'countdown'
+    | 'qr'
+    | 'quote'
+    | 'date'
+    | 'moon'
+    | 'sun'
+    | 'aqi'
+    | 'progress'
   >;
   readonly config?: undefined;
 }
@@ -148,6 +244,11 @@ export type BentoBox =
   | CountdownBentoBox
   | QRBentoBox
   | QuoteBentoBox
+  | DateBentoBox
+  | MoonBentoBox
+  | SunBentoBox
+  | AQIBentoBox
+  | ProgressBentoBox
   | UnconfiguredBentoBox;
 
 /** Full device configuration */
