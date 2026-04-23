@@ -1,0 +1,104 @@
+name: Deploy to Production
+
+on:
+  push:
+    branches: [mainline]
+  workflow_dispatch:
+
+# Only one deployment at a time
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Build web bundle
+        run: cd packages/web && npx vite build
+
+      - name: Create deployment package
+        run: |
+          # Package everything needed for production:
+          # - Built JS in packages/*/dist/
+          # - Vite web bundle in packages/web/dist/
+          # - package.json files for npm ci --production
+          # - Source not needed at runtime (TypeScript compiled to JS)
+          tar -czf infobento-deploy.tar.gz \
+            --exclude='node_modules' \
+            --exclude='.git' \
+            --exclude='clones' \
+            --exclude='logs' \
+            --exclude='*.test.ts' \
+            --exclude='*.test.js' \
+            --exclude='tsconfig*.json' \
+            --exclude='vitest.config.ts' \
+            --exclude='.eslintrc*' \
+            --exclude='.prettierrc*' \
+            --exclude='prototypes' \
+            --exclude='hardware' \
+            --exclude='docs' \
+            --exclude='.tux' \
+            package.json \
+            package-lock.json \
+            packages/
+
+      - name: Setup SSH key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.DEPLOY_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H ${{ secrets.DEPLOY_HOST }} >> ~/.ssh/known_hosts 2>/dev/null || true
+
+      - name: Deploy
+        run: |
+          SSH_OPTS="-i ~/.ssh/deploy_key -o ConnectTimeout=60 -o ServerAliveInterval=30"
+          SSH_TARGET="${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}"
+          VERSION=$(node -p "require('./package.json').version")
+
+          source "$GITHUB_WORKSPACE/scripts/ssh-retry.sh"
+
+          ssh_retry "scp $SSH_OPTS scripts/deploy-infobento.sh $SSH_TARGET:/tmp/deploy-infobento.sh"
+          ssh_retry "cat infobento-deploy.tar.gz | ssh $SSH_OPTS $SSH_TARGET 'DEPLOY_SHA=${{ github.sha }} DEPLOY_VERSION=$VERSION bash /tmp/deploy-infobento.sh'"
+
+      - name: Cleanup SSH key
+        if: always()
+        run: rm -f ~/.ssh/deploy_key
+
+      - name: Smoke test
+        run: |
+          echo "Waiting 10s for server to start..."
+          sleep 10
+          MAX_RETRIES=6
+          RETRY_DELAY=10
+          for i in $(seq 1 $MAX_RETRIES); do
+            HTTP_CODE=$(curl -sf --max-time 15 -o /dev/null -w '%{http_code}' "https://infobento.com/api/health" 2>/dev/null || echo '0')
+            if [ "$HTTP_CODE" = "200" ]; then
+              echo "Smoke test passed (HTTP $HTTP_CODE)"
+              break
+            fi
+            if [ "$i" = "$MAX_RETRIES" ]; then
+              echo "::error::Smoke test failed after $MAX_RETRIES attempts (last HTTP code: $HTTP_CODE)"
+              exit 1
+            fi
+            echo "Attempt $i: HTTP $HTTP_CODE, retrying in ${RETRY_DELAY}s..."
+            sleep $RETRY_DELAY
+          done
