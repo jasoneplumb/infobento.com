@@ -1,20 +1,41 @@
 # Changelog
 
-## [Unreleased] — Pivot in flight
+## [0.5.0] - 2026-04-23
 
-### Strategic pivot — counter-only color decorator (RFC #25)
+### Added
 
-The product is pivoting from the dual-display MagSafe clamshell to a single counter-only color eInk decorator. Phone-back, MagSafe, hinge, dual-display PCB, and the iOS background BLE risk are all being removed. Solar panel moves to the upper portion of the back side; no kickstand. Industrial design constrained to white housing, ≤4mm bezel, drop-resistant to 4 ft. Larger color eInk panel replaces the 1-bit 2.9" panel.
+- 5 new box types: **date** (hero day number + day-of-week), **moon** (lunar phase with 20px bitmap), **sun** (sunrise/sunset via Open-Meteo), **aqi** (air quality + UV index via Open-Meteo), **progress** (year/custom range progress bar) (#41-45, PR #46)
+- Web editor support for all 11 box types: type picker, config forms, live preview
+- `fetchSunTimes()` and `fetchAirQuality()` in web API layer (Open-Meteo + Nominatim geocoding)
+- 5 new 7x7 pixel-art icons for box headers (calendar, crescent, sunrise, leaf, progress bar)
+- Moon phase computation from synodic period (reference epoch 2000-01-06T18:14Z)
+- AQI category mapping (US EPA scale) and dominant pollutant display
 
-Phase work is tracked in GitHub issues #25–#38 under the `pivot/counter-color` milestone.
+### Changed
+
+- **Collapsed dual-display to single-display model** (Phase 2, #29, PR #40):
+  - Removed `DisplayId` type and `displayId` field from `BentoConfig` across all packages
+  - Web editor: 2x2 grid → single column (preview on top, editor below)
+  - localStorage schema bumped to v2 with backward-compatible v1 migration
+  - CSS: grid layout → flex column, removed `.column-heading` and grid-area rules
+- Claude Code review workflow: added `Read`, `Grep`, `Glob` to `--allowedTools` (was missing, causing zero review comments); narrowed trigger to `labeled` event only (was triple-firing)
+- 73 → 100 tests (27 new tests for 5 box types; 1 removed: `displayId` validation)
+
+### Strategic direction (Round 11, 2026-04-23)
+
+- **V1 ships B&W only** (REQ-009) — color eInk deferred to v2. Phase 3 (#30-33) relabeled as v2.
+- **Bento-box form factor** (REQ-010) — device sized ~18x12cm, golden-ratio display (1.618:1 target)
+- **High DPI + minimal bezel** (REQ-011) — ≥200 DPI target, ≤3mm bezel
+- **Tilt switch auto-rotate** (REQ-012) — two mechanical tilt switches, 4-orientation detection, zero standby current
+- **Configurable display dimensions** (#51) — BentoConfig accepts optional width/height
+- New hardware issues: B&W panel sourcing (#47), tilt switch hardware (#48), auto-rotate software (#49), SCAD enclosure (#50)
 
 ### Documentation
 
-- `README.md` — rewrote Overview, Hardware, Architecture sections; removed Four Surfaces and Three Modes diagrams; added counter-only product story and form-factor sketch
-- `docs/hardware/DISPLAY.md` — rewrote for color panel candidates, single-display form factor, single refresh mode
-- `docs/hardware/POWER.md` — rewrote for single counter mode; removed MagSafe reverse-charge; updated power budget for color refresh + Wi-Fi
-- `docs/hardware/BLE.md` — reframed as "Connectivity"; documented Wi-Fi-direct (likely) and phone-bridged BLE (fallback) options pending decision in #35
-- `docs/getting-started/ARCHITECTURE.md` — updated system overview, data flow, and operating profile
+- Pivot Phase 1 strategic artifacts (#26, #27): README, hardware docs, architecture docs rewritten for counter-only
+- Connectivity locked: Wi-Fi direct + PWA-only, ESP32-C3, captive-portal setup, no companion app
+- Kickstarter copy draft committed (`docs/kickstarter-copy.md`)
+- `.tux/project.json` fully audited and updated for Round 11 (B&W, bento, tilt switches, golden ratio)
 
 ## [0.4.0] - 2026-04-21
 
