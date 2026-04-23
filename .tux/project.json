@@ -642,11 +642,11 @@
     {
       "type": "requirement",
       "label": "REQ-012",
-      "statement": "Device includes an always-on IMU/accelerometer that detects orientation changes and triggers a hardware interrupt to re-render the layout in the correct rotation",
-      "source": "Round 11 direction (2026-04-23). The device can sit flat (landscape) or be stood on its short edge (portrait). The display should auto-rotate without user configuration.",
+      "statement": "Device detects orientation via two tilt switches and auto-rotates the display layout (landscape, portrait, inverted landscape, inverted portrait)",
+      "source": "Round 11 direction (2026-04-23). Two mechanical ball-in-tube tilt switches mounted at 90° to each other on two GPIO pins. Zero standby current, ~$0.10 total BOM, no I2C bus needed. Each switch triggers a GPIO interrupt on state change; firmware reads both pins to determine one of four orientations and re-renders the layout if changed.",
       "category": "functional",
       "priority": "must",
-      "rationale": "Users will naturally stand the device in both orientations. Without auto-rotation, the display would be sideways in one orientation — a dealbreaker for a glance display. The IMU must draw <1µA in always-on mode to stay within the solar power budget. Candidates: LIS2DW12TR (ST, <1µA, hardware 4D/6D orientation detection) or BMA400 (Bosch, 0.85µA, on-chip orientation interrupt). Both are <$1 at volume, I2C interface, 2 GPIO pins.",
+      "rationale": "Users will naturally stand the device in both orientations. Without auto-rotation, the display would be sideways — a dealbreaker for a glance display. Tilt switches are simpler and cheaper than a discrete IMU (LIS2DW12, BMA400) while fully meeting the requirement. Zero standby current stays well within the solar power budget. Four-orientation detection (2 switches × 2 states) covers all practical placements.",
       "status": "accepted",
       "userClassIds": [
         "b3572422-6629-426d-9df2-20a4c3eaa3e6",
@@ -662,7 +662,7 @@
       "type": "design-principle",
       "name": "Solar-Powered Counter Display",
       "statement": "InfoBento is a bento-box-sized counter device — single high-DPI B&W eInk display on the front, solar panel on the upper portion of the back, body-as-stand. No hinge, no MagSafe, no kickstand. IMU detects orientation for auto-rotate.",
-      "description": "The device is a single white-housed body sized like a real bento box (~18×12cm), with a golden-ratio B&W eInk panel that nearly fills the front face (≤3mm bezel target). Front: high-DPI B&W eInk panel recessed into the bezel rim so the rim shields the glass on a face-down drop. Back-upper: solar panel cavity (~70x100mm) for indirect window-light harvesting. Back-lower: ESP32-C3 + battery + IMU + grip area. An always-on accelerometer (LIS2DW12TR or BMA400, <1µA) detects orientation changes and fires a hardware interrupt so the layout re-renders in the correct rotation — landscape when flat on a counter, portrait when stood on its short edge. The back surface tilts ~12-15° relative to the front so the device naturally angles upward. Designed to survive a 4-foot drop. Refreshes once or twice a day on solar power; counter-only, no phone-mounted mode.",
+      "description": "The device is a single white-housed body sized like a real bento box (~18×12cm), with a golden-ratio B&W eInk panel that nearly fills the front face (≤3mm bezel target). Front: high-DPI B&W eInk panel recessed into the bezel rim so the rim shields the glass on a face-down drop. Back-upper: solar panel cavity (~70x100mm) for indirect window-light harvesting. Back-lower: ESP32-C3 + battery + IMU + grip area. Two mechanical tilt switches at 90° on two GPIO pins detect orientation changes (zero standby current, ~$0.10 BOM) and fire hardware interrupts so the layout re-renders in the correct rotation — landscape when flat, portrait when stood on its short edge, plus both inverted orientations. The back surface tilts ~12-15° relative to the front so the device naturally angles upward. Designed to survive a 4-foot drop. Refreshes once or twice a day on solar power; counter-only, no phone-mounted mode.",
       "source": "Round 10 counter pivot (2026-04-22). Replaces the prior dual-display MagSafe clamshell concept after user-class fit analysis showed the clamshell was trying to serve two products at once and paying for it with BOM, thickness, and the iOS background BLE risk.",
       "examples": [
         "Kitchen counter: device leans slightly back on its own footprint, display angled toward standing viewer, solar panel catching window light from the upper back surface",
