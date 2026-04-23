@@ -5,7 +5,7 @@
  * setState() triggers a synchronous re-render of every panel.
  */
 
-import type { BentoBoxType, WeatherData, ForecastEntry } from '@infobento/core';
+import type { BentoBoxType, WeatherData, ForecastEntry, SunData, AQIData } from '@infobento/core';
 
 // -- Editor box model (UI-local, not the core BentoBox type) ---------------
 
@@ -37,17 +37,57 @@ export interface QuoteConfig {
   author: string;
 }
 
+export interface DateConfig {
+  showWeekNumber: boolean;
+  showDayOfYear: boolean;
+}
+
+export interface MoonConfig {
+  _placeholder: string;
+}
+
+export interface SunConfig {
+  city: string;
+  data?: SunData;
+}
+
+export interface AQIConfig {
+  city: string;
+  data?: AQIData;
+}
+
+export interface ProgressConfig {
+  progressLabel: string;
+  startDate: string;
+  endDate: string;
+}
+
 export type EditorBoxConfig =
   | TextConfig
   | CountdownConfig
   | WeatherConfig
   | ForecastConfig
   | QRConfig
-  | QuoteConfig;
+  | QuoteConfig
+  | DateConfig
+  | MoonConfig
+  | SunConfig
+  | AQIConfig
+  | ProgressConfig;
 
 export type EditorBoxType = Extract<
   BentoBoxType,
-  'text' | 'countdown' | 'weather' | 'forecast' | 'qr' | 'quote'
+  | 'text'
+  | 'countdown'
+  | 'weather'
+  | 'forecast'
+  | 'qr'
+  | 'quote'
+  | 'date'
+  | 'moon'
+  | 'sun'
+  | 'aqi'
+  | 'progress'
 >;
 
 export interface EditorBox {
@@ -77,6 +117,11 @@ const DEFAULTS: Record<EditorBoxType, () => EditorBoxConfig> = {
   forecast: () => ({ city: '' }),
   qr: () => ({ url: '' }),
   quote: () => ({ content: '', author: '' }),
+  date: () => ({ showWeekNumber: false, showDayOfYear: false }),
+  moon: () => ({ _placeholder: '' }),
+  sun: () => ({ city: '' }),
+  aqi: () => ({ city: '' }),
+  progress: () => ({ progressLabel: 'Year', startDate: '', endDate: '' }),
 };
 
 const LABELS: Record<EditorBoxType, string> = {
@@ -86,6 +131,11 @@ const LABELS: Record<EditorBoxType, string> = {
   forecast: '3hr Forecast',
   qr: 'QR Code',
   quote: 'Quote',
+  date: 'Date',
+  moon: 'Moon Phase',
+  sun: 'Sunrise/Sunset',
+  aqi: 'Air Quality',
+  progress: 'Progress',
 };
 
 // -- Default box set --------------------------------------------------------
@@ -198,6 +248,22 @@ export function updateForecastEntries(id: number, entries: ForecastEntry[]): voi
   const box = findBox(id);
   if (!box || box.type !== 'forecast') return;
   (box.config as ForecastConfig).entries = entries;
+  persistToLocalStorage();
+  renderPreview();
+}
+
+export function updateSunData(id: number, data: SunData): void {
+  const box = findBox(id);
+  if (!box || box.type !== 'sun') return;
+  (box.config as SunConfig).data = data;
+  persistToLocalStorage();
+  renderPreview();
+}
+
+export function updateAQIData(id: number, data: AQIData): void {
+  const box = findBox(id);
+  if (!box || box.type !== 'aqi') return;
+  (box.config as AQIConfig).data = data;
   persistToLocalStorage();
   renderPreview();
 }

@@ -13,6 +13,10 @@ import type {
   TextConfig,
   QRConfig,
   QuoteConfig,
+  DateConfig,
+  SunConfig,
+  AQIConfig,
+  ProgressConfig,
 } from '../state';
 import { getBoxes } from '../state';
 
@@ -68,6 +72,50 @@ function toBentoBox(editor: EditorBox): BentoBox {
         ...base,
         type: 'quote',
         config: { type: 'quote', text: c.content, author: c.author || undefined },
+      };
+    }
+    case 'date': {
+      const c = editor.config as DateConfig;
+      return {
+        ...base,
+        type: 'date',
+        config: {
+          type: 'date',
+          showWeekNumber: c.showWeekNumber,
+          showDayOfYear: c.showDayOfYear,
+        },
+      };
+    }
+    case 'moon': {
+      return { ...base, type: 'moon', config: { type: 'moon' } };
+    }
+    case 'sun': {
+      const c = editor.config as SunConfig;
+      return {
+        ...base,
+        type: 'sun',
+        config: { type: 'sun', city: c.city, data: c.data },
+      };
+    }
+    case 'aqi': {
+      const c = editor.config as AQIConfig;
+      return {
+        ...base,
+        type: 'aqi',
+        config: { type: 'aqi', city: c.city, data: c.data },
+      };
+    }
+    case 'progress': {
+      const c = editor.config as ProgressConfig;
+      return {
+        ...base,
+        type: 'progress',
+        config: {
+          type: 'progress',
+          label: c.progressLabel || undefined,
+          startDate: c.startDate || undefined,
+          endDate: c.endDate || undefined,
+        },
       };
     }
     default:
