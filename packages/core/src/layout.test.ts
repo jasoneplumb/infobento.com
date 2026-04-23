@@ -7,7 +7,7 @@ function makeBox(id: string, type: BentoBox['type'] = 'text', split?: 'left' | '
 }
 
 function makeConfig(boxes: BentoBox[]): BentoConfig {
-  return { displayId: 'D', boxes, refreshesPerDay: 1 };
+  return { boxes, refreshesPerDay: 1 };
 }
 
 describe('calculateLayout', () => {

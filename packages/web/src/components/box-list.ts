@@ -1,22 +1,16 @@
 /**
- * Box list renderer — builds card DOM nodes for one display's editor column.
+ * Box list renderer — builds card DOM nodes for the editor column.
  * Handles reorder (up/down), remove, inline label editing, and
  * delegates type-specific forms to box-config.ts.
  */
 
-import type { DisplayId } from '@infobento/core';
 import type { EditorBox } from '../state';
 import { getBoxes, moveBox, removeBox, updateLabel } from '../state';
 import { buildConfigForm } from './box-config';
 
 // -- Card builder -----------------------------------------------------------
 
-function buildCard(
-  displayId: DisplayId,
-  box: EditorBox,
-  idx: number,
-  total: number,
-): HTMLDivElement {
+function buildCard(box: EditorBox, idx: number, total: number): HTMLDivElement {
   const card = document.createElement('div');
   card.className = 'box-card';
   card.dataset.id = String(box.id);
@@ -46,20 +40,20 @@ function buildCard(
   btnUp.textContent = '▲';
   btnUp.title = 'Move up';
   btnUp.disabled = idx === 0;
-  btnUp.addEventListener('click', () => moveBox(displayId, box.id, -1));
+  btnUp.addEventListener('click', () => moveBox(box.id, -1));
 
   const btnDown = document.createElement('button');
   btnDown.className = 'btn-ghost';
   btnDown.textContent = '▼';
   btnDown.title = 'Move down';
   btnDown.disabled = idx === total - 1;
-  btnDown.addEventListener('click', () => moveBox(displayId, box.id, 1));
+  btnDown.addEventListener('click', () => moveBox(box.id, 1));
 
   const btnRemove = document.createElement('button');
   btnRemove.className = 'btn-danger';
   btnRemove.textContent = '✕';
   btnRemove.title = 'Remove box';
-  btnRemove.addEventListener('click', () => removeBox(displayId, box.id));
+  btnRemove.addEventListener('click', () => removeBox(box.id));
 
   orderDiv.appendChild(btnUp);
   orderDiv.appendChild(btnDown);
@@ -81,7 +75,7 @@ function buildCard(
 
 // -- Public render function -------------------------------------------------
 
-export function renderBoxList(displayId: DisplayId, containerId: string): void {
+export function renderBoxList(containerId: string): void {
   const list = document.getElementById(containerId);
   if (!list) return;
 
@@ -101,7 +95,7 @@ export function renderBoxList(displayId: DisplayId, containerId: string): void {
       ? activeWithinList.selectionEnd
       : null;
 
-  const boxes = getBoxes(displayId);
+  const boxes = getBoxes();
 
   list.innerHTML = '';
 
@@ -120,7 +114,7 @@ export function renderBoxList(displayId: DisplayId, containerId: string): void {
 
   const frag = document.createDocumentFragment();
   boxes.forEach((box, idx) => {
-    frag.appendChild(buildCard(displayId, box, idx, boxes.length));
+    frag.appendChild(buildCard(box, idx, boxes.length));
   });
   list.appendChild(frag);
 

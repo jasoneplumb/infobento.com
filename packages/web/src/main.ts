@@ -1,10 +1,9 @@
 /**
  * Entry point for the InfoBento web configuration editor.
- * Wires up Add/Import/Export, registers render callbacks for both displays,
+ * Wires up Add/Import/Export, registers render callbacks,
  * and performs the initial render.
  */
 
-import type { DisplayId } from '@infobento/core';
 import type { EditorBoxType } from './state';
 import { addBox, exportJSON, importJSON, onPreviewRender, onRender } from './state';
 import { renderBoxList } from './components/box-list';
@@ -13,34 +12,26 @@ import { requireConsent } from './components/consent';
 
 // -- Render callbacks -------------------------------------------------------
 
-const DISPLAYS: readonly DisplayId[] = ['D', 'P'];
-
 function renderAllPreviews(): void {
-  for (const id of DISPLAYS) {
-    renderPreview(id, `eink-display-${id}`);
-  }
+  renderPreview('eink-display');
 }
 
 function render(): void {
-  for (const id of DISPLAYS) {
-    renderBoxList(id, `box-list-${id}`);
-  }
+  renderBoxList('box-list');
   renderAllPreviews();
 }
 
 onRender(render);
 onPreviewRender(renderAllPreviews);
 
-// -- Wire up per-display Add buttons ---------------------------------------
+// -- Wire up Add button -----------------------------------------------------
 
-for (const id of DISPLAYS) {
-  const btn = document.getElementById(`btn-add-${id}`);
-  const select = document.getElementById(`add-type-select-${id}`) as HTMLSelectElement | null;
-  btn?.addEventListener('click', () => {
-    if (!select) return;
-    addBox(id, select.value as EditorBoxType);
-  });
-}
+const addBtn = document.getElementById('btn-add');
+const addSelect = document.getElementById('add-type-select') as HTMLSelectElement | null;
+addBtn?.addEventListener('click', () => {
+  if (!addSelect) return;
+  addBox(addSelect.value as EditorBoxType);
+});
 
 // -- Wire up header menu (Import / Export) ---------------------------------
 

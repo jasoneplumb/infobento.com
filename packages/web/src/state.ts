@@ -1,12 +1,11 @@
 /**
  * Reactive state management for the InfoBento box editor.
  *
- * Both displays (D = Outer / public, P = Inner / private) are always live;
- * actions take an explicit displayId. setState() triggers a synchronous
- * re-render of every panel.
+ * Single-display model: one preview, one editor column.
+ * setState() triggers a synchronous re-render of every panel.
  */
 
-import type { BentoBoxType, DisplayId, WeatherData, ForecastEntry } from '@infobento/core';
+import type { BentoBoxType, WeatherData, ForecastEntry } from '@infobento/core';
 
 // -- Editor box model (UI-local, not the core BentoBox type) ---------------
 
@@ -59,8 +58,7 @@ export interface EditorBox {
 }
 
 export interface EditorState {
-  boxesD: EditorBox[];
-  boxesP: EditorBox[];
+  boxes: EditorBox[];
 }
 
 // -- UID generator ----------------------------------------------------------
@@ -90,9 +88,9 @@ const LABELS: Record<EditorBoxType, string> = {
   quote: 'Quote',
 };
 
-// -- Default box sets per display -------------------------------------------
+// -- Default box set --------------------------------------------------------
 
-function defaultBoxesD(): EditorBox[] {
+function defaultBoxes(): EditorBox[] {
   return [
     { id: uid(), type: 'weather', label: 'Weather', config: DEFAULTS.weather() },
     { id: uid(), type: 'countdown', label: 'Countdown', config: DEFAULTS.countdown() },
@@ -100,23 +98,11 @@ function defaultBoxesD(): EditorBox[] {
   ];
 }
 
-function defaultBoxesP(): EditorBox[] {
-  return [
-    { id: uid(), type: 'quote', label: 'Quote', config: DEFAULTS.quote() },
-    { id: uid(), type: 'countdown', label: 'Countdown', config: DEFAULTS.countdown() },
-  ];
-}
-
 // -- State + render callback ------------------------------------------------
 
 const state: EditorState = {
-  boxesD: defaultBoxesD(),
-  boxesP: defaultBoxesP(),
+  boxes: defaultBoxes(),
 };
-
-function boxesFor(displayId: DisplayId): EditorBox[] {
-  return displayId === 'D' ? state.boxesD : state.boxesP;
-}
 
 let _renderFn: (() => void) | null = null;
 let _previewFn: (() => void) | null = null;
@@ -136,9 +122,9 @@ export function getState(): EditorState {
   return state;
 }
 
-/** Read the boxes for a specific display */
-export function getBoxes(displayId: DisplayId): EditorBox[] {
-  return boxesFor(displayId);
+/** Read the current boxes */
+export function getBoxes(): EditorBox[] {
+  return state.boxes;
 }
 
 /** Mutate state and trigger a full re-render */
@@ -153,17 +139,17 @@ function renderPreview(): void {
   _previewFn?.();
 }
 
-// -- Box lookup (searches both displays — ids are globally unique) ----------
+// -- Box lookup -------------------------------------------------------------
 
 function findBox(id: number): EditorBox | undefined {
-  return state.boxesD.find((b) => b.id === id) ?? state.boxesP.find((b) => b.id === id);
+  return state.boxes.find((b) => b.id === id);
 }
 
 // -- Actions ----------------------------------------------------------------
 
-export function addBox(displayId: DisplayId, type: EditorBoxType): void {
+export function addBox(type: EditorBoxType): void {
   setState(() => {
-    boxesFor(displayId).push({
+    state.boxes.push({
       id: uid(),
       type,
       label: LABELS[type],
@@ -172,26 +158,24 @@ export function addBox(displayId: DisplayId, type: EditorBoxType): void {
   });
 }
 
-export function removeBox(displayId: DisplayId, id: number): void {
+export function removeBox(id: number): void {
   setState(() => {
-    const arr = boxesFor(displayId);
-    const idx = arr.findIndex((b) => b.id === id);
-    if (idx >= 0) arr.splice(idx, 1);
+    const idx = state.boxes.findIndex((b) => b.id === id);
+    if (idx >= 0) state.boxes.splice(idx, 1);
   });
 }
 
-export function moveBox(displayId: DisplayId, id: number, dir: -1 | 1): void {
+export function moveBox(id: number, dir: -1 | 1): void {
   setState(() => {
-    const arr = boxesFor(displayId);
-    const idx = arr.findIndex((b) => b.id === id);
+    const idx = state.boxes.findIndex((b) => b.id === id);
     if (idx < 0) return;
     const target = idx + dir;
-    if (target < 0 || target >= arr.length) return;
-    const current = arr[idx];
-    const next = arr[target];
+    if (target < 0 || target >= state.boxes.length) return;
+    const current = state.boxes[idx];
+    const next = state.boxes[target];
     if (current === undefined || next === undefined) return;
-    arr[idx] = next;
-    arr[target] = current;
+    state.boxes[idx] = next;
+    state.boxes[target] = current;
   });
 }
 
@@ -232,9 +216,8 @@ const STORAGE_KEY = 'infobento-config';
 function persistToLocalStorage(): void {
   try {
     const data = {
-      version: 1,
-      D: state.boxesD.map((b) => ({ type: b.type, label: b.label, config: { ...b.config } })),
-      P: state.boxesP.map((b) => ({ type: b.type, label: b.label, config: { ...b.config } })),
+      version: 2,
+      boxes: state.boxes.map((b) => ({ type: b.type, label: b.label, config: { ...b.config } })),
     };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
   } catch {
@@ -258,25 +241,36 @@ function loadFromLocalStorage(): boolean {
     const saved = localStorage.getItem(STORAGE_KEY);
     if (!saved) return false;
     const parsed: unknown = JSON.parse(saved);
-    if (
-      typeof parsed !== 'object' ||
-      parsed === null ||
-      !('version' in parsed) ||
-      !('D' in parsed) ||
-      !('P' in parsed)
-    ) {
+    if (typeof parsed !== 'object' || parsed === null || !('version' in parsed)) {
       return false;
     }
-    const obj = parsed as {
-      version: number;
-      D: Array<{ type: string; label: string; config: Record<string, string> }>;
-      P: Array<{ type: string; label: string; config: Record<string, string> }>;
-    };
-    if (!Array.isArray(obj.D) || !Array.isArray(obj.P)) return false;
+    const obj = parsed as Record<string, unknown>;
 
-    state.boxesD = hydrateBoxes(obj.D);
-    state.boxesP = hydrateBoxes(obj.P);
-    return true;
+    // Version 2: single boxes array
+    if (obj.version === 2 && Array.isArray(obj.boxes)) {
+      state.boxes = hydrateBoxes(
+        obj.boxes as Array<{ type: string; label: string; config: Record<string, string> }>,
+      );
+      return true;
+    }
+
+    // Version 1 migration: merge D + P boxes into single array
+    if (
+      obj.version === 1 &&
+      'D' in obj &&
+      'P' in obj &&
+      Array.isArray((obj as { D: unknown }).D) &&
+      Array.isArray((obj as { P: unknown }).P)
+    ) {
+      const v1 = obj as {
+        D: Array<{ type: string; label: string; config: Record<string, string> }>;
+        P: Array<{ type: string; label: string; config: Record<string, string> }>;
+      };
+      state.boxes = hydrateBoxes([...v1.D, ...v1.P]);
+      return true;
+    }
+
+    return false;
   } catch {
     return false;
   }
@@ -301,36 +295,45 @@ export function importJSON(): void {
     reader.onload = () => {
       try {
         const parsed: unknown = JSON.parse(reader.result as string);
-        if (
-          typeof parsed !== 'object' ||
-          parsed === null ||
-          !('version' in parsed) ||
-          !('D' in parsed) ||
-          !('P' in parsed)
-        ) {
+        if (typeof parsed !== 'object' || parsed === null || !('version' in parsed)) {
           alert('Invalid InfoBento config file: missing required fields.');
           return;
         }
-        const obj = parsed as {
-          version: number;
-          D: {
-            displayId?: string;
-            boxes: Array<{ type: string; label: string; config: Record<string, string> }>;
-          };
-          P: {
-            displayId?: string;
-            boxes: Array<{ type: string; label: string; config: Record<string, string> }>;
-          };
-        };
-        if (!Array.isArray(obj.D?.boxes) || !Array.isArray(obj.P?.boxes)) {
-          alert('Invalid InfoBento config file: D and P must contain boxes arrays.');
+        const obj = parsed as Record<string, unknown>;
+
+        // Version 2: single boxes array
+        if (obj.version === 2 && Array.isArray(obj.boxes)) {
+          setState((s) => {
+            s.boxes = hydrateBoxes(
+              obj.boxes as Array<{ type: string; label: string; config: Record<string, string> }>,
+            );
+          });
           return;
         }
 
-        setState((s) => {
-          s.boxesD = hydrateBoxes(obj.D.boxes);
-          s.boxesP = hydrateBoxes(obj.P.boxes);
-        });
+        // Version 1 migration: merge D + P into single array
+        if (obj.version === 1) {
+          const v1 = obj as {
+            D:
+              | { boxes: Array<{ type: string; label: string; config: Record<string, string> }> }
+              | Array<{ type: string; label: string; config: Record<string, string> }>;
+            P:
+              | { boxes: Array<{ type: string; label: string; config: Record<string, string> }> }
+              | Array<{ type: string; label: string; config: Record<string, string> }>;
+          };
+          const dBoxes = Array.isArray(v1.D) ? v1.D : v1.D?.boxes;
+          const pBoxes = Array.isArray(v1.P) ? v1.P : v1.P?.boxes;
+          if (!Array.isArray(dBoxes) || !Array.isArray(pBoxes)) {
+            alert('Invalid InfoBento config file: could not read boxes.');
+            return;
+          }
+          setState((s) => {
+            s.boxes = hydrateBoxes([...dBoxes, ...pBoxes]);
+          });
+          return;
+        }
+
+        alert('Invalid InfoBento config file: unsupported version.');
       } catch {
         alert('Failed to parse JSON file. Please check the file format.');
       }
@@ -346,17 +349,13 @@ export function importJSON(): void {
 // -- Export -----------------------------------------------------------------
 
 export function exportJSON(): void {
-  const mapBoxes = (boxes: EditorBox[]) =>
-    boxes.map((b) => ({
+  const data = {
+    version: 2,
+    boxes: state.boxes.map((b) => ({
       type: b.type,
       label: b.label,
       config: { ...b.config },
-    }));
-
-  const data = {
-    version: 1,
-    D: { displayId: 'D', boxes: mapBoxes(state.boxesD) },
-    P: { displayId: 'P', boxes: mapBoxes(state.boxesP) },
+    })),
   };
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
   const url = URL.createObjectURL(blob);

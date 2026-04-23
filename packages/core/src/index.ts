@@ -18,7 +18,6 @@ export type {
   BoxConfig,
   BentoBoxType,
   BentoBox,
-  DisplayId,
   BentoConfig,
   DeviceProfile,
   LayoutBox,
