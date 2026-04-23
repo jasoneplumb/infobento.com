@@ -2,56 +2,56 @@
 
 ## eInk Module
 
-- **Size:** 2.9 inches diagonal
-- **Resolution:** TBD — codebase currently uses 240x200, but standard 2.9" panels are 296x128. Must reconcile with final hardware selection.
-- **Color depth:** 1-bit (black and white)
-- **Refresh rate:** Variable by mode — see Refresh Modes below
+InfoBento uses a single color eInk panel mounted on the front of a monolithic counter device. The exact panel SKU is pending — see "Candidates" below.
 
-## Resolution Note
+- **Color depth:** ~7 colors (palette eInk — Spectra 6 / ACeP family)
+- **Refresh rate:** 1–2× per day (matches the device's solar power budget and the calm-display use case)
+- **Bit depth in software:** 3 bits per pixel for a 7-color palette (`Color` enum exported from `@infobento/core`)
 
-Standard 2.9" eInk panels (Waveshare, Good Display) are 296x128 pixels in landscape orientation. The codebase uses 240x200 (portrait). This is a known discrepancy that will be resolved when hardware is finalized. A 296x128 landscape display significantly changes the layout strategy — horizontal subdivision of bento boxes becomes viable.
+Resolution and exact palette are panel-dependent and decided in #35 (panel + MCU sourcing). Existing code paths derive from `DISPLAY_WIDTH` / `DISPLAY_HEIGHT` / `DEFAULT_FRAME_BYTES` constants in `packages/core/src/constants.ts`, so changing the panel is a one-line edit there.
 
 ## Form Factor
 
-The display is one half of a MagSafe clamshell device. It must fit on an iPhone 15 Pro back (146.6 x 70.6mm). A standard 2.9" eInk module (~80 x 37mm active area) fits comfortably within these constraints.
+Single front-mounted panel inset into a white housing with a thin bezel (≤4 mm visible on all sides). The recess is deep enough that the bezel rim shields the glass on a face-down drop. See `hardware/infobento.scad` for the current SCAD model and `docs/hardware/DROP-TEST.md` (planned, #36) for the drop survival protocol.
+
+## Candidates
+
+Picked in #35. Current shortlist:
+
+| SKU                         | Resolution | Active area | Colors | BOM (approx) | Notes                                                  |
+| --------------------------- | ---------- | ----------- | ------ | ------------ | ------------------------------------------------------ |
+| Good Display 4.2" Spectra 6 | 640×400    | 84×64 mm    | 7      | $20–28       | Smallest, lowest BOM, less-readable from across a room |
+| Pervasive 5.65" ACeP        | 600×448    | 115×86 mm   | 7      | $30–40       | Middle ground, slow refresh (~30 s)                    |
+| Good Display 7.3" Spectra 6 | 800×480    | 160×96 mm   | 7      | $40–55       | Largest, most photogenic for Kickstarter, highest BOM  |
+
+Selection criteria:
+
+- Visible from across a typical room (kitchen counter to dining-table distance ~3 m)
+- 7-color palette (gives the renderer real visual range without going to dithered photo eInk)
+- Solar-budget compatible at 1–2 refreshes/day
+- SPI interface compatible with chosen MCU
 
 ## Frame Buffer Format
 
-The renderer outputs a packed 1-bit-per-pixel frame buffer:
+The renderer outputs a packed N-bits-per-pixel frame buffer. After Phase 3a (#30) lands:
 
-- **Byte order:** MSB first (leftmost pixel is bit 7)
-- **Row stride:** 30 bytes per row (240 / 8) — will change with final resolution
-- **Total size:** 6000 bytes (30 bytes x 200 rows) — will change with final resolution
-- **Bit values:** 0 = black, 1 = white (or controller-dependent)
+- **Bit depth:** 3 bits per pixel (8 indices into the `Color` palette; one is reserved/unused for 7-color panels)
+- **Byte order:** packed left-to-right, MSB first, no alignment padding within a row
+- **Total size:** `frameBufferBytes(width, height)` from `@infobento/core` — derived from the chosen panel
+- **Color values:** indices into the `Color` enum exported from `@infobento/core`
 
-## Refresh Modes
+Until Phase 3 lands, the codebase ships the legacy 1-bit packing (1 bit per pixel) inherited from the dual-display era.
 
-The device operates in two refresh modes depending on physical state:
+## Refresh Strategy
 
-| Mode             | Refresh Rate      | Use Case                             |
-| ---------------- | ----------------- | ------------------------------------ |
-| Counter-standing | 1-2x per day      | Kitchen counter, desk — low power    |
-| Phone-mounted    | Every few minutes | Back of phone — data must be current |
+Single mode, calm and infrequent.
 
-Phone-mounted mode uses eInk partial refresh to update at minute-level intervals without ghosting. This has a higher power draw but is offset by passive MagSafe charging from the iPhone.
+| Mode                       | Refresh Rate | Use Case                                       |
+| -------------------------- | ------------ | ---------------------------------------------- |
+| Counter (default and only) | 1–2× per day | Kitchen counter / desk / shelf — solar powered |
+
+There is no longer a phone-mounted minute-level refresh path — that died with the pivot away from MagSafe. Color eInk panels are slower per refresh (~15–30 s for full refresh on Spectra 6 / ACeP) than monochrome, but this is fine because we only refresh once or twice a day.
 
 ## Bento Box Layout
 
-With 200 pixels of vertical space and 4-6 bento boxes (current codebase):
-
-| Boxes | Height per box | Padding     | Notes                 |
-| ----- | -------------- | ----------- | --------------------- |
-| 4     | ~45px          | 5px between | Comfortable, readable |
-| 5     | ~35px          | 5px between | Compact but usable    |
-| 6     | ~28px          | 4px between | Dense, small text     |
-
-Each box spans the full 240px width with a 1px border. Layout strategy will be revisited when display resolution is finalized — a landscape panel may use side-by-side boxes.
-
-## Display Candidates
-
-Research needed: identify specific 2.9" eInk modules that meet the size and power constraints for the MagSafe clamshell form factor. Key criteria:
-
-- Fits within iPhone 15 Pro back dimensions (146.6 x 70.6mm)
-- Supports partial refresh for phone-mounted mode
-- Low sleep current for counter-standing mode
-- SPI interface compatible with ESP32-C3
+A larger color panel (e.g. 7.3" 800×480) supports comfortable multi-column layouts that the previous 128×296 portrait panel could not. The current `MAX_BOXES = 6` and `QR_HEIGHT_RATIO = 0.5` heuristics in `packages/core/src/layout.ts` should be revisited once the panel is chosen — there's room for 8–10 boxes with multi-column support on a larger canvas.

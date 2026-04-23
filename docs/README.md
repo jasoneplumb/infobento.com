@@ -37,9 +37,9 @@ docs/
 │   └── API.md                Pure function API reference
 │
 ├── hardware/
-│   ├── DISPLAY.md            eInk display specs, form factor, refresh modes
-│   ├── POWER.md              Dual-mode power budget (solar + MagSafe)
-│   └── BLE.md                BLE protocol for both operating modes
+│   ├── DISPLAY.md            Color eInk display specs, form factor, refresh strategy
+│   ├── POWER.md              Solar power budget for the counter device
+│   └── BLE.md                Connectivity options (Wi-Fi direct vs phone-bridged BLE)
 │
 └── rfcs/                     Architecture decision records
 ```

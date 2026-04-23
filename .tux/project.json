@@ -1,7 +1,7 @@
 {
   "id": "15b14d22-3871-4074-a350-f4ffc78651b4",
   "name": "InfoBento",
-  "description": "MagSafe-mounted dual-eInk companion display that lives on the back of your iPhone. Clamshell with two 2.9-inch 128x296 1-bit displays back-to-back: D (outer) shows real-time data when phone-mounted, P (inner) shows ambient content when standing on a counter. 180-degree hinge, solar charging, $30 target, Kickstarter launch. ~7.2mm folded.",
+  "description": "Solar-powered color eInk decorator for kitchen counters, desks, and shelves. Single front-mounted color eInk display in a monolithic white housing with a thin bezel; solar panel on the upper portion of the back side; no hinge, no MagSafe, no kickstand — the body is the stand. Designed to survive a 4-foot drop. Configure once on a web page; refreshes once or twice a day on solar power for months. $30-40 target via Kickstarter. (Pivoted 2026-04-22 from a previous dual-display MagSafe clamshell concept — see Round 10 note.)",
   "domain": "consumer-electronics",
   "version": 1,
   "currentPhase": "campaign",
@@ -10,12 +10,12 @@
     {
       "type": "work-role",
       "name": "Device Owner",
-      "description": "Individual who owns an InfoBento display — mounts it on their iPhone via MagSafe or stands it on a counter",
+      "description": "Individual who owns an InfoBento display and places it on a counter, shelf, or windowsill in their home or office",
       "responsibilities": [
         "Configure bento boxes via web UI",
-        "Mount on phone or stand on counter near window",
-        "Keep phone paired for BLE sync",
-        "Transition device between phone-mounted and counter-standing modes"
+        "Place device on a counter or shelf with the solar panel exposed to indirect window light",
+        "Complete first-time Wi-Fi (or phone) pairing during setup",
+        "Update configuration occasionally as priorities change"
       ],
       "id": "7f7a8122-1767-4414-8231-77cb80d1372c",
       "relatedIds": [],
@@ -41,13 +41,12 @@
     {
       "type": "user-class",
       "name": "Daily Glancer",
-      "description": "Busy professional who wants a passive, zero-interaction display of key daily info — weather, next event, motivational quote — visible at a glance without unlocking their phone. The founder is this user.",
+      "description": "Busy professional who wants a calm passive display of key daily info — weather, next event, a quote — visible at a glance from across the room. The founder is this user. (Demoted to secondary 2026-04-22 in the counter-only pivot — original primary scenario was a phone-mounted display, which has been removed.)",
       "workRoleIds": ["7f7a8122-1767-4414-8231-77cb80d1372c"],
       "goals": [
-        "See todays weather and schedule without unlocking phone",
+        "See today's weather and schedule without picking up a phone",
         "Reduce screen time by offloading ambient info to a passive display",
-        "Customize what info matters most to them",
-        "Peek at the back of the phone to decide if an unlock is worth it"
+        "Customize what info matters most to them"
       ],
       "frustrations": [
         "Checking phone for simple info leads to distraction rabbit holes",
@@ -55,7 +54,7 @@
         "Existing e-paper gadgets are not customizable",
         "Every phone interaction is an attention trap — even a quick weather check becomes 10 minutes of scrolling"
       ],
-      "isPrimary": true,
+      "isPrimary": false,
       "id": "b3572422-6629-426d-9df2-20a4c3eaa3e6",
       "relatedIds": [],
       "metadata": {},
@@ -156,20 +155,22 @@
     },
     {
       "type": "design-principle",
-      "name": "1-Bit Elegance",
-      "statement": "Design for the constraint — black-and-white pixels should feel intentional, not limited",
-      "description": "The eInk display is 1-bit only. Rather than fighting this constraint, embrace it. Whitespace-driven hierarchy, two font sizes (hero Spleen 8x16 + data 5x7), thin rules as dividers, differentiated box layouts per content type. Think e-paper watch faces and receipt aesthetics — dense but legible.",
-      "source": "Hardware constraint + design research (round 6). Updated after Tidbyt/Watchy/TRMNL/YotaPhone research showed whitespace > borders.",
+      "name": "Limited-Palette Elegance",
+      "statement": "Design for the constraint — a small color palette should feel intentional, not limited",
+      "description": "The color eInk display has a fixed ~7-color palette (Spectra 6 / ACeP family). Rather than fighting this constraint, embrace it. Whitespace-driven hierarchy, two font sizes (hero Spleen 8x16 + data 5x7), color used as accent and category cue rather than gradient or detail. Think e-paper signage, screen-printed posters, and risograph aesthetics — dense but legible. Color is a noun (this is the temperature, this is the date, this is a warning), never a verb.",
+      "source": "Hardware constraint + design research (round 6) + counter-pivot color decision (round 10). Replaces the prior 1-Bit Elegance principle when the panel moved from monochrome to 7-color.",
       "examples": [
-        "Hero font for primary data (62F, 9:00, 14 days)",
+        "Hero font for primary data, drawn in red for hot temps and blue for cold",
         "Thin horizontal rules as section dividers (not box borders)",
         "Whitespace gaps between sections instead of 1px borders",
-        "High-contrast icons designed for 1-bit"
+        "Color used as category cue: weather in red/blue, calendar in muted gray, countdown number in red",
+        "QR codes stay black-only (color QR doesn't scan reliably)"
       ],
       "counterExamples": [
-        "Attempting grayscale dithering for photos",
-        "Anti-aliased fonts that become muddy at 1-bit",
-        "1px borders around every box (old design, replaced)",
+        "Attempting photographic gradient dithering",
+        "Anti-aliased fonts that become muddy at low color depth",
+        "Using all 7 colors in a single box (creates noise)",
+        "Color-as-decoration without semantic meaning",
         "More than two font sizes (creates visual noise)"
       ],
       "id": "34631cfb-fb45-4ff2-a55e-db05463bb527",
@@ -376,27 +377,25 @@
     },
     {
       "type": "wireframe",
-      "name": "Dual eInk Display Layout",
+      "name": "Single Color eInk Layout",
       "screenName": "DeviceDisplay",
-      "description": "Two 128x296 1-bit eInk displays (D and P), each showing different content optimized for its physical mode. D = phone-mounted (real-time, dense), P = counter/peek (ambient, relaxed). See previews/ for current renderings.",
+      "description": "Single color eInk panel on the front of the counter device. Calm, multi-section layout optimized for at-a-glance reading from across a room. 7-color palette (Spectra 6 / ACeP family). Final panel resolution chosen in #35.",
       "fidelity": "medium",
       "status": "active",
       "elements": [
-        "D (outer): 4-5 dense sections — time, weather, next event, message counts, stock/transit",
-        "P (inner): 3-4 relaxed sections — quote, full agenda, countdown hero, detailed weather",
-        "Both use Spleen 8x16 hero font and 5x7 data font",
+        "3-6 sections — quote, full weather, countdown hero, agenda, QR, text — depending on panel size",
+        "Spleen 8x16 hero font for primary data, 5x7 data font for labels and body",
         "Thin horizontal rules as section dividers",
         "Whitespace gaps (5-8px) between sections",
-        "Horizontal subdivision supported (e.g., name left + QR right)"
+        "Color used as category cue: weather temps in red/blue, countdown number in red, qr in black, body text in black",
+        "Multi-column layouts viable on larger panels (5.65\" / 7.3\")"
       ],
       "annotations": [
-        "1-bit only — no grayscale, no anti-aliasing",
-        "MSB-first bit packing, 16 bytes per row (128/8)",
-        "128x296 portrait orientation (standard 2.9-inch panel rotated 90°)",
-        "D refreshes every 2-5 min (phone-mounted, partial refresh)",
-        "P refreshes 1-2x/day (counter mode, full refresh from solar)",
-        "Frame buffer: 4736 bytes per display (16 x 296)",
-        "No re-render on mode switch — each display holds its own frame"
+        "7-color palette — palette-indexed framebuffer, 3 bits per pixel",
+        "Color as accent and category, not gradient or photographic detail",
+        "Refresh once or twice a day on solar power (~15-30s per refresh on color panels)",
+        "Frame buffer size derived from chosen panel via frameBufferBytes() helper in @infobento/core",
+        "Layout limit (currently MAX_BOXES=6) revisits after panel selection — larger color panels comfortably support 8-10 boxes"
       ],
       "externalRef": null,
       "userClassIds": [
@@ -414,26 +413,27 @@
       "type": "wireframe",
       "name": "Web Configuration Editor",
       "screenName": "ConfigEditor",
-      "description": "Main web UI screen where users configure both D and P displays independently. Vanilla JS with reactive state pattern. Client-side renderer for instant preview of each display.",
+      "description": "Main web UI screen where users configure their counter device's bento boxes. Vanilla JS with reactive state pattern. Client-side renderer for instant preview. Currently ships a dual-display 2x2 layout (clamshell-era), being collapsed to a single column in #29.",
       "fidelity": "medium",
       "status": "active",
       "elements": [
-        "Left panel: live eInk preview rendered client-side (scaled 2-3x, 1-bit accurate)",
-        "Right panel: box list with up/down arrow buttons for reordering",
-        "Add Box button with type picker dropdown",
-        "Per-box config form (city for weather, date+label for countdown, URL for QR, textarea for text, text+author for quote)",
+        "Top: live color eInk preview rendered client-side, sized 1:1 with the device",
+        "Below: box list with up/down arrow buttons for reordering",
+        "Header: Menu dropdown with Import / Export JSON",
+        "Per-cell: Add Box button with type picker dropdown",
+        "Per-box config form (location for weather/forecast, date+label for countdown, URL for QR, textarea for text, text+author for quote)",
         "Remove button per box",
-        "Export Config button (JSON download)",
-        "Inline-editable box labels"
+        "Inline-editable box labels",
+        "Consent dialog (Privacy + Terms) on first load, persisted in localStorage"
       ],
       "annotations": [
         "Preview renders client-side using @infobento/renderer — no API round-trip",
-        "Display toggle: switch between configuring D (phone-mounted) and P (counter) displays",
-        "Each display has its own BentoConfig with independent box list",
-        "No account required — config lives in localStorage",
-        "Responsive layout: stack preview over config on mobile",
-        "Vanilla JS with reactive state (prototypes/svelte-editor.html pattern)",
-        "Kickstarter MVP: live preview + add/remove + configure text/countdown/weather + export"
+        "Single-display editor (post #29 collapse). Until #29 lands, dual-display 2x2 layout is still shipping.",
+        "No account required — config lives in localStorage with JSON import/export",
+        "Responsive layout: stacks vertically on narrow viewports (<=720px)",
+        "Vanilla JS with reactive state, no framework",
+        "All 6 box types supported: text, countdown, weather, 3hr forecast, qr, quote",
+        "Geocoding via Nominatim handles 'Portland, OR', addresses, and landmarks like 'Mt. St. Helens'"
       ],
       "externalRef": null,
       "userClassIds": [
@@ -559,21 +559,22 @@
     },
     {
       "type": "design-principle",
-      "name": "MagSafe Dual-Display Clamshell",
-      "statement": "InfoBento is a hinged clamshell with two eInk displays back-to-back — D (outer) for phone-mounted mode, P (inner) for counter/peek mode — connected to a solar/MagSafe half by a 180-degree hinge",
-      "description": "The device has two halves: a display half (D on outer face, P on inner face — two 2.9-inch 128x296 eInk panels back-to-back on one PCB) and a solar half (S solar panel on inner face, M MagSafe magnets on outer face). Four surfaces: D, P, S, M. Three operating modes: (1) Closed (0°) — M touches phone via MagSafe, D faces outward showing real-time data; (2) Peek (90°) — L-shape, P faces user for a quick glance; (3) Counter (~100°) — tent shape, M-side down as base, S faces up for solar charging, P faces user with ambient content. D and P are never visible simultaneously. No re-render on mode switch — each display holds its own pre-rendered frame.",
-      "source": "Rounds 5-8, dual-display exploration 2026-04-21. GPIO budget confirmed (10 of 13 pins), thickness ~7.2mm folded (3.2mm display + 4.0mm solar).",
+      "name": "Solar-Powered Counter Display",
+      "statement": "InfoBento is a monolithic counter device — single color eInk display on the front, solar panel on the upper portion of the back, body-as-stand. No hinge, no MagSafe, no kickstand.",
+      "description": "The device is a single white-housed body with a thin bezel (≤4mm visible). Front: color eInk panel recessed into the bezel rim so the rim shields the glass on a face-down drop. Back-upper: solar panel cavity (~70x100mm) for indirect window-light harvesting. Back-lower: ESP32 + battery + grip area. The back surface tilts ~12-15° relative to the front so the device naturally angles its display upward when set on a flat counter — no separate kickstand needed. Designed to survive a 4-foot drop via a soft polymer bumper layer between glass and housing, edge-radiused corners, and the inset display recess. Refreshes once or twice a day on solar power; counter-only, no phone-mounted mode.",
+      "source": "Round 10 counter pivot (2026-04-22). Replaces the prior dual-display MagSafe clamshell concept after user-class fit analysis showed the clamshell was trying to serve two products at once and paying for it with BOM, thickness, and the iOS background BLE risk.",
       "examples": [
-        "Closed on phone: D shows weather, time, next event, message counts",
-        "Peek 90°: user opens device, P shows ambient quote and agenda",
-        "Counter ~100°: P shows countdown and full weather, S charges from window light",
-        "Desk flat: D readable face-up like a card, no phone needed"
+        "Kitchen counter: device leans slightly back on its own footprint, display angled toward standing viewer, solar panel catching window light from the upper back surface",
+        "Desk: device sits next to a monitor, calm color quote and weather visible from working distance",
+        "Shelf: device functions as ambient decor — quote, countdown, weather — no plug, no cable",
+        "Dropped onto hardwood from 4 feet: bumper compresses, edges absorb impact, glass intact"
       ],
       "counterExamples": [
-        "Single display that must re-render on every fold/unfold",
-        "Flat card with no hinge",
-        "WiFi-dependent desk display",
-        "Requires dedicated charging cable"
+        "Phone-mounted display via MagSafe",
+        "Hinged or folding form factor",
+        "Separate kickstand or easel",
+        "Requires dedicated charging cable",
+        "Wall-mounted display (mounting hardware adds friction; counter placement is the hero)"
       ],
       "id": "a1b2c3d4-form-factor-clamshell-0001",
       "relatedIds": [],
@@ -584,7 +585,7 @@
     {
       "type": "note",
       "title": "Hardware Platform",
-      "body": "## Component Layout (dual-display, updated from issue #22)\n\n### Display half — dual eInk back-to-back (no battery)\n- D-side (outer): 2.9-inch glass eInk (79x37x1.2mm, 128x296 portrait)\n- P-side (inner): 2.9-inch glass eInk (79x37x1.2mm, 128x296 portrait)\n- ESP32-C3-MINI-1 (16.6x13.2x2.4mm) between panels, antenna at board edge\n- PCB 0.8mm between the two panels\n- NO battery — avoids grip flex stress on LiPo (users squeeze display half when holding phone)\n- Half thickness: 3.2mm (1.2 + 0.8 + 1.2) — uniform, all panels full-size\n\n### Solar half (has battery)\n- M-side (outer): MagSafe magnet ring (54mm OD, 46mm ID) + Qi receiver coil\n- S-side (inner): Solar panel (~70x100mm, amorphous Si, 0.22mm)\n- LiPo battery GM251534 (100mAh, 15x34x2.5mm) between solar panel and MagSafe/Qi layers\n- AEM10941 solar harvesting IC + MCP73831 LiPo charger\n- STWLC38 or BQ51013 Qi receiver IC\n- Half thickness: ~4.0mm (0.8 PCB + 2.5 battery + 0.5 solar + 0.2 margin)\n- Power routed to display half through hinge FPC (2 wires, ~100mA max)\n- Solar half is never squeezed — sits on surfaces or touches phone back\n\n### GPIO allocation (13 available, 10 used)\n- SPI shared: MOSI (GPIO6), SCLK (GPIO7)\n- Display D: CS (GPIO10), DC (GPIO3), BUSY (GPIO1)\n- Display P: CS (GPIO5), DC (GPIO4), BUSY (GPIO0)\n- RST shared: GPIO9\n- Battery ADC: GPIO2\n- Spare: GPIO8, GPIO18, GPIO19\n\n### Hinge\n- Book-style along 70.6mm short edge\n- 180-degree standard friction hinge ($1-8/unit)\n- FPC through hinge: 2-4 wires (power + solar leads)\n\n### Thickness\n- Display half: 3.2mm (dual eInk back-to-back, no battery)\n- Solar half: ~4.0mm (includes 2.5mm battery)\n- Folded total: ~7.2mm\n\n### BOM target: $30\n- Charging subsystem: $13-18\n- Hinge: $1-8 (standard friction, 180-degree)\n- eInk displays x2: $10-16 (glass)\n- ESP32-C3-MINI-1: $2-3\n- PCB + passives: $3-5\n- Total range: $29-50 (aggressive sourcing needed at low end)",
+      "body": "## Counter device platform (rewritten 2026-04-22 for the counter-only color pivot)\n\nMonolithic single-body counter device. White housing, thin bezel, no hinge, no MagSafe, no kickstand. Final dimensions and panel SKU pending #35.\n\n### Front\n- Single color eInk panel (Spectra 6 / ACeP family, 7-color palette)\n- Panel SKU candidates (pending #35):\n  - Good Display 4.2\" Spectra 6 (640x400, 7 colors, $20-28)\n  - Pervasive 5.65\" ACeP (600x448, 7 colors, $30-40)\n  - Good Display 7.3\" Spectra 6 (800x480, 7 colors, $40-55)\n- Bezel: ≤4mm visible on all four sides\n- Display recess: deep enough that the bezel rim shields the glass on a face-down drop\n\n### Back-upper\n- Solar panel cavity, ~70x100mm amorphous-Si, 0.22mm thick\n- Mounted on the upper third of the back surface so it catches indirect window light when the device sits on a counter\n- AEM10941 solar harvesting IC drives charging\n\n### Back-lower\n- ESP32-C3 (BLE-only) or ESP32-C6 (Wi-Fi 6 + BLE) — chosen in #35\n- LiPo battery: ~100mAh target (may bump to 150-200mAh after color-refresh power profile finalized)\n- MCP73831 LiPo charger\n- Provides grip area when device is picked up\n\n### Industrial design\n- White housing (color locked, founder decision)\n- Edge-radiused corners (~4mm radius) to disperse impact energy\n- Back surface tilts ~12-15° relative to front so device naturally angles its display upward when placed on a flat counter — body-as-stand, no separate kickstand mechanism\n- Soft polymer bumper layer between the eInk glass and the housing rim (silicone vs TPU vs over-molded TPE — choice pending)\n- Designed to survive a 4-foot drop onto a hard surface (drop-test protocol in #36 / `docs/hardware/DROP-TEST.md`)\n\n### Connectivity (decision in #35)\n- Wi-Fi direct (likely): ESP32-C6, fetches frames from cloud API directly. Removes the iOS background-BLE risk that gated the previous concept. First-time setup via captive portal.\n- Phone-bridged BLE (fallback): ESP32-C3, phone app fetches and pushes via BLE. Lower per-refresh power but adds a phone-app dependency.\n\n### GPIO allocation (preliminary, single-display)\n- SPI: MOSI, SCLK, CS, DC, BUSY, RST for the single panel — 6 pins\n- Battery ADC: 1 pin\n- Wi-Fi/BLE: handled by MCU module\n- Plenty of GPIO headroom (was tight at 10/13 with dual-display; now ~7 used)\n\n### Thickness\n- Estimated 8-12mm depending on chosen panel and battery — single body, no fold\n- Less aggressive than the prior 7.2mm folded clamshell, but the device is decorator-class (sits on a counter), not pocket-class — thickness is not a hero spec\n\n### BOM target: $30-40 retail\n- Color eInk panel: $20-55 (the variable; biggest BOM line)\n- ESP32-C3 or C6: $2-4\n- LiPo battery + AEM10941 + MCP73831: $5-7\n- Solar panel: $2-4\n- Housing (injection-molded white plastic at volume): $3-6\n- Bumper (silicone or TPU): $1-2\n- Assembly + packaging: $3-5\n- Subtotal range: ~$36-83. Mid-range targets ($30-40 retail) require choosing the smaller panel (4.2\") and aggressive sourcing.\n\n### What's gone vs the clamshell concept\n- Second eInk panel and its driver lines\n- Hinge, hinge FPC, hinge sourcing risk\n- MagSafe N52 magnet ring and Qi receiver IC (STWLC38 / BQ51013)\n- iOS background BLE as a project risk\n- Dual-PCB / through-hinge power routing\n- Reell TI-C5M hinge sample order",
       "tags": ["hardware", "esp32", "eink", "magsafe", "form-factor", "bom", "dual-display"],
       "id": "e5f6a7b8-hardware-platform-0001",
       "relatedIds": [],
@@ -595,32 +596,9 @@
     {
       "type": "note",
       "title": "Market & Distribution",
-      "body": "## Positioning\n- Price target: $30 (bumped from $25 on 2026-04-21 after hardware BOM analysis)\n- Distribution: Kickstarter\n- Timeline: when it's ready (no fixed date)\n- Primary buyer: Daily Glancer (the founder — building for himself first)\n\n## Competitive landscape\n- Phone widgets / lock screen: free, but require unlock or at minimum wake gesture\n- Smartwatch complications: on wrist, always updating, but small and subscription-heavy\n- Tidbyt / Vestaboard / LaMetric: $150-300, WiFi-dependent, desk-only\n- DIY eInk (Waveshare, LILYGO): $15-40, no polish, requires coding\n\n## InfoBento's gap\n- Cheaper than smart displays, more polished than DIY\n- Portable (phone-mounted), not desk-bound\n- Solar + MagSafe = zero charging ritual\n- No accounts, no subscriptions, no WiFi dependency\n- The anti-phone: replaces the impulse to unlock by putting key info on the outside\n\n## Kickstarter hero scenario\n- Kitchen counter: standing up, solar panel aimed at window, morning coffee glance\n- Phone-mounted daily use is the retention story, counter mode is the aspirational pitch\n\n## Value proposition — resolved 2026-04-21 (revised tone 2026-04-22)\n- Tagline: See what matters. Skip the spiral.\n- Angle: a calm companion to your phone. A small, glanceable surface for the things you check most often, without pulling you into everything else your phone holds.\n- $30 justification: a one-time cost for the everyday peeks that don't need to become app sessions.\n- Structural moat vs Tidbyt: MagSafe phone mount. No desk display offers 'goes where your phone goes — and lets it stay face-down.'\n- Lock screen objection: lock screen requires pick-up + wake, and the wake itself is the spiral's first step. InfoBento works face-down on a table.\n- Resolved tension: it's a 'phone accessory that lets the phone rest' — not a desk display that also mounts to a phone.\n\n## Kickstarter pitch (angle 1 — selected, revised tone 2026-04-22)\nYour phone holds your whole life, and most of the time that's great. But sometimes you just want to know if it's going to rain, or how many days until your trip, without opening five apps and resurfacing twenty minutes later. InfoBento is two small eInk screens in a MagSafe clamshell that lives on the back of your iPhone. Flip your phone over and the weather, your next meeting, the countdown to vacation are right there in sharp black and white — a glance, then back to whatever you were doing. Stand it on the kitchen counter and the second screen faces the room with a quote, your agenda, the rest of the day at a glance, while the solar panel sips light from the window. No WiFi to set up, no account to make, no batteries to swap, no buttons to press. Configure your boxes once on a web page and it just works — for months, silently, on sunlight. At $30, InfoBento isn't trying to replace your phone or shame you for using it. It's a small, calm surface that lets you skip the spiral when all you needed was a glance.\n\n## Alternate angles (kept for reference)\n- Angle 2: Your phone's off switch has a display. Clever but 'off switch' undersells — sounds like it prevents phone use rather than complementing it.\n- Angle 3: The last thing you check before you don't check your phone. Good closing line ('a screen you never pick up') but opener too long for tagline.",
+      "body": "## Positioning (rewritten 2026-04-22 for the counter-only color pivot)\n- Price target: $30-40 retail (final number gated on panel choice in #35)\n- Distribution: Kickstarter\n- Timeline: when the prototype hardware exists and the color renderer ships (Phases 3 + 4)\n- Primary buyer: Desk Decorator and Gift Giver. Daily Glancer is now secondary (the phone-mounted story is gone).\n\n## Competitive landscape\n- Phone widgets / lock screen: free, but still require pick-up + wake. Not a counter object.\n- Smartwatch complications: on wrist, small, subscription-heavy. Different surface entirely.\n- Tidbyt / Vestaboard / LaMetric: $150-300, monochrome dot-matrix or LED, Wi-Fi dependent, desk-only. InfoBento beats them on price, color depth, and zero subscriptions.\n- DIY eInk frames (Waveshare, LILYGO, Inkplate): $25-80 unassembled, no polish, requires coding. InfoBento is the assembled, polished version.\n- Digital photo frames: $40-200, color, but require power cables and have no contextual content.\n\n## InfoBento's gap\n- Cheaper than smart displays, color where they're monochrome\n- More polished than DIY eInk, no coding required\n- Solar-powered, no cable, no plug\n- No accounts, no subscriptions, no Wi-Fi dependency (depending on connectivity choice in #35)\n- The calm decorator: ambient information without the pull of a phone screen\n\n## Kickstarter hero scenario\n- Kitchen counter, morning light, color quote and weather visible from across the room while the user makes coffee. Solar panel on the upper back surface catches the window.\n\n## Value proposition — counter-only revision 2026-04-22\n- Tagline: See what matters. Skip the spiral.\n- Angle: a calm color decorator for your counter. The information you check most often, sitting there in soft color eInk, on its own, on sunlight.\n- Price justification: less than a smart display, more polished than DIY, color where the alternatives are monochrome.\n- Structural moat vs Tidbyt: color, no Wi-Fi setup ritual (if Wi-Fi-direct is captive-portal style), no monthly fee, ten times cheaper.\n- Resolved tension: it's a 'small calm surface for the room' — not a gadget, not a smart-home device.\n\n## Kickstarter pitch (counter-only revision 2026-04-22)\nMost of the time, your phone holds your whole life beautifully. But sometimes you just want to know if it's going to rain, or how many days until your trip, without opening five apps and resurfacing twenty minutes later. InfoBento is a small color eInk decorator that sits on your counter, your desk, or a shelf. Weather, your next meeting, the countdown you're looking forward to, a quote that lifts the room — all visible at a glance from across the room, in soft color eInk on a thin white frame. The body is its own stand. The solar panel on the upper back catches indirect light through the window. No Wi-Fi setup ritual, no account to make, no batteries to swap, no buttons to press. Configure your boxes once on a web page and it just works — for months, silently, on sunlight. At $30-40, InfoBento isn't a smart home device or a screen competing for your attention. It's a small calm surface for the room — what matters, where it matters, and nothing else.\n\n## Alternate angles (kept for reference)\n- Angle 2: A photo frame that knows what to show. Conveys the calm-decorator framing well, but undersells the customization.\n- Angle 3: The opposite of a smart display. Defines by contrast — risky if backers don't already have the smart-display reference point.",
       "tags": ["market", "kickstarter", "positioning", "pricing", "value-prop"],
       "id": "f9a0b1c2-market-distribution-0001",
-      "relatedIds": [],
-      "metadata": {},
-      "createdAt": 1776300000000,
-      "updatedAt": 1776300000000
-    },
-    {
-      "type": "scenario",
-      "name": "Phone-back peek before unlock",
-      "userClassIds": ["b3572422-6629-426d-9df2-20a4c3eaa3e6"],
-      "setting": "Office desk, phone buzzes with a notification, mid-afternoon",
-      "narrative": "Maya's phone buzzes on the desk, screen-down. Instead of picking it up and unlocking it — which she knows will lead to 10 minutes of Slack scrolling — she glances at the D display on the back of the InfoBento. It shows: weather still 72F, next meeting in 45 min, 3 unread emails. Nothing urgent. She leaves the phone face-down and keeps working. If she wants more detail, she opens the InfoBento to 90 degrees and reads the P display — full agenda, countdown to vacation, a quote. Then she folds it back closed. No re-render, no delay. Total interaction: a glance or a flip.",
-      "status": "draft",
-      "preconditions": [
-        "InfoBento mounted on phone back via MagSafe",
-        "Display refreshed within last few minutes via BLE",
-        "Config has weather, next event, and message count boxes"
-      ],
-      "postconditions": [
-        "User has ambient awareness without unlocking phone",
-        "Screen time avoided for a low-value check"
-      ],
-      "frames": [],
-      "id": "d3e4f5a6-peek-scenario-0001",
       "relatedIds": [],
       "metadata": {},
       "createdAt": 1776300000000,
@@ -691,7 +669,7 @@
     {
       "type": "note",
       "title": "Campaign Phase Plan",
-      "body": "Project advances from `demo-polish` to `campaign` as of 2026-04-22.\n\n## Goal\nConvert the working web editor + working hardware prototype into a funded Kickstarter campaign.\n\n## Phase entry criteria (met)\n- All five MVP box types implemented + 3hr Forecast added (six types)\n- Web editor deployed and demo-polished (dual-display layout, consent dialog, robust geocoding, version stamping)\n- Pitch and value-prop in good shape after tone revision (see `Market & Distribution` note)\n- Project artifacts (work roles, user classes, scenarios, design principles, requirements) feel coherent\n\n## Phase exit criteria\n- Kickstarter campaign live\n- Funding target hit (or campaign concluded with decision on next move)\n- Backers have a realistic delivery date and clear communication channel\n\n## Open deliverables\n- **Kickstarter project page** — long-form pitch in `Market & Distribution` note (angle 1, revised tone) is the source text; needs page-formatted version with sections, images, FAQs.\n- **Pitch video** — 60-90s. Needs script, storyboard, talent (founder).\n- **Hero photography + product video** — requires working prototype that looks like the final device.\n- **Working hardware prototype** — gating: hinge samples (Reell TI-C5M), dual-display PCB, BLE/iOS bridging path proven.\n- **Reward tiers + pricing** — current $30 unit price; backer reward structure TBD (early-bird, retail, multi-pack, gift bundle).\n- **Stretch goals** — TBD. Candidates: extra box types (calendar OAuth, transit), color variants, accessory bundles.\n- **Pre-launch landing page + email signup** — Kickstarter `Follow` button before campaign open. Could co-host on infobento.com.\n- **Press kit** — one-pager + photos + spec sheet for outlets and reviewers.\n\n## Open questions for the campaign\n- Campaign duration (30 vs 45 days — 30 trends higher per-day funding, 45 catches more press)\n- Funding target — must cover tooling + first batch + Kickstarter+payment fees (~10%) + a buffer for shipping shortfall\n- Manufacturing partner (PCB house + assembly + final assembly + packaging)\n- Shipping plan — US + international? Add-on fulfillment partner?\n- Refund / cancellation policy\n- Late-pledge / BackerKit strategy\n\n## Inherited open hardware items (from Round 6, gating launch)\n- Hinge sourcing: order Reell TI-C5M samples\n- Background BLE on iOS — this is the make-or-break technical risk; if the iOS path won't keep the device fresh in phone-mounted mode, the pitch's primary scenario falls apart\n- eInk partial refresh strategy for D display (minute-level updates)\n- BLE connection interval tuning for phone-mounted mode\n- BOM at $30 — dual display pushes total $29-50; aggressive sourcing critical or price moves up\n\n## Inherited open content items\n- Hardware notes elsewhere in this project.json still say `128x296 portrait` for the displays. The web editor and tests now use 240×200 (per CLAUDE.md hardware spec). Resolve which is canonical before any spec sheet ships externally — a wrong number on the Kickstarter page is hard to retract.\n\n## Demo as marketing lever\n- The web editor at infobento.com is the campaign's interactive credibility lever ('try it now in your browser before you back it'). Keep the editor polished and bug-free for the duration of the campaign.\n- Each new box type added during the campaign is a campaign update opportunity ('we just shipped X — back us before the early-bird tier closes').\n\n## Next concrete moves (founder action)\n1. Order hinge samples (Reell TI-C5M) — longest hardware lead time\n2. Spike the iOS background BLE path — the answer determines whether phone-mounted mode is the hero or the secondary mode in the pitch\n3. Draft Kickstarter page outline using the revised pitch as the body\n4. Decide funding target after a manufacturing-partner quote",
+      "body": "Project advances from `demo-polish` to `campaign` as of 2026-04-22. Significantly revised by the Round 10 counter pivot — open hardware list shrank dramatically, color renderer added to open eng list.\n\n## Goal\nConvert the working web editor + working hardware prototype into a funded Kickstarter campaign for the counter-only color decorator.\n\n## Phase entry criteria (met)\n- All six MVP box types implemented (text, countdown, weather, 3hr forecast, qr, quote)\n- Web editor deployed and demo-polished (consent dialog, robust geocoding, version stamping)\n- Pitch and value-prop revised for the counter-only color story (see `Market & Distribution` note)\n- Project artifacts coherent for the counter device after the Round 10 pivot\n\n## Phase exit criteria\n- Kickstarter campaign live\n- Funding target hit (or campaign concluded with decision on next move)\n- Backers have a realistic delivery date and clear communication channel\n\n## Open deliverables\n- **Kickstarter project page** — long-form pitch in `Market & Distribution` note is the source text; needs page-formatted version with sections, images, FAQs (#38).\n- **Pitch video** — 60-90s. Needs script, storyboard, talent (founder) (#38).\n- **Hero photography + product video** — requires working prototype on a counter in window light.\n- **Working hardware prototype** — gating: panel + MCU choice (#35), SCAD rewrite + 3D-print (#34), drop test (#36).\n- **Reward tiers + pricing** — $30-40 unit price target (final after panel pick); backer reward structure TBD (early-bird, retail, multi-pack, gift bundle).\n- **Stretch goals** — TBD. Candidates: extra box types (calendar, transit), additional housing colors beyond white, accessory bundles, larger panel SKU as upgrade tier.\n- **Pre-launch landing page + email signup** — Kickstarter `Follow` button before campaign open. Co-host on infobento.com.\n- **Press kit** — one-pager + photos + spec sheet for outlets and reviewers.\n\n## Open engineering items (pivot-related)\n- **Color renderer (Phase 3, #33)** — color framebuffer + draw primitives (#30), color box renderers + PNG (#31), web preview color paint (#32). Largest engineering lift; on a feature branch.\n- **Collapse dual-display (Phase 2, #29)** — mechanical refactor; gates Phase 3.\n- **Wi-Fi setup UX** — captive portal vs alternatives (decision in #35).\n\n## Open questions for the campaign\n- Campaign duration (30 vs 45 days)\n- Funding target — covers tooling + first batch + Kickstarter+payment fees (~10%) + shipping shortfall buffer\n- Manufacturing partner (PCB house + injection-molded white housing + assembly + packaging)\n- Shipping plan — US + international? Add-on fulfillment partner?\n- Refund / cancellation policy\n- Late-pledge / BackerKit strategy\n\n## Open hardware items (post-pivot)\n- Panel SKU + MCU decision (#35) — gates renderer dimensions\n- SCAD rewrite for monolithic body (#34) — drop-resistant industrial design\n- Drop-test protocol + run (#36)\n- Bumper material decision (silicone vs TPU vs over-molded TPE)\n\n## Items removed by the pivot (no longer gating)\n- ~~Hinge sourcing (Reell TI-C5M)~~ — no hinge\n- ~~iOS background BLE spike~~ — Wi-Fi-direct kills this risk\n- ~~eInk partial refresh strategy for D display~~ — no minute-level mode\n- ~~BLE connection interval tuning for phone-mounted mode~~ — no phone-mounted mode\n- ~~Display dimensions reconciliation (128x296 vs 240x200)~~ — both irrelevant; new color panel sets new dimensions in #35\n\n## Demo as marketing lever\n- The web editor at infobento.com is the campaign's interactive credibility lever ('try it now in your browser before you back it'). Keep the editor polished and bug-free for the duration of the campaign.\n- Once the color renderer ships (Phase 3), the editor's preview becomes a much more compelling visual.\n- Each new box type added during the campaign is a campaign update opportunity.\n\n## Next concrete moves (founder action)\n1. Approve RFC #25 and assign #26 + #27 (strategic artifacts) — IN PROGRESS this session\n2. Decide panel SKU + MCU + connectivity model (#35) — gates Phase 3a (#30) and SCAD work (#34)\n3. Order panel + MCU samples\n4. 3D-print prototype housing once SCAD lands (#34)\n5. Run drop test on prototype (#36)\n6. Draft Kickstarter page using revised pitch as body (#38, near launch)\n7. Decide funding target after a manufacturing-partner quote",
       "tags": [
         "campaign",
         "kickstarter",
@@ -705,6 +683,23 @@
       "metadata": {},
       "createdAt": 1776470000000,
       "updatedAt": 1776470000000
+    },
+    {
+      "type": "note",
+      "title": "Round 10 — Counter Pivot (2026-04-22)",
+      "body": "## What\nInfoBento pivots from a dual-display MagSafe clamshell to a single counter-only color eInk decorator. Phone-back use case is gone. MagSafe, hinge, dual-display PCB, kickstand, and the iOS background BLE risk are all removed. Color eInk replaces 1-bit. Solar panel moves to the upper portion of the back side of a monolithic body. Industrial design constrained to white housing, ≤4mm bezel, drop-resistant to 4 feet.\n\n## Why\nThe user-class fit analysis revealed the clamshell was trying to serve two products at once and paying for it: ~$30 BOM, ~7.2mm thickness, GPIO pressure, hinge sourcing risk, and (most critically) iOS background BLE as a single point of failure that could not be answered before manufacturing capital was committed. The counter device — previously the secondary mode — turns out to be the more de-risked, photogenic, giftable, and Kickstartable product on what we already know. Daily Glancer (the founder) was the user class that justified phone-back; Desk Decorator and Gift Giver are better served by counter-only and were second-class citizens in the dual-display story.\n\nThe color upgrade and panel upsize were chosen to differentiate the counter device from monochrome competitors (Tidbyt, generic eInk frames) and to make Kickstarter photography visually striking.\n\n## Decisions made in this round\n- Hard pivot: phone-back is gone, not deferred to v2\n- Color eInk panel (Spectra 6 or ACeP family, 7-color)\n- Larger panel size to be picked from 4.2\" / 5.65\" / 7.3\" candidates in #35\n- Drop the kickstand: monolithic body with ~12-15° back-tilt, body-as-stand\n- Solar panel mounted on upper portion of back side\n- White housing, thin bezel (≤4mm)\n- Designed for 4-foot drop survival (bumper layer, edge radius, recessed display)\n\n## Decisions still pending (gate Phase 2+)\n- Final panel SKU (#35)\n- MCU choice: ESP32-C3 vs C6 (#35)\n- Connectivity model: Wi-Fi direct vs phone-bridged BLE (#35)\n- Bumper material: silicone vs TPU vs over-molded TPE\n- Final battery capacity (color refresh + Wi-Fi may push past 100mAh)\n- Wi-Fi setup UX (captive portal leading)\n\n## What changes (tracked in pivot/counter-color milestone)\nGitHub issues #25-#38 break this pivot into phases:\n- #25 — Pivot RFC (this decision record)\n- #28 + subs (#26, #27) — strategic artifacts (project.json, README, docs) — IN PROGRESS\n- #29 — collapse dual-display in code\n- #33 + subs (#30, #31, #32) — color-aware renderer\n- #37 + subs (#34, #35, #36) — hardware (SCAD, panel sourcing, drop test)\n- #38 — campaign rewrite\n\n## What stays\n- @infobento/core types (BentoBox, BentoConfig, layout engine)\n- @infobento/api (Hono, validation, /api/quote, /api/health)\n- All 6 box types (text, countdown, weather, qr, quote, 3hr forecast)\n- Nominatim geocoding, Open-Meteo, ZenQuotes\n- Consent dialog, localStorage + JSON import/export\n- Web editor (with the dual-display 2x2 layout collapsed in #29)\n- Design principles: Pure Function Architecture, Free by Default, Zero Device Interaction, Two-Font Bitmap System\n- currentPhase stays 'campaign' — the pivot reshapes the campaign, doesn't reset the phase\n\n## What's deleted from this project.json\n- Scenario 'Phone-back peek before unlock'\n- Wireframe 'Dual eInk Display Layout' (replaced with 'Single Color eInk Layout')\n- Design principle 'MagSafe Dual-Display Clamshell' (replaced with 'Solar-Powered Counter Display')\n- Design principle '1-Bit Elegance' (replaced with 'Limited-Palette Elegance')\n- Daily Glancer demoted from primary",
+      "tags": ["round-10", "counter-pivot", "decisions", "campaign", "hardware", "color"],
+      "id": "f6a7b8c9-round-10-counter-pivot-0001",
+      "relatedIds": [
+        "a1b2c3d4-form-factor-clamshell-0001",
+        "34631cfb-fb45-4ff2-a55e-db05463bb527",
+        "f9a0b1c2-market-distribution-0001",
+        "e5f6a7b8-campaign-phase-plan-0001",
+        "d4e5f6a7-round-9-editor-polish-0001"
+      ],
+      "metadata": {},
+      "createdAt": 1776556400000,
+      "updatedAt": 1776556400000
     }
   ],
   "extensions": {}

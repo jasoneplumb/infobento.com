@@ -1,5 +1,21 @@
 # Changelog
 
+## [Unreleased] — Pivot in flight
+
+### Strategic pivot — counter-only color decorator (RFC #25)
+
+The product is pivoting from the dual-display MagSafe clamshell to a single counter-only color eInk decorator. Phone-back, MagSafe, hinge, dual-display PCB, and the iOS background BLE risk are all being removed. Solar panel moves to the upper portion of the back side; no kickstand. Industrial design constrained to white housing, ≤4mm bezel, drop-resistant to 4 ft. Larger color eInk panel replaces the 1-bit 2.9" panel.
+
+Phase work is tracked in GitHub issues #25–#38 under the `pivot/counter-color` milestone.
+
+### Documentation
+
+- `README.md` — rewrote Overview, Hardware, Architecture sections; removed Four Surfaces and Three Modes diagrams; added counter-only product story and form-factor sketch
+- `docs/hardware/DISPLAY.md` — rewrote for color panel candidates, single-display form factor, single refresh mode
+- `docs/hardware/POWER.md` — rewrote for single counter mode; removed MagSafe reverse-charge; updated power budget for color refresh + Wi-Fi
+- `docs/hardware/BLE.md` — reframed as "Connectivity"; documented Wi-Fi-direct (likely) and phone-bridged BLE (fallback) options pending decision in #35
+- `docs/getting-started/ARCHITECTURE.md` — updated system overview, data flow, and operating profile
+
 ## [0.4.0] - 2026-04-21
 
 ### Added

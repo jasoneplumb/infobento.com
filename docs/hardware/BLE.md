@@ -1,55 +1,62 @@
-# Bluetooth Low Energy Protocol
+# Connectivity
 
-## Overview
+## Status
 
-The device uses BLE to communicate with the user's phone. The phone acts as a bridge between the device and the cloud API — the device never connects to WiFi directly. The ESP32-C3 supports BLE 5.0.
+The connectivity model is **pending decision** in #35 (panel + MCU sourcing). Two options on the table; the project is leaning Wi-Fi direct.
 
-In phone-mounted mode, the device stays connected or reconnects frequently for minute-level updates. In counter-standing mode, it follows the traditional wake-sync-sleep cycle.
+| Option                           | MCU      | Pro                                                                                                                           | Con                                                                                                                                                                             |
+| -------------------------------- | -------- | ----------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Wi-Fi direct (likely)**        | ESP32-C6 | No phone dependency. Removes the iOS background-BLE risk that gated the previous concept. Standard HTTP fetch from cloud API. | Requires first-time Wi-Fi setup UX (no buttons on the device). Higher per-refresh power (~70 mA Wi-Fi vs ~15 mA BLE) — fine at 1–2 refreshes/day.                               |
+| **Phone-bridged BLE (fallback)** | ESP32-C3 | Lower per-refresh power. Phone handles network. No Wi-Fi setup.                                                               | Requires a companion phone app and the user keeping it nearby. Even in counter mode, this is a real friction point now that the device is home-bound rather than phone-mounted. |
 
-## Connection Flow
+Once chosen in #35, this document will be replaced with a single protocol spec for the chosen option. Until then, the rest of this file is preserved for reference and may not reflect the final design.
 
-### Counter-Standing Mode (1-2x per day)
+---
 
-1. **Device wakes** on RTC alarm (scheduled refresh time)
-2. **Device advertises** BLE service for ~30 seconds
-3. **Phone app** (or background service) detects advertisement and connects
-4. **Phone** requests latest frame from cloud API via HTTPS
-5. **Phone** transfers frame buffer to device via BLE
-6. **Device** writes frame to eInk display
-7. **Device** disconnects and returns to deep sleep
+## Wi-Fi Direct (likely path)
 
-### Phone-Mounted Mode (minute-level)
+### Connection Flow (1–2× per day)
 
-1. **Device detects** MagSafe mount (proximity / charging state change)
-2. **Device maintains** BLE connection or reconnects on short interval
-3. **Phone** pushes updated frames as data changes (weather, calendar, messages)
-4. **Device** performs partial eInk refresh
-5. **Device** remains in low-power connected state (not deep sleep)
+1. **Device wakes** on RTC alarm
+2. **Device joins** the configured Wi-Fi network
+3. **Device fetches** the latest frame from the cloud API via HTTPS (`GET /api/render?config=<id-or-hash>`)
+4. **Device** writes the frame to the eInk display
+5. **Device** disconnects Wi-Fi and returns to deep sleep
 
-## Data Transfer
+### Setup UX (open question)
 
-- **Frame size:** 6000 bytes (240x200 1-bit) — will change with final display resolution
-- **BLE MTU:** ~244 bytes typical (negotiated; BLE 5.0 supports larger)
-- **Packets needed:** ~25 packets
-- **Transfer time:** ~2-3 seconds
+The device has no buttons. First-time Wi-Fi setup options:
 
-## BLE Service Design
+- **Captive portal:** device boots in AP mode, user joins its network from their phone, browser auto-launches a setup page
+- **QR code from web editor:** user shows the device a QR code containing SSID + password (requires a camera — not a great fit for a counter device)
+- **WPS button on router:** simple but few routers expose WPS anymore
+- **Pre-provisioning:** user enters credentials in the web editor, exports a JSON, side-loads via USB during setup (clunky)
 
-```
-Service: InfoBento Display (UUID TBD)
-├── Characteristic: Frame Data (write, notify)
-│   Write chunked frame buffer data
-├── Characteristic: Device Status (read, notify)
-│   Battery level, last refresh time, error state, mount state
-└── Characteristic: Config (read, write)
-    Refresh schedule, device ID, operating mode
-```
+Captive portal is the leading candidate.
 
-## Open Questions
+---
 
-- BLE 5.0 MTU negotiation strategy (ESP32-C3 supports it)
-- Background BLE on iOS (restricted, needs careful handling — critical for phone-mounted mode)
-- Compression for frame data (run-length encoding could reduce transfer size)
-- Web Bluetooth for direct browser-to-device pairing (config only, not daily sync)
-- How does the device detect it's in phone-mounted vs counter-standing mode?
-- BLE connection interval tuning for phone-mounted mode (balance latency vs power)
+## Phone-Bridged BLE (fallback path)
+
+If Wi-Fi-direct setup turns out to be too clunky for a calm-design device, BLE-via-phone-bridge stays viable in counter mode (much less risky than the abandoned phone-mounted mode, since the phone is just nearby in the kitchen rather than in a pocket all day).
+
+### Connection Flow (1–2× per day)
+
+1. **Device wakes** on RTC alarm
+2. **Device advertises** BLE service for ~30 s
+3. **Phone app** detects advertisement and connects (foreground or background-task)
+4. **Phone** fetches the latest frame from cloud API via HTTPS
+5. **Phone** transfers the frame buffer to device via BLE (chunked)
+6. **Device** writes the frame and disconnects
+
+### Data Transfer
+
+- **Frame size:** depends on chosen panel and color depth — see `docs/hardware/DISPLAY.md`
+- **BLE 5.0 MTU:** ~244 bytes typical
+- **Transfer time:** seconds
+
+---
+
+## What's gone
+
+The previous clamshell design had a separate phone-mounted mode that depended on **iOS background BLE** keeping the device fresh in the user's pocket all day. That risk killed the dual-display concept. With the counter-only pivot, neither path needs background BLE: Wi-Fi-direct skips the phone entirely, and BLE-bridge needs only foreground or short background-task connectivity 1–2× per day.
