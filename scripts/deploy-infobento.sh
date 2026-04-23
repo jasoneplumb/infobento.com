@@ -60,6 +60,9 @@ test -d "$DEPLOY_DIR/packages/web/dist" || {
 
 echo "Content verification passed!"
 
+# Fix ownership so www-data service can read the files
+chown -R www-data:www-data "$DEPLOY_DIR"
+
 # Restart the service
 echo "Restarting $SERVICE_NAME service..."
 systemctl restart "$SERVICE_NAME"
