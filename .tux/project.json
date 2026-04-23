@@ -155,22 +155,23 @@
     },
     {
       "type": "design-principle",
-      "name": "1-Bit Elegance",
-      "statement": "Design for the constraint — pure black and white should feel sharp and intentional, not limited",
-      "description": "V1 ships black and white only. No grayscale, no color. The 1-bit constraint is an aesthetic asset: every pixel is either ink or paper, producing the crisp look of letterpress or woodblock printing. Whitespace-driven hierarchy, two font sizes (hero Spleen 8x16 + data 5x7), and generous padding between sections create visual depth without color. At high DPI on a golden-ratio panel, 1-bit text is sharper than color eInk at lower DPI. Color is explicitly deferred to v2 — it adds $15-30/unit to BOM, triples refresh time, and does not improve legibility at glance distance.",
-      "source": "Round 11 direction (2026-04-23). Reverts the round 10 color decision. 1-bit is cheaper, faster-refresh, higher-DPI at bento scale, and the existing renderer already produces it.",
+      "name": "Grayscale Elegance",
+      "statement": "Four shades — black, dark gray, light gray, white — used with intention. Every tone earns its place.",
+      "description": "V1 ships monochrome with 4-level grayscale (2-bit per pixel). The hardware supports this natively at no extra cost. The four tones create a clear visual hierarchy: black for hero data and primary text, dark gray for secondary content and dividers, light gray for labels and metadata, white for background. Anti-aliased fonts become possible — 2-bit grayscale text is crisper than 1-bit at the same DPI, especially for the 5x7 small font where staircase aliasing is visible. The constraint is still tight enough to feel intentional: four shades, not a gradient. Think newspaper print, not a photograph.",
+      "source": "Round 11 direction (2026-04-23), revised after confirming all candidate panels natively support 4 grayscale via their driver ICs (UC8179, SSD1677). Anti-aliased font rendering is the primary motivation — free visual quality improvement from hardware already being purchased.",
       "examples": [
-        "Hero font for primary data — large black numerals on white",
-        "Thin horizontal rules as section dividers (not box borders)",
-        "Whitespace gaps between sections instead of borders",
-        "QR codes are naturally black-on-white — no palette mapping needed",
-        "Moon phase rendered as a crisp black/white circle bitmap"
+        "Hero font in black, section labels in light gray — instant hierarchy without layout gymnastics",
+        "Anti-aliased 5x7 font: edge pixels rendered in dark/light gray instead of staircase black",
+        "Thin divider rules in dark gray (softer than black, clearly distinct from content)",
+        "Moon phase bitmap: lit portion in white, shadow in dark gray, outline in black",
+        "Progress bar fill in black, unfilled track in light gray, percentage in black",
+        "QR codes stay pure black-on-white (grayscale would reduce scannability)"
       ],
       "counterExamples": [
         "Color eInk panels (Spectra 6, ACeP) — deferred to v2",
-        "Grayscale dithering or halftoning",
-        "Anti-aliased fonts",
-        "More than two font sizes (creates visual noise)"
+        "Continuous-tone gradients or photographic dithering (only 4 levels available)",
+        "Using all 4 gray levels in a single small element (creates visual noise)",
+        "More than two font sizes (creates visual noise — grayscale is for tone, not for adding complexity)"
       ],
       "id": "34631cfb-fb45-4ff2-a55e-db05463bb527",
       "relatedIds": [],
@@ -413,12 +414,12 @@
         "Spleen 8x16 hero font for primary data, 5x7 data font for labels and body",
         "Thin horizontal rules as section dividers",
         "Whitespace gaps (5-8px) between sections",
-        "All content rendered in 1-bit black-on-white — sharp at high DPI",
+        "Content rendered in 4-level grayscale — anti-aliased fonts, gray labels for hierarchy",
         "Multi-column layouts viable at bento scale — horizontal splits at ~80px+ per column",
         "Layout auto-rotates based on tilt switch orientation (landscape default, portrait when stood on end)"
       ],
       "annotations": [
-        "1-bit (B&W only) framebuffer — v1 ships no color or grayscale",
+        "2-bit (4-level grayscale) framebuffer — black, dark gray, light gray, white. No color.",
         "Golden-ratio panel (~1.618:1 aspect ratio) — closest stock is 7.5\" at 5:3 (1.667:1, 3% off)",
         "High DPI target: ≥200 DPI preferred; stock 7.5\" panels are ~124 DPI, custom panel at volume for higher",
         "Display nearly fills enclosure — minimal bezel (≤3mm target)",
@@ -511,7 +512,7 @@
       "type": "design-principle",
       "name": "Two-Font Bitmap System",
       "statement": "Two embedded bitmap fonts — Spleen 8x16 for hero data, built-in 5x7 for labels and body text — no system font dependencies",
-      "description": "The renderer embeds two fixed-width bitmap fonts as pixel data arrays. Spleen 8x16 (purpose-designed, MIT licensed) for hero numbers and primary data (temperatures, times, countdown numbers). Built-in 5x7 for labels, secondary text, and compact data rows. Two sizes only — the contrast jump IS the visual hierarchy. No medium size.",
+      "description": "The renderer embeds two fixed-width bitmap fonts as pixel data arrays. Spleen 8x16 (purpose-designed, MIT licensed) for hero numbers and primary data (temperatures, times, countdown numbers). Built-in 5x7 for labels, secondary text, and compact data rows. Two sizes only — the contrast jump IS the visual hierarchy. No medium size. With 4-level grayscale support (REQ-009), both fonts can be anti-aliased: edge pixels rendered in dark/light gray instead of staircase black. This is especially impactful for the 5x7 font where aliasing is visible at lower DPIs.",
       "source": "Font comparison (round 6) — Spleen 8x16 selected over Tamzen 8x16, Tamzen 10x20, and 2x-scaled 5x7 baseline. Best curve quality at minimal vertical cost.",
       "examples": [
         "Spleen 8x16: '62F', '9:00', '14 days', '13,297'",
@@ -521,7 +522,6 @@
       "counterExamples": [
         "System fonts rendered via Canvas API",
         "TrueType/OpenType font loading",
-        "Anti-aliased text rendering",
         "Three or more font sizes (creates visual noise)"
       ],
       "id": "b612a2ca-48f0-466e-a0d5-de3b39b209b9",
@@ -589,11 +589,11 @@
     {
       "type": "requirement",
       "label": "REQ-009",
-      "statement": "V1 ships black and white only — no color, no grayscale. 1-bit framebuffer.",
-      "source": "Round 11 direction (2026-04-23). Color adds $15-30 BOM, triples refresh time (15-30s vs 2-3s), and reduces available DPI at bento scale. The existing 1-bit renderer is production-ready. Color deferred to v2.",
+      "statement": "V1 ships monochrome with 4-level grayscale (2-bit framebuffer: black, dark gray, light gray, white). No color eInk.",
+      "source": "Round 11 direction (2026-04-23), revised after confirming all candidate panels (GDEY075T7, GDEQ0426T82, GDEH0576T81, etc.) natively support 4 grayscale levels at zero additional BOM cost. Grayscale enables anti-aliased fonts, visual hierarchy via gray tones, and smoother renderings.",
       "category": "non-functional",
       "priority": "must",
-      "rationale": "1-bit B&W eInk is cheaper, faster-refresh, higher-DPI, and the renderer already produces it. Color is a v2 upgrade, not a v1 requirement. This de-scopes Phase 3 (color renderer) from the launch-critical path.",
+      "rationale": "Every candidate B&W eInk panel supports 4 grayscale natively via its driver IC (UC8179, SSD1677). Using 2-bit instead of 1-bit costs nothing in BOM or refresh time and enables: (1) anti-aliased font rendering for crisper text at all DPIs, (2) light gray for secondary labels vs black for primary data, (3) dark gray for dividers, (4) smoother moon phase and progress bar fills. Color eInk (Spectra 6, ACeP) remains deferred to v2.",
       "status": "accepted",
       "userClassIds": [],
       "id": "req-009-bw-only",
