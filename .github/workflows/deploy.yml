@@ -90,7 +90,7 @@ jobs:
           MAX_RETRIES=6
           RETRY_DELAY=10
           for i in $(seq 1 $MAX_RETRIES); do
-            HTTP_CODE=$(curl -sf --max-time 15 -o /dev/null -w '%{http_code}' "https://infobento.com/api/health" 2>/dev/null || echo '0')
+            HTTP_CODE=$(curl -sf --max-time 15 -o /dev/null -w '%{http_code}' "https://www.infobento.com/api/health" 2>/dev/null || echo '0')
             if [ "$HTTP_CODE" = "200" ]; then
               echo "Smoke test passed (HTTP $HTTP_CODE)"
               break
