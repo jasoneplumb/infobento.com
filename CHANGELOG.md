@@ -1,5 +1,33 @@
 # Changelog
 
+## [0.5.1] - 2026-04-23
+
+### Fixed
+
+- Claude Code review workflow: added `Read`, `Grep`, `Glob` to `--allowedTools` (reviews were silently producing zero comments); narrowed trigger to `labeled` event only (was triple-firing on PR creation)
+
+### Added
+
+- Production deploy workflow (`.github/workflows/deploy.yml`) modeled on webmap.dev: builds all packages + Vite, SSH deploys to DigitalOcean droplet, restarts systemd, health-checks `/api/health`, rollback on failure
+- SSH retry helper (`scripts/ssh-retry.sh`) with exponential backoff
+- Server-side deploy script (`scripts/deploy-infobento.sh`) with backup/extract/verify/rollback pattern
+
+### Changed
+
+- **REQ-009 upgraded to 2-bit grayscale**: v1 ships 4-level grayscale (black, dark gray, light gray, white) instead of 1-bit. All candidate panels support this natively at zero BOM cost. Enables anti-aliased fonts and tone-based visual hierarchy.
+- Design principle renamed "1-Bit Elegance" → "Grayscale Elegance" with 4-tone hierarchy examples
+- Two-Font Bitmap System principle updated: both fonts can be anti-aliased using grayscale edge pixels
+- **REQ-012 updated**: IMU replaced with two mechanical tilt switches (zero standby current, ~$0.10 BOM)
+
+### Documentation
+
+- `.tux/project.json` fully audited: 22 stale color/clamshell/phone references fixed across description, requirements, design principles, scenarios, wireframes, hardware platform, market positioning, and campaign plan
+- Round 11 annotation added to Round 10 RFC (#25)
+- All open GitHub issues (#25, #36-39, #41-45) audited for stale color references and updated
+- Issue #47 expanded: 21 panel candidates across 5 tiers with purchase links and spec pages, including budget 4.26" panels at $10-19 and 219 DPI
+- Issue #52 created: 2-bit grayscale framebuffer + anti-aliased font rendering
+- New issues: #47 (B&W panel sourcing), #48 (tilt switch hardware), #49 (auto-rotate software), #50 (SCAD enclosure), #51 (configurable dimensions)
+
 ## [0.5.0] - 2026-04-23
 
 ### Added
