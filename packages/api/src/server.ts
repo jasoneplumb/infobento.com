@@ -6,7 +6,7 @@
  */
 
 import { existsSync, readFileSync } from 'node:fs';
-import { resolve, dirname } from 'node:path';
+import { resolve, relative, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 // Read version from package.json at startup
@@ -101,10 +101,10 @@ app.get('/api/quote', async (c) => {
 
 const webDist = resolve(__dirname, '../../web/dist');
 if (existsSync(webDist)) {
-  app.use('/*', serveStatic({ root: '../../web/dist' }));
+  app.use('/*', serveStatic({ root: relative(process.cwd(), webDist) }));
 
   // SPA fallback: serve index.html for non-API routes
-  app.use('*', serveStatic({ root: '../../web/dist', path: 'index.html' }));
+  app.use('*', serveStatic({ root: relative(process.cwd(), webDist), path: 'index.html' }));
 }
 
 // --- Start server ---
