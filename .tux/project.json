@@ -111,14 +111,14 @@
       "type": "design-principle",
       "name": "Zero Device Interaction",
       "statement": "The InfoBento itself requires no interaction — no buttons, no app to open, no charging ritual. You interact with your phone; InfoBento is just there.",
-      "description": "InfoBento has no user-facing controls. It syncs automatically via BLE, charges via solar or MagSafe passively, and refreshes on schedule. The user's only interaction is glancing at it — either on the back of their phone or standing on a counter. Configuration happens once via web UI.",
-      "source": "Core product vision — reduce screen time, not add to it. Refined in round 4: zero interaction with the device, not zero interaction period.",
+      "description": "InfoBento has no user-facing controls. It connects to Wi-Fi and refreshes on schedule. It charges via solar passively. The user's only interaction is glancing at it on a counter, desk, or shelf. Configuration happens once via web UI at infobento.com.",
+      "source": "Core product vision — reduce screen time, not add to it. Refined in round 4: zero interaction with the device, not zero interaction period. Updated round 10: Wi-Fi direct replaces BLE, counter-only.",
       "examples": [
-        "Flip phone over to glance at display — no unlock needed",
-        "Auto-sync via BLE when mounted on phone",
-        "Solar charging when standing on counter near window",
-        "Passive MagSafe charging when collapsed on phone",
-        "No buttons anywhere on the device"
+        "Glance at counter display from across the room — zero touch",
+        "Solar charging near a window without any cables",
+        "Wi-Fi auto-refresh on schedule (1-2x/day)",
+        "Captive-portal first-time setup — no app required",
+        "No buttons anywhere on the device (recessed pinhole reset for recovery only)"
       ],
       "counterExamples": [
         "Requiring button press to refresh",
@@ -182,14 +182,14 @@
     {
       "type": "design-principle",
       "name": "Free by Default",
-      "statement": "MVP box types must work without accounts, API keys, or subscriptions",
-      "description": "The five MVP box types (weather, quote, countdown, QR, text) all use free data sources or local computation. No user should need to create an account anywhere to use the basic product.",
+      "statement": "All box types must work without accounts, API keys, or subscriptions",
+      "description": "All 11 box types use free data sources or local computation. Weather, forecast, sunrise/sunset, and air quality use Open-Meteo (free, no key). Quotes use ZenQuotes (free, no auth). Date, moon, countdown, progress, QR, and text are pure local computation. No user should need to create an account anywhere to use the product.",
       "source": "User research — friction in setup kills adoption for consumer hardware",
       "examples": [
-        "Weather via Open-Meteo (no API key)",
-        "Quotes via ZenQuotes (no auth)",
-        "Countdown and QR are pure local computation",
-        "Text is user-entered"
+        "Weather, forecast, sunrise/sunset, air quality via Open-Meteo (free, no API key)",
+        "Quotes via ZenQuotes (free, no auth)",
+        "Date, moon, countdown, progress are pure local computation (no network at all)",
+        "QR and text are user-entered content"
       ],
       "counterExamples": [
         "Requiring Google Calendar OAuth for MVP",
@@ -252,11 +252,11 @@
     {
       "type": "requirement",
       "label": "REQ-002",
-      "statement": "Device syncs display data through paired phone via BLE without requiring WiFi",
-      "source": "Voice spec — device should not be dependent on specific WiFi SSID",
+      "statement": "Device syncs display data via Wi-Fi direct to the cloud API without requiring a companion phone app",
+      "source": "Round 10 pivot (2026-04-22) — Wi-Fi direct replaces BLE phone bridge; captive-portal first-time setup",
       "category": "functional",
       "priority": "must",
-      "rationale": "Portability is key — device travels with user on phone back or in pocket, phone bridges connectivity",
+      "rationale": "Wi-Fi direct removes the iOS background BLE risk and the companion app engineering scope. Device connects to home Wi-Fi and pulls frames from the stateless cloud API on its refresh schedule.",
       "status": "accepted",
       "userClassIds": ["b3572422-6629-426d-9df2-20a4c3eaa3e6"],
       "id": "557e42c6-ca3d-4502-8a22-dd2685ba7e33",
@@ -268,11 +268,11 @@
     {
       "type": "requirement",
       "label": "REQ-003",
-      "statement": "Display refreshes 1-2 times per day on solar power alone under normal indoor lighting (counter-standing mode). Phone-mounted mode refreshes every few minutes via MagSafe charging.",
-      "source": "Voice spec + hardware research (issue #22). AEM10941 solar IC harvests 5-15mAh/day at 200 lux, device needs ~1mAh/day in counter mode.",
+      "statement": "Display refreshes 1-2 times per day on solar power alone under normal indoor lighting",
+      "source": "Voice spec + hardware research (issue #22). AEM10941 solar IC harvests 5-15mAh/day at 200 lux, device needs ~3.5mAh/day at 2 refreshes (color panel + Wi-Fi).",
       "category": "non-functional",
       "priority": "must",
-      "rationale": "Zero-maintenance power — user should never need to charge the device manually. Dual power modes match the two physical modes.",
+      "rationale": "Zero-maintenance power — user should never need to charge the device manually. Counter-only device, no phone-mounted mode.",
       "status": "accepted",
       "userClassIds": [
         "b3572422-6629-426d-9df2-20a4c3eaa3e6",
@@ -287,8 +287,8 @@
     {
       "type": "requirement",
       "label": "REQ-004",
-      "statement": "MVP supports 5 box types without requiring any user accounts: weather, quote, countdown, QR, text",
-      "source": "Open question resolution — free data sources prioritized for MVP",
+      "statement": "MVP supports 11 box types without requiring any user accounts: weather, forecast, quote, countdown, QR, text, date, moon, sun, aqi, progress",
+      "source": "Open question resolution — free data sources prioritized for MVP. Expanded from 6 to 11 in #41-45 (2026-04-23).",
       "category": "functional",
       "priority": "must",
       "rationale": "Reduces onboarding friction to zero — unbox, configure, done",
@@ -344,17 +344,16 @@
       "name": "Morning glance at kitchen counter",
       "userClassIds": ["b3572422-6629-426d-9df2-20a4c3eaa3e6"],
       "setting": "Kitchen counter near window, 7:15 AM, making coffee before commute",
-      "narrative": "Sam's InfoBento is standing on the kitchen counter, hinged open at ~100 degrees with the solar panel aimed at the window. The P display (inner, facing the room) shows a relaxed layout: weather (62F, partly cloudy), a countdown (14 days to vacation), and a motivational quote. Sam grabs a jacket based on the weather. Before heading out, they fold the InfoBento closed and snap it onto the back of their phone via MagSafe. The D display (outer) was already showing a dense real-time layout: time, next meeting, message counts. No re-render needed — D held its frame from the last BLE sync. Total interaction with the device: zero.",
+      "narrative": "Sam's InfoBento is standing on the kitchen counter near the window, its solar panel catching the morning light from the upper back side. The color eInk display shows a calm layout: weather (62F, partly cloudy, temperature in red), a countdown (14 days to vacation, number in bold), today's date, and a motivational quote. Sam grabs a jacket based on the weather. Total interaction with the device: zero. The display refreshed on schedule at 6 AM via Wi-Fi.",
       "status": "draft",
       "preconditions": [
-        "Device is paired to phone",
-        "Config has weather, countdown, and quote boxes",
-        "Phone was in BLE range at scheduled refresh time",
+        "Device completed captive-portal Wi-Fi setup",
+        "Config has weather, countdown, date, and quote boxes",
+        "Device refreshed on schedule (Wi-Fi to cloud API)",
         "InfoBento was standing on counter near window overnight (solar charging)"
       ],
       "postconditions": [
-        "User has ambient awareness of weather and upcoming event without touching any device",
-        "Device transitions from counter mode to phone-mounted mode for the commute"
+        "User has ambient awareness of weather, date, and upcoming event without touching any device"
       ],
       "frames": [],
       "id": "37a68e08-667f-49a1-94dd-aac6024cb697",
@@ -371,7 +370,7 @@
         "659af1c0-7967-4009-84ca-7febdab16a3d"
       ],
       "setting": "Home office, laptop open, just unboxed the InfoBento device",
-      "narrative": "Alex opens infobento.com on their laptop. The web UI shows a 128x296 eInk preview on the left with D (Phone) and P (Counter) toggle tabs. They configure D first: add Weather (type Portland), add Countdown (anniversary date), add Text (personal motto). The live preview updates after each change in sharp 1-bit black and white. They switch to P and add a Quote box and a relaxed weather layout. They click Export Config and save the JSON to pair with the phone app later.",
+      "narrative": "Alex opens infobento.com on their laptop. The web UI shows a single eInk preview on top with the editor below. They add Weather (type Portland — geocoded via Nominatim), add Countdown (anniversary date), add a Date box, and a Quote box. The live 1-bit preview updates instantly after each change — rendered client-side, no API round-trip. They click Export Config and save the JSON. Later they'll enter these settings during the device's captive-portal Wi-Fi setup.",
       "status": "draft",
       "preconditions": ["Web UI is accessible", "No account required"],
       "postconditions": [
@@ -441,7 +440,7 @@
       "type": "wireframe",
       "name": "Web Configuration Editor",
       "screenName": "ConfigEditor",
-      "description": "Main web UI screen where users configure their counter device's bento boxes. Vanilla JS with reactive state pattern. Client-side renderer for instant preview. Currently ships a dual-display 2x2 layout (clamshell-era), being collapsed to a single column in #29.",
+      "description": "Main web UI screen where users configure their counter device's bento boxes. Vanilla JS with reactive state pattern. Client-side renderer for instant preview. Single-column layout: preview on top, editor below. Dual-display collapsed in #29 (merged 2026-04-23).",
       "fidelity": "medium",
       "status": "active",
       "elements": [
@@ -456,11 +455,11 @@
       ],
       "annotations": [
         "Preview renders client-side using @infobento/renderer — no API round-trip",
-        "Single-display editor (post #29 collapse). Until #29 lands, dual-display 2x2 layout is still shipping.",
+        "Single-column editor: preview on top, editor below (#29 merged 2026-04-23). localStorage v2 schema with v1 migration.",
         "No account required — config lives in localStorage with JSON import/export",
         "Responsive layout: stacks vertically on narrow viewports (<=720px)",
         "Vanilla JS with reactive state, no framework",
-        "All 6 box types supported: text, countdown, weather, 3hr forecast, qr, quote",
+        "11 box types: text, countdown, weather, 3hr forecast, qr, quote + date, moon, sun, aqi, progress (#41-45 in progress)",
         "Geocoding via Nominatim handles 'Portland, OR', addresses, and landmarks like 'Mt. St. Helens'"
       ],
       "externalRef": null,
@@ -532,10 +531,10 @@
     {
       "type": "prototype",
       "name": "Rendering Pipeline (v0.4.0+)",
-      "description": "Full rendering pipeline: BentoConfig (with displayId D|P, Zod-validated) -> layout (vertical + horizontal split) -> hero font (Spleen 8x16) + icons + whitespace -> draw -> 4736-byte frame buffer. All 5 MVP box types. Deployed to infobento.com.",
+      "description": "Full rendering pipeline: BentoConfig (Zod-validated, no displayId post #29) -> layout (vertical + horizontal split) -> hero font (Spleen 8x16) + icons + whitespace -> draw -> 6000-byte frame buffer (240x200). 11 box types (6 shipping + 5 in progress #41-45). Single-column web editor. Deployed to infobento.com.",
       "fidelity": "high",
       "format": "TypeScript (packages/core + packages/renderer + packages/api + packages/web)",
-      "scope": "Core types with Zod validation, layout engine (128x296, horizontal split), dual fonts, icons, 5 box renderers, web editor with D/P toggle + canvas + localStorage, API with structured errors, deployed",
+      "scope": "Core types with Zod validation, layout engine (240x200, horizontal split), dual fonts, icons, 11 box renderers, single-column web editor + canvas + localStorage v2, API with structured errors, deployed",
       "designArtifactIds": ["45f1b6df-a76f-4c48-8ab2-bd1cfc067f00"],
       "location": "packages/",
       "knownLimitations": [
@@ -635,11 +634,11 @@
     {
       "type": "finding",
       "title": "Display resolution mismatch: code vs hardware (fixed in v0.4.0)",
-      "description": "The codebase originally used 240x200 (placeholder). Standard 2.9-inch eInk panels are 296x128. Fixed: codebase now uses 128x296 portrait orientation (panel rotated 90°). All tests, renderers, and preview scripts updated.",
+      "description": "Display dimensions went through multiple iterations: 240x200 (placeholder) -> 128x296 (panel-native portrait) -> 240x200 (landscape after rotation, round 9). Current code uses 240x200. Post-pivot, the final resolution will be set by the chosen color panel in #35 (candidates: 640x400, 600x448, or 800x480).",
       "findingType": "problem",
-      "severity": "major",
-      "evidence": "packages/core/src/constants.ts: DISPLAY_WIDTH=128, DISPLAY_HEIGHT=296",
-      "recommendation": "No action needed — resolved.",
+      "severity": "minor",
+      "evidence": "packages/core/src/constants.ts: DISPLAY_WIDTH=240, DISPLAY_HEIGHT=200 (current). Will change after panel pick #35.",
+      "recommendation": "No action needed until panel SKU decided. All dimensions derive from DISPLAY_WIDTH/DISPLAY_HEIGHT constants — a one-line edit.",
       "status": "fixed",
       "id": "a1b2c3d4-resolution-finding-0001",
       "relatedIds": [],
@@ -697,7 +696,7 @@
     {
       "type": "note",
       "title": "Campaign Phase Plan",
-      "body": "Project advances from `demo-polish` to `campaign` as of 2026-04-22. Significantly revised by the Round 10 counter pivot — open hardware list shrank dramatically, color renderer added to open eng list.\n\n## Goal\nConvert the working web editor + working hardware prototype into a funded Kickstarter campaign for the counter-only color decorator.\n\n## Phase entry criteria (met)\n- All six MVP box types implemented (text, countdown, weather, 3hr forecast, qr, quote)\n- Web editor deployed and demo-polished (consent dialog, robust geocoding, version stamping)\n- Pitch and value-prop revised for the counter-only color story (see `Market & Distribution` note)\n- Project artifacts coherent for the counter device after the Round 10 pivot\n\n## Phase exit criteria\n- Kickstarter campaign live\n- Funding target hit (or campaign concluded with decision on next move)\n- Backers have a realistic delivery date and clear communication channel\n\n## Open deliverables\n- **Kickstarter project page** — long-form pitch in `Market & Distribution` note is the source text; needs page-formatted version with sections, images, FAQs (#38).\n- **Pitch video** — 60-90s. Needs script, storyboard, talent (founder) (#38).\n- **Hero photography + product video** — requires working prototype on a counter in window light.\n- **Working hardware prototype** — gating: panel + MCU choice (#35), SCAD rewrite + 3D-print (#34), drop test (#36).\n- **Reward tiers + pricing** — $30-40 unit price target (final after panel pick); backer reward structure TBD (early-bird, retail, multi-pack, gift bundle).\n- **Stretch goals** — TBD. Candidates: extra box types (calendar, transit), additional housing colors beyond white, accessory bundles, larger panel SKU as upgrade tier.\n- **Pre-launch landing page + email signup** — Kickstarter `Follow` button before campaign open. Co-host on infobento.com.\n- **Press kit** — one-pager + photos + spec sheet for outlets and reviewers.\n\n## Open engineering items (pivot-related)\n- **Color renderer (Phase 3, #33)** — color framebuffer + draw primitives (#30), color box renderers + PNG (#31), web preview color paint (#32). Largest engineering lift; on a feature branch.\n- **Collapse dual-display (Phase 2, #29)** — mechanical refactor; gates Phase 3.\n- **Captive-portal provisioning UX (firmware, #39)** — first-boot AP-mode setup page, NVS credential storage, pinhole-reset handler. Locked: Wi-Fi-direct + PWA-only, no companion app.\n- **DigitalOcean droplet provisioning** — install Caddy, set up systemd unit for Hono, point Cloudflare DNS at the droplet, configure /var/www/firmware for OTA. Co-tenant with tiles- and webmap.dev.\n\n## Open questions for the campaign\n- Campaign duration (30 vs 45 days)\n- Funding target — covers tooling + first batch + Kickstarter+payment fees (~10%) + shipping shortfall buffer\n- Manufacturing partner (PCB house + injection-molded white housing + assembly + packaging)\n- Shipping plan — US + international? Add-on fulfillment partner?\n- Refund / cancellation policy\n- Late-pledge / BackerKit strategy\n\n## Open hardware items (post-pivot)\n- Panel SKU decision (#35) — MCU and connectivity locked (ESP32-C3 + Wi-Fi direct); panel still pending\n- SCAD rewrite for monolithic body (#34) — drop-resistant industrial design + pinhole reset cavity\n- Drop-test protocol + run (#36)\n- Bumper material decision (silicone vs TPU vs over-molded TPE)\n\n## Items removed by the pivot (no longer gating)\n- ~~Hinge sourcing (Reell TI-C5M)~~ — no hinge\n- ~~iOS background BLE spike~~ — Wi-Fi-direct kills this risk\n- ~~eInk partial refresh strategy for D display~~ — no minute-level mode\n- ~~BLE connection interval tuning for phone-mounted mode~~ — no phone-mounted mode\n- ~~Display dimensions reconciliation (128x296 vs 240x200)~~ — both irrelevant; new color panel sets new dimensions in #35\n\n## Demo as marketing lever\n- The web editor at infobento.com is the campaign's interactive credibility lever ('try it now in your browser before you back it'). Keep the editor polished and bug-free for the duration of the campaign.\n- Once the color renderer ships (Phase 3), the editor's preview becomes a much more compelling visual.\n- Each new box type added during the campaign is a campaign update opportunity.\n\n## Next concrete moves (founder action)\n1. Approve RFC #25 and assign #26 + #27 (strategic artifacts) — IN PROGRESS this session\n2. Decide panel SKU (#35) — gates Phase 3a (#30) and SCAD dimensions (#34). MCU + connectivity already locked: ESP32-C3 + Wi-Fi direct.\n3. Order panel + ESP32-C3 samples\n4. 3D-print prototype housing once SCAD lands (#34) — pinhole reset, ~12-15° back tilt, ≤4mm bezel\n5. Implement captive-portal firmware (#39) — boots in AP mode, scans Wi-Fi, accepts credentials, joins network\n6. Run drop test on prototype (#36)\n7. Draft Kickstarter page using revised pitch as body (#38, near launch)\n8. Decide funding target after a manufacturing-partner quote — likely lower than originally planned because no native app dev in scope",
+      "body": "Project advances from `demo-polish` to `campaign` as of 2026-04-22. Significantly revised by the Round 10 counter pivot — open hardware list shrank dramatically, color renderer added to open eng list.\n\n## Goal\nConvert the working web editor + working hardware prototype into a funded Kickstarter campaign for the counter-only color decorator.\n\n## Phase entry criteria (met)\n- All six MVP box types implemented (text, countdown, weather, 3hr forecast, qr, quote)\n- Web editor deployed and demo-polished (consent dialog, robust geocoding, version stamping)\n- Pitch and value-prop revised for the counter-only color story (see `Market & Distribution` note)\n- Project artifacts coherent for the counter device after the Round 10 pivot\n\n## Phase exit criteria\n- Kickstarter campaign live\n- Funding target hit (or campaign concluded with decision on next move)\n- Backers have a realistic delivery date and clear communication channel\n\n## Open deliverables\n- **Kickstarter project page** — long-form pitch in `Market & Distribution` note is the source text; needs page-formatted version with sections, images, FAQs (#38).\n- **Pitch video** — 60-90s. Needs script, storyboard, talent (founder) (#38).\n- **Hero photography + product video** — requires working prototype on a counter in window light.\n- **Working hardware prototype** — gating: panel + MCU choice (#35), SCAD rewrite + 3D-print (#34), drop test (#36).\n- **Reward tiers + pricing** — $30-40 unit price target (final after panel pick); backer reward structure TBD (early-bird, retail, multi-pack, gift bundle).\n- **Stretch goals** — TBD. Candidates: additional housing colors beyond white, accessory bundles, larger panel SKU as upgrade tier. Five new box types (date, moon, sun, aqi, progress) in progress (#41-45) — these ship before campaign launch, not as stretch goals.\n- **Pre-launch landing page + email signup** — Kickstarter `Follow` button before campaign open. Co-host on infobento.com.\n- **Press kit** — one-pager + photos + spec sheet for outlets and reviewers.\n\n## Open engineering items (pivot-related)\n- **Color renderer (Phase 3, #33)** — color framebuffer + draw primitives (#30), color box renderers + PNG (#31), web preview color paint (#32). Largest engineering lift; on a feature branch.\n- **~~Collapse dual-display (Phase 2, #29)~~** — DONE (merged 2026-04-23). DisplayId removed, single-column editor, localStorage v2.\n- **Captive-portal provisioning UX (firmware, #39)** — first-boot AP-mode setup page, NVS credential storage, pinhole-reset handler. Locked: Wi-Fi-direct + PWA-only, no companion app.\n- **DigitalOcean droplet provisioning** — install Caddy, set up systemd unit for Hono, point Cloudflare DNS at the droplet, configure /var/www/firmware for OTA. Co-tenant with tiles- and webmap.dev.\n\n## Open questions for the campaign\n- Campaign duration (30 vs 45 days)\n- Funding target — covers tooling + first batch + Kickstarter+payment fees (~10%) + shipping shortfall buffer\n- Manufacturing partner (PCB house + injection-molded white housing + assembly + packaging)\n- Shipping plan — US + international? Add-on fulfillment partner?\n- Refund / cancellation policy\n- Late-pledge / BackerKit strategy\n\n## Open hardware items (post-pivot)\n- Panel SKU decision (#35) — MCU and connectivity locked (ESP32-C3 + Wi-Fi direct); panel still pending\n- SCAD rewrite for monolithic body (#34) — drop-resistant industrial design + pinhole reset cavity\n- Drop-test protocol + run (#36)\n- Bumper material decision (silicone vs TPU vs over-molded TPE)\n\n## Items removed by the pivot (no longer gating)\n- ~~Hinge sourcing (Reell TI-C5M)~~ — no hinge\n- ~~iOS background BLE spike~~ — Wi-Fi-direct kills this risk\n- ~~eInk partial refresh strategy for D display~~ — no minute-level mode\n- ~~BLE connection interval tuning for phone-mounted mode~~ — no phone-mounted mode\n- ~~Display dimensions reconciliation (128x296 vs 240x200)~~ — both irrelevant; new color panel sets new dimensions in #35\n\n## Demo as marketing lever\n- The web editor at infobento.com is the campaign's interactive credibility lever ('try it now in your browser before you back it'). Keep the editor polished and bug-free for the duration of the campaign.\n- Once the color renderer ships (Phase 3), the editor's preview becomes a much more compelling visual.\n- Each new box type added during the campaign is a campaign update opportunity.\n\n## Next concrete moves (founder action)\n1. Approve RFC #25 and assign #26 + #27 (strategic artifacts) — IN PROGRESS this session\n2. Decide panel SKU (#35) — gates Phase 3a (#30) and SCAD dimensions (#34). MCU + connectivity already locked: ESP32-C3 + Wi-Fi direct.\n3. Order panel + ESP32-C3 samples\n4. 3D-print prototype housing once SCAD lands (#34) — pinhole reset, ~12-15° back tilt, ≤4mm bezel\n5. Implement captive-portal firmware (#39) — boots in AP mode, scans Wi-Fi, accepts credentials, joins network\n6. Run drop test on prototype (#36)\n7. Draft Kickstarter page using revised pitch as body (#38, near launch)\n8. Decide funding target after a manufacturing-partner quote — likely lower than originally planned because no native app dev in scope",
       "tags": [
         "campaign",
         "kickstarter",
