@@ -13,7 +13,6 @@ const textConfig: BentoConfig = {
       config: { type: 'text', text: 'Hello InfoBento' },
     },
   ],
-  displayId: 'D',
   refreshesPerDay: 1,
 };
 
@@ -47,7 +46,7 @@ describe('frameToPng', () => {
   });
 
   it('produces output for empty config', () => {
-    const emptyConfig: BentoConfig = { boxes: [], displayId: 'D', refreshesPerDay: 1 };
+    const emptyConfig: BentoConfig = { boxes: [], refreshesPerDay: 1 };
     const fb = render(emptyConfig);
     const png = frameToPng(fb);
 

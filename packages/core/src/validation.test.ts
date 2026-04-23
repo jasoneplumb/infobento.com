@@ -3,7 +3,6 @@ import { validateBentoConfig } from './validation.js';
 
 function validConfig() {
   return {
-    displayId: 'D',
     boxes: [{ id: '1', type: 'text', label: 'Hello', config: { type: 'text', text: 'World' } }],
     refreshesPerDay: 1,
   };
@@ -16,13 +15,6 @@ describe('validateBentoConfig', () => {
     expect(result.errors).toHaveLength(0);
   });
 
-  it('rejects missing displayId with path', () => {
-    const { displayId: _, ...noId } = validConfig();
-    const result = validateBentoConfig(noId);
-    expect(result.valid).toBe(false);
-    expect(result.errors.some((e) => e.path === 'displayId')).toBe(true);
-  });
-
   it('rejects empty boxes array', () => {
     const result = validateBentoConfig({ ...validConfig(), boxes: [] });
     expect(result.valid).toBe(false);
@@ -31,7 +23,6 @@ describe('validateBentoConfig', () => {
 
   it('rejects invalid box config with field path', () => {
     const cfg = {
-      displayId: 'D',
       boxes: [
         { id: '1', type: 'countdown', label: 'CD', config: { type: 'countdown', label: '' } },
       ],
@@ -56,7 +47,6 @@ describe('validateBentoConfig', () => {
 
   it('accepts config with split field on boxes', () => {
     const cfg = {
-      displayId: 'D',
       boxes: [
         { id: '1', type: 'text', label: 'Left', split: 'left' },
         { id: '2', type: 'text', label: 'Right', split: 'right' },
@@ -69,7 +59,6 @@ describe('validateBentoConfig', () => {
 
   it('rejects QR box config missing url', () => {
     const cfg = {
-      displayId: 'D',
       boxes: [{ id: '1', type: 'qr', label: 'QR', config: { type: 'qr', url: '' } }],
       refreshesPerDay: 1,
     };

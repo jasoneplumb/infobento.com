@@ -110,7 +110,6 @@ const BentoBoxSchema = z.discriminatedUnion('type', [
 // --- Full config schema ---
 
 export const BentoConfigSchema = z.object({
-  displayId: z.enum(['D', 'P']),
   boxes: z
     .array(BentoBoxSchema)
     .min(1, 'Config must have at least one bento box')

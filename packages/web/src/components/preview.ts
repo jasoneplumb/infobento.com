@@ -1,10 +1,9 @@
 /**
  * eInk preview renderer — renders actual 1-bit frame buffer output to a <canvas>.
  * Converts editor state to a BentoConfig, runs the renderer, and paints pixels.
- * Both displays render independently into their own container.
  */
 
-import type { BentoBox, BentoConfig, DisplayId } from '@infobento/core';
+import type { BentoBox, BentoConfig } from '@infobento/core';
 import { render } from '@infobento/renderer';
 import type {
   EditorBox,
@@ -76,10 +75,9 @@ function toBentoBox(editor: EditorBox): BentoBox {
   }
 }
 
-function toBentoConfig(displayId: DisplayId, boxes: readonly EditorBox[]): BentoConfig {
+function toBentoConfig(boxes: readonly EditorBox[]): BentoConfig {
   return {
     boxes: boxes.map(toBentoBox),
-    displayId,
     refreshesPerDay: 1,
   };
 }
@@ -120,40 +118,38 @@ function paintFrameBuffer(
   }
 }
 
-/** Cached canvas elements per display, reused across renders to avoid DOM churn */
-const _canvases: Partial<Record<DisplayId, HTMLCanvasElement>> = {};
+/** Cached canvas element, reused across renders to avoid DOM churn */
+let _canvas: HTMLCanvasElement | undefined;
 
-export function renderPreview(displayId: DisplayId, containerId: string): void {
+export function renderPreview(containerId: string): void {
   const display = document.getElementById(containerId);
   if (!display) return;
 
-  const boxes = getBoxes(displayId);
+  const boxes = getBoxes();
 
   if (boxes.length === 0) {
-    _canvases[displayId] = undefined;
+    _canvas = undefined;
     display.innerHTML = '<div class="eink-empty">&lt;Add a box...&gt;</div>';
     return;
   }
 
-  const config = toBentoConfig(displayId, boxes);
+  const config = toBentoConfig(boxes);
   const fb = render(config);
 
-  let canvas = _canvases[displayId];
-  if (!canvas) {
-    canvas = document.createElement('canvas');
-    canvas.className = 'eink-canvas';
-    _canvases[displayId] = canvas;
+  if (!_canvas) {
+    _canvas = document.createElement('canvas');
+    _canvas.className = 'eink-canvas';
   }
 
-  paintFrameBuffer(canvas, fb.data, fb.width, fb.height, SCALE);
+  paintFrameBuffer(_canvas, fb.data, fb.width, fb.height, SCALE);
 
   // Publish rendered canvas size as unitless CSS variables — surrounding
   // panel sizes itself via these regardless of display dimensions or SCALE.
   display.style.setProperty('--eink-w', String(fb.width * SCALE));
   display.style.setProperty('--eink-h', String(fb.height * SCALE));
 
-  if (canvas.parentElement !== display) {
+  if (_canvas.parentElement !== display) {
     display.innerHTML = '';
-    display.appendChild(canvas);
+    display.appendChild(_canvas);
   }
 }

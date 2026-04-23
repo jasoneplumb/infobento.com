@@ -152,27 +152,20 @@ header .badge {
   border-radius: 3px;
 }
 
-/* -- Main layout: 2x2 grid (Outer | Inner)  preview row above editor row -- */
+/* -- Main layout: single column (preview on top, editor below) ------------- */
 
 main {
-  display: grid;
-  /* minmax(0, 1fr) lets columns shrink below their intrinsic min-content size
-     so wide editor content can't blow the column tracks out. */
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  grid-template-rows: auto minmax(0, 1fr);
-  grid-template-areas:
-    'preview-D preview-P'
-    'editor-D  editor-P';
+  display: flex;
+  flex-direction: column;
   flex: 1;
   overflow: hidden;
   min-height: 0;
 }
 
-/* -- Preview cells --------------------------------------------------------- */
+/* -- Preview cell ---------------------------------------------------------- */
 
 .preview-cell {
   background: #2a2a2a;
-  border-right: 1px solid #111;
   border-bottom: 1px solid #111;
   display: flex;
   flex-direction: column;
@@ -183,25 +176,8 @@ main {
   min-height: 0;
 }
 
-.preview-cell[data-display='D'] {
-  grid-area: preview-D;
-}
-.preview-cell[data-display='P'] {
-  grid-area: preview-P;
-  border-right: none;
-}
-
-.column-heading {
-  font-family: var(--mono);
-  font-size: 11px;
-  color: #aaa;
-  text-transform: uppercase;
-  letter-spacing: 0.12em;
-  font-weight: 700;
-}
-
 /* eInk display mock: sizes itself to the canvas via --eink-w / --eink-h
-   CSS variables set by the preview renderer (fb.width/height × SCALE). */
+   CSS variables set by the preview renderer (fb.width/height x SCALE). */
 
 .eink-display {
   width: calc(var(--eink-w, 240) * 1px);
@@ -280,23 +256,15 @@ main {
   line-height: 1.6;
 }
 
-/* -- Editor cells ---------------------------------------------------------- */
+/* -- Editor cell ----------------------------------------------------------- */
 
 .editor-cell {
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  border-right: 1px solid var(--border);
   min-width: 0;
   min-height: 0;
-}
-
-.editor-cell[data-display='D'] {
-  grid-area: editor-D;
-}
-.editor-cell[data-display='P'] {
-  grid-area: editor-P;
-  border-right: none;
+  flex: 1;
 }
 
 .config-toolbar {
@@ -402,7 +370,7 @@ button {
 
 /* -- Box list -------------------------------------------------------------- */
 
-[id^='box-list-'] {
+#box-list {
   flex: 1;
   overflow-y: auto;
   padding: 16px 20px;
@@ -592,15 +560,15 @@ button {
 
 /* -- Scrollbar ------------------------------------------------------------- */
 
-[id^='box-list-']::-webkit-scrollbar {
+#box-list::-webkit-scrollbar {
   width: 6px;
 }
 
-[id^='box-list-']::-webkit-scrollbar-track {
+#box-list::-webkit-scrollbar-track {
   background: transparent;
 }
 
-[id^='box-list-']::-webkit-scrollbar-thumb {
+#box-list::-webkit-scrollbar-thumb {
   background: #d0d0d0;
   border-radius: 3px;
 }
@@ -692,18 +660,6 @@ button {
 /* -- Mobile responsive ----------------------------------------------------- */
 
 @media (max-width: 720px) {
-  /* Single-column stack: Outer Preview, Inner Preview, Outer Editor, Inner Editor */
-  main {
-    grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: none;
-    grid-template-areas:
-      'preview-D'
-      'preview-P'
-      'editor-D'
-      'editor-P';
-    overflow: auto;
-  }
-
   /* Header: tighter on mobile */
   header {
     padding: 10px 14px;
@@ -713,11 +669,10 @@ button {
     font-size: 14px;
   }
 
-  /* Preview cells: full width, compact */
+  /* Preview cell: compact */
   .preview-cell {
     width: 100%;
     min-width: 0;
-    border-right: none;
     border-bottom: 1px solid #111;
     padding: 16px 14px;
     gap: 12px;
@@ -737,10 +692,8 @@ button {
     font-size: 9px;
   }
 
-  /* Editor cells: full width, scrollable */
+  /* Editor cell: scrollable */
   .editor-cell {
-    border-right: none;
-    border-bottom: 1px solid var(--border);
     overflow: visible;
     min-height: 0;
   }
@@ -770,7 +723,7 @@ button {
   }
 
   /* Box list: tighter padding */
-  [id^='box-list-'] {
+  #box-list {
     padding: 12px 14px;
     gap: 10px;
   }

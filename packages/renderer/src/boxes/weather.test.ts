@@ -23,7 +23,6 @@ describe('renderWeatherBox', () => {
           },
         },
       ],
-      displayId: 'D',
       refreshesPerDay: 1,
     };
 
@@ -46,7 +45,6 @@ describe('renderWeatherBox', () => {
           },
         },
       ],
-      displayId: 'D',
       refreshesPerDay: 1,
     };
 
@@ -59,7 +57,6 @@ describe('renderWeatherBox', () => {
   it('renders without config (falls back to placeholder box)', () => {
     const config: BentoConfig = {
       boxes: [{ id: '1', type: 'weather', label: 'Weather' }],
-      displayId: 'D',
       refreshesPerDay: 1,
     };
 
@@ -87,7 +84,6 @@ describe('renderWeatherBox', () => {
           },
         },
       ],
-      displayId: 'D',
       refreshesPerDay: 1,
     };
 
@@ -109,7 +105,6 @@ describe('renderWeatherBox', () => {
           },
         },
       ],
-      displayId: 'D',
       refreshesPerDay: 1,
     };
 
@@ -137,7 +132,6 @@ describe('renderWeatherBox', () => {
           },
         },
       ],
-      displayId: 'D',
       refreshesPerDay: 1,
     };
 
@@ -153,7 +147,6 @@ describe('renderWeatherBox', () => {
           },
         },
       ],
-      displayId: 'D',
       refreshesPerDay: 1,
     };
 
