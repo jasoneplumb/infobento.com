@@ -43,8 +43,96 @@ header {
   padding: 12px 20px;
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: 12px;
+}
+
+.header-actions {
+  margin-left: auto;
+  display: flex;
+  gap: 8px;
+}
+
+.header-actions .btn-secondary {
+  border-color: #444;
+  color: #ddd;
+}
+
+.header-actions .btn-secondary:hover {
+  background: #333;
+}
+
+/* -- Header menu dropdown -------------------------------------------------- */
+
+.menu-wrapper {
+  position: relative;
+}
+
+.menu-trigger {
+  font-family: inherit;
+  font-size: 13px;
+}
+
+.menu-dropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+  min-width: 160px;
+  padding: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  z-index: 50;
+  /* Closed state: faded out, nudged up, non-interactive. */
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-4px);
+  transform-origin: top right;
+  pointer-events: none;
+  transition:
+    opacity 120ms ease-out,
+    transform 120ms ease-out,
+    visibility 0s linear 120ms;
+}
+
+.menu-dropdown.is-open {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+  pointer-events: auto;
+  transition:
+    opacity 120ms ease-out,
+    transform 120ms ease-out,
+    visibility 0s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .menu-dropdown,
+  .menu-dropdown.is-open {
+    transition: none;
+  }
+}
+
+.menu-item {
+  font-family: inherit;
+  font-size: 13px;
+  text-align: left;
+  background: transparent;
+  color: var(--text);
+  border: none;
+  border-radius: 4px;
+  padding: 7px 10px;
+  cursor: pointer;
+}
+
+.menu-item:hover,
+.menu-item:focus-visible {
+  background: var(--bg);
+  outline: none;
 }
 
 header h1 {
@@ -64,56 +152,72 @@ header .badge {
   border-radius: 3px;
 }
 
-/* -- Main layout ----------------------------------------------------------- */
+/* -- Main layout: 2x2 grid (Outer | Inner)  preview row above editor row -- */
 
 main {
-  display: flex;
+  display: grid;
+  /* minmax(0, 1fr) lets columns shrink below their intrinsic min-content size
+     so wide editor content can't blow the column tracks out. */
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr);
+  grid-template-areas:
+    'preview-D preview-P'
+    'editor-D  editor-P';
   flex: 1;
-  gap: 0;
   overflow: hidden;
+  min-height: 0;
 }
 
-/* -- Preview panel --------------------------------------------------------- */
+/* -- Preview cells --------------------------------------------------------- */
 
-#preview-panel {
-  width: 280px;
-  min-width: 280px;
+.preview-cell {
   background: #2a2a2a;
   border-right: 1px solid #111;
+  border-bottom: 1px solid #111;
   display: flex;
   flex-direction: column;
-  align-items: center;
+  align-items: flex-start;
   padding: 24px 20px;
-  gap: 16px;
+  gap: 12px;
+  min-width: 0;
+  min-height: 0;
 }
 
-#preview-panel h2 {
+.preview-cell[data-display='D'] {
+  grid-area: preview-D;
+}
+.preview-cell[data-display='P'] {
+  grid-area: preview-P;
+  border-right: none;
+}
+
+.column-heading {
   font-family: var(--mono);
   font-size: 11px;
-  color: #888;
+  color: #aaa;
   text-transform: uppercase;
-  letter-spacing: 0.1em;
-  align-self: flex-start;
+  letter-spacing: 0.12em;
+  font-weight: 700;
 }
 
-/* eInk display mock: 240x200 actual CSS pixels (1:1 with real device) */
+/* eInk display mock: sizes itself to the canvas via --eink-w / --eink-h
+   CSS variables set by the preview renderer (fb.width/height × SCALE). */
 
-#eink-display {
-  width: 240px;
-  height: 200px;
+.eink-display {
+  width: calc(var(--eink-w, 240) * 1px);
+  height: calc(var(--eink-h, 200) * 1px);
   background: #000;
   border: 2px solid #444;
   border-radius: 3px;
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  padding: 4px;
-  gap: 2px;
+  padding: 0;
   position: relative;
 }
 
 /* Pixel-grid texture overlay to evoke eInk */
-#eink-display::before {
+.eink-display::before {
   content: '';
   position: absolute;
   inset: 0;
@@ -162,8 +266,8 @@ main {
 
 .eink-empty {
   font-family: var(--mono);
-  font-size: 9px;
-  color: #333;
+  font-size: 10px;
+  color: #999;
   text-align: center;
   padding: 20px 8px;
 }
@@ -172,17 +276,27 @@ main {
   font-family: var(--mono);
   font-size: 10px;
   color: #555;
-  text-align: center;
+  text-align: left;
   line-height: 1.6;
 }
 
-/* -- Config panel ---------------------------------------------------------- */
+/* -- Editor cells ---------------------------------------------------------- */
 
-#config-panel {
-  flex: 1;
+.editor-cell {
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  border-right: 1px solid var(--border);
+  min-width: 0;
+  min-height: 0;
+}
+
+.editor-cell[data-display='D'] {
+  grid-area: editor-D;
+}
+.editor-cell[data-display='P'] {
+  grid-area: editor-P;
+  border-right: none;
 }
 
 .config-toolbar {
@@ -198,44 +312,6 @@ main {
   font-size: 13px;
   font-weight: 600;
   flex: 1;
-}
-
-/* -- Display toggle -------------------------------------------------------- */
-
-.display-toggle {
-  display: inline-flex;
-  gap: 0;
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  overflow: hidden;
-}
-
-.display-toggle button {
-  font-family: var(--mono);
-  font-size: 12px;
-  font-weight: 600;
-  padding: 5px 12px;
-  border: none;
-  border-radius: 0;
-  background: var(--surface);
-  color: var(--muted);
-  cursor: pointer;
-  transition:
-    background 0.1s,
-    color 0.1s;
-}
-
-.display-toggle button:not(:last-child) {
-  border-right: 1px solid var(--border);
-}
-
-.display-toggle button.active {
-  background: var(--header-bg);
-  color: var(--header-text);
-}
-
-.display-toggle button:hover:not(.active) {
-  background: var(--bg);
 }
 
 /* -- Buttons --------------------------------------------------------------- */
@@ -326,13 +402,14 @@ button {
 
 /* -- Box list -------------------------------------------------------------- */
 
-#box-list {
+[id^='box-list-'] {
   flex: 1;
   overflow-y: auto;
   padding: 16px 20px;
   display: flex;
   flex-direction: column;
   gap: 12px;
+  min-height: 0;
 }
 
 .box-card {
@@ -515,25 +592,115 @@ button {
 
 /* -- Scrollbar ------------------------------------------------------------- */
 
-#box-list::-webkit-scrollbar {
+[id^='box-list-']::-webkit-scrollbar {
   width: 6px;
 }
 
-#box-list::-webkit-scrollbar-track {
+[id^='box-list-']::-webkit-scrollbar-track {
   background: transparent;
 }
 
-#box-list::-webkit-scrollbar-thumb {
+[id^='box-list-']::-webkit-scrollbar-thumb {
   background: #d0d0d0;
   border-radius: 3px;
 }
 
+/* -- Consent dialog -------------------------------------------------------- */
+
+.consent-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 15, 15, 0.78);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  z-index: 1000;
+  /* No animation — should appear immediately on first load */
+}
+
+.consent-card {
+  background: var(--surface);
+  color: var(--text);
+  border-radius: var(--radius);
+  max-width: 560px;
+  width: 100%;
+  max-height: calc(100vh - 48px);
+  overflow-y: auto;
+  padding: 24px 28px;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.4);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.consent-card h2 {
+  font-family: var(--mono);
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.consent-tagline {
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--muted);
+  letter-spacing: 0.08em;
+  margin-top: -8px;
+}
+
+.consent-section h3 {
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--muted);
+  margin-bottom: 6px;
+}
+
+.consent-section ul {
+  list-style: disc;
+  padding-left: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--text);
+}
+
+.consent-section code {
+  font-family: var(--mono);
+  font-size: 12px;
+  background: var(--bg);
+  padding: 1px 4px;
+  border-radius: 3px;
+}
+
+.consent-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 6px;
+}
+
+.consent-actions .btn-primary {
+  font-size: 14px;
+  padding: 10px 22px;
+}
+
 /* -- Mobile responsive ----------------------------------------------------- */
 
-@media (max-width: 768px) {
-  /* Stack layout vertically */
+@media (max-width: 720px) {
+  /* Single-column stack: Outer Preview, Inner Preview, Outer Editor, Inner Editor */
   main {
-    flex-direction: column;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: none;
+    grid-template-areas:
+      'preview-D'
+      'preview-P'
+      'editor-D'
+      'editor-P';
     overflow: auto;
   }
 
@@ -546,32 +713,34 @@ button {
     font-size: 14px;
   }
 
-  /* Preview panel: full width, compact */
-  #preview-panel {
+  /* Preview cells: full width, compact */
+  .preview-cell {
     width: 100%;
     min-width: 0;
     border-right: none;
     border-bottom: 1px solid #111;
     padding: 16px 14px;
     gap: 12px;
-    flex-shrink: 0;
+    align-items: center;
   }
 
-  /* Scale eInk display to fit viewport width */
-  #eink-display {
+  /* Scale eInk display to fit viewport width — aspect ratio derived from
+     the buffer dimensions exposed by the preview renderer. */
+  .eink-display {
     width: 100%;
-    max-width: 240px;
+    max-width: calc(var(--eink-w, 240) * 1px);
     height: auto;
-    aspect-ratio: 240 / 200;
+    aspect-ratio: var(--eink-w, 240) / var(--eink-h, 200);
   }
 
   .preview-meta {
     font-size: 9px;
   }
 
-  /* Config panel: full width, scrollable */
-  #config-panel {
-    flex: 1;
+  /* Editor cells: full width, scrollable */
+  .editor-cell {
+    border-right: none;
+    border-bottom: 1px solid var(--border);
     overflow: visible;
     min-height: 0;
   }
@@ -589,12 +758,6 @@ button {
     flex: none;
   }
 
-  /* Display toggle stays prominent */
-  .display-toggle button {
-    padding: 6px 14px;
-    font-size: 12px;
-  }
-
   /* Add box wrapper: full row on narrow screens */
   .add-box-wrapper {
     flex: 1;
@@ -607,7 +770,7 @@ button {
   }
 
   /* Box list: tighter padding */
-  #box-list {
+  [id^='box-list-'] {
     padding: 12px 14px;
     gap: 10px;
   }

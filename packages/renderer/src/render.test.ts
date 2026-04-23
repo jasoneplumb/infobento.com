@@ -1,10 +1,12 @@
 import { describe, it, expect } from 'vitest';
 import { render, createFrameBuffer } from './index.js';
 import type { BentoConfig } from '@infobento/core';
-import { DISPLAY_WIDTH, DISPLAY_HEIGHT } from '@infobento/core';
+import { DISPLAY_WIDTH, DISPLAY_HEIGHT, DEFAULT_FRAME_BYTES } from '@infobento/core';
+
+const BYTES_PER_ROW = Math.ceil(DISPLAY_WIDTH / 8);
 
 describe('render', () => {
-  it('produces a 4736-byte frame buffer for default display', () => {
+  it('produces a frame buffer matching the default display dimensions', () => {
     const config: BentoConfig = {
       boxes: [
         {
@@ -21,7 +23,7 @@ describe('render', () => {
     const fb = render(config);
     expect(fb.width).toBe(DISPLAY_WIDTH);
     expect(fb.height).toBe(DISPLAY_HEIGHT);
-    expect(fb.data.length).toBe(4736); // 128/8 * 296
+    expect(fb.data.length).toBe(DEFAULT_FRAME_BYTES);
   });
 
   it('renders text box with non-zero pixels', () => {
@@ -72,15 +74,13 @@ describe('render', () => {
     };
 
     const fb = render(config);
-    expect(fb.data.length).toBe(4736);
+    expect(fb.data.length).toBe(DEFAULT_FRAME_BYTES);
 
-    // Should have pixels in multiple vertical regions
-    // With 3 boxes on 296px display, each box ~98px tall.
-    // Top region: first box content (label, rule, text)
-    const topHasPixels = fb.data.slice(0, 160).some((b) => b !== 0); // first ~10 rows
-    // Bottom region: third box starts around row 198, content at ~202-230
-    // 16 bytes per row (128/8), row 200 = byte 3200
-    const bottomHasPixels = fb.data.slice(3200, 3840).some((b) => b !== 0); // rows ~200-240
+    // Top region: first ~10 rows should have label/rule pixels
+    const topHasPixels = fb.data.slice(0, BYTES_PER_ROW * 10).some((b) => b !== 0);
+    // Bottom region: last third of the display should have content from the third box
+    const bottomThirdStart = Math.floor(DISPLAY_HEIGHT * (2 / 3)) * BYTES_PER_ROW;
+    const bottomHasPixels = fb.data.slice(bottomThirdStart).some((b) => b !== 0);
     expect(topHasPixels).toBe(true);
     expect(bottomHasPixels).toBe(true);
   });
@@ -93,7 +93,7 @@ describe('render', () => {
     };
 
     const fb = render(config);
-    expect(fb.data.length).toBe(4736);
+    expect(fb.data.length).toBe(DEFAULT_FRAME_BYTES);
     // Should still render something (placeholder label)
     expect(fb.data.some((b) => b !== 0)).toBe(true);
   });
@@ -106,7 +106,7 @@ describe('render', () => {
     };
 
     const fb = render(config);
-    expect(fb.data.length).toBe(4736);
+    expect(fb.data.length).toBe(DEFAULT_FRAME_BYTES);
     // Empty config = blank display
     expect(fb.data.every((b) => b === 0)).toBe(true);
   });
@@ -115,9 +115,9 @@ describe('render', () => {
 describe('createFrameBuffer', () => {
   it('creates buffer with correct dimensions', () => {
     const fb = createFrameBuffer();
-    expect(fb.width).toBe(128);
-    expect(fb.height).toBe(296);
-    expect(fb.data.length).toBe(4736);
+    expect(fb.width).toBe(DISPLAY_WIDTH);
+    expect(fb.height).toBe(DISPLAY_HEIGHT);
+    expect(fb.data.length).toBe(DEFAULT_FRAME_BYTES);
   });
 
   it('creates all-zero buffer', () => {

@@ -13,7 +13,7 @@ export const HERO_FONT_HEIGHT = 16;
 
 /**
  * intent: Total advance width per hero character (glyph + 1px spacing)
- * effect: At 9px per char, 128px width fits 14 characters per line
+ * effect: 9px per character — line capacity = floor(displayWidth / 9)
  */
 export const HERO_CHAR_ADVANCE = 9;
 

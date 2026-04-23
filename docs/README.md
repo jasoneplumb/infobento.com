@@ -1,5 +1,7 @@
 # Documentation
 
+> _See what matters. Skip the spiral._
+
 Most documentation lives **inline with the code** using intent headers (see [INTENT_TEMPLATES.md](reference/INTENT_TEMPLATES.md)). This directory contains the reference docs you'll need alongside the source.
 
 ---

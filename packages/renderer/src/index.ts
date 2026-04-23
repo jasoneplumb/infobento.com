@@ -9,6 +9,7 @@ import type { BentoConfig, DeviceProfile, LayoutBox } from '@infobento/core';
 import { DISPLAY_WIDTH, DISPLAY_HEIGHT, calculateLayout } from '@infobento/core';
 import { renderTextBox, renderPlaceholderBox } from './boxes/text.js';
 import { renderWeatherBox } from './boxes/weather.js';
+import { renderForecastBox } from './boxes/forecast.js';
 import { renderCountdownBox } from './boxes/countdown.js';
 import { renderQRBox } from './boxes/qr.js';
 import { renderQuoteBox } from './boxes/quote.js';
@@ -21,7 +22,7 @@ export type { FrameBuffer } from './types.js';
 /**
  * intent: Create an empty (white) frame buffer for the target display
  * method: Allocates a Uint8Array sized for 1-bit-per-pixel packing
- * effect: (width * height) / 8 bytes — 4736 bytes for 128x296
+ * effect: ceil(width / 8) * height bytes
  */
 export function createFrameBuffer(
   device: DeviceProfile = { widthPx: DISPLAY_WIDTH, heightPx: DISPLAY_HEIGHT, deviceId: '' },
@@ -47,6 +48,8 @@ function renderBox(fb: FrameBuffer, layoutBox: LayoutBox): void {
     renderTextBox(fb, layoutBox, box.config);
   } else if (box.type === 'weather' && box.config?.type === 'weather') {
     renderWeatherBox(fb, layoutBox, box.config);
+  } else if (box.type === 'forecast' && box.config?.type === 'forecast') {
+    renderForecastBox(fb, layoutBox, box.config);
   } else if (box.type === 'countdown' && box.config?.type === 'countdown') {
     renderCountdownBox(fb, layoutBox, box.config);
   } else if (box.type === 'qr' && box.config?.type === 'qr') {
@@ -61,7 +64,7 @@ function renderBox(fb: FrameBuffer, layoutBox: LayoutBox): void {
 /**
  * intent: Render a bento config into a 1-bit frame buffer
  * method: Calculate layout, then render each box into the frame buffer
- * effect: Returns device-ready binary data (4736 bytes for 128x296)
+ * effect: Returns device-ready binary data sized for the target device
  */
 export function render(config: BentoConfig, device?: DeviceProfile): FrameBuffer {
   const layout = calculateLayout(config, device);

@@ -1,12 +1,12 @@
 /**
  * Reactive state management for the InfoBento box editor.
  *
- * A plain object + setState() that schedules a synchronous re-render.
- * Same mental model as the winning svelte-editor prototype: mutate via
- * setState(), two-way binding via input listeners + render().
+ * Both displays (D = Outer / public, P = Inner / private) are always live;
+ * actions take an explicit displayId. setState() triggers a synchronous
+ * re-render of every panel.
  */
 
-import type { BentoBoxType, DisplayId, WeatherData } from '@infobento/core';
+import type { BentoBoxType, DisplayId, WeatherData, ForecastEntry } from '@infobento/core';
 
 // -- Editor box model (UI-local, not the core BentoBox type) ---------------
 
@@ -24,6 +24,11 @@ export interface WeatherConfig {
   data?: WeatherData;
 }
 
+export interface ForecastConfig {
+  city: string;
+  entries?: ForecastEntry[];
+}
+
 export interface QRConfig {
   url: string;
 }
@@ -33,11 +38,17 @@ export interface QuoteConfig {
   author: string;
 }
 
-export type EditorBoxConfig = TextConfig | CountdownConfig | WeatherConfig | QRConfig | QuoteConfig;
+export type EditorBoxConfig =
+  | TextConfig
+  | CountdownConfig
+  | WeatherConfig
+  | ForecastConfig
+  | QRConfig
+  | QuoteConfig;
 
 export type EditorBoxType = Extract<
   BentoBoxType,
-  'text' | 'countdown' | 'weather' | 'qr' | 'quote'
+  'text' | 'countdown' | 'weather' | 'forecast' | 'qr' | 'quote'
 >;
 
 export interface EditorBox {
@@ -48,9 +59,6 @@ export interface EditorBox {
 }
 
 export interface EditorState {
-  /** Alias for the active display's box array — kept in sync by syncBoxesAlias() */
-  boxes: EditorBox[];
-  activeDisplay: DisplayId;
   boxesD: EditorBox[];
   boxesP: EditorBox[];
 }
@@ -68,6 +76,7 @@ const DEFAULTS: Record<EditorBoxType, () => EditorBoxConfig> = {
   text: () => ({ content: '' }),
   countdown: () => ({ date: '', countdownLabel: '' }),
   weather: () => ({ city: '' }),
+  forecast: () => ({ city: '' }),
   qr: () => ({ url: '' }),
   quote: () => ({ content: '', author: '' }),
 };
@@ -76,6 +85,7 @@ const LABELS: Record<EditorBoxType, string> = {
   text: 'Text',
   countdown: 'Countdown',
   weather: 'Weather',
+  forecast: '3hr Forecast',
   qr: 'QR Code',
   quote: 'Quote',
 };
@@ -99,23 +109,14 @@ function defaultBoxesP(): EditorBox[] {
 
 // -- State + render callback ------------------------------------------------
 
-/** Return the box array for the currently active display */
-function activeBoxes(s: EditorState): EditorBox[] {
-  return s.activeDisplay === 'D' ? s.boxesD : s.boxesP;
-}
-
-/** Keep the `boxes` alias pointing at the active display's array */
-function syncBoxesAlias(s: EditorState): void {
-  s.boxes = activeBoxes(s);
-}
-
-const _initialD = defaultBoxesD();
 const state: EditorState = {
-  activeDisplay: 'D',
-  boxesD: _initialD,
+  boxesD: defaultBoxesD(),
   boxesP: defaultBoxesP(),
-  boxes: _initialD,
 };
+
+function boxesFor(displayId: DisplayId): EditorBox[] {
+  return displayId === 'D' ? state.boxesD : state.boxesP;
+}
 
 let _renderFn: (() => void) | null = null;
 let _previewFn: (() => void) | null = null;
@@ -135,10 +136,14 @@ export function getState(): EditorState {
   return state;
 }
 
+/** Read the boxes for a specific display */
+export function getBoxes(displayId: DisplayId): EditorBox[] {
+  return boxesFor(displayId);
+}
+
 /** Mutate state and trigger a full re-render */
 export function setState(mutate: (s: EditorState) => void): void {
   mutate(state);
-  syncBoxesAlias(state);
   persistToLocalStorage();
   _renderFn?.();
 }
@@ -148,11 +153,17 @@ function renderPreview(): void {
   _previewFn?.();
 }
 
+// -- Box lookup (searches both displays — ids are globally unique) ----------
+
+function findBox(id: number): EditorBox | undefined {
+  return state.boxesD.find((b) => b.id === id) ?? state.boxesP.find((b) => b.id === id);
+}
+
 // -- Actions ----------------------------------------------------------------
 
-export function addBox(type: EditorBoxType): void {
-  setState((s) => {
-    activeBoxes(s).push({
+export function addBox(displayId: DisplayId, type: EditorBoxType): void {
+  setState(() => {
+    boxesFor(displayId).push({
       id: uid(),
       type,
       label: LABELS[type],
@@ -161,17 +172,17 @@ export function addBox(type: EditorBoxType): void {
   });
 }
 
-export function removeBox(id: number): void {
-  setState((s) => {
-    const arr = activeBoxes(s);
+export function removeBox(displayId: DisplayId, id: number): void {
+  setState(() => {
+    const arr = boxesFor(displayId);
     const idx = arr.findIndex((b) => b.id === id);
     if (idx >= 0) arr.splice(idx, 1);
   });
 }
 
-export function moveBox(id: number, dir: -1 | 1): void {
-  setState((s) => {
-    const arr = activeBoxes(s);
+export function moveBox(displayId: DisplayId, id: number, dir: -1 | 1): void {
+  setState(() => {
+    const arr = boxesFor(displayId);
     const idx = arr.findIndex((b) => b.id === id);
     if (idx < 0) return;
     const target = idx + dir;
@@ -185,35 +196,33 @@ export function moveBox(id: number, dir: -1 | 1): void {
 }
 
 export function updateConfig(id: number, key: string, value: string): void {
-  const box = state.boxes.find((b) => b.id === id);
+  const box = findBox(id);
   if (!box) return;
   (box.config as unknown as Record<string, string>)[key] = value;
   renderPreview();
 }
 
 export function updateWeatherData(id: number, data: WeatherData): void {
-  const box = state.boxes.find((b) => b.id === id);
+  const box = findBox(id);
   if (!box || box.type !== 'weather') return;
   (box.config as WeatherConfig).data = data;
+  persistToLocalStorage();
+  renderPreview();
+}
+
+export function updateForecastEntries(id: number, entries: ForecastEntry[]): void {
+  const box = findBox(id);
+  if (!box || box.type !== 'forecast') return;
+  (box.config as ForecastConfig).entries = entries;
+  persistToLocalStorage();
   renderPreview();
 }
 
 export function updateLabel(id: number, value: string): void {
-  const box = state.boxes.find((b) => b.id === id);
+  const box = findBox(id);
   if (!box) return;
   box.label = value;
   renderPreview();
-}
-
-export function switchDisplay(id: DisplayId): void {
-  if (state.activeDisplay === id) return;
-  setState((s) => {
-    s.activeDisplay = id;
-  });
-}
-
-export function getActiveDisplay(): DisplayId {
-  return state.activeDisplay;
 }
 
 // -- LocalStorage persistence -----------------------------------------------
@@ -224,7 +233,6 @@ function persistToLocalStorage(): void {
   try {
     const data = {
       version: 1,
-      activeDisplay: state.activeDisplay,
       D: state.boxesD.map((b) => ({ type: b.type, label: b.label, config: { ...b.config } })),
       P: state.boxesP.map((b) => ({ type: b.type, label: b.label, config: { ...b.config } })),
     };
@@ -261,7 +269,6 @@ function loadFromLocalStorage(): boolean {
     }
     const obj = parsed as {
       version: number;
-      activeDisplay?: string;
       D: Array<{ type: string; label: string; config: Record<string, string> }>;
       P: Array<{ type: string; label: string; config: Record<string, string> }>;
     };
@@ -269,10 +276,6 @@ function loadFromLocalStorage(): boolean {
 
     state.boxesD = hydrateBoxes(obj.D);
     state.boxesP = hydrateBoxes(obj.P);
-    if (obj.activeDisplay === 'D' || obj.activeDisplay === 'P') {
-      state.activeDisplay = obj.activeDisplay as DisplayId;
-    }
-    syncBoxesAlias(state);
     return true;
   } catch {
     return false;

@@ -10,6 +10,8 @@ export type {
   TextBoxConfig,
   WeatherData,
   WeatherBoxConfig,
+  ForecastEntry,
+  ForecastBoxConfig,
   CountdownBoxConfig,
   QRBoxConfig,
   QuoteBoxConfig,
@@ -24,7 +26,14 @@ export type {
 } from './types.js';
 
 // Re-export constants
-export { DISPLAY_WIDTH, DISPLAY_HEIGHT, BOX_DIVIDER_PX, DEFAULT_DEVICE } from './constants.js';
+export {
+  DISPLAY_WIDTH,
+  DISPLAY_HEIGHT,
+  BOX_DIVIDER_PX,
+  DEFAULT_DEVICE,
+  DEFAULT_FRAME_BYTES,
+  frameBufferBytes,
+} from './constants.js';
 
 // Re-export layout engine
 export { calculateLayout } from './layout.js';

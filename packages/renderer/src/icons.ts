@@ -28,6 +28,17 @@ export const BOX_ICONS: Record<string, readonly number[]> = {
    */
   weather: [0b0001000, 0b0001000, 0b0010100, 0b1001001, 0b0010100, 0b0001000, 0b0001000],
 
+  /* forecast: Three vertical bars of increasing height (bar chart / trend)
+   *   ......*
+   *   ....*.*
+   *   ....*.*
+   *   ..*.*.*
+   *   ..*.*.*
+   *   *.*.*.*
+   *   *******
+   */
+  forecast: [0b0000001, 0b0000101, 0b0000101, 0b0010101, 0b0010101, 0b1010101, 0b1111111],
+
   /* countdown: Hourglass — top/bottom bars with pinched waist
    *   *******
    *   .*...*

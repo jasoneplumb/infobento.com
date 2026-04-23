@@ -1,12 +1,14 @@
 # InfoBento
 
+> _See what matters. Skip the spiral._
+
 A MagSafe-mounted dual-eInk companion display that lives on the back of your iPhone. Two 2.9" displays back-to-back in a clamshell: one for your phone, one for your counter. 180-degree hinge, solar charging, zero interaction.
 
 ## Overview
 
-InfoBento puts the information you'd unlock your phone to check — weather, next meeting, countdown to vacation — on the _outside_ of your phone. Flip it over, glance, move on. No unlock, no app, no rabbit hole.
+InfoBento puts the information you check most often — weather, next meeting, countdown to vacation — on the _outside_ of your phone. Flip it over, glance, get on with your day. No unlock, no app, no spiral.
 
-At home, open it and stand it on the kitchen counter. A different display faces you with a relaxed layout — quote, full agenda, countdown — while the solar panel charges from window light. Fold it closed and snap it back on your phone. No re-render, no delay — each display holds its own frame. $30 target via Kickstarter.
+At home, open it and stand it on the kitchen counter. A different display faces you with a relaxed layout — quote, full agenda, countdown — while the solar panel sips light from the window. Fold it closed and snap it back on your phone. No re-render, no delay — each display holds its own frame. $30 target via Kickstarter.
 
 ### Hardware
 

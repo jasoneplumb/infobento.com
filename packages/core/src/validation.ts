@@ -29,6 +29,20 @@ const WeatherBoxConfigSchema = z.object({
   data: WeatherDataSchema.optional(),
 });
 
+const ForecastEntrySchema = z.object({
+  time: z.string(),
+  temperature: z.number(),
+  condition: z.string(),
+});
+
+const ForecastBoxConfigSchema = z.object({
+  type: z.literal('forecast'),
+  city: z.string().min(1, 'Location is required'),
+  lat: z.number().optional(),
+  lon: z.number().optional(),
+  entries: z.array(ForecastEntrySchema).optional(),
+});
+
 const CountdownBoxConfigSchema = z.object({
   type: z.literal('countdown'),
   targetDate: z.string().min(1, 'Target date is required'),
@@ -64,6 +78,11 @@ const WeatherBentoBoxSchema = BentoBoxBaseSchema.extend({
   config: WeatherBoxConfigSchema.optional(),
 });
 
+const ForecastBentoBoxSchema = BentoBoxBaseSchema.extend({
+  type: z.literal('forecast'),
+  config: ForecastBoxConfigSchema.optional(),
+});
+
 const CountdownBentoBoxSchema = BentoBoxBaseSchema.extend({
   type: z.literal('countdown'),
   config: CountdownBoxConfigSchema.optional(),
@@ -82,6 +101,7 @@ const QuoteBentoBoxSchema = BentoBoxBaseSchema.extend({
 const BentoBoxSchema = z.discriminatedUnion('type', [
   TextBentoBoxSchema,
   WeatherBentoBoxSchema,
+  ForecastBentoBoxSchema,
   CountdownBentoBoxSchema,
   QRBentoBoxSchema,
   QuoteBentoBoxSchema,

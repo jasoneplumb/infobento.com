@@ -1,22 +1,27 @@
 /**
  * eInk preview renderer — renders actual 1-bit frame buffer output to a <canvas>.
  * Converts editor state to a BentoConfig, runs the renderer, and paints pixels.
+ * Both displays render independently into their own container.
  */
 
-import type { BentoBox, BentoConfig } from '@infobento/core';
+import type { BentoBox, BentoConfig, DisplayId } from '@infobento/core';
 import { render } from '@infobento/renderer';
 import type {
   EditorBox,
   CountdownConfig,
   WeatherConfig,
+  ForecastConfig,
   TextConfig,
   QRConfig,
   QuoteConfig,
 } from '../state';
-import { getState } from '../state';
+import { getBoxes } from '../state';
 
-/** Canvas scale factor — 128x296 is tiny, so we scale up for visibility */
-const SCALE = 3;
+/** Canvas scale factor. SCALE=1 paints each frame buffer pixel as one CSS
+ *  pixel — the preview is then physically the same dimensions as the actual
+ *  eInk display. The preview panel sizes itself to the canvas via CSS vars,
+ *  so bumping SCALE here is the only change needed to enlarge the preview. */
+const SCALE = 1;
 
 /**
  * Convert an EditorBox (UI-local model) to a core BentoBox (renderer model).
@@ -46,6 +51,14 @@ function toBentoBox(editor: EditorBox): BentoBox {
         config: { type: 'weather', city: c.city, data: c.data },
       };
     }
+    case 'forecast': {
+      const c = editor.config as ForecastConfig;
+      return {
+        ...base,
+        type: 'forecast',
+        config: { type: 'forecast', city: c.city, entries: c.entries },
+      };
+    }
     case 'qr': {
       const c = editor.config as QRConfig;
       return { ...base, type: 'qr', config: { type: 'qr', url: c.url } };
@@ -63,14 +76,10 @@ function toBentoBox(editor: EditorBox): BentoBox {
   }
 }
 
-/**
- * Convert the editor state boxes array into a full BentoConfig for the renderer.
- */
-function toBentoConfig(boxes: readonly EditorBox[]): BentoConfig {
-  const { activeDisplay } = getState();
+function toBentoConfig(displayId: DisplayId, boxes: readonly EditorBox[]): BentoConfig {
   return {
     boxes: boxes.map(toBentoBox),
-    displayId: activeDisplay,
+    displayId,
     refreshesPerDay: 1,
   };
 }
@@ -93,11 +102,9 @@ function paintFrameBuffer(
   const ctx = canvas.getContext('2d');
   if (!ctx) return;
 
-  // Fill white background
   ctx.fillStyle = '#ffffff';
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-  // Draw black pixels
   ctx.fillStyle = '#000000';
   const byteWidth = Math.ceil(width / 8);
 
@@ -113,35 +120,40 @@ function paintFrameBuffer(
   }
 }
 
-/** Cached canvas element — reused across renders to avoid DOM churn */
-let _canvas: HTMLCanvasElement | null = null;
+/** Cached canvas elements per display, reused across renders to avoid DOM churn */
+const _canvases: Partial<Record<DisplayId, HTMLCanvasElement>> = {};
 
-export function renderPreview(): void {
-  const display = document.getElementById('eink-display');
+export function renderPreview(displayId: DisplayId, containerId: string): void {
+  const display = document.getElementById(containerId);
   if (!display) return;
 
-  const { boxes } = getState();
+  const boxes = getBoxes(displayId);
 
   if (boxes.length === 0) {
-    _canvas = null;
-    display.innerHTML = '<div class="eink-empty">Add a box to see your display</div>';
+    _canvases[displayId] = undefined;
+    display.innerHTML = '<div class="eink-empty">&lt;Add a box...&gt;</div>';
     return;
   }
 
-  const config = toBentoConfig(boxes);
+  const config = toBentoConfig(displayId, boxes);
   const fb = render(config);
 
-  // Reuse or create canvas element
-  if (!_canvas) {
-    _canvas = document.createElement('canvas');
-    _canvas.className = 'eink-canvas';
+  let canvas = _canvases[displayId];
+  if (!canvas) {
+    canvas = document.createElement('canvas');
+    canvas.className = 'eink-canvas';
+    _canvases[displayId] = canvas;
   }
 
-  paintFrameBuffer(_canvas, fb.data, fb.width, fb.height, SCALE);
+  paintFrameBuffer(canvas, fb.data, fb.width, fb.height, SCALE);
 
-  // Only update DOM if canvas isn't already mounted
-  if (_canvas.parentElement !== display) {
+  // Publish rendered canvas size as unitless CSS variables — surrounding
+  // panel sizes itself via these regardless of display dimensions or SCALE.
+  display.style.setProperty('--eink-w', String(fb.width * SCALE));
+  display.style.setProperty('--eink-h', String(fb.height * SCALE));
+
+  if (canvas.parentElement !== display) {
     display.innerHTML = '';
-    display.appendChild(_canvas);
+    display.appendChild(canvas);
   }
 }

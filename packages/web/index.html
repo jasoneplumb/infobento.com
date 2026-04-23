@@ -3,47 +3,86 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>InfoBento Box Editor</title>
+    <title>InfoBento</title>
     <link rel="stylesheet" href="/src/style.css" />
   </head>
   <body>
     <header>
-      <h1>InfoBento Box Editor</h1>
-      <span class="badge">EDITOR</span>
+      <h1>InfoBento</h1>
+      <span class="badge">EDITOR <span id="app-version"></span></span>
+      <div class="header-actions">
+        <div class="menu-wrapper" id="header-menu">
+          <button
+            class="btn-secondary menu-trigger"
+            id="btn-menu"
+            type="button"
+            aria-haspopup="true"
+            aria-expanded="false"
+          >
+            Menu &#9662;
+          </button>
+          <div class="menu-dropdown" role="menu">
+            <button class="menu-item" id="btn-import" role="menuitem" type="button">
+              &uarr; Import JSON
+            </button>
+            <button class="menu-item" id="btn-export" role="menuitem" type="button">
+              &darr; Export JSON
+            </button>
+          </div>
+        </div>
+      </div>
     </header>
 
     <main>
-      <div id="preview-panel">
-        <h2>eInk Preview</h2>
-        <div id="eink-display"></div>
-        <div class="preview-meta">
-          240 &times; 200 px &middot; 1-bit<br />
-          black/white &middot; eInk
-        </div>
-      </div>
+      <!-- Preview row: Outer (D) on left, Inner (P) on right -->
+      <section class="preview-cell" data-display="D">
+        <div class="column-heading">Outer</div>
+        <div id="eink-display-D" class="eink-display"></div>
+        <div class="preview-meta">240 &times; 200 px &middot; 1-bit</div>
+      </section>
 
-      <div id="config-panel">
+      <section class="preview-cell" data-display="P">
+        <div class="column-heading">Inner</div>
+        <div id="eink-display-P" class="eink-display"></div>
+        <div class="preview-meta">240 &times; 200 px &middot; 1-bit</div>
+      </section>
+
+      <!-- Editor row: Outer (D) on left, Inner (P) on right -->
+      <section class="editor-cell" data-display="D">
         <div class="config-toolbar">
-          <h2>Bento Boxes</h2>
-          <div class="display-toggle">
-            <button id="btn-display-d" class="active">D (Phone)</button>
-            <button id="btn-display-p">P (Counter)</button>
-          </div>
+          <h2>Outer Boxes</h2>
           <div class="add-box-wrapper">
-            <select id="add-type-select">
+            <select id="add-type-select-D">
               <option value="text">Text</option>
               <option value="countdown">Countdown</option>
               <option value="weather">Weather</option>
+              <option value="forecast">3hr Forecast</option>
               <option value="qr">QR Code</option>
               <option value="quote">Quote</option>
             </select>
-            <button class="btn-primary" id="btn-add">+ Add Box</button>
+            <button class="btn-primary" id="btn-add-D">+ Add Box</button>
           </div>
-          <button class="btn-secondary" id="btn-import">&uarr; Import</button>
-          <button class="btn-secondary" id="btn-export">&darr; Export JSON</button>
         </div>
-        <div id="box-list"></div>
-      </div>
+        <div id="box-list-D"></div>
+      </section>
+
+      <section class="editor-cell" data-display="P">
+        <div class="config-toolbar">
+          <h2>Inner Boxes</h2>
+          <div class="add-box-wrapper">
+            <select id="add-type-select-P">
+              <option value="text">Text</option>
+              <option value="countdown">Countdown</option>
+              <option value="weather">Weather</option>
+              <option value="forecast">3hr Forecast</option>
+              <option value="qr">QR Code</option>
+              <option value="quote">Quote</option>
+            </select>
+            <button class="btn-primary" id="btn-add-P">+ Add Box</button>
+          </div>
+        </div>
+        <div id="box-list-P"></div>
+      </section>
     </main>
 
     <script type="module" src="/src/main.ts"></script>

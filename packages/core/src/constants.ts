@@ -7,9 +7,19 @@
 
 import type { DeviceProfile } from './types.js';
 
-/** Pixel dimensions of the eInk display */
-export const DISPLAY_WIDTH = 128;
-export const DISPLAY_HEIGHT = 296;
+/** Pixel dimensions of the eInk display.
+ *  Source of truth — all renderer/layout/test logic derives from these. */
+export const DISPLAY_WIDTH = 240;
+export const DISPLAY_HEIGHT = 200;
+
+/** Bytes required to store a 1-bit frame buffer for the given dimensions
+ *  (8 horizontal pixels per byte). */
+export function frameBufferBytes(widthPx: number, heightPx: number): number {
+  return Math.ceil(widthPx / 8) * heightPx;
+}
+
+/** Bytes for the default device frame buffer */
+export const DEFAULT_FRAME_BYTES = frameBufferBytes(DISPLAY_WIDTH, DISPLAY_HEIGHT);
 
 /** Padding between bento boxes (divider line) */
 export const BOX_DIVIDER_PX = 1;

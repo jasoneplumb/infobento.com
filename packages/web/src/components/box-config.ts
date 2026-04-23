@@ -3,9 +3,16 @@
  * Each builder returns a DocumentFragment of form fields for a box type.
  */
 
-import type { EditorBox, EditorBoxType, QRConfig, QuoteConfig, WeatherConfig } from '../state';
-import { updateConfig, updateWeatherData } from '../state';
-import { fetchWeather, fetchQuote } from '../api';
+import type {
+  EditorBox,
+  EditorBoxType,
+  ForecastConfig,
+  QRConfig,
+  QuoteConfig,
+  WeatherConfig,
+} from '../state';
+import { updateConfig, updateForecastEntries, updateWeatherData } from '../state';
+import { fetchForecast, fetchWeather, fetchQuote } from '../api';
 
 // -- Validation rules -------------------------------------------------------
 
@@ -156,12 +163,12 @@ function buildWeatherForm(box: EditorBox): DocumentFragment {
       updateWeatherData(box.id, data);
       statusEl.textContent = `${data.temperature}\u00b0F, ${data.condition} (H: ${data.high}\u00b0 L: ${data.low}\u00b0)`;
     } else {
-      statusEl.textContent = 'City not found or fetch failed.';
+      statusEl.textContent = 'Location not found or fetch failed.';
     }
   };
 
   const cityInput = inputEl('text', cfg.city, (v) => updateConfig(box.id, 'city', v));
-  cityInput.placeholder = 'e.g. Portland';
+  cityInput.placeholder = 'e.g. Portland, OR';
   cityInput.addEventListener('blur', () => void doFetch());
   cityInput.addEventListener('keydown', (e) => {
     if (e.key === 'Enter') {
@@ -170,8 +177,65 @@ function buildWeatherForm(box: EditorBox): DocumentFragment {
     }
   });
 
-  frag.appendChild(makeField('City Name', cityInput, validateRequired('a city name')));
+  frag.appendChild(makeField('Location', cityInput, validateRequired('a location')));
   frag.appendChild(statusEl);
+
+  // Auto-fetch on mount when location is set but data is missing — keeps the
+  // eInk preview live without requiring a manual blur (e.g. after import or
+  // localStorage restore).
+  if (cfg.city.trim() && !cfg.data) {
+    void doFetch();
+  }
+
+  return frag;
+}
+
+function buildForecastForm(box: EditorBox): DocumentFragment {
+  const frag = document.createDocumentFragment();
+  const cfg = box.config as ForecastConfig;
+
+  const statusEl = document.createElement('div');
+  statusEl.className = 'weather-status';
+
+  const summarize = (
+    entries: readonly { time: string; temperature: number; condition: string }[],
+  ): string =>
+    entries.map((e) => `${e.time} ${String(e.temperature)}°F ${e.condition}`).join(' · ');
+
+  if (cfg.entries && cfg.entries.length > 0) {
+    statusEl.textContent = summarize(cfg.entries);
+  }
+
+  const doFetch = async (): Promise<void> => {
+    const city = cfg.city;
+    if (!city.trim()) return;
+    statusEl.textContent = 'Fetching forecast…';
+    const entries = await fetchForecast(city);
+    if (entries && entries.length > 0) {
+      updateForecastEntries(box.id, entries);
+      statusEl.textContent = summarize(entries);
+    } else {
+      statusEl.textContent = 'Location not found or fetch failed.';
+    }
+  };
+
+  const cityInput = inputEl('text', cfg.city, (v) => updateConfig(box.id, 'city', v));
+  cityInput.placeholder = 'e.g. Portland, OR';
+  cityInput.addEventListener('blur', () => void doFetch());
+  cityInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      cityInput.blur();
+    }
+  });
+
+  frag.appendChild(makeField('Location', cityInput, validateRequired('a location')));
+  frag.appendChild(statusEl);
+
+  if (cfg.city.trim() && (!cfg.entries || cfg.entries.length === 0)) {
+    void doFetch();
+  }
+
   return frag;
 }
 
@@ -230,6 +294,7 @@ const formBuilders: Record<EditorBoxType, (box: EditorBox) => DocumentFragment> 
   text: buildTextForm,
   countdown: buildCountdownForm,
   weather: buildWeatherForm,
+  forecast: buildForecastForm,
   qr: buildQRForm,
   quote: buildQuoteForm,
 };

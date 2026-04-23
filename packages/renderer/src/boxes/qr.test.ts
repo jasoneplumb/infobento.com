@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { render, createFrameBuffer } from '../index.js';
 import { renderQRBox } from './qr.js';
 import type { BentoConfig, LayoutBox, QRBoxConfig } from '@infobento/core';
+import { DISPLAY_WIDTH, DISPLAY_HEIGHT, DEFAULT_FRAME_BYTES } from '@infobento/core';
 
 /** Helper: count set pixels in a frame buffer region */
 function countPixelsInRegion(
@@ -71,8 +72,8 @@ describe('renderQRBox', () => {
       box: { id: '1', type: 'qr', label: 'QR', config: qrConfig },
       x: 0,
       y: 0,
-      width: 128,
-      height: 296,
+      width: DISPLAY_WIDTH,
+      height: DISPLAY_HEIGHT,
     };
 
     renderQRBox(fb, layout, qrConfig);
@@ -98,8 +99,8 @@ describe('renderQRBox', () => {
       box: { id: '1', type: 'qr', label: 'QR', config: shortConfig },
       x: 0,
       y: 0,
-      width: 128,
-      height: 296,
+      width: DISPLAY_WIDTH,
+      height: DISPLAY_HEIGHT,
     };
     renderQRBox(fb1, layout1, shortConfig);
 
@@ -112,8 +113,8 @@ describe('renderQRBox', () => {
       box: { id: '2', type: 'qr', label: 'QR', config: longConfig },
       x: 0,
       y: 0,
-      width: 128,
-      height: 296,
+      width: DISPLAY_WIDTH,
+      height: DISPLAY_HEIGHT,
     };
     renderQRBox(fb2, layout2, longConfig);
 
@@ -149,7 +150,7 @@ describe('renderQRBox', () => {
     };
 
     const fb = render(config);
-    expect(fb.data.length).toBe(4736);
+    expect(fb.data.length).toBe(DEFAULT_FRAME_BYTES);
     expect(fb.data.some((b) => b !== 0)).toBe(true);
   });
 });

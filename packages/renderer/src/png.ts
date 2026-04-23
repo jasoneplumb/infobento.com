@@ -11,7 +11,7 @@ import type { FrameBuffer } from './types.js';
 /**
  * intent: Convert a 1-bit frame buffer to a scaled PNG image
  * method: Expand each source pixel to a scale×scale block of grayscale pixels
- * effect: At scale=3, a 128×296 frame becomes a 384×888 PNG (~few KB)
+ * effect: Output PNG dimensions are (fb.width * scale) × (fb.height * scale)
  */
 export function frameToPng(fb: FrameBuffer, scale = 3): Uint8Array {
   if (!Number.isInteger(scale) || scale < 1) {

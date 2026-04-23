@@ -29,6 +29,21 @@ export interface WeatherBoxConfig {
   readonly data?: WeatherData;
 }
 
+/** Single entry in a 3-hour forecast — time label + temperature + condition */
+export interface ForecastEntry {
+  readonly time: string; // e.g. '14:00' or '+1h'
+  readonly temperature: number;
+  readonly condition: string;
+}
+
+export interface ForecastBoxConfig {
+  readonly type: 'forecast';
+  readonly city: string;
+  readonly lat?: number;
+  readonly lon?: number;
+  readonly entries?: readonly ForecastEntry[];
+}
+
 export interface CountdownBoxConfig {
   readonly type: 'countdown';
   readonly targetDate: string; // ISO date, e.g. '2026-12-31'
@@ -50,6 +65,7 @@ export interface QuoteBoxConfig {
 export type BoxConfig =
   | TextBoxConfig
   | WeatherBoxConfig
+  | ForecastBoxConfig
   | CountdownBoxConfig
   | QRBoxConfig
   | QuoteBoxConfig;
@@ -59,6 +75,7 @@ export type BoxConfig =
 /** Types of information a bento box can display */
 export type BentoBoxType =
   | 'weather'
+  | 'forecast'
   | 'calendar'
   | 'tasks'
   | 'quote'
@@ -87,6 +104,12 @@ interface WeatherBentoBox extends BentoBoxBase {
   readonly config?: WeatherBoxConfig;
 }
 
+/** Forecast box (3-hour) with typed config */
+interface ForecastBentoBox extends BentoBoxBase {
+  readonly type: 'forecast';
+  readonly config?: ForecastBoxConfig;
+}
+
 /** Countdown box with typed config */
 interface CountdownBentoBox extends BentoBoxBase {
   readonly type: 'countdown';
@@ -107,7 +130,10 @@ interface QuoteBentoBox extends BentoBoxBase {
 
 /** Box types that don't have a config yet (placeholder) */
 interface UnconfiguredBentoBox extends BentoBoxBase {
-  readonly type: Exclude<BentoBoxType, 'text' | 'weather' | 'countdown' | 'qr' | 'quote'>;
+  readonly type: Exclude<
+    BentoBoxType,
+    'text' | 'weather' | 'forecast' | 'countdown' | 'qr' | 'quote'
+  >;
   readonly config?: undefined;
 }
 
@@ -118,6 +144,7 @@ interface UnconfiguredBentoBox extends BentoBoxBase {
 export type BentoBox =
   | TextBentoBox
   | WeatherBentoBox
+  | ForecastBentoBox
   | CountdownBentoBox
   | QRBentoBox
   | QuoteBentoBox

@@ -1,6 +1,15 @@
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'vite';
 
+const pkg = JSON.parse(
+  readFileSync(fileURLToPath(new URL('./package.json', import.meta.url)), 'utf8'),
+) as { version: string };
+
 export default defineConfig({
+  define: {
+    __APP_VERSION__: JSON.stringify(pkg.version),
+  },
   server: {
     proxy: {
       '/api': 'http://127.0.0.1:4000',
@@ -13,7 +22,7 @@ export default defineConfig({
     alias: {
       // pngjs is Node-only (uses Buffer); the web preview renders via <canvas>
       // instead of PNG, so we stub the import to avoid bundling issues.
-      pngjs: '/dev/null',
+      pngjs: fileURLToPath(new URL('./src/stubs/pngjs.ts', import.meta.url)),
     },
   },
 });

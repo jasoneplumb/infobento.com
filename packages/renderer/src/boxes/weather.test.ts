@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { render } from '../index.js';
 import type { BentoConfig } from '@infobento/core';
+import { DEFAULT_FRAME_BYTES } from '@infobento/core';
 
 describe('renderWeatherBox', () => {
   it('renders with full weather data', () => {
@@ -27,7 +28,7 @@ describe('renderWeatherBox', () => {
     };
 
     const fb = render(config);
-    expect(fb.data.length).toBe(4736);
+    expect(fb.data.length).toBe(DEFAULT_FRAME_BYTES);
     // Should have rendered pixels (not blank)
     expect(fb.data.some((b) => b !== 0)).toBe(true);
   });
@@ -50,7 +51,7 @@ describe('renderWeatherBox', () => {
     };
 
     const fb = render(config);
-    expect(fb.data.length).toBe(4736);
+    expect(fb.data.length).toBe(DEFAULT_FRAME_BYTES);
     // Should still render something (city name + "No data")
     expect(fb.data.some((b) => b !== 0)).toBe(true);
   });
@@ -63,7 +64,7 @@ describe('renderWeatherBox', () => {
     };
 
     const fb = render(config);
-    expect(fb.data.length).toBe(4736);
+    expect(fb.data.length).toBe(DEFAULT_FRAME_BYTES);
     expect(fb.data.some((b) => b !== 0)).toBe(true);
   });
 
@@ -91,7 +92,7 @@ describe('renderWeatherBox', () => {
     };
 
     const fb = render(config);
-    expect(fb.data.length).toBe(4736);
+    expect(fb.data.length).toBe(DEFAULT_FRAME_BYTES);
     expect(fb.data.some((b) => b !== 0)).toBe(true);
   });
 
@@ -113,7 +114,7 @@ describe('renderWeatherBox', () => {
     };
 
     const fb = render(config);
-    expect(fb.data.length).toBe(4736);
+    expect(fb.data.length).toBe(DEFAULT_FRAME_BYTES);
     expect(fb.data.some((b) => b !== 0)).toBe(true);
   });
 

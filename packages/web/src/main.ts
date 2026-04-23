@@ -1,62 +1,92 @@
 /**
  * Entry point for the InfoBento web configuration editor.
- * Wires up toolbar buttons, registers render callbacks, and performs initial render.
+ * Wires up Add/Import/Export, registers render callbacks for both displays,
+ * and performs the initial render.
  */
 
 import type { DisplayId } from '@infobento/core';
 import type { EditorBoxType } from './state';
-import {
-  addBox,
-  exportJSON,
-  getActiveDisplay,
-  importJSON,
-  onPreviewRender,
-  onRender,
-  switchDisplay,
-} from './state';
+import { addBox, exportJSON, importJSON, onPreviewRender, onRender } from './state';
 import { renderBoxList } from './components/box-list';
 import { renderPreview } from './components/preview';
+import { requireConsent } from './components/consent';
 
-// -- Register render callbacks ----------------------------------------------
+// -- Render callbacks -------------------------------------------------------
 
-function updateToggleUI(): void {
-  const btnD = document.getElementById('btn-display-d');
-  const btnP = document.getElementById('btn-display-p');
-  const active = getActiveDisplay();
-  btnD?.classList.toggle('active', active === 'D');
-  btnP?.classList.toggle('active', active === 'P');
+const DISPLAYS: readonly DisplayId[] = ['D', 'P'];
+
+function renderAllPreviews(): void {
+  for (const id of DISPLAYS) {
+    renderPreview(id, `eink-display-${id}`);
+  }
 }
 
 function render(): void {
-  updateToggleUI();
-  renderBoxList();
-  renderPreview();
+  for (const id of DISPLAYS) {
+    renderBoxList(id, `box-list-${id}`);
+  }
+  renderAllPreviews();
 }
 
 onRender(render);
-onPreviewRender(renderPreview);
+onPreviewRender(renderAllPreviews);
 
-// -- Wire up toolbar --------------------------------------------------------
+// -- Wire up per-display Add buttons ---------------------------------------
 
-const btnAdd = document.getElementById('btn-add');
-const typeSelect = document.getElementById('add-type-select') as HTMLSelectElement | null;
-const btnImport = document.getElementById('btn-import');
-const btnExport = document.getElementById('btn-export');
+for (const id of DISPLAYS) {
+  const btn = document.getElementById(`btn-add-${id}`);
+  const select = document.getElementById(`add-type-select-${id}`) as HTMLSelectElement | null;
+  btn?.addEventListener('click', () => {
+    if (!select) return;
+    addBox(id, select.value as EditorBoxType);
+  });
+}
 
-btnAdd?.addEventListener('click', () => {
-  if (!typeSelect) return;
-  addBox(typeSelect.value as EditorBoxType);
+// -- Wire up header menu (Import / Export) ---------------------------------
+
+const menuWrapper = document.getElementById('header-menu');
+const menuTrigger = document.getElementById('btn-menu');
+const menuDropdown = menuWrapper?.querySelector<HTMLElement>('.menu-dropdown') ?? null;
+
+function setMenuOpen(open: boolean): void {
+  if (!menuTrigger || !menuDropdown) return;
+  menuTrigger.setAttribute('aria-expanded', String(open));
+  menuDropdown.classList.toggle('is-open', open);
+}
+
+menuTrigger?.addEventListener('click', (e) => {
+  e.stopPropagation();
+  const isOpen = menuTrigger.getAttribute('aria-expanded') === 'true';
+  setMenuOpen(!isOpen);
 });
 
-btnImport?.addEventListener('click', importJSON);
-btnExport?.addEventListener('click', exportJSON);
+document.addEventListener('click', (e) => {
+  if (!menuWrapper) return;
+  if (!menuWrapper.contains(e.target as Node)) setMenuOpen(false);
+});
 
-const btnDisplayD = document.getElementById('btn-display-d');
-const btnDisplayP = document.getElementById('btn-display-p');
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') setMenuOpen(false);
+});
 
-btnDisplayD?.addEventListener('click', () => switchDisplay('D' as DisplayId));
-btnDisplayP?.addEventListener('click', () => switchDisplay('P' as DisplayId));
+function wireMenuItem(id: string, action: () => void): void {
+  document.getElementById(id)?.addEventListener('click', () => {
+    setMenuOpen(false);
+    action();
+  });
+}
 
-// -- Initial render ---------------------------------------------------------
+wireMenuItem('btn-import', importJSON);
+wireMenuItem('btn-export', exportJSON);
 
+// -- Version stamp ----------------------------------------------------------
+
+const versionEl = document.getElementById('app-version');
+if (versionEl) versionEl.textContent = `v${__APP_VERSION__}`;
+
+// -- Initial render (after consent) -----------------------------------------
+
+// Render once so the editor is visible behind the dialog (greyed by overlay),
+// then await consent before the user can interact.
 render();
+void requireConsent();
