@@ -2,11 +2,13 @@ name: Claude Code Review
 
 on:
   pull_request:
-    types: [labeled, opened, synchronize]
+    types: [labeled]
 
 jobs:
   review:
-    if: contains(github.event.pull_request.labels.*.name, 'review-requested')
+    if: >-
+      github.event.label.name == 'review-requested'
+      && contains(github.event.pull_request.labels.*.name, 'review-requested')
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -31,4 +33,4 @@ jobs:
 
             Focus on substantive issues. Skip formatting, naming bikeshedding, and anything handled by linters.
             Post your findings as inline comments on specific lines and a summary comment on the PR.
-          claude_args: '--model claude-sonnet-4-6 --max-turns 50 --allowedTools "mcp__github_inline_comment__create_inline_comment,Bash(gh pr comment:*),Bash(gh pr diff:*),Bash(gh pr view:*)"'
+          claude_args: '--model claude-sonnet-4-6 --max-turns 10 --allowedTools "Read,Grep,Glob,Bash(gh pr diff:*),Bash(gh pr view:*),Bash(gh pr comment:*),mcp__github_inline_comment__create_inline_comment"'
