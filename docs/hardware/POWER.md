@@ -3,10 +3,10 @@
 ## Design Constraints
 
 - **Form factor:** monolithic counter device. Front: color eInk display. Back-upper: solar panel. Back-lower: MCU + battery. No hinge, no MagSafe, no kickstand.
-- **MCU:** ESP32-C3 or ESP32-C6 (decision in #35; C6 if Wi-Fi-direct, C3 if phone-bridged BLE)
+- **MCU:** ESP32-C3 (Wi-Fi 4 + BLE 5; BLE radio reserved for v2)
 - **Solar panel:** ~70×100 mm amorphous-Si on the upper portion of the back surface
 - **Battery:** small rechargeable LiPo (~100 mAh target; reconfirm after panel pick)
-- **Connectivity:** Wi-Fi direct (likely) — kills the iOS background-BLE risk that gated the previous clamshell concept. Phone-bridged BLE remains a fallback.
+- **Connectivity:** Wi-Fi direct (locked 2026-04-22 — see `docs/hardware/CONNECTIVITY.md`). Kills the iOS background-BLE risk; no companion app for v1.
 
 ## Operating Profile
 

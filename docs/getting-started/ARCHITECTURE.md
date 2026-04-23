@@ -8,8 +8,9 @@ InfoBento is a small, solar-powered color eInk decorator that lives on a counter
 ┌──────────────┐    Wi-Fi     ┌─────────────┐
 │    Device     │◄────────────►│  Cloud API  │
 │  color eInk   │              │ (stateless) │
-│  ESP32 + solar│              └─────────────┘
-└──────────────┘                      ▲
+│  ESP32-C3     │              │ (Hono on DO)│
+└──────────────┘              └─────────────┘
+                                      ▲
                                       │
                                 ┌─────┴─────┐
                                 │  Web UI    │
@@ -17,26 +18,27 @@ InfoBento is a small, solar-powered color eInk decorator that lives on a counter
                                 └───────────┘
 ```
 
-(Connectivity model — Wi-Fi direct vs phone-bridged BLE — is pending decision in #35. Diagram shows the leading Wi-Fi-direct path.)
+Device makes outbound HTTPS calls to the cloud API. No companion phone app; the web editor at `infobento.com` is the only configuration surface. First-time setup uses a captive-portal Wi-Fi pairing flow; recovery via a recessed pinhole reset on the back of the device. See `docs/hardware/CONNECTIVITY.md`.
 
 ### Operating Profile
 
-Single mode: counter-standing. Refreshes 1–2× per day on solar power. There is no longer a phone-mounted minute-level mode (that died with the pivot away from the MagSafe clamshell — see RFC #25).
+Single mode: counter-standing. Refreshes 1–2× per day on solar power. There is no longer a phone-mounted minute-level mode (that died with the pivot away from the MagSafe clamshell — see RFC #25). Native phone apps + BLE bridge are deferred to a possible v2 (see `docs/hardware/CONNECTIVITY.md`'s "v2 path" section).
 
 ### Data Flow
 
 1. **User** configures bento boxes via the **Web UI** (browser localStorage)
 2. **Cloud API** is a pure function: config in, frame buffer out
-3. **Device** wakes on RTC alarm and fetches the current frame from the API (Wi-Fi direct, or via phone bridge)
+3. **Device** wakes on RTC alarm, joins saved Wi-Fi, fetches the current frame from the API via HTTPS
 4. **Device** writes the frame to the eInk display and returns to deep sleep
 
 ### Key Design Decisions
 
-- **Stateless API** — pure functions, no server-side state. Config in, frame buffer out. Edge-deployable.
+- **Stateless API** — pure functions, no server-side state. Config in, frame buffer out.
 - **Color rendering** — color eInk panel (Spectra 6 / ACeP family) with a 7-color palette. Rendering is panel-aware via `Color` enum exported from `@infobento/core` (Phase 3, in progress).
 - **Solar-only power** — no MagSafe, no charging cable. Refresh budget sized to the solar harvest budget for moderate indoor light.
-- **Zero device interaction** — no buttons. Configure once via web, glance forever. Setup UX (Wi-Fi pairing) is the one place this is hard; see `docs/hardware/BLE.md`.
-- **Drop survival** — designed for a 4-foot drop onto a hard surface (bumper layer, edge-radiused corners, recessed display).
+- **Wi-Fi direct + web-only config** — no native phone app for v1. Captive-portal setup, web editor handles configuration.
+- **Zero device interaction** — no buttons. Configure once via web, glance forever. Single physical affordance is the recessed pinhole reset for Wi-Fi recovery.
+- **Drop survival** — designed for a 4-foot drop onto a hard surface (bumper layer, edge-radiused corners, recessed display, pinhole instead of clickable button).
 
 ## Package Architecture
 
@@ -63,18 +65,34 @@ Development:
    └── HMR                         └── API routes only
 
 Production:
-  Hono (:4000)
-   ├── /api/*        → API routes (pure functions)
-   └── /*            → Static files from web/dist (SPA fallback)
+  Internet
+     │
+     ▼
+  Cloudflare (DNS + CDN + DDoS + TLS edge — free tier)
+     │
+     ▼
+  DigitalOcean droplet (co-tenant with tiles- and webmap.dev)
+     │
+     ▼
+  Caddy (TLS termination, reverse proxy, auto-cert via Let's Encrypt)
+     │
+     ▼
+  Hono (:4000) on Node, managed by systemd
+     ├── /api/*               → API routes (pure functions)
+     ├── /api/firmware/*      → OTA manifest + .bin files (served from disk)
+     └── /*                   → Static files from web/dist (SPA fallback)
 ```
 
-- **Hono** chosen for: edge deployability (Node, Cloudflare Workers, Deno, Bun), lightweight, pure-function friendly
+- **Hono** chosen for: lightweight, pure-function friendly, runs unchanged on Node
 - **Vite proxy** in dev: `/api` requests forwarded to Hono; all other requests served by Vite with HMR
 
 ## Deployment
 
-- **Single port:** Hono serves API + web UI from one port (default 4000). Co-hosted with tiles- and webmap.dev.
-- **Edge option:** API can also deploy standalone to Cloudflare Workers, Vercel Edge, etc.
+- **DigitalOcean droplet** ($6/mo tier handles 10K-100K devices comfortably; co-tenant with tiles- and webmap.dev so marginal cost for InfoBento is ~$1-2/mo)
+- **Cloudflare proxy** in front (free tier) for DDoS protection, edge cache, TLS termination, anycast DNS
+- **OTA firmware** files served directly from `/var/www/firmware/*.bin` on the droplet — no object storage needed at this scale
+- **Single port:** Hono serves API + web UI + firmware from one port (default 4000), proxied by Caddy
+- **Migration path:** Hono is portable, so moving to Cloudflare Workers, Vercel Edge, or another provider is a few-hour exercise if the droplet ever becomes the bottleneck (it won't at the scales we plan for)
 - **Device firmware:** separate repo (future)
 
 ## Mid-pivot status

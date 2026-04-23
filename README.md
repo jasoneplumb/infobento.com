@@ -13,10 +13,11 @@ Set it on a kitchen counter, a desk, or a shelf. The body is its own stand — s
 ### Hardware
 
 - **Display:** color eInk panel (size and palette pending — see `docs/hardware/DISPLAY.md` for current candidates)
-- **MCU:** ESP32-C3 or ESP32-C6 (decision pending — depends on connectivity model)
+- **MCU:** ESP32-C3 (Wi-Fi 4 + BLE 5; BLE radio reserved for a possible v2 bridge mode)
 - **Power:** 100 mAh LiPo + AEM10941 solar harvester
 - **Solar panel:** mounted on the upper portion of the back side, ~70×100 mm
-- **Connectivity:** Wi-Fi direct (likely) — phone-bridged BLE remains a fallback option
+- **Connectivity:** Wi-Fi direct + captive-portal setup; no companion phone app. Web editor at `infobento.com` is the only configuration surface. See `docs/hardware/CONNECTIVITY.md`.
+- **Recovery:** recessed pinhole reset (~2mm) on the back-lower grip area; press with paperclip for 5s = factory reset.
 - **Form factor:** monolithic body. No hinge, no kickstand, no MagSafe. The body is the stand.
 - **Industrial design:** white housing, thin bezel (≤4mm visible)
 - **Drop survival:** designed to survive a 4-foot drop onto a hard surface — soft polymer bumper between glass and housing, edge-radiused corners, inset display recess

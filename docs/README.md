@@ -39,7 +39,7 @@ docs/
 ├── hardware/
 │   ├── DISPLAY.md            Color eInk display specs, form factor, refresh strategy
 │   ├── POWER.md              Solar power budget for the counter device
-│   └── BLE.md                Connectivity options (Wi-Fi direct vs phone-bridged BLE)
+│   └── CONNECTIVITY.md       Wi-Fi direct + captive portal setup; v2 BLE path
 │
 └── rfcs/                     Architecture decision records
 ```
