@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.6.0] - 2026-04-23
+
+### Added
+
+- New **8-day forecast** box type (`forecast3d`) with daily high/low temps and conditions
+- `fetchForecast3D()` API helper using Open-Meteo daily forecast endpoint
+- 7x7 pixel-art icon for 8-day forecast box header
+- All box types (sun, aqi, moon, date, progress) now available in the add-box dropdown
+
+### Changed
+
+- Hourly forecast extended from 3 entries to 8 (label: "8hr Forecast")
+- Daily forecast extended from 3 days to 8 (label: "8-Day Forecast")
+- Location-based box headers now show the city name (e.g., "PORTLAND, OR" instead of "WEATHER")
+- Applies to: weather, hourly forecast, daily forecast, sunrise/sunset, and air quality boxes
+- Hourly forecast time/temp column spacing increased for readability
+
 ## [0.5.1] - 2026-04-23
 
 ### Fixed
