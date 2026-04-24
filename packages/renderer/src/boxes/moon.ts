@@ -169,16 +169,19 @@ export function renderMoonBox(
   layout: LayoutBox,
   _config: MoonBoxConfig,
   now: Date = new Date(),
+  showHeaders = true,
 ): void {
   const { x, y, width, height } = layout;
   let cy = y + PAD;
 
-  // Icon + uppercase label (5x7 font)
-  const icon = BOX_ICONS['moon'];
-  if (icon) drawIcon(fb, x + PAD, cy, icon);
-  const labelX = x + PAD + ICON_WIDTH + 3;
-  drawText(fb, labelX, cy, 'MOON', width - PAD * 2 - ICON_WIDTH - 3);
-  cy += FONT_HEIGHT + PAD;
+  if (showHeaders) {
+    // Icon + uppercase label (5x7 font)
+    const icon = BOX_ICONS['moon'];
+    if (icon) drawIcon(fb, x + PAD, cy, icon);
+    const labelX = x + PAD + ICON_WIDTH + 3;
+    drawText(fb, labelX, cy, 'MOON', width - PAD * 2 - ICON_WIDTH - 3);
+    cy += FONT_HEIGHT + PAD;
+  }
 
   const phase = moonPhase(now);
   const { index, name, illumination } = moonPhaseName(phase);

@@ -43,6 +43,21 @@ const ForecastBoxConfigSchema = z.object({
   entries: z.array(ForecastEntrySchema).optional(),
 });
 
+const Forecast3DEntrySchema = z.object({
+  day: z.string(),
+  high: z.number(),
+  low: z.number(),
+  condition: z.string(),
+});
+
+const Forecast3DBoxConfigSchema = z.object({
+  type: z.literal('forecast3d'),
+  city: z.string().min(1, 'Location is required'),
+  lat: z.number().optional(),
+  lon: z.number().optional(),
+  entries: z.array(Forecast3DEntrySchema).optional(),
+});
+
 const CountdownBoxConfigSchema = z.object({
   type: z.literal('countdown'),
   targetDate: z.string().min(1, 'Target date is required'),
@@ -129,6 +144,11 @@ const ForecastBentoBoxSchema = BentoBoxBaseSchema.extend({
   config: ForecastBoxConfigSchema.optional(),
 });
 
+const Forecast3DBentoBoxSchema = BentoBoxBaseSchema.extend({
+  type: z.literal('forecast3d'),
+  config: Forecast3DBoxConfigSchema.optional(),
+});
+
 const CountdownBentoBoxSchema = BentoBoxBaseSchema.extend({
   type: z.literal('countdown'),
   config: CountdownBoxConfigSchema.optional(),
@@ -173,6 +193,7 @@ const BentoBoxSchema = z.discriminatedUnion('type', [
   TextBentoBoxSchema,
   WeatherBentoBoxSchema,
   ForecastBentoBoxSchema,
+  Forecast3DBentoBoxSchema,
   CountdownBentoBoxSchema,
   QRBentoBoxSchema,
   QuoteBentoBoxSchema,
@@ -191,6 +212,7 @@ export const BentoConfigSchema = z.object({
     .min(1, 'Config must have at least one bento box')
     .max(6, 'Config cannot exceed 6 bento boxes'),
   refreshesPerDay: z.union([z.literal(1), z.literal(2)]),
+  showHeaders: z.boolean().optional(),
 });
 
 // --- Validation function ---

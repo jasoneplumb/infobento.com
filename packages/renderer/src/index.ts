@@ -10,6 +10,7 @@ import { DISPLAY_WIDTH, DISPLAY_HEIGHT, calculateLayout } from '@infobento/core'
 import { renderTextBox, renderPlaceholderBox } from './boxes/text.js';
 import { renderWeatherBox } from './boxes/weather.js';
 import { renderForecastBox } from './boxes/forecast.js';
+import { renderForecast3DBox } from './boxes/forecast3d.js';
 import { renderCountdownBox } from './boxes/countdown.js';
 import { renderQRBox } from './boxes/qr.js';
 import { renderQuoteBox } from './boxes/quote.js';
@@ -44,33 +45,35 @@ export function createFrameBuffer(
  * intent: Render a single layout box by dispatching to the appropriate box renderer
  * method: Switch on box type — only 'text' is implemented, others get placeholder
  */
-function renderBox(fb: FrameBuffer, layoutBox: LayoutBox): void {
+function renderBox(fb: FrameBuffer, layoutBox: LayoutBox, showHeaders: boolean): void {
   const { box } = layoutBox;
 
   // tradeoff: boxes without config fall through to placeholder rather than
   // crashing — the web UI will enforce config presence, but the renderer is lenient
   if (box.type === 'text' && box.config?.type === 'text') {
-    renderTextBox(fb, layoutBox, box.config);
+    renderTextBox(fb, layoutBox, box.config, showHeaders);
   } else if (box.type === 'weather' && box.config?.type === 'weather') {
-    renderWeatherBox(fb, layoutBox, box.config);
+    renderWeatherBox(fb, layoutBox, box.config, showHeaders);
   } else if (box.type === 'forecast' && box.config?.type === 'forecast') {
-    renderForecastBox(fb, layoutBox, box.config);
+    renderForecastBox(fb, layoutBox, box.config, showHeaders);
+  } else if (box.type === 'forecast3d' && box.config?.type === 'forecast3d') {
+    renderForecast3DBox(fb, layoutBox, box.config, showHeaders);
   } else if (box.type === 'countdown' && box.config?.type === 'countdown') {
-    renderCountdownBox(fb, layoutBox, box.config);
+    renderCountdownBox(fb, layoutBox, box.config, undefined, showHeaders);
   } else if (box.type === 'qr' && box.config?.type === 'qr') {
-    renderQRBox(fb, layoutBox, box.config);
+    renderQRBox(fb, layoutBox, box.config, showHeaders);
   } else if (box.type === 'quote' && box.config?.type === 'quote') {
-    renderQuoteBox(fb, layoutBox, box.config);
+    renderQuoteBox(fb, layoutBox, box.config, showHeaders);
   } else if (box.type === 'date' && box.config?.type === 'date') {
-    renderDateBox(fb, layoutBox, box.config);
+    renderDateBox(fb, layoutBox, box.config, undefined, showHeaders);
   } else if (box.type === 'moon' && box.config?.type === 'moon') {
-    renderMoonBox(fb, layoutBox, box.config);
+    renderMoonBox(fb, layoutBox, box.config, undefined, showHeaders);
   } else if (box.type === 'sun' && box.config?.type === 'sun') {
-    renderSunBox(fb, layoutBox, box.config);
+    renderSunBox(fb, layoutBox, box.config, showHeaders);
   } else if (box.type === 'aqi' && box.config?.type === 'aqi') {
-    renderAQIBox(fb, layoutBox, box.config);
+    renderAQIBox(fb, layoutBox, box.config, showHeaders);
   } else if (box.type === 'progress' && box.config?.type === 'progress') {
-    renderProgressBox(fb, layoutBox, box.config);
+    renderProgressBox(fb, layoutBox, box.config, undefined, showHeaders);
   } else {
     renderPlaceholderBox(fb, layoutBox);
   }
@@ -85,8 +88,9 @@ export function render(config: BentoConfig, device?: DeviceProfile): FrameBuffer
   const layout = calculateLayout(config, device);
   const fb = createFrameBuffer(layout.device);
 
+  const showHeaders = config.showHeaders !== false;
   for (const layoutBox of layout.boxes) {
-    renderBox(fb, layoutBox);
+    renderBox(fb, layoutBox, showHeaders);
   }
 
   return fb;

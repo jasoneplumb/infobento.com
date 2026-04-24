@@ -10,6 +10,7 @@ import type {
   CountdownConfig,
   WeatherConfig,
   ForecastConfig,
+  Forecast3DConfig,
   TextConfig,
   QRConfig,
   QuoteConfig,
@@ -18,7 +19,7 @@ import type {
   AQIConfig,
   ProgressConfig,
 } from '../state';
-import { getBoxes } from '../state';
+import { getBoxes, getShowHeaders } from '../state';
 
 /** Canvas scale factor. SCALE=1 paints each frame buffer pixel as one CSS
  *  pixel — the preview is then physically the same dimensions as the actual
@@ -60,6 +61,14 @@ function toBentoBox(editor: EditorBox): BentoBox {
         ...base,
         type: 'forecast',
         config: { type: 'forecast', city: c.city, entries: c.entries },
+      };
+    }
+    case 'forecast3d': {
+      const c = editor.config as Forecast3DConfig;
+      return {
+        ...base,
+        type: 'forecast3d',
+        config: { type: 'forecast3d', city: c.city, entries: c.entries },
       };
     }
     case 'qr': {
@@ -127,6 +136,7 @@ function toBentoConfig(boxes: readonly EditorBox[]): BentoConfig {
   return {
     boxes: boxes.map(toBentoBox),
     refreshesPerDay: 1,
+    showHeaders: getShowHeaders(),
   };
 }
 

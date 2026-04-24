@@ -22,20 +22,27 @@ const LABEL_GAP = 4;
  * method: Uppercase label, thin rule divider, wrapped body text with whitespace padding
  * effect: Fills the allocated LayoutBox region without borders
  */
-export function renderTextBox(fb: FrameBuffer, layout: LayoutBox, config: TextBoxConfig): void {
+export function renderTextBox(
+  fb: FrameBuffer,
+  layout: LayoutBox,
+  config: TextBoxConfig,
+  showHeaders = true,
+): void {
   const { x, y, width, height } = layout;
   let cy = y + TOP_PAD;
 
-  // Icon + uppercase label (5x7 font)
-  const icon = BOX_ICONS['text'];
-  if (icon) drawIcon(fb, x + TOP_PAD, cy, icon);
-  const labelX = x + TOP_PAD + ICON_WIDTH + 3;
-  drawText(fb, labelX, cy, layout.box.label.toUpperCase(), width - TOP_PAD * 2 - ICON_WIDTH - 3);
-  cy += FONT_HEIGHT + LABEL_GAP;
+  if (showHeaders) {
+    // Icon + uppercase label (5x7 font)
+    const icon = BOX_ICONS['text'];
+    if (icon) drawIcon(fb, x + TOP_PAD, cy, icon);
+    const labelX = x + TOP_PAD + ICON_WIDTH + 3;
+    drawText(fb, labelX, cy, layout.box.label.toUpperCase(), width - TOP_PAD * 2 - ICON_WIDTH - 3);
+    cy += FONT_HEIGHT + LABEL_GAP;
 
-  // Thin horizontal rule
-  drawHLine(fb, x + TOP_PAD, cy, width - TOP_PAD * 2);
-  cy += LABEL_GAP;
+    // Thin horizontal rule
+    drawHLine(fb, x + TOP_PAD, cy, width - TOP_PAD * 2);
+    cy += LABEL_GAP;
+  }
 
   // Wrapped body text
   const bodyWidth = width - TOP_PAD * 2;

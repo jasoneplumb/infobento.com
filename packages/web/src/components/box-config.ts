@@ -7,6 +7,7 @@ import type {
   EditorBox,
   EditorBoxType,
   ForecastConfig,
+  Forecast3DConfig,
   QRConfig,
   QuoteConfig,
   WeatherConfig,
@@ -18,11 +19,19 @@ import type {
 import {
   updateConfig,
   updateForecastEntries,
+  updateForecast3DEntries,
   updateWeatherData,
   updateSunData,
   updateAQIData,
 } from '../state';
-import { fetchForecast, fetchWeather, fetchQuote, fetchSunTimes, fetchAirQuality } from '../api';
+import {
+  fetchForecast,
+  fetchForecast3D,
+  fetchWeather,
+  fetchQuote,
+  fetchSunTimes,
+  fetchAirQuality,
+} from '../api';
 
 // -- Validation rules -------------------------------------------------------
 
@@ -223,6 +232,55 @@ function buildForecastForm(box: EditorBox): DocumentFragment {
     const entries = await fetchForecast(city);
     if (entries && entries.length > 0) {
       updateForecastEntries(box.id, entries);
+      statusEl.textContent = summarize(entries);
+    } else {
+      statusEl.textContent = 'Location not found or fetch failed.';
+    }
+  };
+
+  const cityInput = inputEl('text', cfg.city, (v) => updateConfig(box.id, 'city', v));
+  cityInput.placeholder = 'e.g. Portland, OR';
+  cityInput.addEventListener('blur', () => void doFetch());
+  cityInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      cityInput.blur();
+    }
+  });
+
+  frag.appendChild(makeField('Location', cityInput, validateRequired('a location')));
+  frag.appendChild(statusEl);
+
+  if (cfg.city.trim() && (!cfg.entries || cfg.entries.length === 0)) {
+    void doFetch();
+  }
+
+  return frag;
+}
+
+function buildForecast3DForm(box: EditorBox): DocumentFragment {
+  const frag = document.createDocumentFragment();
+  const cfg = box.config as Forecast3DConfig;
+
+  const statusEl = document.createElement('div');
+  statusEl.className = 'weather-status';
+
+  const summarize = (
+    entries: readonly { day: string; high: number; low: number; condition: string }[],
+  ): string =>
+    entries.map((e) => `${e.day} ${String(e.high)}/${String(e.low)}°F ${e.condition}`).join(' · ');
+
+  if (cfg.entries && cfg.entries.length > 0) {
+    statusEl.textContent = summarize(cfg.entries);
+  }
+
+  const doFetch = async (): Promise<void> => {
+    const city = cfg.city;
+    if (!city.trim()) return;
+    statusEl.textContent = 'Fetching 3-day forecast\u2026';
+    const entries = await fetchForecast3D(city);
+    if (entries && entries.length > 0) {
+      updateForecast3DEntries(box.id, entries);
       statusEl.textContent = summarize(entries);
     } else {
       statusEl.textContent = 'Location not found or fetch failed.';
@@ -455,6 +513,7 @@ const formBuilders: Record<EditorBoxType, (box: EditorBox) => DocumentFragment> 
   countdown: buildCountdownForm,
   weather: buildWeatherForm,
   forecast: buildForecastForm,
+  forecast3d: buildForecast3DForm,
   qr: buildQRForm,
   quote: buildQuoteForm,
   date: buildDateForm,

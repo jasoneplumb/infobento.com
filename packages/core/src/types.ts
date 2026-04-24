@@ -107,11 +107,28 @@ export interface ProgressBoxConfig {
   readonly endDate?: string;
 }
 
+/** Single entry in a 3-day daily forecast — day label + high/low + condition */
+export interface Forecast3DEntry {
+  readonly day: string; // e.g. 'Mon', 'Tue'
+  readonly high: number;
+  readonly low: number;
+  readonly condition: string;
+}
+
+export interface Forecast3DBoxConfig {
+  readonly type: 'forecast3d';
+  readonly city: string;
+  readonly lat?: number;
+  readonly lon?: number;
+  readonly entries?: readonly Forecast3DEntry[];
+}
+
 /** Discriminated union of all box-specific configurations */
 export type BoxConfig =
   | TextBoxConfig
   | WeatherBoxConfig
   | ForecastBoxConfig
+  | Forecast3DBoxConfig
   | CountdownBoxConfig
   | QRBoxConfig
   | QuoteBoxConfig
@@ -127,6 +144,7 @@ export type BoxConfig =
 export type BentoBoxType =
   | 'weather'
   | 'forecast'
+  | 'forecast3d'
   | 'calendar'
   | 'tasks'
   | 'quote'
@@ -164,6 +182,12 @@ interface WeatherBentoBox extends BentoBoxBase {
 interface ForecastBentoBox extends BentoBoxBase {
   readonly type: 'forecast';
   readonly config?: ForecastBoxConfig;
+}
+
+/** 3-day forecast box with typed config */
+interface Forecast3DBentoBox extends BentoBoxBase {
+  readonly type: 'forecast3d';
+  readonly config?: Forecast3DBoxConfig;
 }
 
 /** Countdown box with typed config */
@@ -221,6 +245,7 @@ interface UnconfiguredBentoBox extends BentoBoxBase {
     | 'text'
     | 'weather'
     | 'forecast'
+    | 'forecast3d'
     | 'countdown'
     | 'qr'
     | 'quote'
@@ -241,6 +266,7 @@ export type BentoBox =
   | TextBentoBox
   | WeatherBentoBox
   | ForecastBentoBox
+  | Forecast3DBentoBox
   | CountdownBentoBox
   | QRBentoBox
   | QuoteBentoBox
@@ -255,6 +281,7 @@ export type BentoBox =
 export interface BentoConfig {
   readonly boxes: readonly BentoBox[];
   readonly refreshesPerDay: 1 | 2;
+  readonly showHeaders?: boolean;
 }
 
 /** Physical device profile */

@@ -24,16 +24,20 @@ export function renderWeatherBox(
   fb: FrameBuffer,
   layout: LayoutBox,
   config: WeatherBoxConfig,
+  showHeaders = true,
 ): void {
   const { x, y, width, height } = layout;
   let cy = y + PAD;
 
-  // Icon + uppercase label (5x7 font)
-  const icon = BOX_ICONS['weather'];
-  if (icon) drawIcon(fb, x + PAD, cy, icon);
-  const labelX = x + PAD + ICON_WIDTH + 3;
-  drawText(fb, labelX, cy, 'WEATHER', width - PAD * 2 - ICON_WIDTH - 3);
-  cy += FONT_HEIGHT + PAD;
+  if (showHeaders) {
+    // Icon + uppercase label (5x7 font)
+    const icon = BOX_ICONS['weather'];
+    if (icon) drawIcon(fb, x + PAD, cy, icon);
+    const labelX = x + PAD + ICON_WIDTH + 3;
+    const headerText = config.city ? `${config.city.toUpperCase()}` : 'WEATHER';
+    drawText(fb, labelX, cy, headerText, width - PAD * 2 - ICON_WIDTH - 3);
+    cy += FONT_HEIGHT + PAD;
+  }
 
   const contentWidth = width - PAD * 2;
   const contentEnd = y + height - PAD;

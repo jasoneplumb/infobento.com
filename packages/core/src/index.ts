@@ -12,6 +12,8 @@ export type {
   WeatherBoxConfig,
   ForecastEntry,
   ForecastBoxConfig,
+  Forecast3DEntry,
+  Forecast3DBoxConfig,
   CountdownBoxConfig,
   QRBoxConfig,
   QuoteBoxConfig,

@@ -94,18 +94,21 @@ export function renderProgressBox(
   layout: LayoutBox,
   config: ProgressBoxConfig,
   now: Date = new Date(),
+  showHeaders = true,
 ): void {
   const { x, y, width, height } = layout;
   let cy = y + PAD;
 
-  const label = config.label ?? 'Year';
+  if (showHeaders) {
+    const label = config.label ?? 'Year';
 
-  // Icon + label header (5x7 font)
-  const icon = BOX_ICONS['progress'];
-  if (icon) drawIcon(fb, x + PAD, cy, icon);
-  const labelX = x + PAD + ICON_WIDTH + 3;
-  drawText(fb, labelX, cy, label.toUpperCase(), width - PAD * 2 - ICON_WIDTH - 3);
-  cy += FONT_HEIGHT + PAD;
+    // Icon + label header (5x7 font)
+    const icon = BOX_ICONS['progress'];
+    if (icon) drawIcon(fb, x + PAD, cy, icon);
+    const labelX = x + PAD + ICON_WIDTH + 3;
+    drawText(fb, labelX, cy, label.toUpperCase(), width - PAD * 2 - ICON_WIDTH - 3);
+    cy += FONT_HEIGHT + PAD;
+  }
 
   const defaultRange = defaultYearRange(now);
   const startDate = config.startDate ?? defaultRange.startDate;

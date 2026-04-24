@@ -19,16 +19,23 @@ const PAD = 4;
  * method: Uppercase label, wrapped quote text, right-aligned author, thin rule divider
  * effect: Fills the allocated LayoutBox region without borders
  */
-export function renderQuoteBox(fb: FrameBuffer, layout: LayoutBox, config: QuoteBoxConfig): void {
+export function renderQuoteBox(
+  fb: FrameBuffer,
+  layout: LayoutBox,
+  config: QuoteBoxConfig,
+  showHeaders = true,
+): void {
   const { x, y, width, height } = layout;
   let cy = y + PAD;
 
-  // Icon + uppercase label (5x7 font)
-  const icon = BOX_ICONS['quote'];
-  if (icon) drawIcon(fb, x + PAD, cy, icon);
-  const labelX = x + PAD + ICON_WIDTH + 3;
-  drawText(fb, labelX, cy, layout.box.label.toUpperCase(), width - PAD * 2 - ICON_WIDTH - 3);
-  cy += FONT_HEIGHT + PAD;
+  if (showHeaders) {
+    // Icon + uppercase label (5x7 font)
+    const icon = BOX_ICONS['quote'];
+    if (icon) drawIcon(fb, x + PAD, cy, icon);
+    const labelX = x + PAD + ICON_WIDTH + 3;
+    drawText(fb, labelX, cy, layout.box.label.toUpperCase(), width - PAD * 2 - ICON_WIDTH - 3);
+    cy += FONT_HEIGHT + PAD;
+  }
 
   // Body area
   const bodyX = x + PAD;

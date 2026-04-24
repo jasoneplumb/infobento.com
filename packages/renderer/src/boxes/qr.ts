@@ -23,16 +23,23 @@ const QUIET_ZONE_MODULES = 2;
  * method: Uppercase label, thin 1px outline around QR, centered scaled QR with quiet zone
  * effect: Fills the allocated LayoutBox region with a scannable QR code
  */
-export function renderQRBox(fb: FrameBuffer, layout: LayoutBox, config: QRBoxConfig): void {
+export function renderQRBox(
+  fb: FrameBuffer,
+  layout: LayoutBox,
+  config: QRBoxConfig,
+  showHeaders = true,
+): void {
   const { x, y, width, height } = layout;
   let cy = y + PAD;
 
-  // Icon + uppercase label (5x7 font)
-  const icon = BOX_ICONS['qr'];
-  if (icon) drawIcon(fb, x + PAD, cy, icon);
-  const labelX = x + PAD + ICON_WIDTH + 3;
-  drawText(fb, labelX, cy, layout.box.label.toUpperCase(), width - PAD * 2 - ICON_WIDTH - 3);
-  cy += FONT_HEIGHT + PAD;
+  if (showHeaders) {
+    // Icon + uppercase label (5x7 font)
+    const icon = BOX_ICONS['qr'];
+    if (icon) drawIcon(fb, x + PAD, cy, icon);
+    const labelX = x + PAD + ICON_WIDTH + 3;
+    drawText(fb, labelX, cy, layout.box.label.toUpperCase(), width - PAD * 2 - ICON_WIDTH - 3);
+    cy += FONT_HEIGHT + PAD;
+  }
 
   // Body area below label
   const bodyX = x + PAD;

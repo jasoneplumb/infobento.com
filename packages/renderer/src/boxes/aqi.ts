@@ -20,16 +20,24 @@ const PAD = 4;
  * method: Icon + "AIR QUALITY" header, hero AQI, category, UV index, pollutant
  * effect: Fills the allocated LayoutBox region without borders
  */
-export function renderAQIBox(fb: FrameBuffer, layout: LayoutBox, config: AQIBoxConfig): void {
+export function renderAQIBox(
+  fb: FrameBuffer,
+  layout: LayoutBox,
+  config: AQIBoxConfig,
+  showHeaders = true,
+): void {
   const { x, y, width, height } = layout;
   let cy = y + PAD;
 
-  // Icon + uppercase label (5x7 font)
-  const icon = BOX_ICONS['aqi'];
-  if (icon) drawIcon(fb, x + PAD, cy, icon);
-  const labelX = x + PAD + ICON_WIDTH + 3;
-  drawText(fb, labelX, cy, 'AIR QUALITY', width - PAD * 2 - ICON_WIDTH - 3);
-  cy += FONT_HEIGHT + PAD;
+  if (showHeaders) {
+    // Icon + uppercase label (5x7 font)
+    const icon = BOX_ICONS['aqi'];
+    if (icon) drawIcon(fb, x + PAD, cy, icon);
+    const labelX = x + PAD + ICON_WIDTH + 3;
+    const headerText = config.city ? `${config.city.toUpperCase()} AQI` : 'AIR QUALITY';
+    drawText(fb, labelX, cy, headerText, width - PAD * 2 - ICON_WIDTH - 3);
+    cy += FONT_HEIGHT + PAD;
+  }
 
   const contentWidth = width - PAD * 2;
   const contentEnd = y + height - PAD;

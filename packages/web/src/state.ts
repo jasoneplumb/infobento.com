@@ -5,7 +5,14 @@
  * setState() triggers a synchronous re-render of every panel.
  */
 
-import type { BentoBoxType, WeatherData, ForecastEntry, SunData, AQIData } from '@infobento/core';
+import type {
+  BentoBoxType,
+  WeatherData,
+  ForecastEntry,
+  Forecast3DEntry,
+  SunData,
+  AQIData,
+} from '@infobento/core';
 
 // -- Editor box model (UI-local, not the core BentoBox type) ---------------
 
@@ -26,6 +33,11 @@ export interface WeatherConfig {
 export interface ForecastConfig {
   city: string;
   entries?: ForecastEntry[];
+}
+
+export interface Forecast3DConfig {
+  city: string;
+  entries?: Forecast3DEntry[];
 }
 
 export interface QRConfig {
@@ -67,6 +79,7 @@ export type EditorBoxConfig =
   | CountdownConfig
   | WeatherConfig
   | ForecastConfig
+  | Forecast3DConfig
   | QRConfig
   | QuoteConfig
   | DateConfig
@@ -81,6 +94,7 @@ export type EditorBoxType = Extract<
   | 'countdown'
   | 'weather'
   | 'forecast'
+  | 'forecast3d'
   | 'qr'
   | 'quote'
   | 'date'
@@ -99,6 +113,7 @@ export interface EditorBox {
 
 export interface EditorState {
   boxes: EditorBox[];
+  showHeaders: boolean;
 }
 
 // -- UID generator ----------------------------------------------------------
@@ -115,6 +130,7 @@ const DEFAULTS: Record<EditorBoxType, () => EditorBoxConfig> = {
   countdown: () => ({ date: '', countdownLabel: '' }),
   weather: () => ({ city: '' }),
   forecast: () => ({ city: '' }),
+  forecast3d: () => ({ city: '' }),
   qr: () => ({ url: '' }),
   quote: () => ({ content: '', author: '' }),
   date: () => ({ showWeekNumber: false, showDayOfYear: false }),
@@ -128,7 +144,8 @@ const LABELS: Record<EditorBoxType, string> = {
   text: 'Text',
   countdown: 'Countdown',
   weather: 'Weather',
-  forecast: '3hr Forecast',
+  forecast: '8hr Forecast',
+  forecast3d: '8-Day Forecast',
   qr: 'QR Code',
   quote: 'Quote',
   date: 'Date',
@@ -152,6 +169,7 @@ function defaultBoxes(): EditorBox[] {
 
 const state: EditorState = {
   boxes: defaultBoxes(),
+  showHeaders: true,
 };
 
 let _renderFn: (() => void) | null = null;
@@ -252,6 +270,14 @@ export function updateForecastEntries(id: number, entries: ForecastEntry[]): voi
   renderPreview();
 }
 
+export function updateForecast3DEntries(id: number, entries: Forecast3DEntry[]): void {
+  const box = findBox(id);
+  if (!box || box.type !== 'forecast3d') return;
+  (box.config as Forecast3DConfig).entries = entries;
+  persistToLocalStorage();
+  renderPreview();
+}
+
 export function updateSunData(id: number, data: SunData): void {
   const box = findBox(id);
   if (!box || box.type !== 'sun') return;
@@ -275,6 +301,16 @@ export function updateLabel(id: number, value: string): void {
   renderPreview();
 }
 
+export function getShowHeaders(): boolean {
+  return state.showHeaders;
+}
+
+export function setShowHeaders(value: boolean): void {
+  state.showHeaders = value;
+  persistToLocalStorage();
+  renderPreview();
+}
+
 // -- LocalStorage persistence -----------------------------------------------
 
 const STORAGE_KEY = 'infobento-config';
@@ -284,6 +320,7 @@ function persistToLocalStorage(): void {
     const data = {
       version: 2,
       boxes: state.boxes.map((b) => ({ type: b.type, label: b.label, config: { ...b.config } })),
+      showHeaders: state.showHeaders,
     };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
   } catch {
@@ -317,6 +354,7 @@ function loadFromLocalStorage(): boolean {
       state.boxes = hydrateBoxes(
         obj.boxes as Array<{ type: string; label: string; config: Record<string, string> }>,
       );
+      if (typeof obj.showHeaders === 'boolean') state.showHeaders = obj.showHeaders;
       return true;
     }
 
@@ -373,6 +411,7 @@ export function importJSON(): void {
             s.boxes = hydrateBoxes(
               obj.boxes as Array<{ type: string; label: string; config: Record<string, string> }>,
             );
+            if (typeof obj.showHeaders === 'boolean') s.showHeaders = obj.showHeaders;
           });
           return;
         }
@@ -422,6 +461,7 @@ export function exportJSON(): void {
       label: b.label,
       config: { ...b.config },
     })),
+    showHeaders: state.showHeaders,
   };
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
   const url = URL.createObjectURL(blob);

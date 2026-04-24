@@ -127,6 +127,17 @@ export const BOX_ICONS: Record<string, readonly number[]> = {
    */
   aqi: [0b0011000, 0b0101010, 0b0101010, 0b0010100, 0b0000000, 0b1010101, 0b0000000],
 
+  /* forecast3d: Calendar with sun — 3-day daily forecast
+   *   *******
+   *   *.....*
+   *   *..*..*
+   *   *.*.*.*
+   *   *..*..*
+   *   *.....*
+   *   *******
+   */
+  forecast3d: [0b1111111, 0b1000001, 0b1001001, 0b1010101, 0b1001001, 0b1000001, 0b1111111],
+
   /* progress: Horizontal bar chart — left-aligned fill
    *   .......
    *   *******

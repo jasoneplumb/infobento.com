@@ -5,7 +5,15 @@
  */
 
 import type { EditorBoxType } from './state';
-import { addBox, exportJSON, importJSON, onPreviewRender, onRender } from './state';
+import {
+  addBox,
+  exportJSON,
+  getShowHeaders,
+  importJSON,
+  onPreviewRender,
+  onRender,
+  setShowHeaders,
+} from './state';
 import { renderBoxList } from './components/box-list';
 import { renderPreview } from './components/preview';
 import { requireConsent } from './components/consent';
@@ -69,6 +77,14 @@ function wireMenuItem(id: string, action: () => void): void {
 
 wireMenuItem('btn-import', importJSON);
 wireMenuItem('btn-export', exportJSON);
+
+// -- Wire up Show Box Headers toggle ----------------------------------------
+
+const headersToggle = document.querySelector<HTMLInputElement>('#toggle-headers input');
+if (headersToggle) {
+  headersToggle.checked = getShowHeaders();
+  headersToggle.addEventListener('change', () => setShowHeaders(headersToggle.checked));
+}
 
 // -- Version stamp ----------------------------------------------------------
 
