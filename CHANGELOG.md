@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.7.1] - 2026-04-23
+
+### Fixed
+
+- TTF rasterizer replaced with fast scanline fill — preview renders in ~200ms (was 504 timeout)
+- Test suite runs in ~7s (was ~65s)
+- Preview updates debounced by 150ms to avoid thrashing on keystrokes
+- Empty-state message clears immediately when boxes are added
+
 ## [0.7.0] - 2026-04-23
 
 ### Added
