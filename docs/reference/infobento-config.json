@@ -1,0 +1,85 @@
+{
+  "version": 2,
+  "boxes": [
+    {
+      "type": "weather",
+      "label": "Weather",
+      "config": {
+        "city": "Portland, OR",
+        "data": {
+          "temperature": 47,
+          "condition": "Partly Cloudy",
+          "high": 62,
+          "low": 42
+        }
+      }
+    },
+    {
+      "type": "forecast3d",
+      "label": "8-Day Forecast",
+      "config": {
+        "city": "Portland, OR",
+        "entries": [
+          {
+            "day": "Sat",
+            "high": 62,
+            "low": 43,
+            "condition": "Partly Cloudy"
+          },
+          {
+            "day": "Sun",
+            "high": 70,
+            "low": 46,
+            "condition": "Rain"
+          },
+          {
+            "day": "Mon",
+            "high": 56,
+            "low": 45,
+            "condition": "Partly Cloudy"
+          },
+          {
+            "day": "Tue",
+            "high": 59,
+            "low": 47,
+            "condition": "Rain"
+          },
+          {
+            "day": "Wed",
+            "high": 74,
+            "low": 42,
+            "condition": "Clear"
+          },
+          {
+            "day": "Thu",
+            "high": 78,
+            "low": 49,
+            "condition": "Partly Cloudy"
+          },
+          {
+            "day": "Fri",
+            "high": 75,
+            "low": 53,
+            "condition": "Partly Cloudy"
+          },
+          {
+            "day": "Sat",
+            "high": 70,
+            "low": 48,
+            "condition": "Partly Cloudy"
+          }
+        ]
+      }
+    },
+    {
+      "type": "quote",
+      "label": "Quote",
+      "config": {
+        "content": "Being wrong brings the opportunity for growth.",
+        "author": "Mark Manson"
+      }
+    }
+  ],
+  "showHeaders": false,
+  "fontSize": 39
+}
