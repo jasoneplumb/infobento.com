@@ -1,161 +1,228 @@
 /**
- * Intent: 7x7 pixel art icons for the 5 MVP bento box types
- * Context: Drawn alongside labels in box headers — same height as FONT_HEIGHT (7)
- * Pattern: Pure data — each icon is 7 rows of 7-bit-wide pixel data
- * Convention: Bit 6 = leftmost pixel, bit 0 = rightmost pixel
+ * Intent: 14x14 native-resolution icons for bento box headers
+ * Context: Drawn alongside labels in box headers at 920x680 display resolution
+ * Pattern: Source bitmaps at 14x14, expanded 2x to 28x28 for native resolution
+ * Convention: Each row is a 14-bit number, bit 13 = leftmost pixel
  */
 
-/** Scale factor applied to source icon data */
-const SRC_SCALE = 4;
-const SRC_WIDTH = 7;
-const SRC_HEIGHT = 7;
+/** Source icon dimensions */
+const SRC_WIDTH = 14;
+const SRC_HEIGHT = 14;
+const SRC_SCALE = 2;
 
-/** Width of each icon in pixels (native resolution) */
+/** Rendered icon dimensions */
 export const ICON_WIDTH = SRC_WIDTH * SRC_SCALE;
-
-/** Height of each icon in pixels (native resolution) */
 export const ICON_HEIGHT = SRC_HEIGHT * SRC_SCALE;
 
-/**
- * 7x7 bitmap icon data keyed by box type.
- * Each icon is an array of 7 numbers — one per row.
- * Bits 6..0 map to pixels left-to-right (bit 6 = leftmost).
- */
+/* prettier-ignore */
 const SRC_ICONS: Record<string, readonly number[]> = {
-  /* weather: Sun — center dot with 4 cardinal rays (N/S/E/W)
-   *   ...*...
-   *   ...*...
-   *   ..*.*..
-   *   *..*..*
-   *   ..*.*..
-   *   ...*...
-   *   ...*...
-   */
-  weather: [0b0001000, 0b0001000, 0b0010100, 0b1001001, 0b0010100, 0b0001000, 0b0001000],
-
-  /* forecast: Three vertical bars of increasing height (bar chart / trend)
-   *   ......*
-   *   ....*.*
-   *   ....*.*
-   *   ..*.*.*
-   *   ..*.*.*
-   *   *.*.*.*
-   *   *******
-   */
-  forecast: [0b0000001, 0b0000101, 0b0000101, 0b0010101, 0b0010101, 0b1010101, 0b1111111],
-
-  /* countdown: Hourglass — top/bottom bars with pinched waist
-   *   *******
-   *   .*...*
-   *   ..*.*..
-   *   ...*...
-   *   ..*.*..
-   *   .*...*
-   *   *******
-   */
-  countdown: [0b1111111, 0b0100010, 0b0010100, 0b0001000, 0b0010100, 0b0100010, 0b1111111],
-
-  /* text: Three horizontal lines of decreasing width (paragraph icon)
-   *   *******
-   *   .......
-   *   ******.
-   *   .......
-   *   ****...
-   *   .......
-   *   ***....
-   */
-  text: [0b1111111, 0b0000000, 0b1111110, 0b0000000, 0b1111000, 0b0000000, 0b1110000],
-
-  /* qr: 2x2 grid of small squares (mimics QR finder pattern)
-   *   ***.***
-   *   *.*.*.*
-   *   ***.***
-   *   .......
-   *   ***.***
-   *   *.*.*.*
-   *   ***.***
-   */
-  qr: [0b1110111, 0b1010101, 0b1110111, 0b0000000, 0b1110111, 0b1010101, 0b1110111],
-
-  /* quote: Opening double quotation marks (66-style)
-   *   .**.**.
-   *   .**.**.
-   *   *..**.
-   *   .......
-   *   .......
-   *   .......
-   *   .......
-   */
-  quote: [0b0110110, 0b0110110, 0b1001100, 0b0000000, 0b0000000, 0b0000000, 0b0000000],
-
-  /* date: Calendar — top bar with two tick marks, grid below
-   *   *******
-   *   *.*..**
-   *   *******
-   *   *.*.**.
-   *   ***.**.
-   *   *.*.**.
-   *   *******
-   */
-  date: [0b1111111, 0b1010011, 0b1111111, 0b1010110, 0b1110110, 0b1010110, 0b1111111],
-
-  /* moon: Crescent — filled circle with right-side bite taken out
-   *   ..***..
-   *   .*****.
-   *   *.**...
-   *   *.*....
-   *   *.**...
-   *   .*****.
-   *   ..***..
-   */
-  moon: [0b0011100, 0b0111110, 0b1011000, 0b1010000, 0b1011000, 0b0111110, 0b0011100],
-
-  /* sun: Rising sun — half circle with rays above
-   *   ..*.*..
-   *   .......
-   *   .*****.
-   *   *******
-   *   .......
-   *   .......
-   *   .......
-   */
-  sun: [0b0010100, 0b0000000, 0b0111110, 0b1111111, 0b0000000, 0b0000000, 0b0000000],
-
-  /* aqi: Leaf / air symbol — wavy lines
-   *   ..**...
-   *   .*.*.*.
-   *   .*.*.*.
-   *   ..*.*..
-   *   .......
-   *   *.*.*.*
-   *   .......
-   */
-  aqi: [0b0011000, 0b0101010, 0b0101010, 0b0010100, 0b0000000, 0b1010101, 0b0000000],
-
-  /* forecast3d: Calendar with sun — 3-day daily forecast
-   *   *******
-   *   *.....*
-   *   *..*..*
-   *   *.*.*.*
-   *   *..*..*
-   *   *.....*
-   *   *******
-   */
-  forecast3d: [0b1111111, 0b1000001, 0b1001001, 0b1010101, 0b1001001, 0b1000001, 0b1111111],
-
-  /* progress: Horizontal bar chart — left-aligned fill
-   *   .......
-   *   *******
-   *   *****..
-   *   ***....
-   *   *****..
-   *   *******
-   *   .......
-   */
-  progress: [0b0000000, 0b1111111, 0b1111100, 0b1110000, 0b1111100, 0b1111111, 0b0000000],
+  // weather: Sun with rays
+  weather: [
+    0b00000100000000,
+    0b00000100000000,
+    0b00100100100000,
+    0b00010000100000,
+    0b00001111000000,
+    0b01001001001000,
+    0b00001001000000,
+    0b01001001001000,
+    0b00001111000000,
+    0b00010001000000,
+    0b00100100100000,
+    0b00000100000000,
+    0b00000100000000,
+    0b00000000000000,
+  ],
+  // forecast: Bar chart with 4 bars of increasing height
+  forecast: [
+    0b00000000000000,
+    0b00000000001100,
+    0b00000000001100,
+    0b00000000001100,
+    0b00000011001100,
+    0b00000011001100,
+    0b00000011001100,
+    0b00110011001100,
+    0b00110011001100,
+    0b00110011001100,
+    0b00110011001100,
+    0b11110011001100,
+    0b11110011001100,
+    0b11111111111100,
+  ],
+  // countdown: Hourglass
+  countdown: [
+    0b11111111111100,
+    0b11111111111100,
+    0b01100000011000,
+    0b00110000110000,
+    0b00011001100000,
+    0b00001111000000,
+    0b00000110000000,
+    0b00001111000000,
+    0b00011001100000,
+    0b00110000110000,
+    0b01100000011000,
+    0b11111111111100,
+    0b11111111111100,
+    0b00000000000000,
+  ],
+  // text: Paragraph lines
+  text: [
+    0b11111111111100,
+    0b11111111111100,
+    0b00000000000000,
+    0b11111111110000,
+    0b11111111110000,
+    0b00000000000000,
+    0b11111111000000,
+    0b11111111000000,
+    0b00000000000000,
+    0b11111100000000,
+    0b11111100000000,
+    0b00000000000000,
+    0b11110000000000,
+    0b11110000000000,
+  ],
+  // qr: QR finder pattern
+  qr: [
+    0b11111100111111,
+    0b11111100111111,
+    0b11001100110011,
+    0b11001100110011,
+    0b11111100111111,
+    0b11111100111111,
+    0b00000000000000,
+    0b00000000000000,
+    0b11111100111111,
+    0b11111100111111,
+    0b11001100110011,
+    0b11001100110011,
+    0b11111100111111,
+    0b11111100111111,
+  ],
+  // quote: Opening quotation marks
+  quote: [
+    0b01100001100000,
+    0b01100001100000,
+    0b11000011000000,
+    0b11000011000000,
+    0b01100001100000,
+    0b01100001100000,
+    0b00000000000000,
+    0b00000000000000,
+    0b00000000000000,
+    0b00000000000000,
+    0b00000000000000,
+    0b00000000000000,
+    0b00000000000000,
+    0b00000000000000,
+  ],
+  // date: Calendar grid
+  date: [
+    0b11111111111111,
+    0b11111111111111,
+    0b11010001001111,
+    0b11010001001111,
+    0b11111111111111,
+    0b11111111111111,
+    0b11010011001100,
+    0b11010011001100,
+    0b11100011001100,
+    0b11100011001100,
+    0b11010011001100,
+    0b11010011001100,
+    0b11111111111111,
+    0b11111111111111,
+  ],
+  // moon: Crescent
+  moon: [
+    0b00001111000000,
+    0b00011111100000,
+    0b00111111110000,
+    0b01111001100000,
+    0b01110000000000,
+    0b11110000000000,
+    0b11100000000000,
+    0b11110000000000,
+    0b01110000000000,
+    0b01111001100000,
+    0b00111111110000,
+    0b00011111100000,
+    0b00001111000000,
+    0b00000000000000,
+  ],
+  // sun: Rising sun with rays
+  sun: [
+    0b00000000000000,
+    0b00010000100000,
+    0b00001001000000,
+    0b00000000000000,
+    0b00011111100000,
+    0b00111111110000,
+    0b01111111111000,
+    0b11111111111100,
+    0b00000000000000,
+    0b00000000000000,
+    0b00000000000000,
+    0b00000000000000,
+    0b00000000000000,
+    0b00000000000000,
+  ],
+  // aqi: Leaf / air quality
+  aqi: [
+    0b00001100000000,
+    0b00011100000000,
+    0b00101010100000,
+    0b00101010100000,
+    0b00010101000000,
+    0b00010101000000,
+    0b00000000000000,
+    0b10101010101000,
+    0b10101010101000,
+    0b00000000000000,
+    0b00000000000000,
+    0b00000000000000,
+    0b00000000000000,
+    0b00000000000000,
+  ],
+  // forecast3d: Calendar with diamond
+  forecast3d: [
+    0b11111111111111,
+    0b11111111111111,
+    0b11000000000011,
+    0b11000000000011,
+    0b11000011000011,
+    0b11000111100011,
+    0b11001111110011,
+    0b11001111110011,
+    0b11000111100011,
+    0b11000011000011,
+    0b11000000000011,
+    0b11000000000011,
+    0b11111111111111,
+    0b11111111111111,
+  ],
+  // progress: Horizontal bar
+  progress: [
+    0b00000000000000,
+    0b00000000000000,
+    0b11111111111111,
+    0b11111111111111,
+    0b11111111000000,
+    0b11111111000000,
+    0b11111000000000,
+    0b11111000000000,
+    0b11111111000000,
+    0b11111111000000,
+    0b11111111111111,
+    0b11111111111111,
+    0b00000000000000,
+    0b00000000000000,
+  ],
 };
 
-/** Expand source icon data to native resolution (28x28 from 7x7) */
+/** Expand 14x14 source icons to 28x28 native resolution */
 function expandIcons(src: Record<string, readonly number[]>): Record<string, readonly number[]> {
   const result: Record<string, number[]> = {};
   for (const [name, icon] of Object.entries(src)) {
@@ -180,5 +247,5 @@ function expandIcons(src: Record<string, readonly number[]>): Record<string, rea
   return result;
 }
 
-/** Native-resolution icon data (28x28 per icon) — generated from 7x7 source */
+/** Native-resolution icon data (28x28 per icon) */
 export const BOX_ICONS: Record<string, readonly number[]> = expandIcons(SRC_ICONS);

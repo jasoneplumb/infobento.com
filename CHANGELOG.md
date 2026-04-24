@@ -1,5 +1,35 @@
 # Changelog
 
+## [0.7.0] - 2026-04-23
+
+### Added
+
+- TrueType font rendering via opentype.js with Inter (OFL) — body 20px, hero 52px
+- 4x supersampled anti-aliasing with 4-level grayscale output at native resolution
+- 2-bit grayscale framebuffer (4 levels: white, light gray, dark gray, black)
+- Gray level constants and optional `level` parameter on all drawing primitives
+- `getPixel()` export for reading pixel values from framebuffer
+- `setPixel()` now accepts gray level (0-3) instead of boolean
+- Year progress bar with day count in date box
+- CSS `image-rendering: pixelated` for crisp eInk preview
+
+### Changed
+
+- Display resolution upgraded from 240x200 to 920x680 (native)
+- Replaced BSD-licensed Spleen bitmap font with Inter TrueType (OFL)
+- Web preview now fetches server-rendered PNG from `/api/preview` (enables TTF rendering)
+- Preview endpoint skips validation for live editing (renders placeholders for empty fields)
+- Box headers: icons in light gray, labels in dark gray, divider rules in dark gray
+- Date box simplified: removed week number/day-of-year options, added stacked layout with year progress
+- Sun box simplified: stacked RISE/SET/DAY layout with aligned label columns
+- Alphabetized add-box dropdown
+- Box padding scaled for 920x680 resolution (4px → 16px)
+
+### Removed
+
+- Bitmap font data (5x7 body, 8x16 hero) — replaced by TTF rendering
+- `showWeekNumber` and `showDayOfYear` config options from date box
+
 ## [0.6.0] - 2026-04-23
 
 ### Added
