@@ -54,7 +54,7 @@ app.post('/api/render', async (c) => {
   }
   const config = body as import('@infobento/core').BentoConfig;
   const frame = generateFrame(config);
-  return new Response(frame.data, {
+  return new Response(frame.data as unknown as BodyInit, {
     headers: {
       'Content-Type': 'application/octet-stream',
       'X-Frame-Width': String(frame.width),
@@ -64,18 +64,15 @@ app.post('/api/render', async (c) => {
 });
 
 app.post('/api/preview', async (c) => {
-  const body: unknown = await c.req.json();
-  const validation = validateConfig(body);
-  if (!validation.valid) {
-    return c.json({ error: 'Invalid config', details: validation.errors }, 400);
-  }
+  const body = await c.req.json();
+  // Preview skips validation for live editing — renderer handles missing data with placeholders
   const config = body as import('@infobento/core').BentoConfig;
   const rawScale = Number(c.req.query('scale') ?? '3');
   if (!Number.isInteger(rawScale) || rawScale < 1 || rawScale > 8) {
     return c.json({ error: 'scale must be an integer between 1 and 8' }, 400);
   }
   const png = generatePreview(config, rawScale);
-  return new Response(png, {
+  return new Response(png as unknown as BodyInit, {
     headers: { 'Content-Type': 'image/png' },
   });
 });

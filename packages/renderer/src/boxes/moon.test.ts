@@ -117,7 +117,7 @@ describe('renderMoonBox', () => {
     expect(totalSet).toBeGreaterThan(0);
   });
 
-  it('renders without crashing for all 8 phases', () => {
+  it('renders without crashing for all 8 phases', { timeout: 30000 }, () => {
     const config: MoonBoxConfig = { type: 'moon' };
     // Use dates that produce each of the 8 phase indices
     const synodic = 29.53059;

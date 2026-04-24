@@ -6,14 +6,18 @@
  */
 
 import type { FrameBuffer } from './index.js';
-import { FONT_DATA, FONT_WIDTH, FONT_HEIGHT, CHAR_ADVANCE } from './font.js';
 import {
-  HERO_FONT_DATA,
-  HERO_FONT_WIDTH,
-  HERO_FONT_HEIGHT,
-  HERO_CHAR_ADVANCE,
-} from './hero-font.js';
+  rasterizeText,
+  measureText,
+  BODY_FONT_SIZE,
+  BODY_LINE_HEIGHT,
+  HERO_FONT_SIZE,
+  HERO_LINE_HEIGHT,
+} from './ttf-font.js';
 import { ICON_WIDTH, ICON_HEIGHT } from './icons.js';
+
+// Re-export font metrics for box renderers
+export { BODY_FONT_SIZE, BODY_LINE_HEIGHT, HERO_FONT_SIZE, HERO_LINE_HEIGHT };
 
 /** Gray level constants for 2-bit rendering (0=white, 3=black) */
 export const GRAY_WHITE = 0;
@@ -95,9 +99,37 @@ export function drawRect(
 }
 
 /**
- * intent: Render a single character from the native-resolution body font
- * method: Read FONT_HEIGHT rows of FONT_WIDTH-bit data, set pixels directly
- * effect: Draws a 20x28 character at (x, y) — 1:1 pixel mapping, no scaling
+ * Blit a rasterized glyph bitmap into the frame buffer with 4-level grayscale.
+ * Coverage values (0.0-1.0) map to gray levels: 0→white, ≤0.33→light, ≤0.66→dark, >0.66→black.
+ * The `level` parameter scales the maximum darkness (e.g., GRAY_DARK caps at dark gray).
+ */
+function blitRaster(
+  fb: FrameBuffer,
+  x: number,
+  y: number,
+  data: Float32Array,
+  width: number,
+  height: number,
+  level: number = GRAY_BLACK,
+): void {
+  for (let row = 0; row < height; row++) {
+    for (let col = 0; col < width; col++) {
+      const coverage = data[row * width + col] ?? 0;
+      if (coverage <= 0.01) continue; // skip fully transparent
+      let gray: number;
+      if (coverage > 0.66) gray = GRAY_BLACK;
+      else if (coverage > 0.33) gray = GRAY_DARK;
+      else gray = GRAY_LIGHT;
+      // Cap at the requested level
+      if (gray > level) gray = level;
+      if (gray > 0) setPixel(fb, x + col, y + row, gray);
+    }
+  }
+}
+
+/**
+ * intent: Render a single character using TTF body font (Inter Regular)
+ * method: Rasterize with opentype.js, blit anti-aliased result into framebuffer
  */
 export function drawChar(
   fb: FrameBuffer,
@@ -106,24 +138,13 @@ export function drawChar(
   char: string,
   level: number = GRAY_BLACK,
 ): void {
-  const glyph = FONT_DATA[char];
-  if (!glyph) return;
-
-  for (let row = 0; row < FONT_HEIGHT; row++) {
-    const rowData = glyph[row];
-    if (rowData == null) continue;
-    for (let col = 0; col < FONT_WIDTH; col++) {
-      if (rowData & (1 << (FONT_WIDTH - 1 - col))) {
-        setPixel(fb, x + col, y + row, level);
-      }
-    }
-  }
+  const raster = rasterizeText(char, BODY_FONT_SIZE, false);
+  blitRaster(fb, x, y, raster.data, raster.width, raster.height, level);
 }
 
 /**
- * intent: Render a string of text on a single line
- * method: Draw characters left-to-right with CHAR_ADVANCE spacing
- * effect: Returns the number of characters drawn and total pixel width used
+ * intent: Render a string of body text on a single line using TTF
+ * method: Rasterize entire string at once (proper kerning), blit into framebuffer
  */
 export function drawText(
   fb: FrameBuffer,
@@ -133,24 +154,15 @@ export function drawText(
   maxWidth?: number,
   level: number = GRAY_BLACK,
 ): { charsDrawn: number; width: number } {
-  let cx = x;
-  let drawn = 0;
-  const limit = maxWidth != null ? x + maxWidth : fb.width;
-
-  for (const char of text) {
-    if (cx + FONT_WIDTH > limit) break;
-    drawChar(fb, cx, y, char, level);
-    cx += CHAR_ADVANCE;
-    drawn++;
-  }
-
-  return { charsDrawn: drawn, width: cx - x };
+  if (!text) return { charsDrawn: 0, width: 0 };
+  const raster = rasterizeText(text, BODY_FONT_SIZE, false, maxWidth);
+  blitRaster(fb, x, y, raster.data, raster.width, raster.height, level);
+  return { charsDrawn: text.length, width: raster.width };
 }
 
 /**
- * intent: Render multi-line text with word wrapping within a bounded region
- * method: Split on spaces, accumulate words per line, wrap when width exceeded
- * effect: Fills the region top-to-bottom, stops when height is exceeded
+ * intent: Render multi-line text with word wrapping using TTF body font
+ * method: Measure words with TTF metrics, wrap at maxWidth, rasterize each line
  */
 export function drawTextWrapped(
   fb: FrameBuffer,
@@ -161,43 +173,36 @@ export function drawTextWrapped(
   maxHeight: number,
   level: number = GRAY_BLACK,
 ): void {
-  const lineHeight = FONT_HEIGHT + 2; // 2px line spacing
+  const lineHeight = BODY_LINE_HEIGHT;
   const words = text.split(' ');
-  let cx = x;
+  let line = '';
   let cy = y;
 
   for (const word of words) {
-    const wordWidth = word.length * CHAR_ADVANCE;
+    const testLine = line ? `${line} ${word}` : word;
+    const testWidth = measureText(testLine, BODY_FONT_SIZE);
 
-    // Check if word fits on current line
-    if (cx > x && cx + wordWidth > x + maxWidth) {
-      // Wrap to next line
-      cx = x;
+    if (line && testWidth > maxWidth) {
+      // Flush current line
+      const raster = rasterizeText(line, BODY_FONT_SIZE, false, maxWidth);
+      blitRaster(fb, x, cy, raster.data, raster.width, raster.height, level);
       cy += lineHeight;
-      if (cy + FONT_HEIGHT > y + maxHeight) return; // out of vertical space
+      if (cy + BODY_FONT_SIZE > y + maxHeight) return;
+      line = word;
+    } else {
+      line = testLine;
     }
+  }
 
-    // Draw word character by character
-    for (const char of word) {
-      if (cx + FONT_WIDTH > x + maxWidth) {
-        // Hard break mid-word if word is longer than line
-        cx = x;
-        cy += lineHeight;
-        if (cy + FONT_HEIGHT > y + maxHeight) return;
-      }
-      drawChar(fb, cx, cy, char, level);
-      cx += CHAR_ADVANCE;
-    }
-
-    // Add space after word
-    cx += CHAR_ADVANCE;
+  // Flush last line
+  if (line) {
+    const raster = rasterizeText(line, BODY_FONT_SIZE, false, maxWidth);
+    blitRaster(fb, x, cy, raster.data, raster.width, raster.height, level);
   }
 }
 
 /**
- * intent: Render a single character from the native-resolution hero font
- * method: Read HERO_FONT_HEIGHT rows of HERO_FONT_WIDTH-bit data, set pixels directly
- * effect: Draws a 32x64 character at (x, y) — 1:1 pixel mapping, no scaling
+ * intent: Render a single character using TTF hero font (Inter Bold)
  */
 export function drawHeroChar(
   fb: FrameBuffer,
@@ -206,24 +211,13 @@ export function drawHeroChar(
   char: string,
   level: number = GRAY_BLACK,
 ): void {
-  const glyph = HERO_FONT_DATA[char];
-  if (!glyph) return;
-
-  for (let row = 0; row < HERO_FONT_HEIGHT; row++) {
-    const rowData = glyph[row];
-    if (rowData == null) continue;
-    for (let col = 0; col < HERO_FONT_WIDTH; col++) {
-      if (rowData & (1 << (HERO_FONT_WIDTH - 1 - col))) {
-        setPixel(fb, x + col, y + row, level);
-      }
-    }
-  }
+  const raster = rasterizeText(char, HERO_FONT_SIZE, true);
+  blitRaster(fb, x, y, raster.data, raster.width, raster.height, level);
 }
 
 /**
- * intent: Render a string of text in the 8x16 hero font on a single line
- * method: Draw characters left-to-right with HERO_CHAR_ADVANCE spacing
- * effect: Returns the number of characters drawn and total pixel width used
+ * intent: Render a string of hero text on a single line using TTF (Inter Bold)
+ * method: Rasterize entire string at once, blit into framebuffer
  */
 export function drawHeroText(
   fb: FrameBuffer,
@@ -233,18 +227,10 @@ export function drawHeroText(
   maxWidth?: number,
   level: number = GRAY_BLACK,
 ): { charsDrawn: number; width: number } {
-  let cx = x;
-  let drawn = 0;
-  const limit = maxWidth != null ? x + maxWidth : fb.width;
-
-  for (const char of text) {
-    if (cx + HERO_FONT_WIDTH > limit) break;
-    drawHeroChar(fb, cx, y, char, level);
-    cx += HERO_CHAR_ADVANCE;
-    drawn++;
-  }
-
-  return { charsDrawn: drawn, width: cx - x };
+  if (!text) return { charsDrawn: 0, width: 0 };
+  const raster = rasterizeText(text, HERO_FONT_SIZE, true, maxWidth);
+  blitRaster(fb, x, y, raster.data, raster.width, raster.height, level);
+  return { charsDrawn: text.length, width: raster.width };
 }
 
 /**

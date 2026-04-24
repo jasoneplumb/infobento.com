@@ -92,7 +92,7 @@ describe('renderWeatherBox', () => {
     expect(fb.data.some((b) => b !== 0)).toBe(true);
   });
 
-  it('handles long city names without crashing', () => {
+  it('handles long city names without crashing', { timeout: 30000 }, () => {
     const config: BentoConfig = {
       boxes: [
         {

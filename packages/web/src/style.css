@@ -180,9 +180,9 @@ main {
    CSS variables set by the preview renderer (fb.width/height x SCALE). */
 
 .eink-display {
-  width: calc(var(--eink-w, 240) * 1px);
-  height: calc(var(--eink-h, 200) * 1px);
-  background: #000;
+  width: calc(var(--eink-w, 920) * 1px);
+  height: calc(var(--eink-h, 680) * 1px);
+  background: #fff;
   border: 2px solid #444;
   border-radius: 3px;
   overflow: hidden;
@@ -192,7 +192,11 @@ main {
   position: relative;
 }
 
+.eink-display img,
 .eink-display canvas {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
   image-rendering: pixelated;
   image-rendering: crisp-edges;
 }
