@@ -86,14 +86,15 @@ import { render } from '@infobento/renderer';
 
 ## Hardware Context
 
-InfoBento is a credit-card-sized portable eInk display:
+InfoBento is a bento-box-sized countertop eInk display:
 
-- **Display:** 2.9" eInk, 240x200 pixels, 1-bit (black/white)
+- **Display:** Good Display GDEH0576T81, 5.76" eInk, 920x680 pixels, 198 DPI, B&W (SSD2677 driver)
+- **Active area:** 117.7 × 87.0 mm (module: 125.4 × 99.5 × 0.9 mm)
 - **Power:** Rechargeable battery + solar panel, 1-2 refreshes per day
-- **Connectivity:** Bluetooth Low Energy to phone; phone bridges to cloud API
-- **Form factor:** Wallet-sized, solar panel on one side, PCB on the other
+- **Connectivity:** Wi-Fi (ESP32); configure once via web UI
+- **Form factor:** ~18×12cm bento-box enclosure, solar panel on upper back, body-as-stand with ~12-15° tilt
 
-The renderer produces 1-bit frame buffers (6000 bytes for 240x200). The API is stateless and pure-functional — it takes a config, returns a frame buffer.
+The renderer produces 2-bit grayscale frame buffers (4 levels, 156,400 bytes for 920x680). The API is stateless and pure-functional — it takes a config, returns a frame buffer.
 
 ## Deployment
 

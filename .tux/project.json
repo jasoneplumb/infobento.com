@@ -1,7 +1,7 @@
 {
   "id": "15b14d22-3871-4074-a350-f4ffc78651b4",
   "name": "InfoBento",
-  "description": "Solar-powered B&W eInk decorator for kitchen counters, desks, and shelves. Bento-box-sized (~18x12cm) with a golden-ratio high-DPI 1-bit eInk display that nearly fills the front face (≤3mm bezel). Monolithic white housing, solar panel on the upper back, body-as-stand with ~12-15° tilt. Two tilt switches detect orientation for auto-rotate. Designed to survive a 4-foot drop. Configure once on a web page; refreshes 1-2x/day on solar power. $30-40 target via Kickstarter. Color deferred to v2. (Pivoted from dual-display MagSafe clamshell in Round 10, then from color to B&W in Round 11.)",
+  "description": "Solar-powered B&W eInk decorator for kitchen counters, desks, and shelves. Bento-box-sized (~18x12cm) with a Good Display GDEH0576T81 5.76\" 920x680 198-DPI eInk panel (SSD2677 driver) that nearly fills the front face. Monolithic white housing, solar panel on the upper back, body-as-stand with ~12-15° tilt. Two tilt switches detect orientation for auto-rotate. Designed to survive a 4-foot drop. Configure once on a web page; refreshes 1-2x/day on solar power. $30-40 target via Kickstarter. Renderer produces 2-bit grayscale (4-level) framebuffers with antialiased TTF fonts (Inter) and configurable rounded box borders. Color deferred to v2.",
   "domain": "consumer-electronics",
   "version": 1,
   "currentPhase": "campaign",
