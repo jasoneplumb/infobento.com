@@ -96,57 +96,28 @@ export function rasterizeText(
 }
 
 /**
- * Rasterize a path into the data buffer using scanline coverage.
- * Uses 4x supersampling for anti-aliased edges.
+ * Flatten path commands into line segments for fast scanline rasterization.
+ * Bezier curves are subdivided into straight segments.
  */
-function rasterizePath(
-  cmds: opentype.PathCommand[],
-  data: Float32Array,
-  width: number,
-  height: number,
-): void {
-  const SUPERSAMPLE = 4;
-  const subStep = 1 / SUPERSAMPLE;
-
-  for (let py = 0; py < height; py++) {
-    for (let px = 0; px < width; px++) {
-      let coverage = 0;
-      // Supersample within this pixel
-      for (let sy = 0; sy < SUPERSAMPLE; sy++) {
-        for (let sx = 0; sx < SUPERSAMPLE; sx++) {
-          const x = px + (sx + 0.5) * subStep;
-          const y = py + (sy + 0.5) * subStep;
-          if (isInsidePath(cmds, x, y)) {
-            coverage++;
-          }
-        }
-      }
-      data[py * width + px] = coverage / (SUPERSAMPLE * SUPERSAMPLE);
-    }
-  }
-}
-
-/**
- * Test if a point is inside the path using the even-odd winding rule (ray casting).
- */
-function isInsidePath(cmds: opentype.PathCommand[], testX: number, testY: number): boolean {
-  let inside = false;
+function flattenPath(cmds: opentype.PathCommand[]): Array<[number, number, number, number]> {
+  const segments: Array<[number, number, number, number]> = [];
   let curX = 0;
   let curY = 0;
+  let startX = 0;
+  let startY = 0;
 
   for (const cmd of cmds) {
     if (cmd.type === 'M') {
+      startX = cmd.x;
+      startY = cmd.y;
       curX = cmd.x;
       curY = cmd.y;
     } else if (cmd.type === 'L') {
-      if (rayCrossesSegment(testX, testY, curX, curY, cmd.x, cmd.y)) {
-        inside = !inside;
-      }
+      segments.push([curX, curY, cmd.x, cmd.y]);
       curX = cmd.x;
       curY = cmd.y;
     } else if (cmd.type === 'Q') {
-      // Quadratic bezier — approximate with line segments
-      const steps = 8;
+      const steps = 4;
       let prevX = curX;
       let prevY = curY;
       for (let t = 1; t <= steps; t++) {
@@ -154,17 +125,14 @@ function isInsidePath(cmds: opentype.PathCommand[], testX: number, testY: number
         const invT = 1 - tt;
         const nx = invT * invT * curX + 2 * invT * tt * cmd.x1 + tt * tt * cmd.x;
         const ny = invT * invT * curY + 2 * invT * tt * cmd.y1 + tt * tt * cmd.y;
-        if (rayCrossesSegment(testX, testY, prevX, prevY, nx, ny)) {
-          inside = !inside;
-        }
+        segments.push([prevX, prevY, nx, ny]);
         prevX = nx;
         prevY = ny;
       }
       curX = cmd.x;
       curY = cmd.y;
     } else if (cmd.type === 'C') {
-      // Cubic bezier — approximate with line segments
-      const steps = 12;
+      const steps = 6;
       let prevX = curX;
       let prevY = curY;
       for (let t = 1; t <= steps; t++) {
@@ -180,32 +148,76 @@ function isInsidePath(cmds: opentype.PathCommand[], testX: number, testY: number
           3 * invT * invT * tt * cmd.y1 +
           3 * invT * tt * tt * cmd.y2 +
           tt * tt * tt * cmd.y;
-        if (rayCrossesSegment(testX, testY, prevX, prevY, nx, ny)) {
-          inside = !inside;
-        }
+        segments.push([prevX, prevY, nx, ny]);
         prevX = nx;
         prevY = ny;
       }
       curX = cmd.x;
       curY = cmd.y;
     } else if (cmd.type === 'Z') {
-      // Close path — handled implicitly
+      if (curX !== startX || curY !== startY) {
+        segments.push([curX, curY, startX, startY]);
+      }
+      curX = startX;
+      curY = startY;
+    }
+  }
+  return segments;
+}
+
+/**
+ * Fast scanline rasterizer with 2x supersampling for anti-aliased edges.
+ * Pre-flattens beziers, then for each scanline finds edge intersections and fills.
+ */
+function rasterizePath(
+  cmds: opentype.PathCommand[],
+  data: Float32Array,
+  width: number,
+  height: number,
+): void {
+  const segments = flattenPath(cmds);
+  const SS = 2; // supersampling factor
+  const subStep = 1 / SS;
+  const invSS2 = 1 / (SS * SS);
+
+  for (let py = 0; py < height; py++) {
+    // For each sub-scanline, find all x-intersections
+    for (let sy = 0; sy < SS; sy++) {
+      const scanY = py + (sy + 0.5) * subStep;
+      const xHits: number[] = [];
+
+      for (const seg of segments) {
+        const [x1, y1, x2, y2] = seg;
+        if (y1 > scanY === y2 > scanY) continue;
+        const intersectX = x1 + ((scanY - y1) / (y2 - y1)) * (x2 - x1);
+        xHits.push(intersectX);
+      }
+
+      xHits.sort((a, b) => a - b);
+
+      // Fill between pairs of intersections (even-odd rule)
+      for (let i = 0; i + 1 < xHits.length; i += 2) {
+        const xStart = xHits[i] ?? 0;
+        const xEnd = xHits[i + 1] ?? 0;
+        // For each sub-pixel column in the span
+        for (let sx = 0; sx < SS; sx++) {
+          const pxStart = Math.max(0, Math.floor(xStart));
+          const pxEnd = Math.min(width - 1, Math.floor(xEnd));
+          for (let px = pxStart; px <= pxEnd; px++) {
+            const sampleX = px + (sx + 0.5) * subStep;
+            if (sampleX >= xStart && sampleX < xEnd) {
+              const idx = py * width + px;
+              data[idx] = (data[idx] ?? 0) + invSS2;
+            }
+          }
+        }
+      }
     }
   }
 
-  return inside;
-}
-
-/** Test if a horizontal ray from (testX, testY) going right crosses a line segment */
-function rayCrossesSegment(
-  testX: number,
-  testY: number,
-  x1: number,
-  y1: number,
-  x2: number,
-  y2: number,
-): boolean {
-  if (y1 > testY === y2 > testY) return false;
-  const intersectX = x1 + ((testY - y1) / (y2 - y1)) * (x2 - x1);
-  return testX < intersectX;
+  // Clamp to 0-1
+  for (let i = 0; i < data.length; i++) {
+    const v = data[i];
+    if (v != null && v > 1) data[i] = 1;
+  }
 }

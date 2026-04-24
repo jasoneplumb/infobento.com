@@ -125,8 +125,15 @@ function toBentoConfig(boxes: readonly EditorBox[]): BentoConfig {
 /** Cached img element, reused across renders */
 let _img: HTMLImageElement | undefined;
 let _pendingRequest: AbortController | undefined;
+let _debounceTimer: ReturnType<typeof setTimeout> | undefined;
 
 export function renderPreview(containerId: string): void {
+  // Debounce: wait 150ms after last call before fetching
+  if (_debounceTimer) clearTimeout(_debounceTimer);
+  _debounceTimer = setTimeout(() => renderPreviewNow(containerId), 150);
+}
+
+function renderPreviewNow(containerId: string): void {
   const display = document.getElementById(containerId);
   if (!display) return;
 
