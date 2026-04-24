@@ -202,7 +202,7 @@ function defaultBoxes(): EditorBox[] {
 
 // -- State + render callback ------------------------------------------------
 
-const DEFAULT_FONT_SIZE = 39;
+const DEFAULT_FONT_SIZE = 38;
 const DEFAULT_CORNER_RADIUS = 3;
 const DEFAULT_PADDING = 4;
 
@@ -368,7 +368,7 @@ export function getCornerRadius(): number {
 }
 
 export function setCornerRadius(value: number): void {
-  state.cornerRadius = Math.max(0, Math.min(5, value));
+  state.cornerRadius = Math.max(0, Math.min(10, value));
   persistToLocalStorage();
   renderPreview();
 }

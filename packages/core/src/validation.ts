@@ -295,7 +295,7 @@ export const BentoConfigSchema = z.object({
   refreshesPerDay: z.union([z.literal(1), z.literal(2)]),
   showHeaders: z.boolean().optional(),
   fontSize: z.number().int().min(8).max(42).optional(),
-  cornerRadius: z.number().int().min(0).max(5).optional(),
+  cornerRadius: z.number().int().min(0).max(10).optional(),
   padding: z.number().int().min(0).max(10).optional(),
 });
 
