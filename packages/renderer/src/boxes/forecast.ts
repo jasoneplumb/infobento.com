@@ -68,15 +68,15 @@ function renderEntries(
   for (const entry of entries.slice(0, 8)) {
     if (cy + metrics.bodySize > maxY) return;
 
-    drawText(fb, x, cy, entry.time, timeColWidth, undefined, metrics.bodySize);
+    drawText(fb, x, cy, entry.time, timeColWidth, GRAY_DARK, metrics.bodySize);
 
     const tempStr = `${Math.round(entry.temperature)}F`;
-    drawText(fb, x + timeColWidth, cy, tempStr, tempColWidth, undefined, metrics.bodySize);
+    drawText(fb, x + timeColWidth, cy, tempStr, tempColWidth, GRAY_DARK, metrics.bodySize);
 
     const condX = x + timeColWidth + tempColWidth;
     const condW = maxWidth - timeColWidth - tempColWidth;
     if (condW > 0) {
-      drawText(fb, condX, cy, entry.condition, condW, undefined, metrics.bodySize);
+      drawText(fb, condX, cy, entry.condition, condW, GRAY_DARK, metrics.bodySize);
     }
 
     cy += rowHeight;
@@ -93,8 +93,8 @@ function renderPlaceholder(
   metrics: FontMetrics,
 ): void {
   let cy = y;
-  drawTextWrapped(fb, x, cy, city, maxWidth, maxY - cy, undefined, metrics.bodySize);
+  drawTextWrapped(fb, x, cy, city, maxWidth, maxY - cy, GRAY_DARK, metrics.bodySize);
   cy += metrics.bodySize + 2;
   if (cy + metrics.bodySize > maxY) return;
-  drawText(fb, x, cy, 'No data', maxWidth, undefined, metrics.bodySize);
+  drawText(fb, x, cy, 'No data', maxWidth, GRAY_DARK, metrics.bodySize);
 }

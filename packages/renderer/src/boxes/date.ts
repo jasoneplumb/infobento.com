@@ -113,7 +113,7 @@ export function renderDateBox(
     cy,
     `${monthName} ${String(year)}`,
     contentWidth,
-    undefined,
+    GRAY_DARK,
     metrics.bodySize,
   );
   cy += metrics.bodySize + 3;
@@ -132,7 +132,7 @@ export function renderDateBox(
   const barX = x + metrics.pad + labelWidth + 4;
   const barWidth = contentWidth - labelWidth - 4;
 
-  drawText(fb, x + metrics.pad, cy, progressLabel, labelWidth, undefined, metrics.bodySize);
+  drawText(fb, x + metrics.pad, cy, progressLabel, labelWidth, GRAY_DARK, metrics.bodySize);
   if (barWidth > 10) {
     drawProgressBar(fb, barX, cy + 1, barWidth, barHeight, doy / total);
   }

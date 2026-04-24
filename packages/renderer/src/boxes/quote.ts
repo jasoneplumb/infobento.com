@@ -8,7 +8,7 @@
 import type { FrameBuffer } from '../index.js';
 import type { LayoutBox, QuoteBoxConfig } from '@infobento/core';
 import type { FontMetrics } from '../font-metrics.js';
-import { drawText, drawTextWrapped, drawIcon, GRAY_LIGHT } from '../draw.js';
+import { drawText, drawTextWrapped, drawIcon, GRAY_DARK, GRAY_LIGHT } from '../draw.js';
 import { BOX_ICONS, ICON_WIDTH } from '../icons.js';
 
 /**
@@ -37,7 +37,7 @@ export function renderQuoteBox(
       cy,
       layout.box.label.toUpperCase(),
       width - metrics.pad * 2 - ICON_WIDTH - 3,
-      undefined,
+      GRAY_DARK,
       metrics.bodySize,
     );
     cy += metrics.bodySize + metrics.pad;
@@ -78,7 +78,7 @@ export function renderQuoteBox(
     const authorX = Math.max(bodyX, x + width - metrics.pad - authorWidth);
 
     if (cy + metrics.bodySize <= bodyEnd) {
-      drawText(fb, authorX, cy, authorText, bodyWidth, undefined, metrics.bodySize);
+      drawText(fb, authorX, cy, authorText, bodyWidth, GRAY_DARK, metrics.bodySize);
       cy += metrics.bodySize + metrics.pad;
     }
   }

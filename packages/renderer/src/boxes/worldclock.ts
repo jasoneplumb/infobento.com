@@ -51,7 +51,7 @@ export function renderWorldclockBox(
       cy,
       layout.box.label.toUpperCase(),
       width - metrics.pad * 2 - ICON_WIDTH - 3,
-      undefined,
+      GRAY_DARK,
       metrics.bodySize,
     );
     cy += metrics.bodySize + metrics.pad;
@@ -75,7 +75,7 @@ export function renderWorldclockBox(
 
     // Time right-aligned
     const timeX = x + width - metrics.pad - timeWidth;
-    drawText(fb, timeX, cy, timeStr, timeWidth, undefined, metrics.bodySize);
+    drawText(fb, timeX, cy, timeStr, timeWidth, GRAY_DARK, metrics.bodySize);
 
     cy += rowHeight;
   }
