@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.8.1] - 2026-04-24
+
+### Changed
+
+- Default font size set to 38px (was 20px)
+- Default boxes: Weather (Portland, OR), 8-Day Forecast (8 entries), Quote (Mark Manson)
+- Default headers off
+- Corner radius range extended from 0–5 to 0–10
+- Device ID updated to `infobento-5.76`
+
 ## [0.8.0] - 2026-04-24
 
 ### Added
