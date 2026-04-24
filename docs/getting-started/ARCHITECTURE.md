@@ -2,12 +2,12 @@
 
 ## System Overview
 
-InfoBento is a small, solar-powered color eInk decorator that lives on a counter, shelf, or windowsill. Configure once on the web; the device fetches frames from a stateless cloud API and shows what matters most — weather, your next event, a countdown, a quote — refreshing once or twice a day on solar power alone.
+InfoBento is a small, solar-powered B&W eInk decorator that lives on a counter, shelf, or windowsill. Configure once on the web; the device fetches frames from a stateless cloud API and shows what matters most — weather, your next event, a countdown, a quote — refreshing once or twice a day on solar power alone.
 
 ```
 ┌──────────────┐    Wi-Fi     ┌─────────────┐
 │    Device     │◄────────────►│  Cloud API  │
-│  color eInk   │              │ (stateless) │
+│  B&W eInk     │              │ (stateless) │
 │  ESP32-C3     │              │ (Hono on DO)│
 └──────────────┘              └─────────────┘
                                       ▲
@@ -34,7 +34,7 @@ Single mode: counter-standing. Refreshes 1–2× per day on solar power. There i
 ### Key Design Decisions
 
 - **Stateless API** — pure functions, no server-side state. Config in, frame buffer out.
-- **Color rendering** — color eInk panel (Spectra 6 / ACeP family) with a 7-color palette. Rendering is panel-aware via `Color` enum exported from `@infobento/core` (Phase 3, in progress).
+- **2-bit grayscale rendering** — B&W eInk panel with software greyscale via SSD2677 partial-refresh waveforms.
 - **Solar-only power** — no MagSafe, no charging cable. Refresh budget sized to the solar harvest budget for moderate indoor light.
 - **Wi-Fi direct + web-only config** — no native phone app for v1. Captive-portal setup, web editor handles configuration.
 - **Zero device interaction** — no buttons. Configure once via web, glance forever. Single physical affordance is the recessed pinhole reset for Wi-Fi recovery.
@@ -97,4 +97,4 @@ Production:
 
 ## Mid-pivot status
 
-The codebase is mid-pivot from a previous dual-display MagSafe clamshell concept (D outer / P inner) to the counter-only color decorator described above. Some abstractions (`DisplayId`, the dual-display web editor 2×2 layout, the 1-bit renderer) are still present in `main` and will be migrated phase-by-phase. See RFC #25 and the `pivot/counter-color` milestone for in-flight work.
+The codebase is mid-pivot from a previous dual-display MagSafe clamshell concept (D outer / P inner) to the counter-only B&W decorator described above. Some abstractions (`DisplayId`, the dual-display web editor 2x2 layout) are still present in `main` and will be migrated phase-by-phase. See RFC #25 for in-flight work.

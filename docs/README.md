@@ -37,7 +37,7 @@ docs/
 │   └── API.md                Pure function API reference
 │
 ├── hardware/
-│   ├── DISPLAY.md            Color eInk display specs, form factor, refresh strategy
+│   ├── DISPLAY.md            B&W eInk display specs, form factor, refresh strategy
 │   ├── POWER.md              Solar power budget for the counter device
 │   └── CONNECTIVITY.md       Wi-Fi direct + captive portal setup; v2 BLE path
 │

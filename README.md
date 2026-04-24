@@ -2,18 +2,19 @@
 
 > _See what matters. Skip the spiral._
 
-A small, solar-powered color eInk decorator that lives on a counter, shelf, or windowsill. Configure once on a web page; it sips light from the window and shows what matters most — weather, your next meeting, a countdown, a quote — for months on its own.
+A small, solar-powered B&W eInk decorator that lives on a counter, shelf, or windowsill. Configure once on a web page; it sips light from the window and shows what matters most — weather, forecast, 8-day forecast, countdown, QR code, quote, date, moon phase, sunrise/sunset, air quality, year progress, text, stocks, tasks, calendar, habits, world clock — for months on its own.
 
 ## Overview
 
-InfoBento is a small calm surface for the room. The information you check most often — weather, the next thing on your calendar, days until something you're looking forward to — sits there in soft color eInk, visible at a glance from across the room. No Wi-Fi setup ritual, no account to make, no batteries to swap, no buttons to press.
+InfoBento is a small calm surface for the room. The information you check most often — weather, the next thing on your calendar, days until something you're looking forward to — sits there in crisp B&W eInk with 2-bit grayscale (4 levels: white, light gray, dark gray, black), visible at a glance from across the room. No Wi-Fi setup ritual, no account to make, no batteries to swap, no buttons to press.
 
 Set it on a kitchen counter, a desk, or a shelf. The body is its own stand — slightly back-tilted so the display angles toward you. The upper portion of the back is a solar panel that charges the device from indirect light through a window. It refreshes once or twice a day, which is plenty for the things you actually look at it for. $30–40 target via Kickstarter.
 
 ### Hardware
 
-- **Display:** color eInk panel (size and palette pending — see `docs/hardware/DISPLAY.md` for current candidates)
-- **MCU:** ESP32-C3 (Wi-Fi 4 + BLE 5; BLE radio reserved for a possible v2 bridge mode)
+- **Display:** Good Display GDEH0576T81, 5.76" B&W eInk, 920x680 pixels, 198 DPI, SSD2677 driver
+- **Renderer:** 2-bit grayscale framebuffer with antialiased TTF fonts (Inter via opentype.js), SDF-based rounded box borders, configurable corner radius (0-5) and padding (0-10), font size slider (8-42px)
+- **MCU:** ESP32-C3 (production), ESP32-L dev kit for validation (Wi-Fi 4 + BLE 5; BLE radio reserved for a possible v2 bridge mode)
 - **Power:** 100 mAh LiPo + AEM10941 solar harvester
 - **Solar panel:** mounted on the upper portion of the back side, ~70×100 mm
 - **Connectivity:** Wi-Fi direct + captive-portal setup; no companion phone app. Web editor at `infobento.com` is the only configuration surface. See `docs/hardware/CONNECTIVITY.md`.
@@ -27,7 +28,7 @@ Set it on a kitchen counter, a desk, or a shelf. The body is its own stand — s
 ```
 ┌────────────────────┐  ◄── thin white bezel
 │                    │
-│   color eInk       │      Front: display recessed below bezel rim
+│   B&W eInk         │      Front: display recessed below bezel rim
 │   panel            │             so the rim shields the glass on
 │                    │             a face-down drop
 │                    │
@@ -42,7 +43,7 @@ Set it on a kitchen counter, a desk, or a shelf. The body is its own stand — s
 ```
 ┌─────────────────┐    Wi-Fi     ┌──────────────┐
 │     Device       │◄────────────►│  Cloud API   │
-│  color eInk      │              │ (stateless)  │
+│  B&W eInk        │              │ (stateless)  │
 │  ESP32 + solar   │              └──────────────┘
 └─────────────────┘                      ▲
                                          │
@@ -87,4 +88,4 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for development workflow and guidelines.
 
 ## Status
 
-Mid-pivot from a previous dual-display MagSafe clamshell concept to the counter-only color decorator described above. See RFC #25 and the `pivot/counter-color` milestone for in-flight phase work. Code in `main` still ships some clamshell-era abstractions (1-bit renderer, dual-display web editor) that are being migrated phase-by-phase.
+Active development. Renderer produces 2-bit grayscale framebuffers with 17 box types. Web editor at localhost:5173 for configuration. Hardware validation pending (GDEH0576T81 dev kit on order).
