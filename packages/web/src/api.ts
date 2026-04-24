@@ -387,18 +387,44 @@ export interface QuoteResult {
   author: string;
 }
 
+/** Max quote length that fits in the box without truncation.
+ *  ~3 lines × ~37 chars/line at any scale factor (both scale
+ *  proportionally, so the character budget is roughly constant). */
+const MAX_QUOTE_LENGTH = 120;
+
+/** Max retries to find a short-enough quote */
+const MAX_QUOTE_RETRIES = 5;
+
 /**
  * Fetch a random quote from the /api/quote proxy endpoint.
+ * Retries up to MAX_QUOTE_RETRIES times if the quote is too long
+ * to fit in the display box without truncation.
  * Returns null if the API is unavailable (e.g. dev mode without API running).
  */
 export async function fetchQuote(): Promise<QuoteResult | null> {
+  for (let attempt = 0; attempt < MAX_QUOTE_RETRIES; attempt++) {
+    try {
+      const res = await fetch('/api/quote');
+      if (!res.ok) return null;
+
+      const data = (await res.json()) as { q?: string; a?: string };
+      if (!data.q) return null;
+
+      if (data.q.length <= MAX_QUOTE_LENGTH) {
+        return { text: data.q, author: data.a ?? '' };
+      }
+      // Quote too long — retry for a shorter one
+    } catch {
+      return null;
+    }
+  }
+  // All retries returned long quotes — return the last one anyway
+  // rather than showing nothing (user can always edit it shorter)
   try {
     const res = await fetch('/api/quote');
     if (!res.ok) return null;
-
     const data = (await res.json()) as { q?: string; a?: string };
     if (!data.q) return null;
-
     return { text: data.q, author: data.a ?? '' };
   } catch {
     return null;

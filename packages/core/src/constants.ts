@@ -25,5 +25,5 @@ export const DEFAULT_FRAME_BYTES = frameBufferBytes(DISPLAY_WIDTH, DISPLAY_HEIGH
 export const DEFAULT_DEVICE: DeviceProfile = {
   widthPx: DISPLAY_WIDTH,
   heightPx: DISPLAY_HEIGHT,
-  deviceId: 'infobento-2.9',
+  deviceId: 'infobento-5.76',
 };
