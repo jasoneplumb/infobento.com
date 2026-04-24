@@ -6,12 +6,12 @@
 
 import type { FrameBuffer } from '../index.js';
 import type { LayoutBox, ForecastBoxConfig } from '@infobento/core';
-import { drawText, drawTextWrapped, drawHLine, drawIcon } from '../draw.js';
+import { drawText, drawTextWrapped, drawHLine, drawIcon, GRAY_DARK, GRAY_LIGHT } from '../draw.js';
 import { FONT_HEIGHT } from '../font.js';
 import { BOX_ICONS, ICON_WIDTH } from '../icons.js';
 
-const PAD = 4;
-const ROW_GAP = 2;
+const PAD = 16;
+const ROW_GAP = 8;
 const TIME_COL_WIDTH = 36;
 const TEMP_COL_WIDTH = 24;
 
@@ -26,10 +26,10 @@ export function renderForecastBox(
 
   if (showHeaders) {
     const icon = BOX_ICONS['forecast'];
-    if (icon) drawIcon(fb, x + PAD, cy, icon);
+    if (icon) drawIcon(fb, x + PAD, cy, icon, GRAY_LIGHT);
     const labelX = x + PAD + ICON_WIDTH + 3;
     const headerText = config.city ? `${config.city.toUpperCase()} 8HR` : '8HR FCST';
-    drawText(fb, labelX, cy, headerText, width - PAD * 2 - ICON_WIDTH - 3);
+    drawText(fb, labelX, cy, headerText, width - PAD * 2 - ICON_WIDTH - 3, GRAY_DARK);
     cy += FONT_HEIGHT + PAD;
   }
 
@@ -46,7 +46,7 @@ export function renderForecastBox(
 
   // Bottom rule
   const ruleY = y + height - 2;
-  if (ruleY > y) drawHLine(fb, x + PAD, ruleY, width - PAD * 2);
+  if (ruleY > y) drawHLine(fb, x + PAD, ruleY, width - PAD * 2, GRAY_DARK);
 }
 
 function renderEntries(

@@ -8,12 +8,12 @@
 import qrcode from 'qrcode-generator';
 import type { FrameBuffer } from '../index.js';
 import type { LayoutBox, QRBoxConfig } from '@infobento/core';
-import { setPixel, drawRect, drawText, drawIcon } from '../draw.js';
+import { setPixel, drawRect, drawText, drawIcon, GRAY_LIGHT } from '../draw.js';
 import { FONT_HEIGHT } from '../font.js';
 import { BOX_ICONS, ICON_WIDTH } from '../icons.js';
 
 /** Whitespace padding */
-const PAD = 4;
+const PAD = 16;
 
 /** Minimum quiet zone around QR code in modules (for scannability) */
 const QUIET_ZONE_MODULES = 2;
@@ -35,7 +35,7 @@ export function renderQRBox(
   if (showHeaders) {
     // Icon + uppercase label (5x7 font)
     const icon = BOX_ICONS['qr'];
-    if (icon) drawIcon(fb, x + PAD, cy, icon);
+    if (icon) drawIcon(fb, x + PAD, cy, icon, GRAY_LIGHT);
     const labelX = x + PAD + ICON_WIDTH + 3;
     drawText(fb, labelX, cy, layout.box.label.toUpperCase(), width - PAD * 2 - ICON_WIDTH - 3);
     cy += FONT_HEIGHT + PAD;

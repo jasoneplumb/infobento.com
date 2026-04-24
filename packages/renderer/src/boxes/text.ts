@@ -7,12 +7,12 @@
 
 import type { FrameBuffer } from '../index.js';
 import type { LayoutBox, TextBoxConfig } from '@infobento/core';
-import { drawText, drawTextWrapped, drawHLine, drawIcon } from '../draw.js';
+import { drawText, drawTextWrapped, drawHLine, drawIcon, GRAY_DARK, GRAY_LIGHT } from '../draw.js';
 import { FONT_HEIGHT, CHAR_ADVANCE } from '../font.js';
 import { BOX_ICONS, ICON_WIDTH } from '../icons.js';
 
 /** Top padding before label */
-const TOP_PAD = 4;
+const TOP_PAD = 16;
 
 /** Gap between label and rule */
 const LABEL_GAP = 4;
@@ -34,13 +34,20 @@ export function renderTextBox(
   if (showHeaders) {
     // Icon + uppercase label (5x7 font)
     const icon = BOX_ICONS['text'];
-    if (icon) drawIcon(fb, x + TOP_PAD, cy, icon);
+    if (icon) drawIcon(fb, x + TOP_PAD, cy, icon, GRAY_LIGHT);
     const labelX = x + TOP_PAD + ICON_WIDTH + 3;
-    drawText(fb, labelX, cy, layout.box.label.toUpperCase(), width - TOP_PAD * 2 - ICON_WIDTH - 3);
+    drawText(
+      fb,
+      labelX,
+      cy,
+      layout.box.label.toUpperCase(),
+      width - TOP_PAD * 2 - ICON_WIDTH - 3,
+      GRAY_DARK,
+    );
     cy += FONT_HEIGHT + LABEL_GAP;
 
     // Thin horizontal rule
-    drawHLine(fb, x + TOP_PAD, cy, width - TOP_PAD * 2);
+    drawHLine(fb, x + TOP_PAD, cy, width - TOP_PAD * 2, GRAY_DARK);
     cy += LABEL_GAP;
   }
 

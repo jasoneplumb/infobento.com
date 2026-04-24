@@ -7,12 +7,12 @@
 
 import type { FrameBuffer } from '../index.js';
 import type { LayoutBox, MoonBoxConfig } from '@infobento/core';
-import { drawText, drawHLine, drawIcon, setPixel } from '../draw.js';
+import { drawText, drawHLine, drawIcon, setPixel, GRAY_DARK, GRAY_LIGHT } from '../draw.js';
 import { FONT_HEIGHT } from '../font.js';
 import { BOX_ICONS, ICON_WIDTH } from '../icons.js';
 
 /** Whitespace padding */
-const PAD = 4;
+const PAD = 16;
 
 /**
  * Reference epoch: 2000-01-06T18:14Z was a known new moon.
@@ -177,9 +177,9 @@ export function renderMoonBox(
   if (showHeaders) {
     // Icon + uppercase label (5x7 font)
     const icon = BOX_ICONS['moon'];
-    if (icon) drawIcon(fb, x + PAD, cy, icon);
+    if (icon) drawIcon(fb, x + PAD, cy, icon, GRAY_LIGHT);
     const labelX = x + PAD + ICON_WIDTH + 3;
-    drawText(fb, labelX, cy, 'MOON', width - PAD * 2 - ICON_WIDTH - 3);
+    drawText(fb, labelX, cy, 'MOON', width - PAD * 2 - ICON_WIDTH - 3, GRAY_DARK);
     cy += FONT_HEIGHT + PAD;
   }
 
@@ -206,6 +206,6 @@ export function renderMoonBox(
 
   // Thin rule at bottom as section divider
   if (cy + 2 <= y + height) {
-    drawHLine(fb, x + PAD, cy, width - PAD * 2);
+    drawHLine(fb, x + PAD, cy, width - PAD * 2, GRAY_DARK);
   }
 }

@@ -55,18 +55,18 @@ describe('frameToPng', () => {
     expect(png.length).toBeGreaterThan(0);
   });
 
-  it('renders white pixels for unset bits', () => {
-    // All-zero frame buffer = all white (unset)
-    const whiteFb: FrameBuffer = { width: 8, height: 1, data: new Uint8Array([0x00]) };
+  it('renders white pixels for zero levels', () => {
+    // All-zero frame buffer = all white (level 0). 8 pixels at 2bpp = 2 bytes.
+    const whiteFb: FrameBuffer = { width: 8, height: 1, data: new Uint8Array([0x00, 0x00]) };
     const pngBytes = frameToPng(whiteFb, 1);
     const decoded = PNG.sync.read(Buffer.from(pngBytes));
     // R channel of pixel 0 should be 0xff (white)
     expect(decoded.data[0]).toBe(0xff);
   });
 
-  it('renders black pixels for set bits', () => {
-    // High bit set = pixel 0 is black
-    const blackFb: FrameBuffer = { width: 8, height: 1, data: new Uint8Array([0b10000000]) };
+  it('renders black pixels for level 3', () => {
+    // Pixel 0 at level 3 (black) = bits 7-6 set = 0b11000000. 8 pixels = 2 bytes.
+    const blackFb: FrameBuffer = { width: 8, height: 1, data: new Uint8Array([0b11000000, 0x00]) };
     const pngBytes = frameToPng(blackFb, 1);
     const decoded = PNG.sync.read(Buffer.from(pngBytes));
     // pixel (0,0) should be black (R=0), pixel (1,0) should be white (R=255)

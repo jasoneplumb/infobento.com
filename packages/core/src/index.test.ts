@@ -8,8 +8,8 @@ import {
 } from './index.js';
 
 // Pinned values — change here when the hardware spec changes.
-const EXPECTED_WIDTH = 240;
-const EXPECTED_HEIGHT = 200;
+const EXPECTED_WIDTH = 920;
+const EXPECTED_HEIGHT = 680;
 
 describe('core constants', () => {
   it('should match the hardware spec', () => {
@@ -24,8 +24,10 @@ describe('core constants', () => {
   });
 
   it('derives frame buffer byte size from dimensions', () => {
-    expect(frameBufferBytes(8, 1)).toBe(1);
-    expect(frameBufferBytes(9, 1)).toBe(2); // rounds up to next byte
+    // 2-bit packing: 4 pixels per byte
+    expect(frameBufferBytes(4, 1)).toBe(1);
+    expect(frameBufferBytes(5, 1)).toBe(2); // rounds up to next byte
+    expect(frameBufferBytes(8, 1)).toBe(2);
     expect(DEFAULT_FRAME_BYTES).toBe(frameBufferBytes(DISPLAY_WIDTH, DISPLAY_HEIGHT));
   });
 });

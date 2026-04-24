@@ -7,13 +7,21 @@
 
 import type { FrameBuffer } from '../index.js';
 import type { LayoutBox, ProgressBoxConfig } from '@infobento/core';
-import { drawText, drawHeroText, drawHLine, drawIcon, setPixel } from '../draw.js';
+import {
+  drawText,
+  drawHeroText,
+  drawHLine,
+  drawIcon,
+  setPixel,
+  GRAY_DARK,
+  GRAY_LIGHT,
+} from '../draw.js';
 import { FONT_HEIGHT } from '../font.js';
 import { BOX_ICONS, ICON_WIDTH } from '../icons.js';
 import { HERO_FONT_HEIGHT, HERO_CHAR_ADVANCE } from '../hero-font.js';
 
 /** Whitespace padding */
-const PAD = 4;
+const PAD = 16;
 
 /**
  * intent: Calculate progress through a date range as a fraction (0.0 to 1.0)
@@ -104,7 +112,7 @@ export function renderProgressBox(
 
     // Icon + label header (5x7 font)
     const icon = BOX_ICONS['progress'];
-    if (icon) drawIcon(fb, x + PAD, cy, icon);
+    if (icon) drawIcon(fb, x + PAD, cy, icon, GRAY_LIGHT);
     const labelX = x + PAD + ICON_WIDTH + 3;
     drawText(fb, labelX, cy, label.toUpperCase(), width - PAD * 2 - ICON_WIDTH - 3);
     cy += FONT_HEIGHT + PAD;
@@ -147,7 +155,7 @@ export function renderProgressBox(
 
   // Thin rule at bottom as section divider
   if (cy + 2 <= y + height) {
-    drawHLine(fb, x + PAD, cy, width - PAD * 2);
+    drawHLine(fb, x + PAD, cy, width - PAD * 2, GRAY_DARK);
   }
 
   // Suppress unused variable warning

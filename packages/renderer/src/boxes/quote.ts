@@ -7,12 +7,12 @@
 
 import type { FrameBuffer } from '../index.js';
 import type { LayoutBox, QuoteBoxConfig } from '@infobento/core';
-import { drawText, drawTextWrapped, drawHLine, drawIcon } from '../draw.js';
+import { drawText, drawTextWrapped, drawHLine, drawIcon, GRAY_DARK, GRAY_LIGHT } from '../draw.js';
 import { FONT_HEIGHT, CHAR_ADVANCE } from '../font.js';
 import { BOX_ICONS, ICON_WIDTH } from '../icons.js';
 
 /** Whitespace padding */
-const PAD = 4;
+const PAD = 16;
 
 /**
  * intent: Render a complete quote bento box into the frame buffer
@@ -31,7 +31,7 @@ export function renderQuoteBox(
   if (showHeaders) {
     // Icon + uppercase label (5x7 font)
     const icon = BOX_ICONS['quote'];
-    if (icon) drawIcon(fb, x + PAD, cy, icon);
+    if (icon) drawIcon(fb, x + PAD, cy, icon, GRAY_LIGHT);
     const labelX = x + PAD + ICON_WIDTH + 3;
     drawText(fb, labelX, cy, layout.box.label.toUpperCase(), width - PAD * 2 - ICON_WIDTH - 3);
     cy += FONT_HEIGHT + PAD;
@@ -70,6 +70,6 @@ export function renderQuoteBox(
 
   // Thin rule at bottom as section divider
   if (cy + 2 <= y + height) {
-    drawHLine(fb, x + PAD, cy, width - PAD * 2);
+    drawHLine(fb, x + PAD, cy, width - PAD * 2, GRAY_DARK);
   }
 }

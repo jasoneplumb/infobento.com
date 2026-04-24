@@ -11,7 +11,6 @@ import type {
   QRConfig,
   QuoteConfig,
   WeatherConfig,
-  DateConfig,
   SunConfig,
   AQIConfig,
   ProgressConfig,
@@ -356,26 +355,12 @@ function buildQuoteForm(box: EditorBox): DocumentFragment {
   return frag;
 }
 
-function buildDateForm(box: EditorBox): DocumentFragment {
+function buildDateForm(_box: EditorBox): DocumentFragment {
   const frag = document.createDocumentFragment();
-  const cfg = box.config as DateConfig;
-
-  function makeCheckbox(labelText: string, key: string, checked: boolean): HTMLDivElement {
-    const wrapper = document.createElement('div');
-    wrapper.className = 'field field-checkbox';
-    const label = document.createElement('label');
-    const cb = document.createElement('input');
-    cb.type = 'checkbox';
-    cb.checked = checked;
-    cb.addEventListener('change', () => updateConfig(box.id, key, String(cb.checked)));
-    label.appendChild(cb);
-    label.appendChild(document.createTextNode(` ${labelText}`));
-    wrapper.appendChild(label);
-    return wrapper;
-  }
-
-  frag.appendChild(makeCheckbox('Show week number', 'showWeekNumber', cfg.showWeekNumber));
-  frag.appendChild(makeCheckbox('Show day of year', 'showDayOfYear', cfg.showDayOfYear));
+  const info = document.createElement('div');
+  info.className = 'weather-status';
+  info.textContent = 'Date and year progress are computed automatically.';
+  frag.appendChild(info);
   return frag;
 }
 

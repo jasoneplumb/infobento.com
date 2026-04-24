@@ -27,13 +27,13 @@ export type { FrameBuffer } from './types.js';
 
 /**
  * intent: Create an empty (white) frame buffer for the target display
- * method: Allocates a Uint8Array sized for 1-bit-per-pixel packing
- * effect: ceil(width / 8) * height bytes
+ * method: Allocates a Uint8Array sized for 2-bit-per-pixel packing
+ * effect: ceil(width / 4) * height bytes
  */
 export function createFrameBuffer(
   device: DeviceProfile = { widthPx: DISPLAY_WIDTH, heightPx: DISPLAY_HEIGHT, deviceId: '' },
 ): FrameBuffer {
-  const byteWidth = Math.ceil(device.widthPx / 8);
+  const byteWidth = Math.ceil(device.widthPx / 4);
   return {
     width: device.widthPx,
     height: device.heightPx,

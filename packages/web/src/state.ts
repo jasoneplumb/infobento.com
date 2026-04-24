@@ -50,8 +50,7 @@ export interface QuoteConfig {
 }
 
 export interface DateConfig {
-  showWeekNumber: boolean;
-  showDayOfYear: boolean;
+  _placeholder: string;
 }
 
 export interface MoonConfig {
@@ -133,7 +132,7 @@ const DEFAULTS: Record<EditorBoxType, () => EditorBoxConfig> = {
   forecast3d: () => ({ city: '' }),
   qr: () => ({ url: '' }),
   quote: () => ({ content: '', author: '' }),
-  date: () => ({ showWeekNumber: false, showDayOfYear: false }),
+  date: () => ({ _placeholder: '' }),
   moon: () => ({ _placeholder: '' }),
   sun: () => ({ city: '' }),
   aqi: () => ({ city: '' }),

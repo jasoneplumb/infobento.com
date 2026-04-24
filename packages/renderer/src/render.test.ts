@@ -3,7 +3,7 @@ import { render, createFrameBuffer } from './index.js';
 import type { BentoConfig } from '@infobento/core';
 import { DISPLAY_WIDTH, DISPLAY_HEIGHT, DEFAULT_FRAME_BYTES } from '@infobento/core';
 
-const BYTES_PER_ROW = Math.ceil(DISPLAY_WIDTH / 8);
+const BYTES_PER_ROW = Math.ceil(DISPLAY_WIDTH / 4);
 
 describe('render', () => {
   it('produces a frame buffer matching the default display dimensions', () => {
@@ -73,8 +73,8 @@ describe('render', () => {
     const fb = render(config);
     expect(fb.data.length).toBe(DEFAULT_FRAME_BYTES);
 
-    // Top region: first ~10 rows should have label/rule pixels
-    const topHasPixels = fb.data.slice(0, BYTES_PER_ROW * 10).some((b) => b !== 0);
+    // Top region: first ~50 rows should have label/rule pixels
+    const topHasPixels = fb.data.slice(0, BYTES_PER_ROW * 50).some((b) => b !== 0);
     // Bottom region: last third of the display should have content from the third box
     const bottomThirdStart = Math.floor(DISPLAY_HEIGHT * (2 / 3)) * BYTES_PER_ROW;
     const bottomHasPixels = fb.data.slice(bottomThirdStart).some((b) => b !== 0);

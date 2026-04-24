@@ -63,8 +63,6 @@ export interface QuoteBoxConfig {
 
 export interface DateBoxConfig {
   readonly type: 'date';
-  readonly showWeekNumber?: boolean;
-  readonly showDayOfYear?: boolean;
 }
 
 export interface MoonBoxConfig {

@@ -1,22 +1,26 @@
 /**
- * Intent: Embedded 5x7 fixed-width bitmap font for 1-bit eInk rendering
- * Context: Used by draw.ts to render text — no system font dependencies
- * Pattern: Pure data — each glyph is 7 rows of 5-bit-wide pixel data
- * Future: Add bold variant, larger sizes (8x12), extended character sets
+ * Intent: Native-resolution body font for 920x680 eInk display
+ * Context: 5x7 source glyphs expanded 4x at load time → 20x28 native pixel data
+ * Pattern: Source bitmaps are compact; FONT_DATA holds the expanded native-res glyphs
  */
 
-/** Width of each character cell in pixels */
-export const FONT_WIDTH = 5;
+/** Scale factor applied to source glyphs */
+const SRC_SCALE = 4;
+const SRC_WIDTH = 5;
+const SRC_HEIGHT = 7;
 
-/** Height of each character cell in pixels */
-export const FONT_HEIGHT = 7;
+/** Width of each character cell in pixels (native resolution) */
+export const FONT_WIDTH = SRC_WIDTH * SRC_SCALE;
+
+/** Height of each character cell in pixels (native resolution) */
+export const FONT_HEIGHT = SRC_HEIGHT * SRC_SCALE;
 
 /** Horizontal spacing between characters in pixels */
-export const FONT_SPACING = 1;
+export const FONT_SPACING = SRC_SCALE;
 
 /**
  * intent: Total advance width per character (glyph + spacing)
- * effect: 6px per character — line capacity = floor(displayWidth / 6)
+ * effect: 24px per character — line capacity = floor(920 / 24) = 38
  */
 export const CHAR_ADVANCE = FONT_WIDTH + FONT_SPACING;
 
@@ -28,7 +32,7 @@ export const CHAR_ADVANCE = FONT_WIDTH + FONT_SPACING;
  *
  * Example: 'A' row 0b01110 = .XXX. (top of the letter)
  */
-export const FONT_DATA: Readonly<Record<string, readonly number[]>> = {
+const SRC_FONT_DATA: Readonly<Record<string, readonly number[]>> = {
   // Space
   ' ': [0b00000, 0b00000, 0b00000, 0b00000, 0b00000, 0b00000, 0b00000],
 
@@ -140,3 +144,40 @@ export const FONT_DATA: Readonly<Record<string, readonly number[]>> = {
   '}': [0b01000, 0b00100, 0b00100, 0b00010, 0b00100, 0b00100, 0b01000],
   '~': [0b00000, 0b00000, 0b01000, 0b10101, 0b00010, 0b00000, 0b00000],
 };
+
+/**
+ * Expand source glyph data to native resolution.
+ * Each source pixel becomes a SRC_SCALE×SRC_SCALE block in the output.
+ * Output rows are packed as numbers with FONT_WIDTH bits (MSB = leftmost).
+ */
+function expandGlyphs(
+  src: Readonly<Record<string, readonly number[]>>,
+): Readonly<Record<string, readonly number[]>> {
+  const result: Record<string, number[]> = {};
+  for (const [char, glyph] of Object.entries(src)) {
+    const expanded: number[] = [];
+    for (let srcRow = 0; srcRow < SRC_HEIGHT; srcRow++) {
+      const srcBits = glyph[srcRow] ?? 0;
+      // Build one expanded row
+      let outRow = 0;
+      for (let srcCol = 0; srcCol < SRC_WIDTH; srcCol++) {
+        const isSet = (srcBits & (1 << (SRC_WIDTH - 1 - srcCol))) !== 0;
+        if (isSet) {
+          // Set SRC_SCALE consecutive bits starting at the right position
+          for (let dx = 0; dx < SRC_SCALE; dx++) {
+            outRow |= 1 << (FONT_WIDTH - 1 - (srcCol * SRC_SCALE + dx));
+          }
+        }
+      }
+      // Repeat this row SRC_SCALE times
+      for (let dy = 0; dy < SRC_SCALE; dy++) {
+        expanded.push(outRow);
+      }
+    }
+    result[char] = expanded;
+  }
+  return result;
+}
+
+/** Native-resolution font data (20x28 per glyph) — generated from 5x7 source */
+export const FONT_DATA: Readonly<Record<string, readonly number[]>> = expandGlyphs(SRC_FONT_DATA);

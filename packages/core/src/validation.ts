@@ -77,8 +77,6 @@ const QuoteBoxConfigSchema = z.object({
 
 const DateBoxConfigSchema = z.object({
   type: z.literal('date'),
-  showWeekNumber: z.boolean().optional(),
-  showDayOfYear: z.boolean().optional(),
 });
 
 const MoonBoxConfigSchema = z.object({

@@ -7,13 +7,21 @@
 
 import type { FrameBuffer } from '../index.js';
 import type { LayoutBox, WeatherBoxConfig } from '@infobento/core';
-import { drawText, drawTextWrapped, drawHeroText, drawHLine, drawIcon } from '../draw.js';
+import {
+  drawText,
+  drawTextWrapped,
+  drawHeroText,
+  drawHLine,
+  drawIcon,
+  GRAY_DARK,
+  GRAY_LIGHT,
+} from '../draw.js';
 import { FONT_HEIGHT } from '../font.js';
 import { BOX_ICONS, ICON_WIDTH } from '../icons.js';
 import { HERO_FONT_HEIGHT, HERO_CHAR_ADVANCE } from '../hero-font.js';
 
 /** Whitespace padding */
-const PAD = 4;
+const PAD = 16;
 
 /**
  * intent: Render a complete weather bento box into the frame buffer
@@ -32,10 +40,10 @@ export function renderWeatherBox(
   if (showHeaders) {
     // Icon + uppercase label (5x7 font)
     const icon = BOX_ICONS['weather'];
-    if (icon) drawIcon(fb, x + PAD, cy, icon);
+    if (icon) drawIcon(fb, x + PAD, cy, icon, GRAY_LIGHT);
     const labelX = x + PAD + ICON_WIDTH + 3;
     const headerText = config.city ? `${config.city.toUpperCase()}` : 'WEATHER';
-    drawText(fb, labelX, cy, headerText, width - PAD * 2 - ICON_WIDTH - 3);
+    drawText(fb, labelX, cy, headerText, width - PAD * 2 - ICON_WIDTH - 3, GRAY_DARK);
     cy += FONT_HEIGHT + PAD;
   }
 
@@ -52,7 +60,7 @@ export function renderWeatherBox(
 
   // Thin rule at bottom as section divider
   if (cy + 2 <= y + height) {
-    drawHLine(fb, x + PAD, cy, width - PAD * 2);
+    drawHLine(fb, x + PAD, cy, width - PAD * 2, GRAY_DARK);
   }
 }
 

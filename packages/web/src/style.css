@@ -192,6 +192,11 @@ main {
   position: relative;
 }
 
+.eink-display canvas {
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+}
+
 /* Pixel-grid texture overlay to evoke eInk */
 .eink-display::before {
   content: '';

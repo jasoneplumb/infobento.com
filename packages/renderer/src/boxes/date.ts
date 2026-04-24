@@ -1,34 +1,29 @@
 /**
- * Intent: Render a date bento box — hero day number with day-of-week and month
+ * Intent: Render a date bento box — stacked: day-of-week, hero day, month+year, year progress
  * Context: Called by the main render() dispatcher for boxes with type 'date'
  * Pattern: Pure function — reads LayoutBox + config, draws into frame buffer
- * Design: Hero font for day number, small font for day-of-week/month, optional extras
  */
 
 import type { FrameBuffer } from '../index.js';
 import type { LayoutBox, DateBoxConfig } from '@infobento/core';
-import { drawText, drawHeroText, drawHLine, drawIcon } from '../draw.js';
+import {
+  drawText,
+  drawHeroText,
+  drawHLine,
+  drawRect,
+  drawIcon,
+  setPixel,
+  GRAY_DARK,
+  GRAY_LIGHT,
+} from '../draw.js';
 import { FONT_HEIGHT } from '../font.js';
 import { BOX_ICONS, ICON_WIDTH } from '../icons.js';
-import { HERO_FONT_HEIGHT, HERO_CHAR_ADVANCE } from '../hero-font.js';
+import { HERO_FONT_HEIGHT } from '../hero-font.js';
 
-/** Whitespace padding */
-const PAD = 4;
+const PAD = 16;
 
-const DAYS_OF_WEEK = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
+const DAYS_OF_WEEK = ['SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY'];
 const MONTHS = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
-
-/**
- * intent: Calculate the ISO week number (1-53) for a given date
- * method: Thursday-based ISO 8601 week number calculation
- */
-export function isoWeekNumber(date: Date): number {
-  const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
-  const dayNum = d.getUTCDay() || 7;
-  d.setUTCDate(d.getUTCDate() + 4 - dayNum);
-  const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
-  return Math.ceil(((d.getTime() - yearStart.getTime()) / 86400000 + 1) / 7);
-}
 
 /**
  * intent: Calculate the day of year (1-366) for a given date
@@ -41,14 +36,37 @@ export function dayOfYear(date: Date): number {
 }
 
 /**
- * intent: Render a complete date bento box into the frame buffer
- * method: Icon + "DATE" header, hero day number, day-of-week + month, optional extras
- * effect: Fills the allocated LayoutBox region without borders
+ * intent: Total days in year (365 or 366)
  */
+function daysInYear(year: number): number {
+  return year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0) ? 366 : 365;
+}
+
+/**
+ * intent: Draw a filled progress bar
+ * method: Outline rect with filled portion
+ */
+function drawProgressBar(
+  fb: FrameBuffer,
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+  fraction: number,
+): void {
+  drawRect(fb, x, y, width, height);
+  const fillWidth = Math.round((width - 2) * Math.min(1, Math.max(0, fraction)));
+  for (let row = y + 1; row < y + height - 1; row++) {
+    for (let col = x + 1; col < x + 1 + fillWidth; col++) {
+      setPixel(fb, col, row);
+    }
+  }
+}
+
 export function renderDateBox(
   fb: FrameBuffer,
   layout: LayoutBox,
-  config: DateBoxConfig,
+  _config: DateBoxConfig,
   now: Date = new Date(),
   showHeaders = true,
 ): void {
@@ -56,50 +74,61 @@ export function renderDateBox(
   let cy = y + PAD;
 
   if (showHeaders) {
-    // Icon + uppercase label (5x7 font)
     const icon = BOX_ICONS['date'];
-    if (icon) drawIcon(fb, x + PAD, cy, icon);
+    if (icon) drawIcon(fb, x + PAD, cy, icon, GRAY_LIGHT);
     const labelX = x + PAD + ICON_WIDTH + 3;
-    drawText(fb, labelX, cy, 'DATE', width - PAD * 2 - ICON_WIDTH - 3);
+    drawText(fb, labelX, cy, 'DATE', width - PAD * 2 - ICON_WIDTH - 3, GRAY_DARK);
     cy += FONT_HEIGHT + PAD;
   }
 
+  const contentWidth = width - PAD * 2;
+  const contentEnd = y + height - PAD;
+  if (contentWidth <= 0) return;
+
   const dayNum = now.getDate();
-  const dayName = DAYS_OF_WEEK[now.getDay()] ?? 'SUN';
+  const dayName = DAYS_OF_WEEK[now.getDay()] ?? 'SUNDAY';
   const monthName = MONTHS[now.getMonth()] ?? 'JAN';
+  const year = now.getFullYear();
 
-  // Hero day number
-  const dayStr = String(dayNum);
-  drawHeroText(fb, x + PAD, cy, dayStr);
+  // Line 1: Day-of-week (small font)
+  if (cy + FONT_HEIGHT > contentEnd) return;
+  drawText(fb, x + PAD, cy, dayName, contentWidth);
+  cy += FONT_HEIGHT + 1;
 
-  // Day-of-week + month beside the hero text
-  const heroWidth = dayStr.length * HERO_CHAR_ADVANCE;
-  const sideX = x + PAD + heroWidth + PAD;
-  const sideMaxW = width - PAD * 2 - heroWidth - PAD;
-  if (sideMaxW > 0) {
-    drawText(fb, sideX, cy + 2, dayName, sideMaxW);
-    if (cy + 2 + FONT_HEIGHT + 3 + FONT_HEIGHT <= y + height - PAD) {
-      drawText(fb, sideX, cy + 2 + FONT_HEIGHT + 3, monthName, sideMaxW);
-    }
-  }
-  cy += HERO_FONT_HEIGHT + 2;
+  // Line 2: Hero day number
+  if (cy + HERO_FONT_HEIGHT > contentEnd) return;
+  drawHeroText(fb, x + PAD, cy, String(dayNum));
+  cy += HERO_FONT_HEIGHT + 1;
 
-  // Optional: week number
-  if (config.showWeekNumber && cy + FONT_HEIGHT <= y + height - PAD) {
-    const wk = isoWeekNumber(now);
-    drawText(fb, x + PAD, cy, `WK ${String(wk)}`, width - PAD * 2);
-    cy += FONT_HEIGHT + 2;
-  }
+  // Line 3: Month + year (small font)
+  if (cy + FONT_HEIGHT > contentEnd) return;
+  drawText(fb, x + PAD, cy, `${monthName} ${String(year)}`, contentWidth);
+  cy += FONT_HEIGHT + 3;
 
-  // Optional: day of year
-  if (config.showDayOfYear && cy + FONT_HEIGHT <= y + height - PAD) {
-    const doy = dayOfYear(now);
-    drawText(fb, x + PAD, cy, `DAY ${String(doy)}`, width - PAD * 2);
-    cy += FONT_HEIGHT + 2;
+  // Year progress: "Day 113/365" with progress bar on same line
+  const doy = dayOfYear(now);
+  const total = daysInYear(year);
+  const barHeight = 5;
+
+  if (cy + barHeight > contentEnd) {
+    // Bottom rule
+    if (cy + 2 <= y + height) drawHLine(fb, x + PAD, cy, contentWidth, GRAY_DARK);
+    return;
   }
 
-  // Thin rule at bottom as section divider
+  const progressLabel = `${String(doy)}/${String(total)}`;
+  const labelWidth = progressLabel.length * 6; // CHAR_ADVANCE = 6
+  const barX = x + PAD + labelWidth + 4;
+  const barWidth = contentWidth - labelWidth - 4;
+
+  drawText(fb, x + PAD, cy, progressLabel, labelWidth);
+  if (barWidth > 10) {
+    drawProgressBar(fb, barX, cy + 1, barWidth, barHeight, doy / total);
+  }
+  cy += Math.max(FONT_HEIGHT, barHeight) + PAD;
+
+  // Bottom rule
   if (cy + 2 <= y + height) {
-    drawHLine(fb, x + PAD, cy, width - PAD * 2);
+    drawHLine(fb, x + PAD, cy, contentWidth, GRAY_DARK);
   }
 }

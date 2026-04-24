@@ -14,7 +14,6 @@ import type {
   TextConfig,
   QRConfig,
   QuoteConfig,
-  DateConfig,
   SunConfig,
   AQIConfig,
   ProgressConfig,
@@ -25,6 +24,7 @@ import { getBoxes, getShowHeaders } from '../state';
  *  pixel — the preview is then physically the same dimensions as the actual
  *  eInk display. The preview panel sizes itself to the canvas via CSS vars,
  *  so bumping SCALE here is the only change needed to enlarge the preview. */
+/** 1:1 native resolution — each framebuffer pixel = one screen pixel */
 const SCALE = 1;
 
 /**
@@ -84,15 +84,10 @@ function toBentoBox(editor: EditorBox): BentoBox {
       };
     }
     case 'date': {
-      const c = editor.config as DateConfig;
       return {
         ...base,
         type: 'date',
-        config: {
-          type: 'date',
-          showWeekNumber: c.showWeekNumber,
-          showDayOfYear: c.showDayOfYear,
-        },
+        config: { type: 'date' },
       };
     }
     case 'moon': {
@@ -140,10 +135,13 @@ function toBentoConfig(boxes: readonly EditorBox[]): BentoConfig {
   };
 }
 
+/** Map 2-bit gray level to CSS color */
+const GRAY_COLORS = ['#ffffff', '#aaaaaa', '#555555', '#000000'] as const;
+
 /**
- * Paint a 1-bit FrameBuffer onto a <canvas> element at the given scale.
- * Bit packing: each byte holds 8 horizontal pixels, MSB = leftmost.
- * A set bit (1) = black pixel, unset (0) = white pixel.
+ * Paint a 2-bit FrameBuffer onto a <canvas> element at the given scale.
+ * Bit packing: each byte holds 4 pixels at 2 bits each, MSB-first.
+ * Levels: 0=white, 1=light gray, 2=dark gray, 3=black.
  */
 function paintFrameBuffer(
   canvas: HTMLCanvasElement,
@@ -161,17 +159,18 @@ function paintFrameBuffer(
   ctx.fillStyle = '#ffffff';
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-  ctx.fillStyle = '#000000';
-  const byteWidth = Math.ceil(width / 8);
+  const byteWidth = Math.ceil(width / 4);
 
   for (let y = 0; y < height; y++) {
     for (let x = 0; x < width; x++) {
-      const byteIndex = y * byteWidth + Math.floor(x / 8);
-      const bitIndex = 7 - (x % 8);
+      const byteIndex = y * byteWidth + Math.floor(x / 4);
+      const shift = (3 - (x % 4)) * 2;
       const byte = data[byteIndex];
-      if (byte !== undefined && (byte >> bitIndex) & 1) {
-        ctx.fillRect(x * scale, y * scale, scale, scale);
-      }
+      if (byte === undefined) continue;
+      const level = (byte >> shift) & 0x03;
+      if (level === 0) continue; // white — already painted
+      ctx.fillStyle = GRAY_COLORS[level] ?? '#000000';
+      ctx.fillRect(x * scale, y * scale, scale, scale);
     }
   }
 }

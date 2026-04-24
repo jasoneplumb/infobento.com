@@ -5,18 +5,23 @@
  * Convention: Bit 6 = leftmost pixel, bit 0 = rightmost pixel
  */
 
-/** Width of each icon in pixels */
-export const ICON_WIDTH = 7;
+/** Scale factor applied to source icon data */
+const SRC_SCALE = 4;
+const SRC_WIDTH = 7;
+const SRC_HEIGHT = 7;
 
-/** Height of each icon in pixels */
-export const ICON_HEIGHT = 7;
+/** Width of each icon in pixels (native resolution) */
+export const ICON_WIDTH = SRC_WIDTH * SRC_SCALE;
+
+/** Height of each icon in pixels (native resolution) */
+export const ICON_HEIGHT = SRC_HEIGHT * SRC_SCALE;
 
 /**
  * 7x7 bitmap icon data keyed by box type.
  * Each icon is an array of 7 numbers — one per row.
  * Bits 6..0 map to pixels left-to-right (bit 6 = leftmost).
  */
-export const BOX_ICONS: Record<string, readonly number[]> = {
+const SRC_ICONS: Record<string, readonly number[]> = {
   /* weather: Sun — center dot with 4 cardinal rays (N/S/E/W)
    *   ...*...
    *   ...*...
@@ -149,3 +154,31 @@ export const BOX_ICONS: Record<string, readonly number[]> = {
    */
   progress: [0b0000000, 0b1111111, 0b1111100, 0b1110000, 0b1111100, 0b1111111, 0b0000000],
 };
+
+/** Expand source icon data to native resolution (28x28 from 7x7) */
+function expandIcons(src: Record<string, readonly number[]>): Record<string, readonly number[]> {
+  const result: Record<string, number[]> = {};
+  for (const [name, icon] of Object.entries(src)) {
+    const expanded: number[] = [];
+    for (let srcRow = 0; srcRow < SRC_HEIGHT; srcRow++) {
+      const srcBits = icon[srcRow] ?? 0;
+      let outRow = 0;
+      for (let srcCol = 0; srcCol < SRC_WIDTH; srcCol++) {
+        const isSet = (srcBits & (1 << (SRC_WIDTH - 1 - srcCol))) !== 0;
+        if (isSet) {
+          for (let dx = 0; dx < SRC_SCALE; dx++) {
+            outRow |= 1 << (ICON_WIDTH - 1 - (srcCol * SRC_SCALE + dx));
+          }
+        }
+      }
+      for (let dy = 0; dy < SRC_SCALE; dy++) {
+        expanded.push(outRow);
+      }
+    }
+    result[name] = expanded;
+  }
+  return result;
+}
+
+/** Native-resolution icon data (28x28 per icon) — generated from 7x7 source */
+export const BOX_ICONS: Record<string, readonly number[]> = expandIcons(SRC_ICONS);

@@ -4,7 +4,7 @@ import { renderQRBox } from './qr.js';
 import type { BentoConfig, LayoutBox, QRBoxConfig } from '@infobento/core';
 import { DISPLAY_WIDTH, DISPLAY_HEIGHT, DEFAULT_FRAME_BYTES } from '@infobento/core';
 
-/** Helper: count set pixels in a frame buffer region */
+/** Helper: count non-white pixels in a frame buffer region (2-bit packing) */
 function countPixelsInRegion(
   data: Uint8Array,
   fbWidth: number,
@@ -13,14 +13,14 @@ function countPixelsInRegion(
   rw: number,
   rh: number,
 ): number {
-  const byteWidth = Math.ceil(fbWidth / 8);
+  const byteWidth = Math.ceil(fbWidth / 4);
   let count = 0;
   for (let y = ry; y < ry + rh; y++) {
     for (let x = rx; x < rx + rw; x++) {
-      const byteIndex = y * byteWidth + Math.floor(x / 8);
-      const bitIndex = 7 - (x % 8);
+      const byteIndex = y * byteWidth + Math.floor(x / 4);
+      const shift = (3 - (x % 4)) * 2;
       const b = data[byteIndex];
-      if (b != null && (b & (1 << bitIndex)) !== 0) {
+      if (b != null && ((b >> shift) & 0x03) !== 0) {
         count++;
       }
     }
