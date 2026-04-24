@@ -1,5 +1,34 @@
 # Changelog
 
+## [0.8.0] - 2026-04-24
+
+### Added
+
+- 5 new box types: stocks, tasks, calendar, habit, worldclock — each with renderer, tests, 14x14 icons, types, and validation schemas
+- Dynamic `FontMetrics` system replaces hardcoded font constants — all sizing derived from user-chosen body font size
+- Content-aware quote height allocation — layout engine accepts height hints so quote boxes expand to fit wrapped text
+- Antialiased rounded box borders using signed distance field (SDF) rendering
+- `drawRoundedRect()` and `roundedRectSDF()` drawing primitives in `draw.ts`
+- Grey background behind boxes (GRAY_LIGHT fill) with white box interiors
+- Configurable corner radius (0–5) and display padding (0–10) with live web UI slider controls
+- Font size max raised from 24px to 42px
+- Display spec locked to Good Display GDEH0576T81 (5.76", 920x680, 198 DPI, SSD2677)
+
+### Changed
+
+- Layout engine derives padding and gap from `config.padding` instead of hardcoded constants (`BOX_DIVIDER_PX` and `DISPLAY_PADDING_PX` removed)
+- Box gap matches edge padding for uniform spacing
+- Split-pair boxes now have a gap between left/right halves
+- Moon phase layout: bitmap vertically centered relative to text, divider clears whichever is taller
+- Preview containers use CSS variable `--eink-radius` synced to framebuffer corner radius
+- Preview shows full display area — orientation header labels ("Landscape 920x680") removed
+- All docs updated from color eInk / Spectra 6 to B&W GDEH0576T81 spec
+
+### Removed
+
+- Per-box bottom divider lines (`drawHLine` rules) from all 16 box renderers — replaced by bordered boxes
+- `BOX_DIVIDER_PX` and `DISPLAY_PADDING_PX` constants (now config-driven)
+
 ## [0.7.1] - 2026-04-23
 
 ### Fixed
