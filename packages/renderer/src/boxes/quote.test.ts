@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { render, createFrameBuffer } from '../index.js';
 import { renderQuoteBox } from './quote.js';
+import { computeFontMetrics } from '../font-metrics.js';
 import type { BentoConfig, LayoutBox, QuoteBoxConfig } from '@infobento/core';
 
 /** Count number of set bits in a byte */
@@ -38,7 +39,7 @@ describe('renderQuoteBox', () => {
     const fb = createFrameBuffer({ widthPx: 120, heightPx: 100, deviceId: '' });
     const layout = makeLayout(config);
 
-    renderQuoteBox(fb, layout, config);
+    renderQuoteBox(fb, layout, config, computeFontMetrics());
 
     const totalSet = fb.data.reduce((sum, byte) => sum + popcount(byte), 0);
     expect(totalSet).toBeGreaterThan(0);
@@ -52,7 +53,7 @@ describe('renderQuoteBox', () => {
     const fb = createFrameBuffer({ widthPx: 120, heightPx: 100, deviceId: '' });
     const layout = makeLayout(config);
 
-    renderQuoteBox(fb, layout, config);
+    renderQuoteBox(fb, layout, config, computeFontMetrics());
 
     const totalSet = fb.data.reduce((sum, byte) => sum + popcount(byte), 0);
     expect(totalSet).toBeGreaterThan(0);
@@ -68,7 +69,7 @@ describe('renderQuoteBox', () => {
     const layout = makeLayout(config);
 
     // Should not throw even with text that exceeds the body area
-    expect(() => renderQuoteBox(fb, layout, config)).not.toThrow();
+    expect(() => renderQuoteBox(fb, layout, config, computeFontMetrics())).not.toThrow();
 
     const totalSet = fb.data.reduce((sum, byte) => sum + popcount(byte), 0);
     expect(totalSet).toBeGreaterThan(0);

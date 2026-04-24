@@ -2,14 +2,13 @@
  * Intent: Stateless pure-function API for generating eInk display frames
  * Context: Called by the device (via phone bridge) to get updated display data
  * Pattern: Pure functions — no server state, edge-deployable
- * Future: Add data source fetchers for weather, quotes, etc.
  */
 
 import type { BentoConfig } from '@infobento/core';
 import { validateBentoConfig } from '@infobento/core';
 import type { ValidationResult } from '@infobento/core';
-import type { FrameBuffer } from '@infobento/renderer';
-import { render, frameToPng } from '@infobento/renderer';
+import type { FrameBuffer, DualRenderResult } from '@infobento/renderer';
+import { render, renderBoth, frameToPng } from '@infobento/renderer';
 
 // Re-export frameToPng for API consumers (also available from @infobento/renderer for web)
 export { frameToPng } from '@infobento/renderer';
@@ -31,6 +30,23 @@ export function generateFrame(config: BentoConfig): FrameBuffer {
 export function generatePreview(config: BentoConfig, scale = 3): Uint8Array {
   const fb = render(config);
   return frameToPng(fb, scale);
+}
+
+/** Both landscape and portrait frame buffers in one call */
+export function generateDualFrame(config: BentoConfig): DualRenderResult {
+  return renderBoth(config);
+}
+
+/** Both landscape and portrait PNG previews in one call */
+export function generateDualPreview(
+  config: BentoConfig,
+  scale = 3,
+): { landscape: Uint8Array; portrait: Uint8Array } {
+  const dual = renderBoth(config);
+  return {
+    landscape: frameToPng(dual.landscape, scale),
+    portrait: frameToPng(dual.portrait, scale),
+  };
 }
 
 /** Validate a bento configuration using Zod schema validation */

@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { renderSunBox } from './sun.js';
 import { createFrameBuffer, render } from '../index.js';
+import { computeFontMetrics } from '../font-metrics.js';
 import type { LayoutBox, SunBoxConfig, BentoConfig } from '@infobento/core';
 
 function popcount(n: number): number {
@@ -30,7 +31,7 @@ describe('renderSunBox', () => {
       data: { sunrise: '06:12', sunset: '20:04', dayLength: '13h 52m' },
     };
     const fb = createFrameBuffer({ widthPx: 120, heightPx: 100, deviceId: '' });
-    renderSunBox(fb, makeLayout(config), config);
+    renderSunBox(fb, makeLayout(config), config, computeFontMetrics());
     const totalSet = fb.data.reduce((sum, byte) => sum + popcount(byte), 0);
     expect(totalSet).toBeGreaterThan(0);
   });
@@ -38,7 +39,7 @@ describe('renderSunBox', () => {
   it('renders placeholder when data is missing', () => {
     const config: SunBoxConfig = { type: 'sun', city: 'Portland, OR' };
     const fb = createFrameBuffer({ widthPx: 120, heightPx: 100, deviceId: '' });
-    renderSunBox(fb, makeLayout(config), config);
+    renderSunBox(fb, makeLayout(config), config, computeFontMetrics());
     const totalSet = fb.data.reduce((sum, byte) => sum + popcount(byte), 0);
     expect(totalSet).toBeGreaterThan(0);
   });
@@ -50,7 +51,7 @@ describe('renderSunBox', () => {
       data: { sunrise: '06:12:00', sunset: '20:04:00', dayLength: '13h 52m' },
     };
     const fb = createFrameBuffer({ widthPx: 120, heightPx: 100, deviceId: '' });
-    renderSunBox(fb, makeLayout(config), config);
+    renderSunBox(fb, makeLayout(config), config, computeFontMetrics());
     const totalSet = fb.data.reduce((sum, byte) => sum + popcount(byte), 0);
     expect(totalSet).toBeGreaterThan(0);
   });

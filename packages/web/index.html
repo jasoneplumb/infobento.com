@@ -38,10 +38,25 @@
       <section class="preview-cell">
         <div id="eink-display" class="eink-display"></div>
         <div class="preview-controls">
-          <span class="preview-meta">920 &times; 680 px &middot; 2-bit grayscale</span>
+          <span class="preview-meta">2-bit grayscale &middot; landscape + portrait</span>
           <label class="preview-toggle" id="toggle-headers">
             <input type="checkbox" checked />
             Show Box Headers
+          </label>
+          <label class="preview-control" id="font-size-control">
+            <span>Font Size</span>
+            <input type="range" id="font-size-slider" min="8" max="42" step="1" value="20" />
+            <span id="font-size-display">20px</span>
+          </label>
+          <label class="preview-control" id="corner-radius-control">
+            <span>Corners</span>
+            <input type="range" id="corner-radius-slider" min="0" max="5" step="1" value="3" />
+            <span id="corner-radius-display">3</span>
+          </label>
+          <label class="preview-control" id="padding-control">
+            <span>Padding</span>
+            <input type="range" id="padding-slider" min="0" max="10" step="1" value="4" />
+            <span id="padding-display">4</span>
           </label>
         </div>
       </section>

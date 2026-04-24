@@ -1,7 +1,9 @@
 import { describe, it, expect } from 'vitest';
 import { renderAQIBox } from './aqi.js';
-import { createFrameBuffer, render } from '../index.js';
+import { createFrameBuffer, render, computeFontMetrics } from '../index.js';
 import type { LayoutBox, AQIBoxConfig, BentoConfig } from '@infobento/core';
+
+const metrics = computeFontMetrics();
 
 function popcount(n: number): number {
   let count = 0;
@@ -30,7 +32,7 @@ describe('renderAQIBox', () => {
       data: { aqi: 32, category: 'Good', dominantPollutant: 'PM2.5', uvIndex: 3 },
     };
     const fb = createFrameBuffer({ widthPx: 120, heightPx: 100, deviceId: '' });
-    renderAQIBox(fb, makeLayout(config), config);
+    renderAQIBox(fb, makeLayout(config), config, metrics);
     const totalSet = fb.data.reduce((sum, byte) => sum + popcount(byte), 0);
     expect(totalSet).toBeGreaterThan(0);
   });
@@ -42,7 +44,7 @@ describe('renderAQIBox', () => {
       data: { aqi: 75, category: 'Moderate', dominantPollutant: 'O3', uvIndex: 6 },
     };
     const fb = createFrameBuffer({ widthPx: 120, heightPx: 100, deviceId: '' });
-    renderAQIBox(fb, makeLayout(config), config);
+    renderAQIBox(fb, makeLayout(config), config, metrics);
     const totalSet = fb.data.reduce((sum, byte) => sum + popcount(byte), 0);
     expect(totalSet).toBeGreaterThan(0);
   });
@@ -54,7 +56,7 @@ describe('renderAQIBox', () => {
       data: { aqi: 165, category: 'Unhealthy', dominantPollutant: 'PM10' },
     };
     const fb = createFrameBuffer({ widthPx: 120, heightPx: 100, deviceId: '' });
-    renderAQIBox(fb, makeLayout(config), config);
+    renderAQIBox(fb, makeLayout(config), config, metrics);
     const totalSet = fb.data.reduce((sum, byte) => sum + popcount(byte), 0);
     expect(totalSet).toBeGreaterThan(0);
   });
@@ -62,7 +64,7 @@ describe('renderAQIBox', () => {
   it('renders placeholder when data is missing', () => {
     const config: AQIBoxConfig = { type: 'aqi', city: 'Portland, OR' };
     const fb = createFrameBuffer({ widthPx: 120, heightPx: 100, deviceId: '' });
-    renderAQIBox(fb, makeLayout(config), config);
+    renderAQIBox(fb, makeLayout(config), config, metrics);
     const totalSet = fb.data.reduce((sum, byte) => sum + popcount(byte), 0);
     expect(totalSet).toBeGreaterThan(0);
   });
@@ -74,7 +76,7 @@ describe('renderAQIBox', () => {
       data: { aqi: 42, category: 'Good', dominantPollutant: 'PM2.5' },
     };
     const fb = createFrameBuffer({ widthPx: 120, heightPx: 100, deviceId: '' });
-    renderAQIBox(fb, makeLayout(config), config);
+    renderAQIBox(fb, makeLayout(config), config, metrics);
     const totalSet = fb.data.reduce((sum, byte) => sum + popcount(byte), 0);
     expect(totalSet).toBeGreaterThan(0);
   });

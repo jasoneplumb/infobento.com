@@ -1,7 +1,8 @@
 /**
  * Intent: Font metrics for body text — derived from Inter Regular via opentype.js
- * Context: Box renderers use these constants for layout calculations
- * Pattern: TTF rendering happens in draw.ts; this module exports metrics only
+ * Context: Legacy module — box renderers now use FontMetrics from font-metrics.ts
+ * Pattern: Kept for backward compatibility (scripts/ still import these)
+ * @deprecated Use computeFontMetrics() from font-metrics.ts instead
  */
 
 import { BODY_FONT_SIZE, BODY_LINE_HEIGHT, measureText } from './ttf-font.js';

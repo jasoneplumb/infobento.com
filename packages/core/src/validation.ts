@@ -119,6 +119,59 @@ const ProgressBoxConfigSchema = z.object({
   endDate: z.string().optional(),
 });
 
+const StockDataSchema = z.object({
+  price: z.number(),
+  change: z.number(),
+  changePercent: z.number(),
+});
+
+const StocksBoxConfigSchema = z.object({
+  type: z.literal('stocks'),
+  symbol: z.string().min(1, 'Symbol is required'),
+  data: StockDataSchema.optional(),
+});
+
+const TaskItemSchema = z.object({
+  text: z.string().min(1),
+  done: z.boolean(),
+});
+
+const TasksBoxConfigSchema = z.object({
+  type: z.literal('tasks'),
+  items: z.array(TaskItemSchema).min(1, 'At least one task is required'),
+});
+
+const CalendarEventSchema = z.object({
+  title: z.string().min(1),
+  time: z.string().optional(),
+});
+
+const CalendarBoxConfigSchema = z.object({
+  type: z.literal('calendar'),
+  events: z.array(CalendarEventSchema).optional(),
+});
+
+const HabitEntrySchema = z.object({
+  name: z.string().min(1),
+  streak: z.number().int().min(0),
+  completedToday: z.boolean(),
+});
+
+const HabitBoxConfigSchema = z.object({
+  type: z.literal('habit'),
+  habits: z.array(HabitEntrySchema).min(1, 'At least one habit is required'),
+});
+
+const ClockZoneSchema = z.object({
+  label: z.string().min(1),
+  offsetMinutes: z.number().int(),
+});
+
+const WorldclockBoxConfigSchema = z.object({
+  type: z.literal('worldclock'),
+  zones: z.array(ClockZoneSchema).min(1, 'At least one timezone is required'),
+});
+
 // --- BentoBox schema ---
 
 const BentoBoxBaseSchema = z.object({
@@ -187,6 +240,31 @@ const ProgressBentoBoxSchema = BentoBoxBaseSchema.extend({
   config: ProgressBoxConfigSchema.optional(),
 });
 
+const StocksBentoBoxSchema = BentoBoxBaseSchema.extend({
+  type: z.literal('stocks'),
+  config: StocksBoxConfigSchema.optional(),
+});
+
+const TasksBentoBoxSchema = BentoBoxBaseSchema.extend({
+  type: z.literal('tasks'),
+  config: TasksBoxConfigSchema.optional(),
+});
+
+const CalendarBentoBoxSchema = BentoBoxBaseSchema.extend({
+  type: z.literal('calendar'),
+  config: CalendarBoxConfigSchema.optional(),
+});
+
+const HabitBentoBoxSchema = BentoBoxBaseSchema.extend({
+  type: z.literal('habit'),
+  config: HabitBoxConfigSchema.optional(),
+});
+
+const WorldclockBentoBoxSchema = BentoBoxBaseSchema.extend({
+  type: z.literal('worldclock'),
+  config: WorldclockBoxConfigSchema.optional(),
+});
+
 const BentoBoxSchema = z.discriminatedUnion('type', [
   TextBentoBoxSchema,
   WeatherBentoBoxSchema,
@@ -200,6 +278,11 @@ const BentoBoxSchema = z.discriminatedUnion('type', [
   SunBentoBoxSchema,
   AQIBentoBoxSchema,
   ProgressBentoBoxSchema,
+  StocksBentoBoxSchema,
+  TasksBentoBoxSchema,
+  CalendarBentoBoxSchema,
+  HabitBentoBoxSchema,
+  WorldclockBentoBoxSchema,
 ]);
 
 // --- Full config schema ---
@@ -208,9 +291,12 @@ export const BentoConfigSchema = z.object({
   boxes: z
     .array(BentoBoxSchema)
     .min(1, 'Config must have at least one bento box')
-    .max(6, 'Config cannot exceed 6 bento boxes'),
+    .max(10, 'Config cannot exceed 10 bento boxes'),
   refreshesPerDay: z.union([z.literal(1), z.literal(2)]),
   showHeaders: z.boolean().optional(),
+  fontSize: z.number().int().min(8).max(42).optional(),
+  cornerRadius: z.number().int().min(0).max(5).optional(),
+  padding: z.number().int().min(0).max(10).optional(),
 });
 
 // --- Validation function ---

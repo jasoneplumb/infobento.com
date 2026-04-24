@@ -16,7 +16,13 @@ import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { serveStatic } from '@hono/node-server/serve-static';
 import { serve } from '@hono/node-server';
-import { generateFrame, generatePreview, validateConfig } from './index.js';
+import {
+  generateFrame,
+  generatePreview,
+  generateDualFrame,
+  generateDualPreview,
+  validateConfig,
+} from './index.js';
 import { DISPLAY_WIDTH, DISPLAY_HEIGHT } from '@infobento/core';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -71,9 +77,43 @@ app.post('/api/preview', async (c) => {
   if (!Number.isInteger(rawScale) || rawScale < 1 || rawScale > 8) {
     return c.json({ error: 'scale must be an integer between 1 and 8' }, 400);
   }
+
+  // Dual mode: return both landscape and portrait as base64 JSON
+  const dual = c.req.query('dual');
+  if (dual === '1') {
+    const pngs = generateDualPreview(config, rawScale);
+    return c.json({
+      landscape: Buffer.from(pngs.landscape).toString('base64'),
+      portrait: Buffer.from(pngs.portrait).toString('base64'),
+    });
+  }
+
+  // Single mode (backward compat)
   const png = generatePreview(config, rawScale);
   return new Response(png as unknown as BodyInit, {
     headers: { 'Content-Type': 'image/png' },
+  });
+});
+
+app.post('/api/render-dual', async (c) => {
+  const body: unknown = await c.req.json();
+  const validation = validateConfig(body);
+  if (!validation.valid) {
+    return c.json({ error: 'Invalid config', details: validation.errors }, 400);
+  }
+  const config = body as import('@infobento/core').BentoConfig;
+  const dual = generateDualFrame(config);
+  return c.json({
+    landscape: {
+      width: dual.landscape.width,
+      height: dual.landscape.height,
+      data: Buffer.from(dual.landscape.data).toString('base64'),
+    },
+    portrait: {
+      width: dual.portrait.width,
+      height: dual.portrait.height,
+      data: Buffer.from(dual.portrait.data).toString('base64'),
+    },
   });
 });
 

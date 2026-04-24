@@ -7,21 +7,9 @@
 
 import type { FrameBuffer } from '../index.js';
 import type { LayoutBox, ProgressBoxConfig } from '@infobento/core';
-import {
-  drawText,
-  drawHeroText,
-  drawHLine,
-  drawIcon,
-  setPixel,
-  GRAY_DARK,
-  GRAY_LIGHT,
-} from '../draw.js';
-import { FONT_HEIGHT } from '../font.js';
+import type { FontMetrics } from '../font-metrics.js';
+import { drawText, drawHeroText, drawIcon, setPixel, GRAY_LIGHT } from '../draw.js';
 import { BOX_ICONS, ICON_WIDTH } from '../icons.js';
-import { HERO_FONT_HEIGHT, HERO_CHAR_ADVANCE } from '../hero-font.js';
-
-/** Whitespace padding */
-const PAD = 16;
 
 /**
  * intent: Calculate progress through a date range as a fraction (0.0 to 1.0)
@@ -101,21 +89,30 @@ export function renderProgressBox(
   fb: FrameBuffer,
   layout: LayoutBox,
   config: ProgressBoxConfig,
+  metrics: FontMetrics,
   now: Date = new Date(),
   showHeaders = true,
 ): void {
   const { x, y, width, height } = layout;
-  let cy = y + PAD;
+  let cy = y + metrics.pad;
 
   if (showHeaders) {
     const label = config.label ?? 'Year';
 
     // Icon + label header (5x7 font)
     const icon = BOX_ICONS['progress'];
-    if (icon) drawIcon(fb, x + PAD, cy, icon, GRAY_LIGHT);
-    const labelX = x + PAD + ICON_WIDTH + 3;
-    drawText(fb, labelX, cy, label.toUpperCase(), width - PAD * 2 - ICON_WIDTH - 3);
-    cy += FONT_HEIGHT + PAD;
+    if (icon) drawIcon(fb, x + metrics.pad, cy, icon, GRAY_LIGHT);
+    const labelX = x + metrics.pad + ICON_WIDTH + 3;
+    drawText(
+      fb,
+      labelX,
+      cy,
+      label.toUpperCase(),
+      width - metrics.pad * 2 - ICON_WIDTH - 3,
+      undefined,
+      metrics.bodySize,
+    );
+    cy += metrics.bodySize + metrics.pad;
   }
 
   const defaultRange = defaultYearRange(now);
@@ -127,35 +124,32 @@ export function renderProgressBox(
   const pctStr = `${String(pct)}%`;
 
   // Hero percentage
-  drawHeroText(fb, x + PAD, cy, pctStr);
+  drawHeroText(fb, x + metrics.pad, cy, pctStr, undefined, undefined, metrics.heroSize);
 
-  const heroWidth = pctStr.length * HERO_CHAR_ADVANCE;
-  cy += HERO_FONT_HEIGHT + 2;
+  const heroWidth = pctStr.length * metrics.heroAdvance;
+  cy += metrics.heroSize + 2;
 
   // Progress bar
   const barY = cy;
   const barHeight = 7;
-  const barWidth = width - PAD * 2;
-  if (barY + barHeight <= y + height - PAD) {
-    drawProgressBar(fb, x + PAD, barY, barWidth, barHeight, fraction);
+  const barWidth = width - metrics.pad * 2;
+  if (barY + barHeight <= y + height - metrics.pad) {
+    drawProgressBar(fb, x + metrics.pad, barY, barWidth, barHeight, fraction);
     cy = barY + barHeight + 3;
   }
 
   // "Day X of Y" detail
-  if (cy + FONT_HEIGHT <= y + height - PAD && daysTotal > 0) {
+  if (cy + metrics.bodySize <= y + height - metrics.pad && daysTotal > 0) {
     drawText(
       fb,
-      x + PAD,
+      x + metrics.pad,
       cy,
       `Day ${String(daysCurrent)} of ${String(daysTotal)}`,
-      width - PAD * 2,
+      width - metrics.pad * 2,
+      undefined,
+      metrics.bodySize,
     );
-    cy += FONT_HEIGHT + PAD;
-  }
-
-  // Thin rule at bottom as section divider
-  if (cy + 2 <= y + height) {
-    drawHLine(fb, x + PAD, cy, width - PAD * 2, GRAY_DARK);
+    cy += metrics.bodySize + metrics.pad;
   }
 
   // Suppress unused variable warning

@@ -1,7 +1,9 @@
 import { describe, it, expect } from 'vitest';
 import { calculateProgress, renderProgressBox } from './progress.js';
-import { createFrameBuffer, render } from '../index.js';
+import { createFrameBuffer, render, computeFontMetrics } from '../index.js';
 import type { LayoutBox, ProgressBoxConfig, BentoConfig } from '@infobento/core';
+
+const metrics = computeFontMetrics();
 
 function popcount(n: number): number {
   let count = 0;
@@ -85,7 +87,7 @@ describe('renderProgressBox', () => {
   it('renders year progress', () => {
     const config: ProgressBoxConfig = { type: 'progress' };
     const fb = createFrameBuffer({ widthPx: 120, heightPx: 100, deviceId: '' });
-    renderProgressBox(fb, makeLayout(config), config, new Date('2026-04-23T12:00:00'));
+    renderProgressBox(fb, makeLayout(config), config, metrics, new Date('2026-04-23T12:00:00'));
     const totalSet = fb.data.reduce((sum, byte) => sum + popcount(byte), 0);
     expect(totalSet).toBeGreaterThan(0);
   });
@@ -93,7 +95,7 @@ describe('renderProgressBox', () => {
   it('renders custom label', () => {
     const config: ProgressBoxConfig = { type: 'progress', label: 'Project' };
     const fb = createFrameBuffer({ widthPx: 120, heightPx: 100, deviceId: '' });
-    renderProgressBox(fb, makeLayout(config), config, new Date('2026-04-23T12:00:00'));
+    renderProgressBox(fb, makeLayout(config), config, metrics, new Date('2026-04-23T12:00:00'));
     const totalSet = fb.data.reduce((sum, byte) => sum + popcount(byte), 0);
     expect(totalSet).toBeGreaterThan(0);
   });
@@ -106,7 +108,7 @@ describe('renderProgressBox', () => {
       endDate: '2026-04-30',
     };
     const fb = createFrameBuffer({ widthPx: 120, heightPx: 100, deviceId: '' });
-    renderProgressBox(fb, makeLayout(config), config, new Date('2026-04-15T12:00:00'));
+    renderProgressBox(fb, makeLayout(config), config, metrics, new Date('2026-04-15T12:00:00'));
     const totalSet = fb.data.reduce((sum, byte) => sum + popcount(byte), 0);
     expect(totalSet).toBeGreaterThan(0);
   });
@@ -118,7 +120,7 @@ describe('renderProgressBox', () => {
       endDate: '2026-12-31',
     };
     const fb = createFrameBuffer({ widthPx: 120, heightPx: 100, deviceId: '' });
-    renderProgressBox(fb, makeLayout(config), config, new Date('2026-01-01T12:00:00'));
+    renderProgressBox(fb, makeLayout(config), config, metrics, new Date('2026-01-01T12:00:00'));
     const totalSet = fb.data.reduce((sum, byte) => sum + popcount(byte), 0);
     expect(totalSet).toBeGreaterThan(0);
   });
@@ -130,7 +132,7 @@ describe('renderProgressBox', () => {
       endDate: '2026-04-01',
     };
     const fb = createFrameBuffer({ widthPx: 120, heightPx: 100, deviceId: '' });
-    renderProgressBox(fb, makeLayout(config), config, new Date('2026-12-31T12:00:00'));
+    renderProgressBox(fb, makeLayout(config), config, metrics, new Date('2026-12-31T12:00:00'));
     const totalSet = fb.data.reduce((sum, byte) => sum + popcount(byte), 0);
     expect(totalSet).toBeGreaterThan(0);
   });

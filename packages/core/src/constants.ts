@@ -21,9 +21,6 @@ export function frameBufferBytes(widthPx: number, heightPx: number): number {
 /** Bytes for the default device frame buffer */
 export const DEFAULT_FRAME_BYTES = frameBufferBytes(DISPLAY_WIDTH, DISPLAY_HEIGHT);
 
-/** Padding between bento boxes (divider line) */
-export const BOX_DIVIDER_PX = 4;
-
 /** Default device profile for the 2.9" display */
 export const DEFAULT_DEVICE: DeviceProfile = {
   widthPx: DISPLAY_WIDTH,

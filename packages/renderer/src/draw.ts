@@ -2,7 +2,6 @@
  * Intent: Low-level drawing primitives for 2-bit (4-level grayscale) frame buffers
  * Context: Used by box renderers to draw pixels, lines, rectangles, and text
  * Pattern: Pure functions operating on mutable Uint8Array — no allocations per call
- * Future: Add filled rectangles, bitmap blitting for icons
  */
 
 import type { FrameBuffer } from './index.js';
@@ -16,7 +15,7 @@ import {
 } from './ttf-font.js';
 import { ICON_WIDTH, ICON_HEIGHT } from './icons.js';
 
-// Re-export font metrics for box renderers
+// Re-export font metrics for box renderers (deprecated — use FontMetrics instead)
 export { BODY_FONT_SIZE, BODY_LINE_HEIGHT, HERO_FONT_SIZE, HERO_LINE_HEIGHT };
 
 /** Gray level constants for 2-bit rendering (0=white, 3=black) */
@@ -83,6 +82,66 @@ export function drawVLine(
   }
 }
 
+/**
+ * Draw an antialiased rounded rectangle border with configurable thickness.
+ * Uses signed distance field for smooth corners at 2-bit depth.
+ */
+export function drawRoundedRect(
+  fb: FrameBuffer,
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+  radius: number,
+  thickness: number = 1,
+  level: number = GRAY_BLACK,
+): void {
+  const r = Math.min(radius, Math.floor(width / 2), Math.floor(height / 2));
+  const outerR = r;
+  const innerR = Math.max(0, r - thickness);
+
+  // Only scan the border region + 1px for antialiasing
+  for (let py = 0; py < height; py++) {
+    for (let px = 0; px < width; px++) {
+      // Signed distance from pixel to the rounded rect edge (negative = inside)
+      const dist = roundedRectSDF(px, py, width, height, outerR);
+      const innerDist = roundedRectSDF(px, py, width, height, innerR);
+
+      // Skip pixels clearly inside or outside the border band
+      if (dist > 1.0 || innerDist < -1.0) continue;
+
+      // Compute coverage: 1.0 = fully in border, 0.0 = fully outside
+      const outerCoverage = Math.max(0, Math.min(1, 0.5 - dist));
+      const innerCoverage = Math.max(0, Math.min(1, 0.5 + innerDist));
+      const coverage = outerCoverage * innerCoverage;
+
+      if (coverage <= 0.01) continue;
+
+      // Map coverage to grey level for antialiasing
+      let gray: number;
+      if (coverage > 0.66) gray = level;
+      else if (coverage > 0.33) gray = Math.max(1, level - 1);
+      else gray = Math.max(1, level - 2);
+
+      if (gray > 0) setPixel(fb, x + px, y + py, gray);
+    }
+  }
+}
+
+/**
+ * Signed distance field for a rounded rectangle.
+ * Standard formulation: smooth at straight-to-arc transitions.
+ * Returns negative inside, positive outside, 0 on the edge.
+ */
+export function roundedRectSDF(px: number, py: number, w: number, h: number, r: number): number {
+  // Distance from center to half-size, reduced by radius
+  const dx = Math.abs(px - (w - 1) / 2) - ((w - 1) / 2 - r);
+  const dy = Math.abs(py - (h - 1) / 2) - ((h - 1) / 2 - r);
+  const mx = Math.max(dx, 0);
+  const my = Math.max(dy, 0);
+  return Math.sqrt(mx * mx + my * my) + Math.min(Math.max(dx, dy), 0) - r;
+}
+
 /** Draw a 1px border rectangle */
 export function drawRect(
   fb: FrameBuffer,
@@ -128,7 +187,7 @@ function blitRaster(
 }
 
 /**
- * intent: Render a single character using TTF body font (Inter Regular)
+ * intent: Render a single character using TTF font
  * method: Rasterize with opentype.js, blit anti-aliased result into framebuffer
  */
 export function drawChar(
@@ -137,8 +196,9 @@ export function drawChar(
   y: number,
   char: string,
   level: number = GRAY_BLACK,
+  fontSize: number = BODY_FONT_SIZE,
 ): void {
-  const raster = rasterizeText(char, BODY_FONT_SIZE, false);
+  const raster = rasterizeText(char, fontSize, false);
   blitRaster(fb, x, y, raster.data, raster.width, raster.height, level);
 }
 
@@ -153,9 +213,10 @@ export function drawText(
   text: string,
   maxWidth?: number,
   level: number = GRAY_BLACK,
+  fontSize: number = BODY_FONT_SIZE,
 ): { charsDrawn: number; width: number } {
   if (!text) return { charsDrawn: 0, width: 0 };
-  const raster = rasterizeText(text, BODY_FONT_SIZE, false, maxWidth);
+  const raster = rasterizeText(text, fontSize, false, maxWidth);
   blitRaster(fb, x, y, raster.data, raster.width, raster.height, level);
   return { charsDrawn: text.length, width: raster.width };
 }
@@ -172,22 +233,23 @@ export function drawTextWrapped(
   maxWidth: number,
   maxHeight: number,
   level: number = GRAY_BLACK,
+  fontSize: number = BODY_FONT_SIZE,
 ): void {
-  const lineHeight = BODY_LINE_HEIGHT;
+  const lineHeight = Math.round(fontSize * 1.3);
   const words = text.split(' ');
   let line = '';
   let cy = y;
 
   for (const word of words) {
     const testLine = line ? `${line} ${word}` : word;
-    const testWidth = measureText(testLine, BODY_FONT_SIZE);
+    const testWidth = measureText(testLine, fontSize);
 
     if (line && testWidth > maxWidth) {
       // Flush current line
-      const raster = rasterizeText(line, BODY_FONT_SIZE, false, maxWidth);
+      const raster = rasterizeText(line, fontSize, false, maxWidth);
       blitRaster(fb, x, cy, raster.data, raster.width, raster.height, level);
       cy += lineHeight;
-      if (cy + BODY_FONT_SIZE > y + maxHeight) return;
+      if (cy + fontSize > y + maxHeight) return;
       line = word;
     } else {
       line = testLine;
@@ -196,7 +258,7 @@ export function drawTextWrapped(
 
   // Flush last line
   if (line) {
-    const raster = rasterizeText(line, BODY_FONT_SIZE, false, maxWidth);
+    const raster = rasterizeText(line, fontSize, false, maxWidth);
     blitRaster(fb, x, cy, raster.data, raster.width, raster.height, level);
   }
 }
@@ -210,8 +272,9 @@ export function drawHeroChar(
   y: number,
   char: string,
   level: number = GRAY_BLACK,
+  fontSize: number = HERO_FONT_SIZE,
 ): void {
-  const raster = rasterizeText(char, HERO_FONT_SIZE, true);
+  const raster = rasterizeText(char, fontSize, true);
   blitRaster(fb, x, y, raster.data, raster.width, raster.height, level);
 }
 
@@ -226,9 +289,10 @@ export function drawHeroText(
   text: string,
   maxWidth?: number,
   level: number = GRAY_BLACK,
+  fontSize: number = HERO_FONT_SIZE,
 ): { charsDrawn: number; width: number } {
   if (!text) return { charsDrawn: 0, width: 0 };
-  const raster = rasterizeText(text, HERO_FONT_SIZE, true, maxWidth);
+  const raster = rasterizeText(text, fontSize, true, maxWidth);
   blitRaster(fb, x, y, raster.data, raster.width, raster.height, level);
   return { charsDrawn: text.length, width: raster.width };
 }

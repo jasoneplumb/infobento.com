@@ -6,21 +6,17 @@
 
 import type { FrameBuffer } from '../index.js';
 import type { LayoutBox, DateBoxConfig } from '@infobento/core';
+import type { FontMetrics } from '../font-metrics.js';
 import {
   drawText,
   drawHeroText,
-  drawHLine,
   drawRect,
   drawIcon,
   setPixel,
   GRAY_DARK,
   GRAY_LIGHT,
 } from '../draw.js';
-import { FONT_HEIGHT } from '../font.js';
 import { BOX_ICONS, ICON_WIDTH } from '../icons.js';
-import { HERO_FONT_HEIGHT } from '../hero-font.js';
-
-const PAD = 16;
 
 const DAYS_OF_WEEK = ['SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY'];
 const MONTHS = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
@@ -67,22 +63,31 @@ export function renderDateBox(
   fb: FrameBuffer,
   layout: LayoutBox,
   _config: DateBoxConfig,
+  metrics: FontMetrics,
   now: Date = new Date(),
   showHeaders = true,
 ): void {
   const { x, y, width, height } = layout;
-  let cy = y + PAD;
+  let cy = y + metrics.pad;
 
   if (showHeaders) {
     const icon = BOX_ICONS['date'];
-    if (icon) drawIcon(fb, x + PAD, cy, icon, GRAY_LIGHT);
-    const labelX = x + PAD + ICON_WIDTH + 3;
-    drawText(fb, labelX, cy, 'DATE', width - PAD * 2 - ICON_WIDTH - 3, GRAY_DARK);
-    cy += FONT_HEIGHT + PAD;
+    if (icon) drawIcon(fb, x + metrics.pad, cy, icon, GRAY_LIGHT);
+    const labelX = x + metrics.pad + ICON_WIDTH + 3;
+    drawText(
+      fb,
+      labelX,
+      cy,
+      'DATE',
+      width - metrics.pad * 2 - ICON_WIDTH - 3,
+      GRAY_DARK,
+      metrics.bodySize,
+    );
+    cy += metrics.bodySize + metrics.pad;
   }
 
-  const contentWidth = width - PAD * 2;
-  const contentEnd = y + height - PAD;
+  const contentWidth = width - metrics.pad * 2;
+  const contentEnd = y + height - metrics.pad;
   if (contentWidth <= 0) return;
 
   const dayNum = now.getDate();
@@ -91,19 +96,27 @@ export function renderDateBox(
   const year = now.getFullYear();
 
   // Line 1: Day-of-week (small font)
-  if (cy + FONT_HEIGHT > contentEnd) return;
-  drawText(fb, x + PAD, cy, dayName, contentWidth);
-  cy += FONT_HEIGHT + 1;
+  if (cy + metrics.bodySize > contentEnd) return;
+  drawText(fb, x + metrics.pad, cy, dayName, contentWidth, undefined, metrics.bodySize);
+  cy += metrics.bodySize + 1;
 
   // Line 2: Hero day number
-  if (cy + HERO_FONT_HEIGHT > contentEnd) return;
-  drawHeroText(fb, x + PAD, cy, String(dayNum));
-  cy += HERO_FONT_HEIGHT + 1;
+  if (cy + metrics.heroSize > contentEnd) return;
+  drawHeroText(fb, x + metrics.pad, cy, String(dayNum), undefined, undefined, metrics.heroSize);
+  cy += metrics.heroSize + 1;
 
   // Line 3: Month + year (small font)
-  if (cy + FONT_HEIGHT > contentEnd) return;
-  drawText(fb, x + PAD, cy, `${monthName} ${String(year)}`, contentWidth);
-  cy += FONT_HEIGHT + 3;
+  if (cy + metrics.bodySize > contentEnd) return;
+  drawText(
+    fb,
+    x + metrics.pad,
+    cy,
+    `${monthName} ${String(year)}`,
+    contentWidth,
+    undefined,
+    metrics.bodySize,
+  );
+  cy += metrics.bodySize + 3;
 
   // Year progress: "Day 113/365" with progress bar on same line
   const doy = dayOfYear(now);
@@ -111,24 +124,17 @@ export function renderDateBox(
   const barHeight = 5;
 
   if (cy + barHeight > contentEnd) {
-    // Bottom rule
-    if (cy + 2 <= y + height) drawHLine(fb, x + PAD, cy, contentWidth, GRAY_DARK);
     return;
   }
 
   const progressLabel = `${String(doy)}/${String(total)}`;
-  const labelWidth = progressLabel.length * 6; // CHAR_ADVANCE = 6
-  const barX = x + PAD + labelWidth + 4;
+  const labelWidth = progressLabel.length * metrics.bodyAdvance;
+  const barX = x + metrics.pad + labelWidth + 4;
   const barWidth = contentWidth - labelWidth - 4;
 
-  drawText(fb, x + PAD, cy, progressLabel, labelWidth);
+  drawText(fb, x + metrics.pad, cy, progressLabel, labelWidth, undefined, metrics.bodySize);
   if (barWidth > 10) {
     drawProgressBar(fb, barX, cy + 1, barWidth, barHeight, doy / total);
   }
-  cy += Math.max(FONT_HEIGHT, barHeight) + PAD;
-
-  // Bottom rule
-  if (cy + 2 <= y + height) {
-    drawHLine(fb, x + PAD, cy, contentWidth, GRAY_DARK);
-  }
+  cy += Math.max(metrics.bodySize, barHeight) + metrics.pad;
 }

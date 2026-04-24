@@ -7,13 +7,9 @@
 
 import type { FrameBuffer } from '../index.js';
 import type { LayoutBox, CountdownBoxConfig } from '@infobento/core';
-import { drawText, drawHeroText, drawHLine, drawIcon, GRAY_DARK, GRAY_LIGHT } from '../draw.js';
-import { FONT_HEIGHT } from '../font.js';
+import type { FontMetrics } from '../font-metrics.js';
+import { drawText, drawHeroText, drawIcon, GRAY_LIGHT } from '../draw.js';
 import { BOX_ICONS, ICON_WIDTH } from '../icons.js';
-import { HERO_FONT_HEIGHT, HERO_CHAR_ADVANCE } from '../hero-font.js';
-
-/** Whitespace padding */
-const PAD = 16;
 
 /**
  * intent: Calculate the number of whole days between today and a target date
@@ -37,19 +33,28 @@ export function renderCountdownBox(
   fb: FrameBuffer,
   layout: LayoutBox,
   config: CountdownBoxConfig,
+  metrics: FontMetrics,
   now?: Date,
   showHeaders = true,
 ): void {
   const { x, y, width, height } = layout;
-  let cy = y + PAD;
+  let cy = y + metrics.pad;
 
   if (showHeaders) {
     // Icon + uppercase label (5x7 font)
     const icon = BOX_ICONS['countdown'];
-    if (icon) drawIcon(fb, x + PAD, cy, icon, GRAY_LIGHT);
-    const labelX = x + PAD + ICON_WIDTH + 3;
-    drawText(fb, labelX, cy, 'COUNTDOWN', width - PAD * 2 - ICON_WIDTH - 3);
-    cy += FONT_HEIGHT + PAD;
+    if (icon) drawIcon(fb, x + metrics.pad, cy, icon, GRAY_LIGHT);
+    const labelX = x + metrics.pad + ICON_WIDTH + 3;
+    drawText(
+      fb,
+      labelX,
+      cy,
+      'COUNTDOWN',
+      width - metrics.pad * 2 - ICON_WIDTH - 3,
+      undefined,
+      metrics.bodySize,
+    );
+    cy += metrics.bodySize + metrics.pad;
   }
 
   // Calculate days remaining
@@ -57,26 +62,29 @@ export function renderCountdownBox(
   const daysStr = String(days);
 
   // Hero day count
-  drawHeroText(fb, x + PAD, cy, daysStr);
+  drawHeroText(fb, x + metrics.pad, cy, daysStr, undefined, undefined, metrics.heroSize);
 
   // "days to [label]" beside the hero text
-  const heroWidth = daysStr.length * HERO_CHAR_ADVANCE;
-  const subtitleX = x + PAD + heroWidth + PAD;
-  const subtitleMaxW = width - PAD * 2 - heroWidth - PAD;
+  const heroWidth = daysStr.length * metrics.heroAdvance;
+  const subtitleX = x + metrics.pad + heroWidth + metrics.pad;
+  const subtitleMaxW = width - metrics.pad * 2 - heroWidth - metrics.pad;
   if (subtitleMaxW > 0) {
     const subtitle = days === 0 ? 'PAST' : `days to`;
-    drawText(fb, subtitleX, cy + 4, subtitle, subtitleMaxW);
+    drawText(fb, subtitleX, cy + 4, subtitle, subtitleMaxW, undefined, metrics.bodySize);
   }
-  cy += HERO_FONT_HEIGHT + 2;
+  cy += metrics.heroSize + 2;
 
   // Label text below hero (e.g., the event name)
-  if (days > 0 && cy + FONT_HEIGHT <= y + height - PAD) {
-    drawText(fb, x + PAD, cy, config.label, width - PAD * 2);
-    cy += FONT_HEIGHT + PAD;
-  }
-
-  // Thin rule at bottom as section divider
-  if (cy + 2 <= y + height) {
-    drawHLine(fb, x + PAD, cy, width - PAD * 2, GRAY_DARK);
+  if (days > 0 && cy + metrics.bodySize <= y + height - metrics.pad) {
+    drawText(
+      fb,
+      x + metrics.pad,
+      cy,
+      config.label,
+      width - metrics.pad * 2,
+      undefined,
+      metrics.bodySize,
+    );
+    cy += metrics.bodySize + metrics.pad;
   }
 }

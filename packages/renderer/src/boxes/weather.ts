@@ -7,21 +7,16 @@
 
 import type { FrameBuffer } from '../index.js';
 import type { LayoutBox, WeatherBoxConfig } from '@infobento/core';
+import type { FontMetrics } from '../font-metrics.js';
 import {
   drawText,
   drawTextWrapped,
   drawHeroText,
-  drawHLine,
   drawIcon,
   GRAY_DARK,
   GRAY_LIGHT,
 } from '../draw.js';
-import { FONT_HEIGHT } from '../font.js';
 import { BOX_ICONS, ICON_WIDTH } from '../icons.js';
-import { HERO_FONT_HEIGHT, HERO_CHAR_ADVANCE } from '../hero-font.js';
-
-/** Whitespace padding */
-const PAD = 16;
 
 /**
  * intent: Render a complete weather bento box into the frame buffer
@@ -32,35 +27,39 @@ export function renderWeatherBox(
   fb: FrameBuffer,
   layout: LayoutBox,
   config: WeatherBoxConfig,
+  metrics: FontMetrics,
   showHeaders = true,
 ): void {
   const { x, y, width, height } = layout;
-  let cy = y + PAD;
+  let cy = y + metrics.pad;
 
   if (showHeaders) {
     // Icon + uppercase label (5x7 font)
     const icon = BOX_ICONS['weather'];
-    if (icon) drawIcon(fb, x + PAD, cy, icon, GRAY_LIGHT);
-    const labelX = x + PAD + ICON_WIDTH + 3;
+    if (icon) drawIcon(fb, x + metrics.pad, cy, icon, GRAY_LIGHT);
+    const labelX = x + metrics.pad + ICON_WIDTH + 3;
     const headerText = config.city ? `${config.city.toUpperCase()}` : 'WEATHER';
-    drawText(fb, labelX, cy, headerText, width - PAD * 2 - ICON_WIDTH - 3, GRAY_DARK);
-    cy += FONT_HEIGHT + PAD;
+    drawText(
+      fb,
+      labelX,
+      cy,
+      headerText,
+      width - metrics.pad * 2 - ICON_WIDTH - 3,
+      GRAY_DARK,
+      metrics.bodySize,
+    );
+    cy += metrics.bodySize + metrics.pad;
   }
 
-  const contentWidth = width - PAD * 2;
-  const contentEnd = y + height - PAD;
+  const contentWidth = width - metrics.pad * 2;
+  const contentEnd = y + height - metrics.pad;
 
   if (contentWidth <= 0) return;
 
   if (config.data) {
-    cy = renderWeatherData(fb, x + PAD, cy, contentWidth, contentEnd, config);
+    cy = renderWeatherData(fb, x + metrics.pad, cy, contentWidth, contentEnd, config, metrics);
   } else {
-    cy = renderPlaceholder(fb, x + PAD, cy, contentWidth, contentEnd, config.city);
-  }
-
-  // Thin rule at bottom as section divider
-  if (cy + 2 <= y + height) {
-    drawHLine(fb, x + PAD, cy, width - PAD * 2, GRAY_DARK);
+    cy = renderPlaceholder(fb, x + metrics.pad, cy, contentWidth, contentEnd, config.city, metrics);
   }
 }
 
@@ -76,6 +75,7 @@ function renderWeatherData(
   maxWidth: number,
   maxY: number,
   config: WeatherBoxConfig,
+  metrics: FontMetrics,
 ): number {
   const data = config.data;
   if (!data) return y;
@@ -83,23 +83,32 @@ function renderWeatherData(
 
   // Hero temperature (e.g., "62F")
   const tempStr = `${Math.round(data.temperature)}F`;
-  drawHeroText(fb, x, cy, tempStr, maxWidth);
+  drawHeroText(fb, x, cy, tempStr, maxWidth, undefined, metrics.heroSize);
 
   // Condition beside hero text (e.g., "Partly Cloudy")
-  const heroWidth = tempStr.length * HERO_CHAR_ADVANCE;
-  const condX = x + heroWidth + PAD + 2;
-  const condMaxW = maxWidth - heroWidth - PAD - 2;
+  const heroWidth = tempStr.length * metrics.heroAdvance;
+  const condX = x + heroWidth + metrics.pad + 2;
+  const condMaxW = maxWidth - heroWidth - metrics.pad - 2;
   if (condMaxW > 0) {
-    drawTextWrapped(fb, condX, cy + 2, data.condition, condMaxW, HERO_FONT_HEIGHT);
+    drawTextWrapped(
+      fb,
+      condX,
+      cy + 2,
+      data.condition,
+      condMaxW,
+      metrics.heroSize,
+      undefined,
+      metrics.bodySize,
+    );
   }
-  cy += HERO_FONT_HEIGHT + 2;
+  cy += metrics.heroSize + 2;
 
-  if (cy + FONT_HEIGHT > maxY) return cy;
+  if (cy + metrics.bodySize > maxY) return cy;
 
   // High / Low (e.g., "H:68 L:55")
   const hlStr = `H:${Math.round(data.high)} L:${Math.round(data.low)}`;
-  drawText(fb, x, cy, hlStr, maxWidth);
-  cy += FONT_HEIGHT + PAD;
+  drawText(fb, x, cy, hlStr, maxWidth, undefined, metrics.bodySize);
+  cy += metrics.bodySize + metrics.pad;
 
   return cy;
 }
@@ -116,18 +125,19 @@ function renderPlaceholder(
   maxWidth: number,
   maxY: number,
   city: string,
+  metrics: FontMetrics,
 ): number {
   let cy = y;
 
   // City name
-  drawTextWrapped(fb, x, cy, city, maxWidth, maxY - cy);
-  cy += FONT_HEIGHT + 2;
+  drawTextWrapped(fb, x, cy, city, maxWidth, maxY - cy, undefined, metrics.bodySize);
+  cy += metrics.bodySize + 2;
 
-  if (cy + FONT_HEIGHT > maxY) return cy;
+  if (cy + metrics.bodySize > maxY) return cy;
 
   // "No data" indicator
-  drawText(fb, x, cy, 'No data', maxWidth);
-  cy += FONT_HEIGHT + PAD;
+  drawText(fb, x, cy, 'No data', maxWidth, undefined, metrics.bodySize);
+  cy += metrics.bodySize + metrics.pad;
 
   return cy;
 }

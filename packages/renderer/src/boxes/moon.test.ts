@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { moonPhase, moonPhaseName, renderMoonBox } from './moon.js';
 import { createFrameBuffer, render } from '../index.js';
+import { computeFontMetrics } from '../font-metrics.js';
 import type { LayoutBox, MoonBoxConfig, BentoConfig } from '@infobento/core';
 
 function popcount(n: number): number {
@@ -112,7 +113,13 @@ describe('renderMoonBox', () => {
   it('renders with default config', () => {
     const config: MoonBoxConfig = { type: 'moon' };
     const fb = createFrameBuffer({ widthPx: 120, heightPx: 100, deviceId: '' });
-    renderMoonBox(fb, makeLayout(config), config, new Date('2026-04-23T12:00:00'));
+    renderMoonBox(
+      fb,
+      makeLayout(config),
+      config,
+      computeFontMetrics(),
+      new Date('2026-04-23T12:00:00'),
+    );
     const totalSet = fb.data.reduce((sum, byte) => sum + popcount(byte), 0);
     expect(totalSet).toBeGreaterThan(0);
   });
@@ -130,7 +137,7 @@ describe('renderMoonBox', () => {
       const date = new Date(epochMs + offsetDays * 86400000);
 
       const fb = createFrameBuffer({ widthPx: 120, heightPx: 100, deviceId: '' });
-      renderMoonBox(fb, makeLayout(config), config, date);
+      renderMoonBox(fb, makeLayout(config), config, computeFontMetrics(), date);
       const totalSet = fb.data.reduce((sum, byte) => sum + popcount(byte), 0);
       expect(totalSet).toBeGreaterThan(0);
     }

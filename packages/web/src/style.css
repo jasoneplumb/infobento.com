@@ -180,29 +180,43 @@ main {
    CSS variables set by the preview renderer (fb.width/height x SCALE). */
 
 .eink-display {
-  width: calc(var(--eink-w, 920) * 1px);
-  height: calc(var(--eink-h, 680) * 1px);
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+
+.eink-preview-pair {
   background: #fff;
   border: 2px solid #444;
-  border-radius: 3px;
+  border-radius: var(--eink-radius, 6px);
   overflow: hidden;
+  position: relative;
   display: flex;
   flex-direction: column;
-  padding: 0;
-  position: relative;
+}
+
+.eink-preview-pair.landscape {
+  width: calc(var(--eink-w, 920) * 0.5px);
+  height: calc(var(--eink-h, 680) * 0.5px);
+}
+
+.eink-preview-pair.portrait {
+  width: calc(var(--eink-h, 680) * 0.5px);
+  height: calc(var(--eink-w, 920) * 0.5px);
 }
 
 .eink-display img,
 .eink-display canvas {
   width: 100%;
-  height: 100%;
+  flex: 1;
   object-fit: contain;
   image-rendering: pixelated;
   image-rendering: crisp-edges;
 }
 
 /* Pixel-grid texture overlay to evoke eInk */
-.eink-display::before {
+.eink-preview-pair::after {
   content: '';
   position: absolute;
   inset: 0;
@@ -285,6 +299,26 @@ main {
 
 .preview-toggle input[type='checkbox'] {
   cursor: pointer;
+}
+
+.preview-control {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: #888;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  user-select: none;
+}
+
+.preview-control input[type='range'] {
+  width: 80px;
+  cursor: pointer;
+}
+
+.preview-control #font-size-display {
+  min-width: 28px;
+  text-align: right;
 }
 
 /* -- Editor cell ----------------------------------------------------------- */
@@ -710,13 +744,21 @@ button {
     align-items: center;
   }
 
-  /* Scale eInk display to fit viewport width — aspect ratio derived from
-     the buffer dimensions exposed by the preview renderer. */
+  /* Stack previews vertically on mobile */
   .eink-display {
+    flex-direction: column;
     width: 100%;
-    max-width: calc(var(--eink-w, 240) * 1px);
+  }
+
+  .eink-preview-pair.landscape,
+  .eink-preview-pair.portrait {
+    width: 100%;
     height: auto;
-    aspect-ratio: var(--eink-w, 240) / var(--eink-h, 200);
+  }
+
+  .eink-preview-pair.landscape img,
+  .eink-preview-pair.portrait img {
+    height: auto;
   }
 
   .preview-meta {

@@ -1,6 +1,10 @@
 import { describe, it, expect } from 'vitest';
-import { calculateLayout, DISPLAY_WIDTH, DISPLAY_HEIGHT, BOX_DIVIDER_PX } from './index.js';
+import { calculateLayout, DISPLAY_WIDTH, DISPLAY_HEIGHT } from './index.js';
 import type { BentoConfig, BentoBox } from './types.js';
+
+// Default padding level 4 → 12px edge padding and 12px gap between boxes
+const DEFAULT_PAD = 12;
+const DEFAULT_GAP = 12;
 
 function makeBox(id: string, type: BentoBox['type'] = 'text', split?: 'left' | 'right'): BentoBox {
   return { id, type, label: `Box ${id}`, ...(split !== undefined ? { split } : {}) } as BentoBox;
@@ -16,30 +20,33 @@ describe('calculateLayout', () => {
     expect(result.boxes).toHaveLength(0);
   });
 
-  it('single box fills the entire display', () => {
+  it('single box fills the entire display (minus padding)', () => {
     const result = calculateLayout(makeConfig([makeBox('1')]));
+    const pad = DEFAULT_PAD;
     expect(result.boxes).toHaveLength(1);
-    expect(result.boxes[0]!.x).toBe(0);
-    expect(result.boxes[0]!.y).toBe(0);
-    expect(result.boxes[0]!.width).toBe(DISPLAY_WIDTH);
-    expect(result.boxes[0]!.height).toBe(DISPLAY_HEIGHT);
+    expect(result.boxes[0]!.x).toBe(pad);
+    expect(result.boxes[0]!.y).toBe(pad);
+    expect(result.boxes[0]!.width).toBe(DISPLAY_WIDTH - pad * 2);
+    expect(result.boxes[0]!.height).toBe(DISPLAY_HEIGHT - pad * 2);
   });
 
   it('two boxes split evenly with divider', () => {
+    const pad = DEFAULT_PAD;
     const result = calculateLayout(makeConfig([makeBox('1'), makeBox('2')]));
     expect(result.boxes).toHaveLength(2);
 
     const [first, second] = result.boxes;
-    expect(first!.y).toBe(0);
-    expect(second!.y).toBe(first!.height + BOX_DIVIDER_PX);
-    expect(first!.height + second!.height + BOX_DIVIDER_PX).toBe(DISPLAY_HEIGHT);
+    expect(first!.y).toBe(pad);
+    expect(second!.y).toBe(first!.height + DEFAULT_GAP + pad);
+    expect(first!.height + second!.height + DEFAULT_GAP).toBe(DISPLAY_HEIGHT - pad * 2);
   });
 
-  it('all boxes span full width', () => {
+  it('all boxes span full width (minus padding)', () => {
+    const pad = DEFAULT_PAD;
     const result = calculateLayout(makeConfig([makeBox('1'), makeBox('2'), makeBox('3')]));
     for (const lb of result.boxes) {
-      expect(lb.width).toBe(DISPLAY_WIDTH);
-      expect(lb.x).toBe(0);
+      expect(lb.width).toBe(DISPLAY_WIDTH - pad * 2);
+      expect(lb.x).toBe(pad);
     }
   });
 
@@ -83,7 +90,7 @@ describe('calculateLayout', () => {
       const prev = result.boxes[i - 1]!;
       const curr = result.boxes[i]!;
       // Current box starts exactly after previous box + divider
-      expect(curr.y).toBe(prev.y + prev.height + BOX_DIVIDER_PX);
+      expect(curr.y).toBe(prev.y + prev.height + DEFAULT_GAP);
     }
 
     // Last box does not exceed display
@@ -102,10 +109,12 @@ describe('calculateLayout', () => {
     }
   });
 
-  it('truncates to 6 boxes when more are provided', () => {
-    const boxes = Array.from({ length: 10 }, (_, i) => makeBox(String(i + 1)));
+  it('truncates to MAX_BOXES when more are provided', () => {
+    // At default fontSize=20, MAX_BOXES = floor(680/60) = 11 capped to 10
+    const boxes = Array.from({ length: 12 }, (_, i) => makeBox(String(i + 1)));
     const result = calculateLayout(makeConfig(boxes));
-    expect(result.boxes).toHaveLength(6);
+    expect(result.boxes.length).toBeLessThanOrEqual(10);
+    expect(result.boxes.length).toBeLessThan(boxes.length);
   });
 
   it('includes device in result', () => {
@@ -124,10 +133,13 @@ describe('calculateLayout', () => {
     expect(result.boxes).toHaveLength(2);
     const [lb, rb] = result.boxes;
     expect(lb!.y).toBe(rb!.y); // same Y
-    expect(lb!.width).toBe(Math.floor(DISPLAY_WIDTH / 2));
-    expect(rb!.width).toBe(DISPLAY_WIDTH - Math.floor(DISPLAY_WIDTH / 2));
-    expect(lb!.x).toBe(0);
-    expect(rb!.x).toBe(Math.floor(DISPLAY_WIDTH / 2));
+    const pad = DEFAULT_PAD;
+    const innerW = DISPLAY_WIDTH - pad * 2;
+    const halfW = Math.floor((innerW - DEFAULT_GAP) / 2);
+    expect(lb!.width).toBe(halfW);
+    expect(rb!.width).toBe(innerW - halfW - DEFAULT_GAP);
+    expect(lb!.x).toBe(pad);
+    expect(rb!.x).toBe(pad + halfW + DEFAULT_GAP);
   });
 
   it('mixed split and non-split boxes layout correctly', () => {
@@ -137,11 +149,13 @@ describe('calculateLayout', () => {
     const result = calculateLayout(makeConfig([top, left, right]));
 
     expect(result.boxes).toHaveLength(3);
-    // Top box is full width
-    expect(result.boxes[0]!.width).toBe(DISPLAY_WIDTH);
+    const pad = DEFAULT_PAD;
+    const innerW = DISPLAY_WIDTH - pad * 2;
+    // Top box is full width (minus padding)
+    expect(result.boxes[0]!.width).toBe(innerW);
     // Split pair shares same Y, each half width
     expect(result.boxes[1]!.y).toBe(result.boxes[2]!.y);
-    expect(result.boxes[1]!.width).toBe(Math.floor(DISPLAY_WIDTH / 2));
+    expect(result.boxes[1]!.width).toBe(Math.floor((innerW - DEFAULT_GAP) / 2));
   });
 
   it('single split box without a partner renders full-width', () => {
@@ -149,6 +163,6 @@ describe('calculateLayout', () => {
     const result = calculateLayout(makeConfig([lonely]));
 
     expect(result.boxes).toHaveLength(1);
-    expect(result.boxes[0]!.width).toBe(DISPLAY_WIDTH);
+    expect(result.boxes[0]!.width).toBe(DISPLAY_WIDTH - DEFAULT_PAD * 2);
   });
 });

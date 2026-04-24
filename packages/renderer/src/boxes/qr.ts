@@ -8,12 +8,9 @@
 import qrcode from 'qrcode-generator';
 import type { FrameBuffer } from '../index.js';
 import type { LayoutBox, QRBoxConfig } from '@infobento/core';
+import type { FontMetrics } from '../font-metrics.js';
 import { setPixel, drawRect, drawText, drawIcon, GRAY_LIGHT } from '../draw.js';
-import { FONT_HEIGHT } from '../font.js';
 import { BOX_ICONS, ICON_WIDTH } from '../icons.js';
-
-/** Whitespace padding */
-const PAD = 16;
 
 /** Minimum quiet zone around QR code in modules (for scannability) */
 const QUIET_ZONE_MODULES = 2;
@@ -27,25 +24,34 @@ export function renderQRBox(
   fb: FrameBuffer,
   layout: LayoutBox,
   config: QRBoxConfig,
+  metrics: FontMetrics,
   showHeaders = true,
 ): void {
   const { x, y, width, height } = layout;
-  let cy = y + PAD;
+  let cy = y + metrics.pad;
 
   if (showHeaders) {
     // Icon + uppercase label (5x7 font)
     const icon = BOX_ICONS['qr'];
-    if (icon) drawIcon(fb, x + PAD, cy, icon, GRAY_LIGHT);
-    const labelX = x + PAD + ICON_WIDTH + 3;
-    drawText(fb, labelX, cy, layout.box.label.toUpperCase(), width - PAD * 2 - ICON_WIDTH - 3);
-    cy += FONT_HEIGHT + PAD;
+    if (icon) drawIcon(fb, x + metrics.pad, cy, icon, GRAY_LIGHT);
+    const labelX = x + metrics.pad + ICON_WIDTH + 3;
+    drawText(
+      fb,
+      labelX,
+      cy,
+      layout.box.label.toUpperCase(),
+      width - metrics.pad * 2 - ICON_WIDTH - 3,
+      undefined,
+      metrics.bodySize,
+    );
+    cy += metrics.bodySize + metrics.pad;
   }
 
   // Body area below label
-  const bodyX = x + PAD;
+  const bodyX = x + metrics.pad;
   const bodyY = cy;
-  const bodyWidth = width - PAD * 2;
-  const bodyHeight = height - (cy - y) - PAD;
+  const bodyWidth = width - metrics.pad * 2;
+  const bodyHeight = height - (cy - y) - metrics.pad;
 
   if (bodyHeight <= 0 || bodyWidth <= 0) return;
 

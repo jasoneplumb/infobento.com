@@ -7,21 +7,16 @@
 
 import type { FrameBuffer } from '../index.js';
 import type { LayoutBox, AQIBoxConfig } from '@infobento/core';
+import type { FontMetrics } from '../font-metrics.js';
 import {
   drawText,
   drawTextWrapped,
   drawHeroText,
-  drawHLine,
   drawIcon,
   GRAY_DARK,
   GRAY_LIGHT,
 } from '../draw.js';
-import { FONT_HEIGHT } from '../font.js';
 import { BOX_ICONS, ICON_WIDTH } from '../icons.js';
-import { HERO_FONT_HEIGHT, HERO_CHAR_ADVANCE } from '../hero-font.js';
-
-/** Whitespace padding */
-const PAD = 16;
 
 /**
  * intent: Render a complete AQI bento box into the frame buffer
@@ -32,30 +27,39 @@ export function renderAQIBox(
   fb: FrameBuffer,
   layout: LayoutBox,
   config: AQIBoxConfig,
+  metrics: FontMetrics,
   showHeaders = true,
 ): void {
   const { x, y, width, height } = layout;
-  let cy = y + PAD;
+  let cy = y + metrics.pad;
 
   if (showHeaders) {
     // Icon + uppercase label (5x7 font)
     const icon = BOX_ICONS['aqi'];
-    if (icon) drawIcon(fb, x + PAD, cy, icon, GRAY_LIGHT);
-    const labelX = x + PAD + ICON_WIDTH + 3;
+    if (icon) drawIcon(fb, x + metrics.pad, cy, icon, GRAY_LIGHT);
+    const labelX = x + metrics.pad + ICON_WIDTH + 3;
     const headerText = config.city ? `${config.city.toUpperCase()} AQI` : 'AIR QUALITY';
-    drawText(fb, labelX, cy, headerText, width - PAD * 2 - ICON_WIDTH - 3, GRAY_DARK);
-    cy += FONT_HEIGHT + PAD;
+    drawText(
+      fb,
+      labelX,
+      cy,
+      headerText,
+      width - metrics.pad * 2 - ICON_WIDTH - 3,
+      GRAY_DARK,
+      metrics.bodySize,
+    );
+    cy += metrics.bodySize + metrics.pad;
   }
 
-  const contentWidth = width - PAD * 2;
-  const contentEnd = y + height - PAD;
+  const contentWidth = width - metrics.pad * 2;
+  const contentEnd = y + height - metrics.pad;
 
   if (contentWidth <= 0) return;
 
   if (config.data) {
     cy = renderAQIData(
       fb,
-      x + PAD,
+      x + metrics.pad,
       cy,
       contentWidth,
       contentEnd,
@@ -63,14 +67,10 @@ export function renderAQIBox(
       config.data.category,
       config.data.dominantPollutant,
       config.data.uvIndex,
+      metrics,
     );
   } else {
-    cy = renderPlaceholder(fb, x + PAD, cy, contentWidth, contentEnd, config.city);
-  }
-
-  // Thin rule at bottom as section divider
-  if (cy + 2 <= y + height) {
-    drawHLine(fb, x + PAD, cy, width - PAD * 2, GRAY_DARK);
+    cy = renderPlaceholder(fb, x + metrics.pad, cy, contentWidth, contentEnd, config.city, metrics);
   }
 }
 
@@ -89,28 +89,38 @@ function renderAQIData(
   category: string,
   dominantPollutant: string,
   uvIndex: number | undefined,
+  metrics: FontMetrics,
 ): number {
   let cy = y;
 
   // Hero AQI number
   const aqiStr = String(aqi);
-  drawHeroText(fb, x, cy, aqiStr, maxWidth);
+  drawHeroText(fb, x, cy, aqiStr, maxWidth, undefined, metrics.heroSize);
 
   // Category beside hero text
-  const heroWidth = aqiStr.length * HERO_CHAR_ADVANCE;
-  const sideX = x + heroWidth + PAD;
-  const sideMaxW = maxWidth - heroWidth - PAD;
+  const heroWidth = aqiStr.length * metrics.heroAdvance;
+  const sideX = x + heroWidth + metrics.pad;
+  const sideMaxW = maxWidth - heroWidth - metrics.pad;
   if (sideMaxW > 0) {
-    drawTextWrapped(fb, sideX, cy + 2, category, sideMaxW, HERO_FONT_HEIGHT);
+    drawTextWrapped(
+      fb,
+      sideX,
+      cy + 2,
+      category,
+      sideMaxW,
+      metrics.heroSize,
+      undefined,
+      metrics.bodySize,
+    );
   }
-  cy += HERO_FONT_HEIGHT + 2;
+  cy += metrics.heroSize + 2;
 
-  if (cy + FONT_HEIGHT > maxY) return cy;
+  if (cy + metrics.bodySize > maxY) return cy;
 
   // UV index + dominant pollutant
   const uvStr = uvIndex != null ? `UV:${String(Math.round(uvIndex))} ` : '';
-  drawText(fb, x, cy, `${uvStr}${dominantPollutant}`, maxWidth);
-  cy += FONT_HEIGHT + PAD;
+  drawText(fb, x, cy, `${uvStr}${dominantPollutant}`, maxWidth, undefined, metrics.bodySize);
+  cy += metrics.bodySize + metrics.pad;
 
   return cy;
 }
@@ -127,16 +137,17 @@ function renderPlaceholder(
   maxWidth: number,
   maxY: number,
   city: string,
+  metrics: FontMetrics,
 ): number {
   let cy = y;
 
-  drawTextWrapped(fb, x, cy, city, maxWidth, maxY - cy);
-  cy += FONT_HEIGHT + 2;
+  drawTextWrapped(fb, x, cy, city, maxWidth, maxY - cy, undefined, metrics.bodySize);
+  cy += metrics.bodySize + 2;
 
-  if (cy + FONT_HEIGHT > maxY) return cy;
+  if (cy + metrics.bodySize > maxY) return cy;
 
-  drawText(fb, x, cy, 'No data', maxWidth);
-  cy += FONT_HEIGHT + PAD;
+  drawText(fb, x, cy, 'No data', maxWidth, undefined, metrics.bodySize);
+  cy += metrics.bodySize + metrics.pad;
 
   return cy;
 }

@@ -7,12 +7,9 @@
 
 import type { FrameBuffer } from '../index.js';
 import type { LayoutBox, QuoteBoxConfig } from '@infobento/core';
-import { drawText, drawTextWrapped, drawHLine, drawIcon, GRAY_DARK, GRAY_LIGHT } from '../draw.js';
-import { FONT_HEIGHT, CHAR_ADVANCE } from '../font.js';
+import type { FontMetrics } from '../font-metrics.js';
+import { drawText, drawTextWrapped, drawIcon, GRAY_LIGHT } from '../draw.js';
 import { BOX_ICONS, ICON_WIDTH } from '../icons.js';
-
-/** Whitespace padding */
-const PAD = 16;
 
 /**
  * intent: Render a complete quote bento box into the frame buffer
@@ -23,53 +20,66 @@ export function renderQuoteBox(
   fb: FrameBuffer,
   layout: LayoutBox,
   config: QuoteBoxConfig,
+  metrics: FontMetrics,
   showHeaders = true,
 ): void {
   const { x, y, width, height } = layout;
-  let cy = y + PAD;
+  let cy = y + metrics.pad;
 
   if (showHeaders) {
     // Icon + uppercase label (5x7 font)
     const icon = BOX_ICONS['quote'];
-    if (icon) drawIcon(fb, x + PAD, cy, icon, GRAY_LIGHT);
-    const labelX = x + PAD + ICON_WIDTH + 3;
-    drawText(fb, labelX, cy, layout.box.label.toUpperCase(), width - PAD * 2 - ICON_WIDTH - 3);
-    cy += FONT_HEIGHT + PAD;
+    if (icon) drawIcon(fb, x + metrics.pad, cy, icon, GRAY_LIGHT);
+    const labelX = x + metrics.pad + ICON_WIDTH + 3;
+    drawText(
+      fb,
+      labelX,
+      cy,
+      layout.box.label.toUpperCase(),
+      width - metrics.pad * 2 - ICON_WIDTH - 3,
+      undefined,
+      metrics.bodySize,
+    );
+    cy += metrics.bodySize + metrics.pad;
   }
 
   // Body area
-  const bodyX = x + PAD;
-  const bodyWidth = width - PAD * 2;
-  const bodyEnd = y + height - PAD;
+  const bodyX = x + metrics.pad;
+  const bodyWidth = width - metrics.pad * 2;
+  const bodyEnd = y + height - metrics.pad;
 
   if (bodyWidth <= 0) return;
 
   // Reserve space for author line if present
-  const lineHeight = FONT_HEIGHT + 2; // 2px line spacing (matches drawTextWrapped)
-  const authorHeight = config.author ? lineHeight + PAD : 0;
+  const lineHeight = metrics.bodySize + 2; // 2px line spacing (matches drawTextWrapped)
+  const authorHeight = config.author ? lineHeight + metrics.pad : 0;
   const quoteMaxHeight = bodyEnd - cy - authorHeight;
 
   // Draw quote text wrapped in body area
   if (quoteMaxHeight > 0) {
-    drawTextWrapped(fb, bodyX, cy, config.text, bodyWidth, quoteMaxHeight);
+    drawTextWrapped(
+      fb,
+      bodyX,
+      cy,
+      config.text,
+      bodyWidth,
+      quoteMaxHeight,
+      undefined,
+      metrics.bodySize,
+    );
     cy += quoteMaxHeight;
   }
 
   // Draw author attribution right-aligned with "-- " prefix
   if (config.author) {
-    cy += PAD;
+    cy += metrics.pad;
     const authorText = `-- ${config.author}`;
-    const authorWidth = authorText.length * CHAR_ADVANCE;
-    const authorX = Math.max(bodyX, x + width - PAD - authorWidth);
+    const authorWidth = authorText.length * metrics.bodyAdvance;
+    const authorX = Math.max(bodyX, x + width - metrics.pad - authorWidth);
 
-    if (cy + FONT_HEIGHT <= bodyEnd) {
-      drawText(fb, authorX, cy, authorText, bodyWidth);
-      cy += FONT_HEIGHT + PAD;
+    if (cy + metrics.bodySize <= bodyEnd) {
+      drawText(fb, authorX, cy, authorText, bodyWidth, undefined, metrics.bodySize);
+      cy += metrics.bodySize + metrics.pad;
     }
-  }
-
-  // Thin rule at bottom as section divider
-  if (cy + 2 <= y + height) {
-    drawHLine(fb, x + PAD, cy, width - PAD * 2, GRAY_DARK);
   }
 }

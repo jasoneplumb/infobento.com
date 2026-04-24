@@ -7,12 +7,9 @@
 
 import type { FrameBuffer } from '../index.js';
 import type { LayoutBox, MoonBoxConfig } from '@infobento/core';
-import { drawText, drawHLine, drawIcon, setPixel, GRAY_DARK, GRAY_LIGHT } from '../draw.js';
-import { FONT_HEIGHT } from '../font.js';
+import type { FontMetrics } from '../font-metrics.js';
+import { drawText, drawIcon, setPixel, GRAY_DARK, GRAY_LIGHT } from '../draw.js';
 import { BOX_ICONS, ICON_WIDTH } from '../icons.js';
-
-/** Whitespace padding */
-const PAD = 16;
 
 /**
  * Reference epoch: 2000-01-06T18:14Z was a known new moon.
@@ -168,44 +165,63 @@ export function renderMoonBox(
   fb: FrameBuffer,
   layout: LayoutBox,
   _config: MoonBoxConfig,
+  metrics: FontMetrics,
   now: Date = new Date(),
   showHeaders = true,
 ): void {
   const { x, y, width, height } = layout;
-  let cy = y + PAD;
+  let cy = y + metrics.pad;
 
   if (showHeaders) {
     // Icon + uppercase label (5x7 font)
     const icon = BOX_ICONS['moon'];
-    if (icon) drawIcon(fb, x + PAD, cy, icon, GRAY_LIGHT);
-    const labelX = x + PAD + ICON_WIDTH + 3;
-    drawText(fb, labelX, cy, 'MOON', width - PAD * 2 - ICON_WIDTH - 3, GRAY_DARK);
-    cy += FONT_HEIGHT + PAD;
+    if (icon) drawIcon(fb, x + metrics.pad, cy, icon, GRAY_LIGHT);
+    const labelX = x + metrics.pad + ICON_WIDTH + 3;
+    drawText(
+      fb,
+      labelX,
+      cy,
+      'MOON',
+      width - metrics.pad * 2 - ICON_WIDTH - 3,
+      GRAY_DARK,
+      metrics.bodySize,
+    );
+    cy += metrics.bodySize + metrics.pad;
   }
 
   const phase = moonPhase(now);
   const { index, name, illumination } = moonPhaseName(phase);
 
-  // Phase bitmap — draw on left side
-  const bitmapX = x + PAD;
+  // Phase bitmap — vertically centered relative to text lines
+  const bitmapX = x + metrics.pad;
   const bitmapY = cy;
-  drawMoonBitmap(fb, bitmapX, bitmapY, index);
 
   // Phase name and illumination to the right of bitmap
-  const textX = x + PAD + MOON_BITMAP_SIZE + PAD;
-  const textMaxW = width - PAD * 2 - MOON_BITMAP_SIZE - PAD;
+  const textX = x + metrics.pad + MOON_BITMAP_SIZE + metrics.pad;
+  const textMaxW = width - metrics.pad * 2 - MOON_BITMAP_SIZE - metrics.pad;
+  let textBottom = cy;
   if (textMaxW > 0) {
-    drawText(fb, textX, cy, name, textMaxW);
-    cy += FONT_HEIGHT + 3;
-    if (cy + FONT_HEIGHT <= y + height - PAD) {
-      drawText(fb, textX, cy, `${String(illumination)}% lit`, textMaxW);
+    drawText(fb, textX, cy, name, textMaxW, undefined, metrics.bodySize);
+    textBottom = cy + metrics.bodySize;
+    cy += metrics.bodySize + 3;
+    if (cy + metrics.bodySize <= y + height - metrics.pad) {
+      drawText(
+        fb,
+        textX,
+        cy,
+        `${String(illumination)}% lit`,
+        textMaxW,
+        undefined,
+        metrics.bodySize,
+      );
+      textBottom = cy + metrics.bodySize;
     }
   }
 
-  cy = bitmapY + MOON_BITMAP_SIZE + 2;
+  // Center bitmap vertically relative to the text block
+  const textHeight = textBottom - bitmapY;
+  const bitmapOffset = Math.max(0, Math.floor((textHeight - MOON_BITMAP_SIZE) / 2));
+  drawMoonBitmap(fb, bitmapX, bitmapY + bitmapOffset, index);
 
-  // Thin rule at bottom as section divider
-  if (cy + 2 <= y + height) {
-    drawHLine(fb, x + PAD, cy, width - PAD * 2, GRAY_DARK);
-  }
+  cy = Math.max(bitmapY + MOON_BITMAP_SIZE, textBottom) + 2;
 }

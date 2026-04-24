@@ -121,6 +121,64 @@ export interface Forecast3DBoxConfig {
   readonly entries?: readonly Forecast3DEntry[];
 }
 
+/** Pre-fetched stock/crypto data — the renderer never fetches, only displays */
+export interface StockData {
+  readonly price: number;
+  readonly change: number; // absolute change
+  readonly changePercent: number; // percentage change
+}
+
+export interface StocksBoxConfig {
+  readonly type: 'stocks';
+  readonly symbol: string; // e.g. 'AAPL', 'BTC'
+  readonly data?: StockData;
+}
+
+/** A single task item with completion state */
+export interface TaskItem {
+  readonly text: string;
+  readonly done: boolean;
+}
+
+export interface TasksBoxConfig {
+  readonly type: 'tasks';
+  readonly items: readonly TaskItem[];
+}
+
+/** Pre-fetched calendar event data */
+export interface CalendarEvent {
+  readonly title: string;
+  readonly time?: string; // e.g. '14:00' or 'All day'
+}
+
+export interface CalendarBoxConfig {
+  readonly type: 'calendar';
+  readonly events?: readonly CalendarEvent[];
+}
+
+/** Habit tracking entry with streak info */
+export interface HabitEntry {
+  readonly name: string;
+  readonly streak: number; // consecutive days
+  readonly completedToday: boolean;
+}
+
+export interface HabitBoxConfig {
+  readonly type: 'habit';
+  readonly habits: readonly HabitEntry[];
+}
+
+/** A timezone entry for world clock display */
+export interface ClockZone {
+  readonly label: string; // e.g. 'Tokyo', 'NYC'
+  readonly offsetMinutes: number; // UTC offset in minutes, e.g. -300 for EST
+}
+
+export interface WorldclockBoxConfig {
+  readonly type: 'worldclock';
+  readonly zones: readonly ClockZone[];
+}
+
 /** Discriminated union of all box-specific configurations */
 export type BoxConfig =
   | TextBoxConfig
@@ -134,7 +192,12 @@ export type BoxConfig =
   | MoonBoxConfig
   | SunBoxConfig
   | AQIBoxConfig
-  | ProgressBoxConfig;
+  | ProgressBoxConfig
+  | StocksBoxConfig
+  | TasksBoxConfig
+  | CalendarBoxConfig
+  | HabitBoxConfig
+  | WorldclockBoxConfig;
 
 // --- Core types ---
 
@@ -154,7 +217,9 @@ export type BentoBoxType =
   | 'moon'
   | 'sun'
   | 'aqi'
-  | 'progress';
+  | 'progress'
+  | 'habit'
+  | 'worldclock';
 
 /** Base fields shared by all bento boxes */
 interface BentoBoxBase {
@@ -236,6 +301,36 @@ interface ProgressBentoBox extends BentoBoxBase {
   readonly config?: ProgressBoxConfig;
 }
 
+/** Stocks box with typed config */
+interface StocksBentoBox extends BentoBoxBase {
+  readonly type: 'stocks';
+  readonly config?: StocksBoxConfig;
+}
+
+/** Tasks box with typed config */
+interface TasksBentoBox extends BentoBoxBase {
+  readonly type: 'tasks';
+  readonly config?: TasksBoxConfig;
+}
+
+/** Calendar box with typed config */
+interface CalendarBentoBox extends BentoBoxBase {
+  readonly type: 'calendar';
+  readonly config?: CalendarBoxConfig;
+}
+
+/** Habit box with typed config */
+interface HabitBentoBox extends BentoBoxBase {
+  readonly type: 'habit';
+  readonly config?: HabitBoxConfig;
+}
+
+/** World clock box with typed config */
+interface WorldclockBentoBox extends BentoBoxBase {
+  readonly type: 'worldclock';
+  readonly config?: WorldclockBoxConfig;
+}
+
 /** Box types that don't have a config yet (placeholder) */
 interface UnconfiguredBentoBox extends BentoBoxBase {
   readonly type: Exclude<
@@ -252,6 +347,11 @@ interface UnconfiguredBentoBox extends BentoBoxBase {
     | 'sun'
     | 'aqi'
     | 'progress'
+    | 'stocks'
+    | 'tasks'
+    | 'calendar'
+    | 'habit'
+    | 'worldclock'
   >;
   readonly config?: undefined;
 }
@@ -273,6 +373,11 @@ export type BentoBox =
   | SunBentoBox
   | AQIBentoBox
   | ProgressBentoBox
+  | StocksBentoBox
+  | TasksBentoBox
+  | CalendarBentoBox
+  | HabitBentoBox
+  | WorldclockBentoBox
   | UnconfiguredBentoBox;
 
 /** Full device configuration */
@@ -280,6 +385,12 @@ export interface BentoConfig {
   readonly boxes: readonly BentoBox[];
   readonly refreshesPerDay: 1 | 2;
   readonly showHeaders?: boolean;
+  /** Body font size in pixels (8-42). Defaults to 20. */
+  readonly fontSize?: number;
+  /** Corner radius level (0=square, 5=max round). Defaults to 3. */
+  readonly cornerRadius?: number;
+  /** Display padding level (0=none, 10=max). Defaults to 4. */
+  readonly padding?: number;
 }
 
 /** Physical device profile */

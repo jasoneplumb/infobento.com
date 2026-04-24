@@ -1,7 +1,9 @@
 import { describe, it, expect } from 'vitest';
 import { daysUntil, renderCountdownBox } from './countdown.js';
-import { createFrameBuffer } from '../index.js';
+import { createFrameBuffer, computeFontMetrics } from '../index.js';
 import type { LayoutBox, CountdownBoxConfig } from '@infobento/core';
+
+const metrics = computeFontMetrics();
 
 describe('daysUntil', () => {
   it('returns correct day count for a future date', () => {
@@ -50,7 +52,7 @@ describe('renderCountdownBox', () => {
     const fb = createFrameBuffer({ widthPx: 120, heightPx: 100, deviceId: '' });
     const layout = makeLayout(config);
 
-    renderCountdownBox(fb, layout, config, new Date('2026-06-01T12:00:00'));
+    renderCountdownBox(fb, layout, config, metrics, new Date('2026-06-01T12:00:00'));
 
     // Frame buffer should have some pixels set (border + text)
     const totalSet = fb.data.reduce((sum, byte) => sum + popcount(byte), 0);
@@ -67,7 +69,7 @@ describe('renderCountdownBox', () => {
     const layout = makeLayout(config);
 
     // Should not throw
-    renderCountdownBox(fb, layout, config, new Date('2026-06-01T12:00:00'));
+    renderCountdownBox(fb, layout, config, metrics, new Date('2026-06-01T12:00:00'));
 
     const totalSet = fb.data.reduce((sum, byte) => sum + popcount(byte), 0);
     expect(totalSet).toBeGreaterThan(0);
@@ -82,7 +84,7 @@ describe('renderCountdownBox', () => {
     const fb = createFrameBuffer({ widthPx: 120, heightPx: 100, deviceId: '' });
     const layout = makeLayout(config);
 
-    renderCountdownBox(fb, layout, config, new Date('2026-06-01T12:00:00'));
+    renderCountdownBox(fb, layout, config, metrics, new Date('2026-06-01T12:00:00'));
 
     const totalSet = fb.data.reduce((sum, byte) => sum + popcount(byte), 0);
     expect(totalSet).toBeGreaterThan(0);

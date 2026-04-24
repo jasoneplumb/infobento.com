@@ -34,8 +34,8 @@ describe('validateBentoConfig', () => {
     expect(result.errors.some((e) => e.path.includes('boxes[0]'))).toBe(true);
   });
 
-  it('rejects too many boxes (>6)', () => {
-    const boxes = Array.from({ length: 7 }, (_, i) => ({
+  it('rejects too many boxes (>10)', () => {
+    const boxes = Array.from({ length: 11 }, (_, i) => ({
       id: String(i),
       type: 'text' as const,
       label: `Box ${String(i)}`,

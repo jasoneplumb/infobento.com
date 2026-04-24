@@ -1,7 +1,9 @@
 import { describe, it, expect } from 'vitest';
 import { dayOfYear, renderDateBox } from './date.js';
-import { createFrameBuffer, render } from '../index.js';
+import { createFrameBuffer, render, computeFontMetrics } from '../index.js';
 import type { LayoutBox, DateBoxConfig, BentoConfig } from '@infobento/core';
+
+const metrics = computeFontMetrics();
 
 function popcount(n: number): number {
   let count = 0;
@@ -40,7 +42,7 @@ describe('renderDateBox', () => {
   it('renders with default config', () => {
     const config: DateBoxConfig = { type: 'date' };
     const fb = createFrameBuffer({ widthPx: 120, heightPx: 100, deviceId: '' });
-    renderDateBox(fb, makeLayout(config), config, new Date('2026-04-23T12:00:00'));
+    renderDateBox(fb, makeLayout(config), config, metrics, new Date('2026-04-23T12:00:00'));
     const totalSet = fb.data.reduce((sum, byte) => sum + popcount(byte), 0);
     expect(totalSet).toBeGreaterThan(0);
   });
@@ -48,7 +50,7 @@ describe('renderDateBox', () => {
   it('renders year progress bar', () => {
     const config: DateBoxConfig = { type: 'date' };
     const fb = createFrameBuffer({ widthPx: 120, heightPx: 100, deviceId: '' });
-    renderDateBox(fb, makeLayout(config), config, new Date('2026-06-15T12:00:00'));
+    renderDateBox(fb, makeLayout(config), config, metrics, new Date('2026-06-15T12:00:00'));
     const totalSet = fb.data.reduce((sum, byte) => sum + popcount(byte), 0);
     expect(totalSet).toBeGreaterThan(0);
   });

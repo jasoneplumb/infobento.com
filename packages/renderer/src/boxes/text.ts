@@ -7,15 +7,10 @@
 
 import type { FrameBuffer } from '../index.js';
 import type { LayoutBox, TextBoxConfig } from '@infobento/core';
-import { drawText, drawTextWrapped, drawHLine, drawIcon, GRAY_DARK, GRAY_LIGHT } from '../draw.js';
-import { FONT_HEIGHT, CHAR_ADVANCE } from '../font.js';
+import type { FontMetrics } from '../font-metrics.js';
+import { computeFontMetrics } from '../font-metrics.js';
+import { drawText, drawTextWrapped, drawIcon, GRAY_DARK, GRAY_LIGHT } from '../draw.js';
 import { BOX_ICONS, ICON_WIDTH } from '../icons.js';
-
-/** Top padding before label */
-const TOP_PAD = 16;
-
-/** Gap between label and rule */
-const LABEL_GAP = 4;
 
 /**
  * intent: Render a complete text bento box into the frame buffer
@@ -26,37 +21,45 @@ export function renderTextBox(
   fb: FrameBuffer,
   layout: LayoutBox,
   config: TextBoxConfig,
+  metrics: FontMetrics,
   showHeaders = true,
 ): void {
   const { x, y, width, height } = layout;
-  let cy = y + TOP_PAD;
+  const labelGap = Math.round(metrics.bodySize * 0.2);
+  let cy = y + metrics.pad;
 
   if (showHeaders) {
     // Icon + uppercase label (5x7 font)
     const icon = BOX_ICONS['text'];
-    if (icon) drawIcon(fb, x + TOP_PAD, cy, icon, GRAY_LIGHT);
-    const labelX = x + TOP_PAD + ICON_WIDTH + 3;
+    if (icon) drawIcon(fb, x + metrics.pad, cy, icon, GRAY_LIGHT);
+    const labelX = x + metrics.pad + ICON_WIDTH + 3;
     drawText(
       fb,
       labelX,
       cy,
       layout.box.label.toUpperCase(),
-      width - TOP_PAD * 2 - ICON_WIDTH - 3,
+      width - metrics.pad * 2 - ICON_WIDTH - 3,
       GRAY_DARK,
+      metrics.bodySize,
     );
-    cy += FONT_HEIGHT + LABEL_GAP;
-
-    // Thin horizontal rule
-    drawHLine(fb, x + TOP_PAD, cy, width - TOP_PAD * 2, GRAY_DARK);
-    cy += LABEL_GAP;
+    cy += metrics.bodySize + labelGap + labelGap;
   }
 
   // Wrapped body text
-  const bodyWidth = width - TOP_PAD * 2;
-  const bodyHeight = y + height - cy - TOP_PAD;
+  const bodyWidth = width - metrics.pad * 2;
+  const bodyHeight = y + height - cy - metrics.pad;
 
   if (bodyHeight > 0 && bodyWidth > 0) {
-    drawTextWrapped(fb, x + TOP_PAD, cy, config.text, bodyWidth, bodyHeight);
+    drawTextWrapped(
+      fb,
+      x + metrics.pad,
+      cy,
+      config.text,
+      bodyWidth,
+      bodyHeight,
+      undefined,
+      metrics.bodySize,
+    );
   }
 }
 
@@ -64,13 +67,18 @@ export function renderTextBox(
  * intent: Render a generic labeled box for types that don't have a renderer yet
  * method: Centered type label — placeholder until real renderer exists
  */
-export function renderPlaceholderBox(fb: FrameBuffer, layout: LayoutBox): void {
+export function renderPlaceholderBox(
+  fb: FrameBuffer,
+  layout: LayoutBox,
+  metrics?: FontMetrics,
+): void {
+  const m = metrics ?? computeFontMetrics();
   const { x, y, width, height } = layout;
 
   // Center the type label
   const label = layout.box.type.toUpperCase();
-  const labelWidth = label.length * CHAR_ADVANCE;
+  const labelWidth = label.length * m.bodyAdvance;
   const labelX = x + Math.floor((width - labelWidth) / 2);
-  const labelY = y + Math.floor((height - FONT_HEIGHT) / 2);
-  drawText(fb, labelX, labelY, label, width - 4);
+  const labelY = y + Math.floor((height - m.bodySize) / 2);
+  drawText(fb, labelX, labelY, label, width - 4, undefined, m.bodySize);
 }

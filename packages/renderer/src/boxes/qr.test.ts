@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { render, createFrameBuffer } from '../index.js';
 import { renderQRBox } from './qr.js';
+import { computeFontMetrics } from '../font-metrics.js';
 import type { BentoConfig, LayoutBox, QRBoxConfig } from '@infobento/core';
 import { DISPLAY_WIDTH, DISPLAY_HEIGHT, DEFAULT_FRAME_BYTES } from '@infobento/core';
 
@@ -74,7 +75,7 @@ describe('renderQRBox', () => {
       height: DISPLAY_HEIGHT,
     };
 
-    renderQRBox(fb, layout, qrConfig);
+    renderQRBox(fb, layout, qrConfig, computeFontMetrics());
 
     // The QR code is centered in the body area below the header.
     // The quiet zone ensures a margin of white pixels around the QR data.
@@ -100,7 +101,7 @@ describe('renderQRBox', () => {
       width: DISPLAY_WIDTH,
       height: DISPLAY_HEIGHT,
     };
-    renderQRBox(fb1, layout1, shortConfig);
+    renderQRBox(fb1, layout1, shortConfig, computeFontMetrics());
 
     const fb2 = createFrameBuffer();
     const longConfig: QRBoxConfig = {
@@ -114,7 +115,7 @@ describe('renderQRBox', () => {
       width: DISPLAY_WIDTH,
       height: DISPLAY_HEIGHT,
     };
-    renderQRBox(fb2, layout2, longConfig);
+    renderQRBox(fb2, layout2, longConfig, computeFontMetrics());
 
     // Both should produce non-zero output
     const shortPixels = fb1.data.some((b) => b !== 0);

@@ -113,6 +113,9 @@ export interface EditorBox {
 export interface EditorState {
   boxes: EditorBox[];
   showHeaders: boolean;
+  fontSize: number;
+  cornerRadius: number;
+  padding: number;
 }
 
 // -- UID generator ----------------------------------------------------------
@@ -166,9 +169,16 @@ function defaultBoxes(): EditorBox[] {
 
 // -- State + render callback ------------------------------------------------
 
+const DEFAULT_FONT_SIZE = 20;
+const DEFAULT_CORNER_RADIUS = 3;
+const DEFAULT_PADDING = 4;
+
 const state: EditorState = {
   boxes: defaultBoxes(),
   showHeaders: true,
+  fontSize: DEFAULT_FONT_SIZE,
+  cornerRadius: DEFAULT_CORNER_RADIUS,
+  padding: DEFAULT_PADDING,
 };
 
 let _renderFn: (() => void) | null = null;
@@ -310,6 +320,36 @@ export function setShowHeaders(value: boolean): void {
   renderPreview();
 }
 
+export function getFontSize(): number {
+  return state.fontSize;
+}
+
+export function setFontSize(value: number): void {
+  state.fontSize = Math.max(8, Math.min(42, value));
+  persistToLocalStorage();
+  renderPreview();
+}
+
+export function getCornerRadius(): number {
+  return state.cornerRadius;
+}
+
+export function setCornerRadius(value: number): void {
+  state.cornerRadius = Math.max(0, Math.min(5, value));
+  persistToLocalStorage();
+  renderPreview();
+}
+
+export function getPadding(): number {
+  return state.padding;
+}
+
+export function setPadding(value: number): void {
+  state.padding = Math.max(0, Math.min(10, value));
+  persistToLocalStorage();
+  renderPreview();
+}
+
 // -- LocalStorage persistence -----------------------------------------------
 
 const STORAGE_KEY = 'infobento-config';
@@ -320,6 +360,9 @@ function persistToLocalStorage(): void {
       version: 2,
       boxes: state.boxes.map((b) => ({ type: b.type, label: b.label, config: { ...b.config } })),
       showHeaders: state.showHeaders,
+      fontSize: state.fontSize,
+      cornerRadius: state.cornerRadius,
+      padding: state.padding,
     };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
   } catch {
@@ -354,6 +397,9 @@ function loadFromLocalStorage(): boolean {
         obj.boxes as Array<{ type: string; label: string; config: Record<string, string> }>,
       );
       if (typeof obj.showHeaders === 'boolean') state.showHeaders = obj.showHeaders;
+      if (typeof obj.fontSize === 'number') state.fontSize = obj.fontSize;
+      if (typeof obj.cornerRadius === 'number') state.cornerRadius = obj.cornerRadius;
+      if (typeof obj.padding === 'number') state.padding = obj.padding;
       return true;
     }
 
@@ -461,6 +507,7 @@ export function exportJSON(): void {
       config: { ...b.config },
     })),
     showHeaders: state.showHeaders,
+    fontSize: state.fontSize,
   };
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
