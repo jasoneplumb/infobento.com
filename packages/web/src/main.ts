@@ -23,6 +23,7 @@ import {
 import { renderBoxList } from './components/box-list';
 import { renderPreview } from './components/preview';
 import { requireConsent } from './components/consent';
+import { detectLocation } from './geolocation';
 
 // -- Render callbacks -------------------------------------------------------
 
@@ -144,4 +145,4 @@ if (versionEl) versionEl.textContent = `v${__APP_VERSION__}`;
 // Render once so the editor is visible behind the dialog (greyed by overlay),
 // then await consent before the user can interact.
 render();
-void requireConsent();
+void requireConsent().then(() => void detectLocation());

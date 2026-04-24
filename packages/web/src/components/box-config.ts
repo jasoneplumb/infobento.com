@@ -65,6 +65,22 @@ function validateDate(): ValidationRule {
   };
 }
 
+// -- Debounce helper --------------------------------------------------------
+
+const _debounceTimers = new Map<number, ReturnType<typeof setTimeout>>();
+
+function debouncedFetch(boxId: number, fn: () => Promise<void>, delayMs = 500): void {
+  const existing = _debounceTimers.get(boxId);
+  if (existing) clearTimeout(existing);
+  _debounceTimers.set(
+    boxId,
+    setTimeout(() => {
+      _debounceTimers.delete(boxId);
+      void fn();
+    }, delayMs),
+  );
+}
+
 // -- Helpers ----------------------------------------------------------------
 
 /**
@@ -185,22 +201,15 @@ function buildWeatherForm(box: EditorBox): DocumentFragment {
     }
   };
 
-  const cityInput = inputEl('text', cfg.city, (v) => updateConfig(box.id, 'city', v));
-  cityInput.placeholder = 'e.g. Portland, OR';
-  cityInput.addEventListener('blur', () => void doFetch());
-  cityInput.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      cityInput.blur();
-    }
+  const cityInput = inputEl('text', cfg.city, (v) => {
+    updateConfig(box.id, 'city', v);
+    debouncedFetch(box.id, doFetch);
   });
+  cityInput.placeholder = 'e.g. Portland, OR';
 
   frag.appendChild(makeField('Location', cityInput, validateRequired('a location')));
   frag.appendChild(statusEl);
 
-  // Auto-fetch on mount when location is set but data is missing — keeps the
-  // eInk preview live without requiring a manual blur (e.g. after import or
-  // localStorage restore).
   if (cfg.city.trim() && !cfg.data) {
     void doFetch();
   }
@@ -237,15 +246,11 @@ function buildForecastForm(box: EditorBox): DocumentFragment {
     }
   };
 
-  const cityInput = inputEl('text', cfg.city, (v) => updateConfig(box.id, 'city', v));
-  cityInput.placeholder = 'e.g. Portland, OR';
-  cityInput.addEventListener('blur', () => void doFetch());
-  cityInput.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      cityInput.blur();
-    }
+  const cityInput = inputEl('text', cfg.city, (v) => {
+    updateConfig(box.id, 'city', v);
+    debouncedFetch(box.id, doFetch);
   });
+  cityInput.placeholder = 'e.g. Portland, OR';
 
   frag.appendChild(makeField('Location', cityInput, validateRequired('a location')));
   frag.appendChild(statusEl);
@@ -286,15 +291,11 @@ function buildForecast3DForm(box: EditorBox): DocumentFragment {
     }
   };
 
-  const cityInput = inputEl('text', cfg.city, (v) => updateConfig(box.id, 'city', v));
-  cityInput.placeholder = 'e.g. Portland, OR';
-  cityInput.addEventListener('blur', () => void doFetch());
-  cityInput.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      cityInput.blur();
-    }
+  const cityInput = inputEl('text', cfg.city, (v) => {
+    updateConfig(box.id, 'city', v);
+    debouncedFetch(box.id, doFetch);
   });
+  cityInput.placeholder = 'e.g. Portland, OR';
 
   frag.appendChild(makeField('Location', cityInput, validateRequired('a location')));
   frag.appendChild(statusEl);
@@ -352,6 +353,24 @@ function buildQuoteForm(box: EditorBox): DocumentFragment {
   frag.appendChild(makeField('Quote Text', quoteTextarea, validateRequired('a quote')));
   frag.appendChild(makeField('Author (optional)', authorInput));
   frag.appendChild(btn);
+
+  // Auto-fetch a random quote when the box is freshly added (both fields empty)
+  if (!cfg.content.trim() && !cfg.author.trim()) {
+    void (async () => {
+      btn.disabled = true;
+      btn.textContent = 'Fetching\u2026';
+      const result = await fetchQuote();
+      if (result) {
+        quoteTextarea.value = result.text;
+        authorInput.value = result.author;
+        updateConfig(box.id, 'content', result.text);
+        updateConfig(box.id, 'author', result.author);
+      }
+      btn.disabled = false;
+      btn.textContent = 'Random Quote';
+    })();
+  }
+
   return frag;
 }
 
@@ -396,15 +415,11 @@ function buildSunForm(box: EditorBox): DocumentFragment {
     }
   };
 
-  const cityInput = inputEl('text', cfg.city, (v) => updateConfig(box.id, 'city', v));
-  cityInput.placeholder = 'e.g. Portland, OR';
-  cityInput.addEventListener('blur', () => void doFetch());
-  cityInput.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      cityInput.blur();
-    }
+  const cityInput = inputEl('text', cfg.city, (v) => {
+    updateConfig(box.id, 'city', v);
+    debouncedFetch(box.id, doFetch);
   });
+  cityInput.placeholder = 'e.g. Portland, OR';
 
   frag.appendChild(makeField('Location', cityInput, validateRequired('a location')));
   frag.appendChild(statusEl);
@@ -441,15 +456,11 @@ function buildAQIForm(box: EditorBox): DocumentFragment {
     }
   };
 
-  const cityInput = inputEl('text', cfg.city, (v) => updateConfig(box.id, 'city', v));
-  cityInput.placeholder = 'e.g. Portland, OR';
-  cityInput.addEventListener('blur', () => void doFetch());
-  cityInput.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      cityInput.blur();
-    }
+  const cityInput = inputEl('text', cfg.city, (v) => {
+    updateConfig(box.id, 'city', v);
+    debouncedFetch(box.id, doFetch);
   });
+  cityInput.placeholder = 'e.g. Portland, OR';
 
   frag.appendChild(makeField('Location', cityInput, validateRequired('a location')));
   frag.appendChild(statusEl);

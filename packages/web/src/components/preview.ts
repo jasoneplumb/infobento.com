@@ -195,20 +195,20 @@ function renderPreviewNow(containerId: string): void {
       const radiusPx = getCornerRadius() * 4;
       display.style.setProperty('--eink-radius', `${String(Math.round(radiusPx * 0.5))}px`);
 
-      if (_imgLandscape.parentElement !== display) {
+      if (_imgPortrait.parentElement !== display) {
         display.innerHTML = '';
+
+        // Portrait preview (shown first)
+        const pDiv = document.createElement('div');
+        pDiv.className = 'eink-preview-pair portrait';
+        pDiv.appendChild(_imgPortrait);
+        display.appendChild(pDiv);
 
         // Landscape preview
         const lDiv = document.createElement('div');
         lDiv.className = 'eink-preview-pair landscape';
         lDiv.appendChild(_imgLandscape);
         display.appendChild(lDiv);
-
-        // Portrait preview
-        const pDiv = document.createElement('div');
-        pDiv.className = 'eink-preview-pair portrait';
-        pDiv.appendChild(_imgPortrait);
-        display.appendChild(pDiv);
       }
     })
     .catch((err: unknown) => {
