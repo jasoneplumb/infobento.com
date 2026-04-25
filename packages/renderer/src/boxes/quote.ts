@@ -47,39 +47,12 @@ export function renderQuoteBox(
   const bodyX = x + metrics.pad;
   const bodyWidth = width - metrics.pad * 2;
   const bodyEnd = y + height - metrics.pad;
+  const bodyMaxHeight = bodyEnd - cy;
 
-  if (bodyWidth <= 0) return;
+  if (bodyWidth <= 0 || bodyMaxHeight <= 0) return;
 
-  // Reserve space for author line if present
-  const lineHeight = metrics.bodySize + 2; // 2px line spacing (matches drawTextWrapped)
-  const authorHeight = config.author ? lineHeight + metrics.pad : 0;
-  const quoteMaxHeight = bodyEnd - cy - authorHeight;
+  // Combine quote text and author into a single wrapped block
+  const fullText = config.author ? `${config.text} -- ${config.author}` : config.text;
 
-  // Draw quote text wrapped in body area
-  if (quoteMaxHeight > 0) {
-    const usedHeight = drawTextWrapped(
-      fb,
-      bodyX,
-      cy,
-      config.text,
-      bodyWidth,
-      quoteMaxHeight,
-      undefined,
-      metrics.bodySize,
-    );
-    cy += usedHeight;
-  }
-
-  // Draw author attribution right-aligned with "-- " prefix
-  if (config.author) {
-    cy += metrics.pad;
-    const authorText = `-- ${config.author}`;
-    const authorWidth = authorText.length * metrics.bodyAdvance;
-    const authorX = Math.max(bodyX, x + width - metrics.pad - authorWidth);
-
-    if (cy + metrics.bodySize <= bodyEnd) {
-      drawText(fb, authorX, cy, authorText, bodyWidth, GRAY_LIGHT, metrics.bodySize);
-      cy += metrics.bodySize + metrics.pad;
-    }
-  }
+  drawTextWrapped(fb, bodyX, cy, fullText, bodyWidth, bodyMaxHeight, undefined, metrics.bodySize);
 }

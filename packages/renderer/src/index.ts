@@ -125,17 +125,39 @@ function computeHeightHints(
   metrics: FontMetrics,
   totalWidth: number,
   showHeaders: boolean,
+  padPx: number,
 ): ReadonlyMap<number, number> | undefined {
   const hints = new Map<number, number>();
-  const bodyWidth = totalWidth - metrics.pad * 2;
 
   for (let i = 0; i < boxes.length; i++) {
     const box = boxes[i];
     if (box?.type !== 'quote' || box.config?.type !== 'quote') continue;
 
-    const lineHeight = Math.round(metrics.bodySize * 1.3);
+    // Determine actual box width (accounts for split pairs)
+    let boxWidth = totalWidth;
+    if (box.split === 'left') {
+      const ratio = box.splitRatio ?? 2;
+      const fractions: Record<number, number> = { 1: 1 / 3, 2: 1 / 2, 3: 2 / 3 };
+      boxWidth = Math.floor((totalWidth - padPx) * (fractions[ratio] ?? 0.5));
+    } else if (box.split === 'right') {
+      // Find left partner's ratio
+      const leftBox = i > 0 ? boxes[i - 1] : undefined;
+      const ratio = leftBox?.splitRatio ?? 2;
+      const fractions: Record<number, number> = { 1: 1 / 3, 2: 1 / 2, 3: 2 / 3 };
+      const leftFrac = fractions[ratio] ?? 0.5;
+      boxWidth = Math.floor((totalWidth - padPx) * (1 - leftFrac));
+    }
+
+    const bodyWidth = boxWidth - metrics.pad * 2;
+    const lineHeight = Math.round(metrics.bodySize * 1.3); // matches drawTextWrapped
+
+    // Combine quote + author into one block (matches renderer)
+    const fullText = box.config.author
+      ? `${box.config.text} -- ${box.config.author}`
+      : box.config.text;
+
     let lines = 1;
-    const words = box.config.text.split(' ');
+    const words = fullText.split(' ');
     let line = '';
 
     for (const word of words) {
@@ -153,10 +175,7 @@ function computeHeightHints(
     if (showHeaders) {
       needed += metrics.bodySize + metrics.pad; // header row
     }
-    needed += lines * lineHeight; // quote text
-    if (box.config.author) {
-      needed += lineHeight; // author line (tight, no extra pad)
-    }
+    needed += lines * lineHeight; // quote + author text
     needed += metrics.pad; // bottom padding
 
     hints.set(i, needed);
@@ -180,7 +199,7 @@ export function render(config: BentoConfig, device?: DeviceProfile): FrameBuffer
   const padPx = (config.padding ?? 4) * 3;
   const layoutWidth = effectiveDevice.widthPx - padPx * 2;
   const showHeaders = config.showHeaders !== false;
-  const heightHints = computeHeightHints(config.boxes, metrics, layoutWidth, showHeaders);
+  const heightHints = computeHeightHints(config.boxes, metrics, layoutWidth, showHeaders, padPx);
   const layout = calculateLayout(config, effectiveDevice, heightHints);
   const fb = createFrameBuffer(layout.device);
 
