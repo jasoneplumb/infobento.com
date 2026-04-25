@@ -41,6 +41,7 @@ app.get('/api/box-types', (c) => {
   return c.json([
     { type: 'weather', label: 'Weather', requiresAuth: false },
     { type: 'quote', label: 'Daily Quote', requiresAuth: false },
+    { type: 'horoscope', label: 'Horoscope', requiresAuth: false },
     { type: 'countdown', label: 'Countdown', requiresAuth: false },
     { type: 'qr', label: 'QR Code', requiresAuth: false },
     { type: 'text', label: 'Static Text', requiresAuth: false },
@@ -115,6 +116,42 @@ app.post('/api/render-dual', async (c) => {
       data: Buffer.from(dual.portrait.data).toString('base64'),
     },
   });
+});
+
+const VALID_ZODIAC_SIGNS = new Set([
+  'aries',
+  'taurus',
+  'gemini',
+  'cancer',
+  'leo',
+  'virgo',
+  'libra',
+  'scorpio',
+  'sagittarius',
+  'capricorn',
+  'aquarius',
+  'pisces',
+]);
+
+app.get('/api/horoscope', async (c) => {
+  const sign = (c.req.query('sign') ?? '').trim().toLowerCase();
+  if (!sign || !VALID_ZODIAC_SIGNS.has(sign)) {
+    return c.json({ error: 'Invalid or missing zodiac sign' }, 400);
+  }
+  try {
+    const url = `https://api.api-ninjas.com/v1/horoscope?zodiac=${sign}`;
+    const res = await fetch(url);
+    if (!res.ok) {
+      return c.json({ error: 'Horoscope API returned an error' }, 502);
+    }
+    const data = (await res.json()) as { sign?: string; date?: string; horoscope?: string };
+    if (!data.horoscope) {
+      return c.json({ error: 'Unexpected response from Horoscope API' }, 502);
+    }
+    return c.json({ sign, text: data.horoscope, date: data.date ?? '' });
+  } catch {
+    return c.json({ error: 'Failed to fetch horoscope' }, 502);
+  }
 });
 
 app.get('/api/quote', async (c) => {

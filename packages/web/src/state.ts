@@ -73,6 +73,12 @@ export interface ProgressConfig {
   endDate: string;
 }
 
+export interface HoroscopeConfig {
+  sign: string;
+  content: string;
+  date: string;
+}
+
 export type EditorBoxConfig =
   | TextConfig
   | CountdownConfig
@@ -85,7 +91,8 @@ export type EditorBoxConfig =
   | MoonConfig
   | SunConfig
   | AQIConfig
-  | ProgressConfig;
+  | ProgressConfig
+  | HoroscopeConfig;
 
 export type EditorBoxType = Extract<
   BentoBoxType,
@@ -101,6 +108,7 @@ export type EditorBoxType = Extract<
   | 'sun'
   | 'aqi'
   | 'progress'
+  | 'horoscope'
 >;
 
 export interface EditorBox {
@@ -143,6 +151,7 @@ const DEFAULTS: Record<EditorBoxType, () => EditorBoxConfig> = {
   sun: () => ({ city: '' }),
   aqi: () => ({ city: '' }),
   progress: () => ({ progressLabel: 'Year', startDate: '', endDate: '' }),
+  horoscope: () => ({ sign: '', content: '', date: '' }),
 };
 
 const LABELS: Record<EditorBoxType, string> = {
@@ -158,6 +167,7 @@ const LABELS: Record<EditorBoxType, string> = {
   sun: 'Sunrise/Sunset',
   aqi: 'Air Quality',
   progress: 'Progress',
+  horoscope: 'Horoscope',
 };
 
 // -- Default box set --------------------------------------------------------

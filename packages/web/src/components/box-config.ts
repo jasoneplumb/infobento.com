@@ -14,6 +14,7 @@ import type {
   SunConfig,
   AQIConfig,
   ProgressConfig,
+  HoroscopeConfig,
 } from '../state';
 import {
   updateConfig,
@@ -28,6 +29,7 @@ import {
   fetchForecast3D,
   fetchWeather,
   fetchQuote,
+  fetchHoroscope,
   fetchSunTimes,
   fetchAirQuality,
 } from '../api';
@@ -502,6 +504,94 @@ function buildProgressForm(box: EditorBox): DocumentFragment {
   return frag;
 }
 
+const ZODIAC_SIGNS = [
+  'aries',
+  'taurus',
+  'gemini',
+  'cancer',
+  'leo',
+  'virgo',
+  'libra',
+  'scorpio',
+  'sagittarius',
+  'capricorn',
+  'aquarius',
+  'pisces',
+] as const;
+
+function buildHoroscopeForm(box: EditorBox): DocumentFragment {
+  const frag = document.createDocumentFragment();
+  const cfg = box.config as HoroscopeConfig;
+
+  const signSelect = document.createElement('select');
+  const placeholder = document.createElement('option');
+  placeholder.value = '';
+  placeholder.textContent = 'Select your sign\u2026';
+  signSelect.appendChild(placeholder);
+  for (const sign of ZODIAC_SIGNS) {
+    const opt = document.createElement('option');
+    opt.value = sign;
+    opt.textContent = sign.charAt(0).toUpperCase() + sign.slice(1);
+    if (cfg.sign === sign) opt.selected = true;
+    signSelect.appendChild(opt);
+  }
+
+  const readingTextarea = textareaEl(cfg.content, (v) => updateConfig(box.id, 'content', v));
+
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.className = 'btn-random-quote';
+  btn.textContent = 'Refresh Reading';
+
+  const doFetch = async (): Promise<void> => {
+    const sign = signSelect.value;
+    if (!sign) {
+      btn.textContent = 'Pick a sign first';
+      setTimeout(() => {
+        btn.textContent = 'Refresh Reading';
+      }, 2000);
+      return;
+    }
+    btn.disabled = true;
+    btn.textContent = 'Fetching\u2026';
+    const result = await fetchHoroscope(sign);
+    if (result) {
+      readingTextarea.value = result.text;
+      updateConfig(box.id, 'content', result.text);
+      updateConfig(box.id, 'date', result.date);
+      btn.textContent = 'Refresh Reading';
+    } else {
+      btn.textContent = 'Fetch failed';
+      setTimeout(() => {
+        btn.textContent = 'Refresh Reading';
+      }, 2000);
+    }
+    btn.disabled = false;
+  };
+
+  btn.addEventListener('click', () => {
+    void doFetch();
+  });
+
+  signSelect.addEventListener('change', () => {
+    updateConfig(box.id, 'sign', signSelect.value);
+    if (signSelect.value && !readingTextarea.value.trim()) {
+      void doFetch();
+    }
+  });
+
+  frag.appendChild(makeField('Zodiac Sign', signSelect));
+  frag.appendChild(makeField('Reading', readingTextarea));
+  frag.appendChild(btn);
+
+  // Auto-fetch when freshly added with a sign already chosen but no reading yet
+  if (cfg.sign && !cfg.content.trim()) {
+    void doFetch();
+  }
+
+  return frag;
+}
+
 // -- Registry ---------------------------------------------------------------
 
 const formBuilders: Record<EditorBoxType, (box: EditorBox) => DocumentFragment> = {
@@ -517,6 +607,7 @@ const formBuilders: Record<EditorBoxType, (box: EditorBox) => DocumentFragment> 
   sun: buildSunForm,
   aqi: buildAQIForm,
   progress: buildProgressForm,
+  horoscope: buildHoroscopeForm,
 };
 
 export function buildConfigForm(box: EditorBox): DocumentFragment {

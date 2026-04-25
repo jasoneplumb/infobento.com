@@ -25,6 +25,7 @@ import { renderTasksBox } from './boxes/tasks.js';
 import { renderCalendarBox } from './boxes/calendar.js';
 import { renderHabitBox } from './boxes/habit.js';
 import { renderWorldclockBox } from './boxes/worldclock.js';
+import { renderHoroscopeBox } from './boxes/horoscope.js';
 import type { FrameBuffer } from './types.js';
 import type { FontMetrics } from './font-metrics.js';
 import { computeFontMetrics } from './font-metrics.js';
@@ -111,6 +112,8 @@ function renderBox(
     renderHabitBox(fb, layoutBox, box.config, metrics, showHeaders);
   } else if (box.type === 'worldclock' && box.config?.type === 'worldclock') {
     renderWorldclockBox(fb, layoutBox, box.config, metrics, undefined, showHeaders);
+  } else if (box.type === 'horoscope' && box.config?.type === 'horoscope') {
+    renderHoroscopeBox(fb, layoutBox, box.config, metrics, showHeaders);
   } else {
     renderPlaceholderBox(fb, layoutBox);
   }
