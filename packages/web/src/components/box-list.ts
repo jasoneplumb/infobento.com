@@ -101,7 +101,10 @@ function buildCard(
   }
 
   header.appendChild(labelInput);
-  header.appendChild(weightDiv);
+  // Quote boxes are always content-sized — hide weight controls
+  if (box.type !== 'quote') {
+    header.appendChild(weightDiv);
+  }
   header.appendChild(orderDiv);
   header.appendChild(btnRemove);
 
