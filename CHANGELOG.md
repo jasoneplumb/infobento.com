@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.12.0] - 2026-04-25
+
+### Added
+
+- **On This Day** box: surfaces a Wikipedia event/birth/death/holiday for today's UTC date. Category dropdown (Events, Births, Deaths, Holidays, All) re-fetches on change. Server picks one entry randomly so the client never sees the full Wikipedia day payload (#61). Completes epic #62.
+- "On This Day" entry in the Add Box dropdown
+- On This Day box auto-resizes to fit text, matching Quote/Horoscope/Joke behavior
+
 ## [0.11.0] - 2026-04-25
 
 ### Added
