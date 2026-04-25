@@ -1,7 +1,7 @@
 ---
-title: "InfoBento Product Brief"
-subtitle: "See what matters. Skip the spiral."
-date: "April 2026"
+title: 'InfoBento Product Brief'
+subtitle: 'See what matters. Skip the spiral.'
+date: 'April 2026'
 ---
 
 # InfoBento Product Brief
@@ -23,23 +23,23 @@ InfoBento is a small, calm surface for the room. The information you check most 
 
 ## Hardware Specifications
 
-| Spec | Value |
-|------|-------|
-| **Display** | Good Display GDEH0576T81 |
-| **Size** | 5.76" diagonal |
-| **Resolution** | 920 x 680 pixels |
-| **DPI** | 198 |
-| **Color depth** | B&W with 2-bit grayscale (4 levels) |
-| **Driver IC** | SSD2677 |
-| **Active area** | 117.7 x 87.0 mm |
-| **Module size** | 125.4 x 99.5 x 0.9 mm |
-| **Refresh time** | 0.75s full / 0.3s partial |
-| **MCU** | ESP32-C3 (Wi-Fi 4 + BLE 5) |
-| **Battery** | ~100 mAh LiPo |
-| **Solar** | ~70x100 mm amorphous-Si + AEM10941 harvester |
-| **Enclosure** | ~14 x 11 cm, white injection-molded plastic |
+| Spec               | Value                                          |
+| ------------------ | ---------------------------------------------- |
+| **Display**        | Good Display GDEH0576T81                       |
+| **Size**           | 5.76" diagonal                                 |
+| **Resolution**     | 920 x 680 pixels                               |
+| **DPI**            | 198                                            |
+| **Color depth**    | B&W with 2-bit grayscale (4 levels)            |
+| **Driver IC**      | SSD2677                                        |
+| **Active area**    | 117.7 x 87.0 mm                                |
+| **Module size**    | 125.4 x 99.5 x 0.9 mm                          |
+| **Refresh time**   | 0.75s full / 0.3s partial                      |
+| **MCU**            | ESP32-C3 (Wi-Fi 4 + BLE 5)                     |
+| **Battery**        | ~100 mAh LiPo                                  |
+| **Solar**          | ~70x100 mm amorphous-Si + AEM10941 harvester   |
+| **Enclosure**      | ~14 x 11 cm, white injection-molded plastic    |
 | **Tilt detection** | Two ball-in-tube tilt switches, 4 orientations |
-| **Connectivity** | Wi-Fi direct, captive portal setup |
+| **Connectivity**   | Wi-Fi direct, captive portal setup             |
 
 ---
 
@@ -94,28 +94,28 @@ InfoBento is a small, calm surface for the room. The information you check most 
 
 ## Rendering Pipeline
 
-| Stage | Detail |
-|-------|--------|
-| **Input** | BentoConfig (Zod-validated JSON) |
-| **Layout** | Vertical stack + horizontal splits, configurable padding (0-10), content-aware height allocation |
-| **Font** | Inter TTF via opentype.js, configurable 8-42px body, hero = body x 2.6 |
-| **Borders** | SDF-antialiased rounded rectangles, configurable corner radius (0-10) |
-| **Contrast** | 3-tier: hero text (dark grey), important body (black), metadata (light grey) |
-| **Output** | 2-bit grayscale framebuffer (156,400 bytes for 920x680) |
-| **Export** | PNG with 4-level grayscale mapping |
+| Stage        | Detail                                                                                           |
+| ------------ | ------------------------------------------------------------------------------------------------ |
+| **Input**    | BentoConfig (Zod-validated JSON)                                                                 |
+| **Layout**   | Vertical stack + horizontal splits, configurable padding (0-10), content-aware height allocation |
+| **Font**     | Inter TTF via opentype.js, configurable 8-42px body, hero = body x 2.6                           |
+| **Borders**  | SDF-antialiased rounded rectangles, configurable corner radius (0-10)                            |
+| **Contrast** | 3-tier: hero text (dark grey), important body (black), metadata (light grey)                     |
+| **Output**   | 2-bit grayscale framebuffer (156,400 bytes for 920x680)                                          |
+| **Export**   | PNG with 4-level grayscale mapping                                                               |
 
 ---
 
 ## Box Types (17 total)
 
-| Category | Types | Data Source |
-|----------|-------|-------------|
-| **Weather** | Current weather, 8-hour forecast, 8-day forecast | Open-Meteo (free, no key) |
-| **Environment** | Sunrise/sunset, air quality, moon phase | Open-Meteo + local computation |
-| **Personal** | Countdown, year progress, date | Local computation |
-| **Content** | Quote, text | ZenQuotes (free) / user input |
-| **Utility** | QR code, tasks, calendar, habits | User input |
-| **Data** | Stocks, world clock | TBD / local computation |
+| Category        | Types                                            | Data Source                    |
+| --------------- | ------------------------------------------------ | ------------------------------ |
+| **Weather**     | Current weather, 8-hour forecast, 8-day forecast | Open-Meteo (free, no key)      |
+| **Environment** | Sunrise/sunset, air quality, moon phase          | Open-Meteo + local computation |
+| **Personal**    | Countdown, year progress, date                   | Local computation              |
+| **Content**     | Quote, text                                      | ZenQuotes (free) / user input  |
+| **Utility**     | QR code, tasks, calendar, habits                 | User input                     |
+| **Data**        | Stocks, world clock                              | TBD / local computation        |
 
 All box types work without accounts, API keys, or subscriptions.
 
@@ -138,11 +138,11 @@ All box types work without accounts, API keys, or subscriptions.
 
 ## Power Budget
 
-| Component | Active | Sleep | Duration |
-|-----------|--------|-------|----------|
-| B&W eInk full refresh | ~25 mA | 0 mA | ~0.75s |
-| Wi-Fi connect + fetch frame | ~70 mA | ~10 uA | ~10-20s |
-| MCU active (during refresh) | ~5 mA | ~5-10 uA | ~15s |
+| Component                   | Active | Sleep    | Duration |
+| --------------------------- | ------ | -------- | -------- |
+| B&W eInk full refresh       | ~25 mA | 0 mA     | ~0.75s   |
+| Wi-Fi connect + fetch frame | ~70 mA | ~10 uA   | ~10-20s  |
+| MCU active (during refresh) | ~5 mA  | ~5-10 uA | ~15s     |
 
 **Per refresh cycle:** ~15-20s active, ~0.8-1.2 mAh
 **Daily budget (2 refreshes):** ~2-3 mAh
@@ -163,13 +163,13 @@ All box types work without accounts, API keys, or subscriptions.
 
 ## Competitive Positioning
 
-| | Tidbyt | InfoBento |
-|---|---|---|
-| **Display** | 64x32 LED matrix | 920x680 B&W eInk, 198 DPI |
-| **Feel** | Glowing, animated | Paper-like, still |
-| **Power** | Wall outlet required | Solar-powered, no cable |
-| **Setup** | App + account | Web page, no account |
-| **Price** | $179 | $30-40 target |
+|             | Tidbyt               | InfoBento                 |
+| ----------- | -------------------- | ------------------------- |
+| **Display** | 64x32 LED matrix     | 920x680 B&W eInk, 198 DPI |
+| **Feel**    | Glowing, animated    | Paper-like, still         |
+| **Power**   | Wall outlet required | Solar-powered, no cable   |
+| **Setup**   | App + account        | Web page, no account      |
+| **Price**   | $179                 | $30-40 target             |
 
 **Tagline vs Tidbyt:** "Tidbyt glows. InfoBento reads."
 
@@ -213,4 +213,4 @@ infobento.com/
 
 ---
 
-*InfoBento — See what matters. Skip the spiral.*
+_InfoBento — See what matters. Skip the spiral._

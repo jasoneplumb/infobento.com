@@ -108,6 +108,7 @@ export interface EditorBox {
   type: EditorBoxType;
   label: string;
   config: EditorBoxConfig;
+  split?: 'left' | 'right';
 }
 
 export interface EditorState {
@@ -271,7 +272,17 @@ export function addBox(type: EditorBoxType): void {
 export function removeBox(id: number): void {
   setState(() => {
     const idx = state.boxes.findIndex((b) => b.id === id);
-    if (idx >= 0) state.boxes.splice(idx, 1);
+    if (idx < 0) return;
+    const box = state.boxes[idx];
+    state.boxes.splice(idx, 1);
+    // Clear orphaned split partner
+    if (box?.split === 'left') {
+      const partner = state.boxes[idx]; // next box shifted into this position
+      if (partner?.split === 'right') delete partner.split;
+    } else if (box?.split === 'right') {
+      const partner = state.boxes[idx - 1];
+      if (partner?.split === 'left') delete partner.split;
+    }
   });
 }
 
@@ -279,13 +290,61 @@ export function moveBox(id: number, dir: -1 | 1): void {
   setState(() => {
     const idx = state.boxes.findIndex((b) => b.id === id);
     if (idx < 0) return;
+    const box = state.boxes[idx];
+    if (!box) return;
+
+    // If part of a pair, move both as a unit
+    if (box.split === 'left' || box.split === 'right') {
+      const leftIdx = box.split === 'left' ? idx : idx - 1;
+      const rightIdx = leftIdx + 1;
+      if (leftIdx < 0 || rightIdx >= state.boxes.length) return;
+
+      if (dir === -1 && leftIdx === 0) return;
+      if (dir === 1 && rightIdx >= state.boxes.length - 1) return;
+
+      // Extract the pair
+      const pair = state.boxes.splice(leftIdx, 2);
+      // Insert at new position
+      const insertAt = dir === -1 ? leftIdx - 1 : leftIdx + 1;
+      state.boxes.splice(insertAt, 0, ...pair);
+      return;
+    }
+
     const target = idx + dir;
     if (target < 0 || target >= state.boxes.length) return;
-    const current = state.boxes[idx];
     const next = state.boxes[target];
-    if (current === undefined || next === undefined) return;
+    if (next === undefined) return;
     state.boxes[idx] = next;
-    state.boxes[target] = current;
+    state.boxes[target] = box;
+  });
+}
+
+export function mergeBoxes(topId: number, bottomId: number): void {
+  setState(() => {
+    const topIdx = state.boxes.findIndex((b) => b.id === topId);
+    const bottomIdx = state.boxes.findIndex((b) => b.id === bottomId);
+    if (topIdx < 0 || bottomIdx < 0) return;
+    // Ensure adjacency
+    if (bottomIdx !== topIdx + 1) {
+      const [bottomBox] = state.boxes.splice(bottomIdx, 1);
+      if (!bottomBox) return;
+      state.boxes.splice(topIdx + 1, 0, bottomBox);
+    }
+    const left = state.boxes[topIdx];
+    const right = state.boxes[topIdx + 1];
+    if (left) left.split = 'left';
+    if (right) right.split = 'right';
+  });
+}
+
+export function splitBoxes(leftId: number): void {
+  setState(() => {
+    const idx = state.boxes.findIndex((b) => b.id === leftId);
+    if (idx < 0) return;
+    const left = state.boxes[idx];
+    const right = state.boxes[idx + 1];
+    if (left) delete left.split;
+    if (right?.split === 'right') delete right.split;
   });
 }
 
@@ -391,7 +450,12 @@ function persistToLocalStorage(): void {
   try {
     const data = {
       version: 2,
-      boxes: state.boxes.map((b) => ({ type: b.type, label: b.label, config: { ...b.config } })),
+      boxes: state.boxes.map((b) => ({
+        type: b.type,
+        label: b.label,
+        config: { ...b.config },
+        ...(b.split ? { split: b.split } : {}),
+      })),
       showHeaders: state.showHeaders,
       fontSize: state.fontSize,
       cornerRadius: state.cornerRadius,
@@ -404,13 +468,14 @@ function persistToLocalStorage(): void {
 }
 
 function hydrateBoxes(
-  raw: Array<{ type: string; label: string; config: Record<string, string> }>,
+  raw: Array<{ type: string; label: string; config: Record<string, string>; split?: string }>,
 ): EditorBox[] {
   return raw.map((b) => ({
     id: uid(),
     type: b.type as EditorBoxType,
     label: b.label,
     config: { ...b.config } as EditorBoxConfig,
+    ...(b.split === 'left' || b.split === 'right' ? { split: b.split } : {}),
   }));
 }
 

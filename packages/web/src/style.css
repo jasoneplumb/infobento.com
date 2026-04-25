@@ -317,6 +317,42 @@ main {
   cursor: pointer;
 }
 
+.preview-stepper {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: #888;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  user-select: none;
+}
+
+.preview-stepper .stepper-btn {
+  font-family: var(--mono);
+  font-size: 14px;
+  line-height: 1;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid #555;
+  border-radius: 4px;
+  cursor: pointer;
+  padding: 0;
+}
+
+.preview-stepper .stepper-btn:active {
+  background: #444;
+}
+
+.preview-stepper .stepper-value {
+  min-width: 28px;
+  text-align: center;
+}
+
 .preview-control #font-size-display {
   min-width: 28px;
   text-align: right;
@@ -451,6 +487,55 @@ button {
   border: 1px solid var(--border);
   border-radius: var(--radius);
   overflow: hidden;
+}
+
+/* -- Split pair grouping ------------------------------------------------- */
+
+.box-pair-group {
+  border: 2px solid var(--accent);
+  border-radius: var(--radius);
+  padding: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  background: rgba(37, 99, 235, 0.03);
+}
+
+.box-merge-btn {
+  align-self: center;
+  font-size: 11px;
+  padding: 3px 12px;
+  color: var(--muted);
+  border: 1px dashed var(--border);
+  border-radius: var(--radius);
+  background: transparent;
+  cursor: pointer;
+  margin: -4px 0;
+}
+
+.box-merge-btn:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+  background: rgba(37, 99, 235, 0.05);
+}
+
+.box-split-btn {
+  align-self: center;
+  font-size: 11px;
+  padding: 3px 12px;
+}
+
+.box-split-badge {
+  font-family: var(--mono);
+  font-size: 9px;
+  font-weight: 700;
+  background: var(--accent);
+  color: #fff;
+  padding: 1px 5px;
+  border-radius: 3px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  flex-shrink: 0;
 }
 
 .box-card-header {
@@ -865,6 +950,16 @@ button {
 
   .box-card-body {
     padding: 10px;
+  }
+
+  .box-pair-group {
+    padding: 3px;
+    gap: 3px;
+  }
+
+  .box-merge-btn {
+    font-size: 10px;
+    padding: 3px 10px;
   }
 
   /* Reduce font sizes slightly */

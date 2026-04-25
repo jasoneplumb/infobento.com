@@ -23,7 +23,11 @@ import { getBoxes, getShowHeaders, getFontSize, getCornerRadius, getPadding } fr
  * Convert an EditorBox (UI-local model) to a core BentoBox (renderer model).
  */
 function toBentoBox(editor: EditorBox): BentoBox {
-  const base = { id: String(editor.id), label: editor.label };
+  const base = {
+    id: String(editor.id),
+    label: editor.label,
+    ...(editor.split ? { split: editor.split } : {}),
+  };
 
   switch (editor.type) {
     case 'text': {

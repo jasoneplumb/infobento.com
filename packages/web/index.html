@@ -44,21 +44,24 @@
             <input type="checkbox" />
             Show Box Headers
           </label>
-          <label class="preview-control" id="font-size-control">
-            <span>Font Size</span>
-            <input type="range" id="font-size-slider" min="8" max="42" step="1" value="38" />
-            <span id="font-size-display">38px</span>
-          </label>
-          <label class="preview-control" id="corner-radius-control">
+          <div class="preview-stepper" id="font-size-control">
+            <span>Font</span>
+            <button class="stepper-btn" id="font-size-dec" type="button">-</button>
+            <span class="stepper-value" id="font-size-display">38px</span>
+            <button class="stepper-btn" id="font-size-inc" type="button">+</button>
+          </div>
+          <div class="preview-stepper" id="corner-radius-control">
             <span>Corners</span>
-            <input type="range" id="corner-radius-slider" min="0" max="10" step="1" value="3" />
-            <span id="corner-radius-display">3</span>
-          </label>
-          <label class="preview-control" id="padding-control">
+            <button class="stepper-btn" id="corner-radius-dec" type="button">-</button>
+            <span class="stepper-value" id="corner-radius-display">3</span>
+            <button class="stepper-btn" id="corner-radius-inc" type="button">+</button>
+          </div>
+          <div class="preview-stepper" id="padding-control">
             <span>Padding</span>
-            <input type="range" id="padding-slider" min="0" max="10" step="1" value="4" />
-            <span id="padding-display">4</span>
-          </label>
+            <button class="stepper-btn" id="padding-dec" type="button">-</button>
+            <span class="stepper-value" id="padding-display">4</span>
+            <button class="stepper-btn" id="padding-inc" type="button">+</button>
+          </div>
         </div>
       </section>
 

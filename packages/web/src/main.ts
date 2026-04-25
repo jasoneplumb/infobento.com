@@ -93,47 +93,71 @@ if (headersToggle) {
   headersToggle.addEventListener('change', () => setShowHeaders(headersToggle.checked));
 }
 
-// -- Wire up Font Size slider -----------------------------------------------
+// -- Wire up Font Size stepper -----------------------------------------------
 
-const fontSlider = document.getElementById('font-size-slider') as HTMLInputElement | null;
-const fontDisplay = document.getElementById('font-size-display');
-if (fontSlider) {
-  fontSlider.value = String(getFontSize());
-  if (fontDisplay) fontDisplay.textContent = `${String(getFontSize())}px`;
-  fontSlider.addEventListener('input', () => {
-    const val = parseInt(fontSlider.value, 10);
-    setFontSize(val);
-    if (fontDisplay) fontDisplay.textContent = `${String(val)}px`;
+function wireStepper(
+  decId: string,
+  incId: string,
+  displayId: string,
+  getter: () => number,
+  setter: (v: number) => void,
+  min: number,
+  max: number,
+  step: number,
+  format: (v: number) => string,
+): void {
+  const decBtn = document.getElementById(decId);
+  const incBtn = document.getElementById(incId);
+  const display = document.getElementById(displayId);
+  if (!decBtn || !incBtn || !display) return;
+
+  display.textContent = format(getter());
+
+  decBtn.addEventListener('click', () => {
+    const val = Math.max(min, getter() - step);
+    setter(val);
+    display.textContent = format(val);
+  });
+  incBtn.addEventListener('click', () => {
+    const val = Math.min(max, getter() + step);
+    setter(val);
+    display.textContent = format(val);
   });
 }
 
-// -- Wire up Corner Radius slider -------------------------------------------
-
-const cornerSlider = document.getElementById('corner-radius-slider') as HTMLInputElement | null;
-const cornerDisplay = document.getElementById('corner-radius-display');
-if (cornerSlider) {
-  cornerSlider.value = String(getCornerRadius());
-  if (cornerDisplay) cornerDisplay.textContent = String(getCornerRadius());
-  cornerSlider.addEventListener('input', () => {
-    const val = parseInt(cornerSlider.value, 10);
-    setCornerRadius(val);
-    if (cornerDisplay) cornerDisplay.textContent = String(val);
-  });
-}
-
-// -- Wire up Padding slider -------------------------------------------------
-
-const paddingSlider = document.getElementById('padding-slider') as HTMLInputElement | null;
-const paddingDisplay = document.getElementById('padding-display');
-if (paddingSlider) {
-  paddingSlider.value = String(getPadding());
-  if (paddingDisplay) paddingDisplay.textContent = String(getPadding());
-  paddingSlider.addEventListener('input', () => {
-    const val = parseInt(paddingSlider.value, 10);
-    setPadding(val);
-    if (paddingDisplay) paddingDisplay.textContent = String(val);
-  });
-}
+wireStepper(
+  'font-size-dec',
+  'font-size-inc',
+  'font-size-display',
+  getFontSize,
+  setFontSize,
+  8,
+  42,
+  2,
+  (v) => `${String(v)}px`,
+);
+wireStepper(
+  'corner-radius-dec',
+  'corner-radius-inc',
+  'corner-radius-display',
+  getCornerRadius,
+  setCornerRadius,
+  0,
+  10,
+  1,
+  String,
+);
+wireStepper(
+  'padding-dec',
+  'padding-inc',
+  'padding-display',
+  getPadding,
+  setPadding,
+  0,
+  10,
+  1,
+  String,
+);
 
 // -- Version stamp ----------------------------------------------------------
 

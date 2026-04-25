@@ -1,12 +1,12 @@
 ---
-title: "InfoBento Design Brief"
-subtitle: "UX model, requirements, and design decisions"
-date: "April 2026"
+title: 'InfoBento Design Brief'
+subtitle: 'UX model, requirements, and design decisions'
+date: 'April 2026'
 ---
 
 # InfoBento Design Brief
 
-*See what matters. Skip the spiral.*
+_See what matters. Skip the spiral._
 
 **Domain:** Consumer electronics
 **Phase:** Campaign (pre-Kickstarter)
@@ -102,11 +102,11 @@ Someone who wants to give a thoughtful, personalized tech gift that is useful wi
 
 InfoBento has no user-facing controls. It connects to Wi-Fi and refreshes on schedule. It charges via solar passively. The user's only interaction is glancing at it.
 
-| Do | Don't |
-|----|-------|
-| Glance at counter display from across the room | Require button press to refresh |
-| Solar charging near a window without cables | Dedicated companion app |
-| Captive-portal first-time setup, no app | Manual charging schedule or cable |
+| Do                                             | Don't                             |
+| ---------------------------------------------- | --------------------------------- |
+| Glance at counter display from across the room | Require button press to refresh   |
+| Solar charging near a window without cables    | Dedicated companion app           |
+| Captive-portal first-time setup, no app        | Manual charging schedule or cable |
 
 ### Pure Function Architecture
 
@@ -120,12 +120,12 @@ No server-side state, no user accounts, no databases. Config lives on the client
 
 The constraint is tight enough to feel intentional: four shades, not a gradient. Think newspaper print, not a photograph.
 
-| Level | Use |
-|-------|-----|
-| Black | Important body text (conditions, entries, names) |
-| Dark gray | Hero/display text (large, doesn't need max contrast) |
-| Light gray | Supporting metadata (H/L, author, streaks) |
-| White | Box interior background |
+| Level      | Use                                                  |
+| ---------- | ---------------------------------------------------- |
+| Black      | Important body text (conditions, entries, names)     |
+| Dark gray  | Hero/display text (large, doesn't need max contrast) |
+| Light gray | Supporting metadata (H/L, author, streaks)           |
+| White      | Box interior background                              |
 
 ### Free by Default
 
@@ -149,20 +149,20 @@ Enclosure ~14x11cm, white housing, minimal bezel. Solar panel on upper back. Til
 
 ## 4. Requirements
 
-| ID | Statement | Priority | Status |
-|----|-----------|----------|--------|
-| REQ-001 | User can configure 3-6 bento boxes via web interface | Must | Accepted |
-| REQ-002 | Device syncs via Wi-Fi direct, no companion phone app | Must | Accepted |
-| REQ-003 | Display refreshes 1-2x/day on solar power alone | Must | Accepted |
-| REQ-004 | 17 box types without user accounts | Must | Accepted |
-| REQ-005 | Web UI and API served from same port in production | Must | Accepted |
-| REQ-006 | Config persists in localStorage with JSON export/import | Must | Accepted |
-| REQ-007 | QR code gets ~half display height for scannability | Must | Accepted |
-| REQ-008 | Live PNG preview before syncing to device | Must | Accepted |
-| REQ-009 | V1 ships B&W with 4-level grayscale, no color | Must | Accepted |
-| REQ-010 | Enclosure ~14x11cm, fits GDEH0576T81 panel closely | Must | Accepted |
-| REQ-011 | Display >=198 DPI, <=3mm visible bezel | Should | Accepted |
-| REQ-012 | Auto-rotate via two tilt switches, 4 orientations | Must | Accepted |
+| ID      | Statement                                               | Priority | Status   |
+| ------- | ------------------------------------------------------- | -------- | -------- |
+| REQ-001 | User can configure 3-6 bento boxes via web interface    | Must     | Accepted |
+| REQ-002 | Device syncs via Wi-Fi direct, no companion phone app   | Must     | Accepted |
+| REQ-003 | Display refreshes 1-2x/day on solar power alone         | Must     | Accepted |
+| REQ-004 | 17 box types without user accounts                      | Must     | Accepted |
+| REQ-005 | Web UI and API served from same port in production      | Must     | Accepted |
+| REQ-006 | Config persists in localStorage with JSON export/import | Must     | Accepted |
+| REQ-007 | QR code gets ~half display height for scannability      | Must     | Accepted |
+| REQ-008 | Live PNG preview before syncing to device               | Must     | Accepted |
+| REQ-009 | V1 ships B&W with 4-level grayscale, no color           | Must     | Accepted |
+| REQ-010 | Enclosure ~14x11cm, fits GDEH0576T81 panel closely      | Must     | Accepted |
+| REQ-011 | Display >=198 DPI, <=3mm visible bezel                  | Should   | Accepted |
+| REQ-012 | Auto-rotate via two tilt switches, 4 orientations       | Must     | Accepted |
 
 ---
 
@@ -320,18 +320,18 @@ Research across Tidbyt, Watchy, TRMNL, thermal printer art, and eInk phone acces
 
 ## 10. Open Items
 
-| Item | Status | Blocking |
-|------|--------|----------|
-| Hardware dev kit validation (#57) | Pending order | Grey rendering quality |
-| Grey fallback -- Floyd-Steinberg dithering (#56) | Deferred | Dev kit results |
-| Wire 5 new boxes into web UI (#53) | Open | Not blocking |
-| Content-aware layout for all types (#54) | Open | Not blocking |
-| Price validation at volume | Needs quotes | Kickstarter pricing |
-| SCAD enclosure model (#50) | Open | Prototype photography |
-| Captive-portal firmware (#39) | Open | Device functionality |
-| Tilt switch hardware (#48) | Open | Auto-rotate |
+| Item                                             | Status        | Blocking               |
+| ------------------------------------------------ | ------------- | ---------------------- |
+| Hardware dev kit validation (#57)                | Pending order | Grey rendering quality |
+| Grey fallback -- Floyd-Steinberg dithering (#56) | Deferred      | Dev kit results        |
+| Wire 5 new boxes into web UI (#53)               | Open          | Not blocking           |
+| Content-aware layout for all types (#54)         | Open          | Not blocking           |
+| Price validation at volume                       | Needs quotes  | Kickstarter pricing    |
+| SCAD enclosure model (#50)                       | Open          | Prototype photography  |
+| Captive-portal firmware (#39)                    | Open          | Device functionality   |
+| Tilt switch hardware (#48)                       | Open          | Auto-rotate            |
 
 ---
 
-*InfoBento -- See what matters. Skip the spiral.*
-*Phase: Campaign | Version: v0.9.0 | April 2026*
+_InfoBento -- See what matters. Skip the spiral._
+_Phase: Campaign | Version: v0.9.0 | April 2026_

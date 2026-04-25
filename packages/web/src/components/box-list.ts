@@ -1,16 +1,21 @@
 /**
  * Box list renderer — builds card DOM nodes for the editor column.
- * Handles reorder (up/down), remove, inline label editing, and
- * delegates type-specific forms to box-config.ts.
+ * Handles reorder (up/down), remove, inline label editing, merge/split
+ * for horizontal pairs, and delegates type-specific forms to box-config.ts.
  */
 
 import type { EditorBox } from '../state';
-import { getBoxes, moveBox, removeBox, updateLabel } from '../state';
+import { getBoxes, moveBox, removeBox, updateLabel, mergeBoxes, splitBoxes } from '../state';
 import { buildConfigForm } from './box-config';
 
 // -- Card builder -----------------------------------------------------------
 
-function buildCard(box: EditorBox, idx: number, total: number): HTMLDivElement {
+function buildCard(
+  box: EditorBox,
+  idx: number,
+  total: number,
+  splitSide?: 'left' | 'right',
+): HTMLDivElement {
   const card = document.createElement('div');
   card.className = 'box-card';
   card.dataset.id = String(box.id);
@@ -26,6 +31,16 @@ function buildCard(box: EditorBox, idx: number, total: number): HTMLDivElement {
   badge.className = `box-type-badge type-${box.type}`;
   badge.textContent = box.type;
 
+  header.appendChild(handle);
+  header.appendChild(badge);
+
+  if (splitSide) {
+    const splitBadge = document.createElement('span');
+    splitBadge.className = 'box-split-badge';
+    splitBadge.textContent = splitSide === 'left' ? 'L' : 'R';
+    header.appendChild(splitBadge);
+  }
+
   const labelInput = document.createElement('input');
   labelInput.type = 'text';
   labelInput.value = box.label;
@@ -37,29 +52,27 @@ function buildCard(box: EditorBox, idx: number, total: number): HTMLDivElement {
 
   const btnUp = document.createElement('button');
   btnUp.className = 'btn-ghost';
-  btnUp.textContent = '▲';
+  btnUp.textContent = '\u25B2';
   btnUp.title = 'Move up';
   btnUp.disabled = idx === 0;
   btnUp.addEventListener('click', () => moveBox(box.id, -1));
 
   const btnDown = document.createElement('button');
   btnDown.className = 'btn-ghost';
-  btnDown.textContent = '▼';
+  btnDown.textContent = '\u25BC';
   btnDown.title = 'Move down';
   btnDown.disabled = idx === total - 1;
   btnDown.addEventListener('click', () => moveBox(box.id, 1));
 
   const btnRemove = document.createElement('button');
   btnRemove.className = 'btn-danger';
-  btnRemove.textContent = '✕';
+  btnRemove.textContent = '\u2715';
   btnRemove.title = 'Remove box';
   btnRemove.addEventListener('click', () => removeBox(box.id));
 
   orderDiv.appendChild(btnUp);
   orderDiv.appendChild(btnDown);
 
-  header.appendChild(handle);
-  header.appendChild(badge);
   header.appendChild(labelInput);
   header.appendChild(orderDiv);
   header.appendChild(btnRemove);
@@ -113,9 +126,52 @@ export function renderBoxList(containerId: string): void {
   }
 
   const frag = document.createDocumentFragment();
-  boxes.forEach((box, idx) => {
-    frag.appendChild(buildCard(box, idx, boxes.length));
-  });
+  let i = 0;
+  while (i < boxes.length) {
+    const box = boxes[i];
+    if (!box) {
+      i++;
+      continue;
+    }
+    const nextBox = i + 1 < boxes.length ? boxes[i + 1] : undefined;
+    const isPair = box.split === 'left' && nextBox?.split === 'right';
+
+    if (isPair && nextBox) {
+      // Render paired group
+      const group = document.createElement('div');
+      group.className = 'box-pair-group';
+
+      group.appendChild(buildCard(box, i, boxes.length, 'left'));
+      group.appendChild(buildCard(nextBox, i + 1, boxes.length, 'right'));
+
+      const splitBtn = document.createElement('button');
+      splitBtn.className = 'box-split-btn btn-ghost';
+      splitBtn.textContent = 'Split apart';
+      const leftId = box.id;
+      splitBtn.addEventListener('click', () => splitBoxes(leftId));
+      group.appendChild(splitBtn);
+
+      frag.appendChild(group);
+      i += 2;
+    } else {
+      frag.appendChild(buildCard(box, i, boxes.length));
+
+      // Merge button between unpaired adjacent boxes
+      if (i + 1 < boxes.length) {
+        const next = boxes[i + 1];
+        if (!box.split && next && !next.split) {
+          const mergeBtn = document.createElement('button');
+          mergeBtn.className = 'box-merge-btn btn-ghost';
+          mergeBtn.textContent = '\u2B0C Merge into row';
+          const topId = box.id;
+          const bottomId = next.id;
+          mergeBtn.addEventListener('click', () => mergeBoxes(topId, bottomId));
+          frag.appendChild(mergeBtn);
+        }
+      }
+      i++;
+    }
+  }
   list.appendChild(frag);
 
   // Restore focus heuristic
