@@ -80,6 +80,12 @@ export interface HoroscopeConfig {
   date: string;
 }
 
+export interface JokeConfig {
+  content: string;
+  category?: string;
+  categories?: string; // user's CSV input filter
+}
+
 export type EditorBoxConfig =
   | TextConfig
   | CountdownConfig
@@ -93,7 +99,8 @@ export type EditorBoxConfig =
   | SunConfig
   | AQIConfig
   | ProgressConfig
-  | HoroscopeConfig;
+  | HoroscopeConfig
+  | JokeConfig;
 
 export type EditorBoxType = Extract<
   BentoBoxType,
@@ -110,6 +117,7 @@ export type EditorBoxType = Extract<
   | 'aqi'
   | 'progress'
   | 'horoscope'
+  | 'joke'
 >;
 
 export interface EditorBox {
@@ -153,6 +161,7 @@ const DEFAULTS: Record<EditorBoxType, () => EditorBoxConfig> = {
   aqi: () => ({ city: '' }),
   progress: () => ({ progressLabel: 'Year', startDate: '', endDate: '' }),
   horoscope: () => ({ sign: '', content: '', date: '' }),
+  joke: () => ({ content: '' }),
 };
 
 const LABELS: Record<EditorBoxType, string> = {
@@ -169,6 +178,7 @@ const LABELS: Record<EditorBoxType, string> = {
   aqi: 'Air Quality',
   progress: 'Progress',
   horoscope: 'Horoscope',
+  joke: 'Joke',
 };
 
 // -- Default box set --------------------------------------------------------

@@ -398,6 +398,31 @@ export interface HoroscopeResult {
   date: string;
 }
 
+export interface JokeResult {
+  text: string;
+  category: string;
+}
+
+/**
+ * Fetch a fresh joke from the /api/joke proxy. Optional `categories`
+ * (comma-separated) filters by JokeAPI category. Returns null on
+ * network/API failure or no match.
+ */
+export async function fetchJoke(categories?: string): Promise<JokeResult | null> {
+  try {
+    const params = new URLSearchParams();
+    if (categories && categories.trim()) params.set('categories', categories.trim());
+    const qs = params.toString();
+    const res = await fetch(`/api/joke${qs ? `?${qs}` : ''}`);
+    if (!res.ok) return null;
+    const data = (await res.json()) as { text?: string; category?: string };
+    if (!data.text) return null;
+    return { text: data.text, category: data.category ?? '' };
+  } catch {
+    return null;
+  }
+}
+
 /**
  * Fetch a daily horoscope reading for the given zodiac sign via the
  * /api/horoscope proxy. Returns null on network/API failure.
