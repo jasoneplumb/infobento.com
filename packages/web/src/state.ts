@@ -327,6 +327,19 @@ export function moveBox(id: number, dir: -1 | 1): void {
     if (target < 0 || target >= state.boxes.length) return;
     const next = state.boxes[target];
     if (next === undefined) return;
+
+    // If the swap target is part of a split pair, jump over the entire pair
+    // instead of swapping into it (which would orphan the pair's split markers).
+    if (next.split === 'left' || next.split === 'right') {
+      const pairLeftIdx = next.split === 'left' ? target : target - 1;
+      const pairRightIdx = pairLeftIdx + 1;
+      const insertBefore = dir === -1 ? pairLeftIdx : pairRightIdx + 1;
+      state.boxes.splice(idx, 1);
+      const adjustedInsert = idx < insertBefore ? insertBefore - 1 : insertBefore;
+      state.boxes.splice(adjustedInsert, 0, box);
+      return;
+    }
+
     state.boxes[idx] = next;
     state.boxes[target] = box;
   });
@@ -508,7 +521,7 @@ function hydrateBoxes(
     splitRatio?: number;
   }>,
 ): EditorBox[] {
-  return raw.map((b) => ({
+  const boxes = raw.map((b) => ({
     id: uid(),
     type: b.type as EditorBoxType,
     label: b.label,
@@ -517,6 +530,17 @@ function hydrateBoxes(
     ...(b.weight === 1 || b.weight === 3 ? { weight: b.weight } : {}),
     ...(b.splitRatio === 1 || b.splitRatio === 3 ? { splitRatio: b.splitRatio } : {}),
   }));
+  // Repair orphaned split markers from older bug where reordering split pairs.
+  for (let i = 0; i < boxes.length; i++) {
+    const box = boxes[i];
+    if (!box) continue;
+    if (box.split === 'left' && boxes[i + 1]?.split !== 'right') {
+      delete box.split;
+    } else if (box.split === 'right' && boxes[i - 1]?.split !== 'left') {
+      delete box.split;
+    }
+  }
+  return boxes;
 }
 
 function loadFromLocalStorage(): boolean {
