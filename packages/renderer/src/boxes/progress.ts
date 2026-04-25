@@ -8,7 +8,7 @@
 import type { FrameBuffer } from '../index.js';
 import type { LayoutBox, ProgressBoxConfig } from '@infobento/core';
 import type { FontMetrics } from '../font-metrics.js';
-import { drawText, drawHeroText, drawIcon, setPixel, GRAY_LIGHT } from '../draw.js';
+import { drawText, drawHeroText, drawIcon, setPixel, GRAY_DARK, GRAY_LIGHT } from '../draw.js';
 import { BOX_ICONS, ICON_WIDTH } from '../icons.js';
 
 /**
@@ -109,7 +109,7 @@ export function renderProgressBox(
       cy,
       label.toUpperCase(),
       width - metrics.pad * 2 - ICON_WIDTH - 3,
-      undefined,
+      GRAY_DARK,
       metrics.bodySize,
     );
     cy += metrics.bodySize + metrics.pad;
@@ -124,7 +124,7 @@ export function renderProgressBox(
   const pctStr = `${String(pct)}%`;
 
   // Hero percentage
-  drawHeroText(fb, x + metrics.pad, cy, pctStr, undefined, undefined, metrics.heroSize);
+  drawHeroText(fb, x + metrics.pad, cy, pctStr, undefined, GRAY_DARK, metrics.heroSize);
 
   const heroWidth = pctStr.length * metrics.heroAdvance;
   cy += metrics.heroSize + 2;
@@ -146,7 +146,7 @@ export function renderProgressBox(
       cy,
       `Day ${String(daysCurrent)} of ${String(daysTotal)}`,
       width - metrics.pad * 2,
-      undefined,
+      GRAY_LIGHT,
       metrics.bodySize,
     );
     cy += metrics.bodySize + metrics.pad;

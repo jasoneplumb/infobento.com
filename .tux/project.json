@@ -158,10 +158,10 @@
       "name": "Grayscale Elegance",
       "statement": "Four shades — black, dark gray, light gray, white — used with intention. Every tone earns its place.",
       "description": "V1 ships monochrome with 4-level grayscale (2-bit per pixel). The hardware supports this natively at no extra cost. The four tones create a clear visual hierarchy: black for hero data and primary text, dark gray for secondary content and dividers, light gray for labels and metadata, white for background. Anti-aliased fonts become possible — 2-bit grayscale text is crisper than 1-bit at the same DPI, especially for the 5x7 small font where staircase aliasing is visible. The constraint is still tight enough to feel intentional: four shades, not a gradient. Think newspaper print, not a photograph.",
-      "source": "Round 11 direction (2026-04-23), revised after confirming all candidate panels natively support 4 grayscale via their driver ICs (UC8179, SSD1677). Anti-aliased font rendering is the primary motivation — free visual quality improvement from hardware already being purchased.",
+      "source": "Round 11 direction (2026-04-23). The GDEH0576T81 (SSD2677 driver) supports 4 grayscale natively. Anti-aliased TTF font rendering (Inter via opentype.js) is the primary motivation — free visual quality improvement from hardware already being purchased.",
       "examples": [
         "Hero font in black, section labels in light gray — instant hierarchy without layout gymnastics",
-        "Anti-aliased 5x7 font: edge pixels rendered in dark/light gray instead of staircase black",
+        "Anti-aliased Inter TTF font: edge pixels rendered in dark/light gray via opentype.js rasterization",
         "Thin divider rules in dark gray (softer than black, clearly distinct from content)",
         "Moon phase bitmap: lit portion in white, shadow in dark gray, outline in black",
         "Progress bar fill in black, unfilled track in light gray, percentage in black",
@@ -183,7 +183,7 @@
       "type": "design-principle",
       "name": "Free by Default",
       "statement": "All box types must work without accounts, API keys, or subscriptions",
-      "description": "All 11 box types use free data sources or local computation. Weather, forecast, sunrise/sunset, and air quality use Open-Meteo (free, no key). Quotes use ZenQuotes (free, no auth). Date, moon, countdown, progress, QR, and text are pure local computation. No user should need to create an account anywhere to use the product.",
+      "description": "All 17 box types use free data sources or local computation. Weather, forecast, forecast3d, sunrise/sunset, and air quality use Open-Meteo (free, no key). Quotes use ZenQuotes (free, no auth). Date, moon, countdown, progress, QR, text, habits, tasks, and worldclock are pure local computation. Stocks and calendar data sources TBD but will target free APIs. No user should need to create an account anywhere to use the product.",
       "source": "User research — friction in setup kills adoption for consumer hardware",
       "examples": [
         "Weather, forecast, sunrise/sunset, air quality via Open-Meteo (free, no API key)",
@@ -287,8 +287,8 @@
     {
       "type": "requirement",
       "label": "REQ-004",
-      "statement": "MVP supports 11 box types without requiring any user accounts: weather, forecast, quote, countdown, QR, text, date, moon, sun, aqi, progress",
-      "source": "Open question resolution — free data sources prioritized for MVP. Expanded from 6 to 11 in #41-45 (2026-04-23).",
+      "statement": "MVP supports 17 box types without requiring any user accounts: weather, forecast, forecast3d, quote, countdown, QR, text, date, moon, sun, aqi, progress, stocks, tasks, calendar, habit, worldclock",
+      "source": "Open question resolution — free data sources prioritized for MVP. Expanded from 6 to 11 in #41-45, then to 17 in v0.8.0 (2026-04-24).",
       "category": "functional",
       "priority": "must",
       "rationale": "Reduces onboarding friction to zero — unbox, configure, done",
@@ -370,7 +370,7 @@
         "659af1c0-7967-4009-84ca-7febdab16a3d"
       ],
       "setting": "Home office, laptop open, just unboxed the InfoBento device",
-      "narrative": "Alex opens infobento.com on their laptop. The web UI shows a single eInk preview on top with the editor below. They add Weather (type Portland — geocoded via Nominatim), add Countdown (anniversary date), add a Date box, and a Quote box. The live 1-bit preview updates instantly after each change — rendered client-side, no API round-trip. They click Export Config and save the JSON. Later they'll enter these settings during the device's captive-portal Wi-Fi setup.",
+      "narrative": "Alex opens infobento.com on their laptop. The web UI shows a single eInk preview on top with the editor below. They add Weather (type Portland — geocoded via Nominatim), add Countdown (anniversary date), add a Date box, and a Quote box. The live 2-bit grayscale preview updates after each change — rendered server-side as PNG with antialiased TTF fonts and rounded box borders. They click Export Config and save the JSON. Later they'll enter these settings during the device's captive-portal Wi-Fi setup.",
       "status": "draft",
       "preconditions": ["Web UI is accessible", "No account required"],
       "postconditions": [
@@ -411,9 +411,9 @@
       "status": "active",
       "elements": [
         "3-6 sections — quote, full weather, countdown hero, date, QR, text — filling the generous panel area",
-        "Spleen 8x16 hero font for primary data, 5x7 data font for labels and body",
-        "Thin horizontal rules as section dividers",
-        "Whitespace gaps (5-8px) between sections",
+        "Inter TTF hero font (52px default) for primary data, Inter body font (20px default) for labels and body",
+        "SDF-antialiased rounded box borders (configurable corner radius 0-10) on grey background",
+        "Configurable padding (0-10) between boxes and display edge",
         "Content rendered in 4-level grayscale — anti-aliased fonts, gray labels for hierarchy",
         "Multi-column layouts viable at bento scale — horizontal splits at ~80px+ per column",
         "Layout auto-rotates based on tilt switch orientation (landscape default, portrait when stood on end)"
@@ -447,7 +447,7 @@
       "fidelity": "medium",
       "status": "active",
       "elements": [
-        "Top: live 1-bit B&W eInk preview rendered client-side, sized 1:1 with the device",
+        "Top: live 2-bit grayscale eInk preview (server-rendered PNG) with rounded corners matching box borders",
         "Below: box list with up/down arrow buttons for reordering",
         "Header: Menu dropdown with Import / Export JSON",
         "Per-cell: Add Box button with type picker dropdown",
@@ -457,12 +457,12 @@
         "Consent dialog (Privacy + Terms) on first load, persisted in localStorage"
       ],
       "annotations": [
-        "Preview renders client-side using @infobento/renderer — no API round-trip",
+        "Preview fetches server-rendered PNG from /api/preview (enables TTF rendering)",
         "Single-column editor: preview on top, editor below (#29 merged 2026-04-23). localStorage v2 schema with v1 migration.",
         "No account required — config lives in localStorage with JSON import/export",
         "Responsive layout: stacks vertically on narrow viewports (<=720px)",
         "Vanilla JS with reactive state, no framework",
-        "11 box types: text, countdown, weather, 3hr forecast, qr, quote + date, moon, sun, aqi, progress (#41-45 in progress)",
+        "17 box types: text, countdown, weather, forecast, forecast3d, qr, quote, date, moon, sun, aqi, progress, stocks, tasks, calendar, habit, worldclock",
         "Geocoding via Nominatim handles 'Portland, OR', addresses, and landmarks like 'Mt. St. Helens'"
       ],
       "externalRef": null,
@@ -511,17 +511,17 @@
     {
       "type": "design-principle",
       "name": "Two-Font Bitmap System",
-      "statement": "Two embedded bitmap fonts — Spleen 8x16 for hero data, built-in 5x7 for labels and body text — no system font dependencies",
-      "description": "The renderer embeds two fixed-width bitmap fonts as pixel data arrays. Spleen 8x16 (purpose-designed, MIT licensed) for hero numbers and primary data (temperatures, times, countdown numbers). Built-in 5x7 for labels, secondary text, and compact data rows. Two sizes only — the contrast jump IS the visual hierarchy. No medium size. With 4-level grayscale support (REQ-009), both fonts can be anti-aliased: edge pixels rendered in dark/light gray instead of staircase black. This is especially impactful for the 5x7 font where aliasing is visible at lower DPIs.",
-      "source": "Font comparison (round 6) — Spleen 8x16 selected over Tamzen 8x16, Tamzen 10x20, and 2x-scaled 5x7 baseline. Best curve quality at minimal vertical cost.",
+      "statement": "TrueType font rendering via Inter (OFL) with opentype.js — configurable body size (8-42px), hero size derived proportionally — no system font dependencies",
+      "description": "The renderer uses Inter (OFL-licensed TrueType font) via opentype.js for all text. Body font size is user-configurable (8-42px, default 38px); hero size is derived proportionally (bodySize * 2.6). Anti-aliased at 2-bit grayscale depth via scanline TTF rasterization. Dynamic FontMetrics system computes all spacing, padding, and line heights from the chosen body size. Two visual weights — hero (bold) and body (regular) — create clear hierarchy.",
+      "source": "Font evolution: 5x7 bitmap (v0.1) → Spleen 8x16 bitmap (v0.4) → Inter TTF via opentype.js (v0.7.0). TTF rendering enables configurable font sizes and proper kerning.",
       "examples": [
-        "Spleen 8x16: '62F', '9:00', '14 days', '13,297'",
-        "Built-in 5x7: 'WEATHER', 'Partly Cloudy', 'H:68 L:55'",
-        "Two sizes create clear hierarchy without borders"
+        "Inter Bold hero: '62F', '9:00', '14 days' at user-chosen size",
+        "Inter Regular body: 'WEATHER', 'Partly Cloudy', 'H:68 L:55'",
+        "Two weights + configurable size create clear hierarchy"
       ],
       "counterExamples": [
         "System fonts rendered via Canvas API",
-        "TrueType/OpenType font loading",
+        "Fixed bitmap fonts with no size flexibility",
         "Three or more font sizes (creates visual noise)"
       ],
       "id": "b612a2ca-48f0-466e-a0d5-de3b39b209b9",
@@ -533,15 +533,15 @@
     {
       "type": "prototype",
       "name": "Rendering Pipeline (v0.4.0+)",
-      "description": "Full rendering pipeline: BentoConfig (Zod-validated, no displayId post #29) -> layout (vertical + horizontal split) -> hero font (Spleen 8x16) + icons + whitespace -> draw -> 6000-byte frame buffer (240x200). 11 box types (6 shipping + 5 in progress #41-45). Single-column web editor. Deployed to infobento.com.",
+      "description": "Full rendering pipeline: BentoConfig (Zod-validated) -> layout (vertical + horizontal split, configurable padding) -> Inter TTF fonts + SDF rounded borders + 14x14 icons -> draw -> 156,400-byte frame buffer (920x680, 2-bit grayscale). 17 box types with content-aware height allocation. Web editor with font size, corner radius, and padding controls. Deployed to infobento.com.",
       "fidelity": "high",
       "format": "TypeScript (packages/core + packages/renderer + packages/api + packages/web)",
-      "scope": "Core types with Zod validation, layout engine (240x200, horizontal split), dual fonts, icons, 11 box renderers, single-column web editor + canvas + localStorage v2, API with structured errors, deployed",
+      "scope": "Core types with Zod validation, layout engine (920x680, configurable padding, horizontal split, content-aware height hints), Inter TTF fonts via opentype.js, SDF rounded borders, 14x14 icons, 17 box renderers, single-column web editor with font/corner/padding controls + server-rendered PNG preview + localStorage v2, API with structured errors, deployed",
       "designArtifactIds": ["45f1b6df-a76f-4c48-8ab2-bd1cfc067f00"],
       "location": "packages/",
       "knownLimitations": [
         "No center alignment in text rendering",
-        "Maximum 6 boxes enforced by layout truncation",
+        "Maximum 10 boxes enforced by layout truncation (dynamic based on font size)",
         "Weather and quote data fetched client-side only (no server-side caching)",
         "No firmware yet — software demo only (firmware tracked in #39, #48, #49)"
       ],
@@ -593,7 +593,7 @@
       "source": "Round 11 direction (2026-04-23), revised after confirming all candidate panels (GDEY075T7, GDEQ0426T82, GDEH0576T81, etc.) natively support 4 grayscale levels at zero additional BOM cost. Grayscale enables anti-aliased fonts, visual hierarchy via gray tones, and smoother renderings.",
       "category": "non-functional",
       "priority": "must",
-      "rationale": "Every candidate B&W eInk panel supports 4 grayscale natively via its driver IC (UC8179, SSD1677). Using 2-bit instead of 1-bit costs nothing in BOM or refresh time and enables: (1) anti-aliased font rendering for crisper text at all DPIs, (2) light gray for secondary labels vs black for primary data, (3) dark gray for dividers, (4) smoother moon phase and progress bar fills. Color eInk (Spectra 6, ACeP) remains deferred to v2.",
+      "rationale": "The GDEH0576T81 (SSD2677 driver) supports 4 grayscale natively. Using 2-bit instead of 1-bit costs nothing in BOM or refresh time and enables: (1) anti-aliased TTF font rendering for crisper text at 198 DPI, (2) light gray for secondary labels vs black for primary data, (3) dark gray for SDF-antialiased rounded box borders, (4) smoother moon phase and progress bar fills. Color eInk (Spectra 6, ACeP) remains deferred to v2.",
       "status": "accepted",
       "userClassIds": [],
       "id": "req-009-bw-only",
@@ -684,7 +684,7 @@
     {
       "type": "note",
       "title": "Hardware Platform",
-      "body": "## Counter device platform (rewritten 2026-04-23 for Round 11 B&W + bento direction)\n\nBento-box-sized monolithic counter device (~18x12cm). White housing, ≤3mm bezel, golden-ratio B&W eInk display, no hinge, no MagSafe, no kickstand. Panel SKU pending #47.\n\n### Front\n- Single B&W eInk panel (1-bit, no color, no grayscale — REQ-009)\n- Golden-ratio aspect ratio: 1.618:1 target (closest stock: 5:3 = 1.667:1, 3% off)\n- Panel SKU candidates (pending #47):\n  - **Prototyping:** Good Display GDEY075T7 (7.5\", 800x480, 163x98mm active, 124 DPI, ~$25-35)\n  - **Production:** Custom panel at volume (1917x1183, 300 DPI, 1.618:1 exact, 5K+ MOQ)\n- Bezel: ≤3mm visible on all four sides (REQ-011) — display nearly fills the front face\n- Display recess: deep enough that the bezel rim shields the glass on a face-down drop\n\n### Back-upper\n- Solar panel cavity, ~70x100mm amorphous-Si, 0.22mm thick\n- Mounted on the upper third of the back surface so it catches indirect window light when the device sits on a counter\n- AEM10941 solar harvesting IC drives charging\n\n### Back-lower\n- ESP32-C3 (Wi-Fi 4 + BLE 5) — locked 2026-04-22; BLE radio reserved unused for v2 bridge mode\n- LiPo battery: ~100mAh target (B&W refresh is ~2-3s, much less power than color)\n- MCP73831 LiPo charger\n- **Two tilt switches** (REQ-012): ball-in-tube type, mounted at 90° to each other on two GPIO pins. Zero standby current. Detect 4 orientations: landscape, portrait, inverted landscape, inverted portrait. Fire GPIO interrupts for auto-rotate.\n- Provides grip area when device is picked up\n- **Recessed pinhole reset:** ~2mm diameter, centered, recessed into the bumper layer. Press with paperclip for 5s = factory reset (clears Wi-Fi credentials and re-enters AP mode). Documented on a small label on the back. Only physical affordance on the device.\n\n### Industrial design\n- Bento-box form factor: ~180x120mm body (REQ-010), sized to feel like its namesake\n- White housing (color locked, founder decision)\n- Edge-radiused corners (~4mm radius) to disperse impact energy\n- Back surface tilts ~12-15° relative to front so device naturally angles its display upward when placed on a flat counter — body-as-stand, no separate kickstand mechanism\n- Soft polymer bumper layer between the eInk glass and the housing rim (silicone vs TPU vs over-molded TPE — choice pending)\n- Designed to survive a 4-foot drop onto a hard surface (drop-test protocol in #36 / `docs/hardware/DROP-TEST.md`)\n\n### Connectivity (locked 2026-04-22 — see `docs/hardware/CONNECTIVITY.md`)\n- **Wi-Fi direct + PWA-only.** Device makes outbound HTTPS calls to the cloud API. No companion phone app for v1.\n- **First-time setup:** captive-portal flow. Device boots in AP mode, advertises `InfoBento-XXXX` SSID, user joins, OS auto-launches browser to setup page, user enters home Wi-Fi credentials, device joins home network.\n- **Recovery:** pinhole reset (above) for dead-device cases.\n- **v2 path:** BLE radio is unused but available. Native iOS/Android apps + BLE bridge can ship later as a firmware update + companion app, no hardware refresh needed.\n\n### Cloud hosting (locked 2026-04-22)\n- **DigitalOcean droplet** ($6/mo tier; co-tenant with tiles- and webmap.dev — marginal cost ~$1-2/mo for InfoBento)\n- **Cloudflare** in front (free tier) for DNS + CDN + DDoS + TLS edge\n- **Caddy** on the droplet for TLS termination + reverse proxy + Let's Encrypt auto-cert\n- **Hono on Node** as the API runtime (already shipping; `packages/api`)\n- **OTA firmware files** served from `/var/www/firmware/*.bin` on the droplet — no object storage needed at this scale\n- Sizing: $6 tier handles ~10K devices with several orders of magnitude of headroom\n- Migration path open: Hono runs on Cloudflare Workers / Vercel / Bun / Deno without code changes\n\n### GPIO allocation (preliminary)\n- SPI: MOSI, SCLK, CS, DC, BUSY, RST for the single panel — 6 pins\n- Tilt switches: 2 GPIO pins (with interrupts)\n- Battery ADC: 1 pin\n- Wi-Fi/BLE: handled by MCU module\n- Total: ~9 pins used, comfortable headroom on ESP32-C3\n\n### Thickness\n- Estimated 8-12mm depending on chosen panel and battery — single body, no fold\n- The device is decorator-class (sits on a counter), not pocket-class — thickness is not a hero spec\n\n### BOM target: $30-40 retail (improved by B&W)\n- B&W eInk panel: $25-35 (stock 7.5\"); custom at volume potentially lower\n- ESP32-C3: $2-4\n- LiPo battery + AEM10941 + MCP73831: $5-7\n- Solar panel: $2-4\n- Tilt switches (x2): $0.10\n- Housing (injection-molded white plastic at volume): $3-6\n- Bumper (silicone or TPU): $1-2\n- Assembly + packaging: $3-5\n- Subtotal range: ~$41-63. $30-40 retail achievable at volume with aggressive sourcing.\n- **vs color:** B&W saves $15-30 on the panel vs Spectra 6/ACeP, making the $30 price point realistic.\n\n### What's gone vs the clamshell concept\n- Second eInk panel and its driver lines\n- Hinge, hinge FPC, hinge sourcing risk\n- MagSafe N52 magnet ring and Qi receiver IC\n- iOS background BLE as a project risk\n- Dual-PCB / through-hinge power routing\n- Color eInk (Spectra 6 / ACeP) — deferred to v2",
+      "body": "## Counter device platform (rewritten 2026-04-23 for Round 11 B&W + bento direction)\n\nBento-box-sized monolithic counter device (~18x12cm). White housing, ≤3mm bezel, golden-ratio B&W eInk display, no hinge, no MagSafe, no kickstand. Panel SKU pending #47.\n\n### Front\n- Single B&W eInk panel — Good Display GDEH0576T81 (5.76\", 920x680, 198 DPI, SSD2677 driver, active area 117.7x87.0mm)\n- 2-bit grayscale rendering (4 levels: white, light gray, dark gray, black — REQ-009)\n- Bezel: ≤3mm visible on all four sides (REQ-011) — display nearly fills the front face\n- Display recess: deep enough that the bezel rim shields the glass on a face-down drop\n\n### Back-upper\n- Solar panel cavity, ~70x100mm amorphous-Si, 0.22mm thick\n- Mounted on the upper third of the back surface so it catches indirect window light when the device sits on a counter\n- AEM10941 solar harvesting IC drives charging\n\n### Back-lower\n- ESP32-C3 (Wi-Fi 4 + BLE 5) — locked 2026-04-22; BLE radio reserved unused for v2 bridge mode\n- LiPo battery: ~100mAh target (B&W refresh is ~2-3s, much less power than color)\n- MCP73831 LiPo charger\n- **Two tilt switches** (REQ-012): ball-in-tube type, mounted at 90° to each other on two GPIO pins. Zero standby current. Detect 4 orientations: landscape, portrait, inverted landscape, inverted portrait. Fire GPIO interrupts for auto-rotate.\n- Provides grip area when device is picked up\n- **Recessed pinhole reset:** ~2mm diameter, centered, recessed into the bumper layer. Press with paperclip for 5s = factory reset (clears Wi-Fi credentials and re-enters AP mode). Documented on a small label on the back. Only physical affordance on the device.\n\n### Industrial design\n- Bento-box form factor: ~180x120mm body (REQ-010), sized to feel like its namesake\n- White housing (color locked, founder decision)\n- Edge-radiused corners (~4mm radius) to disperse impact energy\n- Back surface tilts ~12-15° relative to front so device naturally angles its display upward when placed on a flat counter — body-as-stand, no separate kickstand mechanism\n- Soft polymer bumper layer between the eInk glass and the housing rim (silicone vs TPU vs over-molded TPE — choice pending)\n- Designed to survive a 4-foot drop onto a hard surface (drop-test protocol in #36 / `docs/hardware/DROP-TEST.md`)\n\n### Connectivity (locked 2026-04-22 — see `docs/hardware/CONNECTIVITY.md`)\n- **Wi-Fi direct + PWA-only.** Device makes outbound HTTPS calls to the cloud API. No companion phone app for v1.\n- **First-time setup:** captive-portal flow. Device boots in AP mode, advertises `InfoBento-XXXX` SSID, user joins, OS auto-launches browser to setup page, user enters home Wi-Fi credentials, device joins home network.\n- **Recovery:** pinhole reset (above) for dead-device cases.\n- **v2 path:** BLE radio is unused but available. Native iOS/Android apps + BLE bridge can ship later as a firmware update + companion app, no hardware refresh needed.\n\n### Cloud hosting (locked 2026-04-22)\n- **DigitalOcean droplet** ($6/mo tier; co-tenant with tiles- and webmap.dev — marginal cost ~$1-2/mo for InfoBento)\n- **Cloudflare** in front (free tier) for DNS + CDN + DDoS + TLS edge\n- **Caddy** on the droplet for TLS termination + reverse proxy + Let's Encrypt auto-cert\n- **Hono on Node** as the API runtime (already shipping; `packages/api`)\n- **OTA firmware files** served from `/var/www/firmware/*.bin` on the droplet — no object storage needed at this scale\n- Sizing: $6 tier handles ~10K devices with several orders of magnitude of headroom\n- Migration path open: Hono runs on Cloudflare Workers / Vercel / Bun / Deno without code changes\n\n### GPIO allocation (preliminary)\n- SPI: MOSI, SCLK, CS, DC, BUSY, RST for the single panel — 6 pins\n- Tilt switches: 2 GPIO pins (with interrupts)\n- Battery ADC: 1 pin\n- Wi-Fi/BLE: handled by MCU module\n- Total: ~9 pins used, comfortable headroom on ESP32-C3\n\n### Thickness\n- Estimated 8-12mm depending on chosen panel and battery — single body, no fold\n- The device is decorator-class (sits on a counter), not pocket-class — thickness is not a hero spec\n\n### BOM target: $30-40 retail (improved by B&W)\n- B&W eInk panel: $25-35 (stock 7.5\"); custom at volume potentially lower\n- ESP32-C3: $2-4\n- LiPo battery + AEM10941 + MCP73831: $5-7\n- Solar panel: $2-4\n- Tilt switches (x2): $0.10\n- Housing (injection-molded white plastic at volume): $3-6\n- Bumper (silicone or TPU): $1-2\n- Assembly + packaging: $3-5\n- Subtotal range: ~$41-63. $30-40 retail achievable at volume with aggressive sourcing.\n- **vs color:** B&W saves $15-30 on the panel vs Spectra 6/ACeP, making the $30 price point realistic.\n\n### What's gone vs the clamshell concept\n- Second eInk panel and its driver lines\n- Hinge, hinge FPC, hinge sourcing risk\n- MagSafe N52 magnet ring and Qi receiver IC\n- iOS background BLE as a project risk\n- Dual-PCB / through-hinge power routing\n- Color eInk (Spectra 6 / ACeP) — deferred to v2",
       "tags": [
         "hardware",
         "esp32-c3",
@@ -716,11 +716,11 @@
     {
       "type": "finding",
       "title": "Display resolution mismatch: code vs hardware (fixed in v0.4.0)",
-      "description": "Display dimensions went through multiple iterations: 240x200 (placeholder) -> 128x296 (panel-native portrait) -> 240x200 (landscape after rotation, round 9). Current code uses 240x200. Post-pivot, the final resolution will be set by the chosen B&W panel in #47 (stock: 800x480 at 7.5\"; custom: 1917x1183 at 300 DPI).",
+      "description": "Display dimensions went through multiple iterations: 240x200 (placeholder) -> 128x296 (panel-native portrait) -> 240x200 (landscape after rotation, round 9) -> 920x680 (GDEH0576T81, locked v0.7.0). Panel sourcing resolved: Good Display GDEH0576T81, 5.76\", 920x680, 198 DPI.",
       "findingType": "problem",
       "severity": "minor",
-      "evidence": "packages/core/src/constants.ts: DISPLAY_WIDTH=240, DISPLAY_HEIGHT=200 (current). Will change after panel pick #47.",
-      "recommendation": "No action needed until panel SKU decided. All dimensions derive from DISPLAY_WIDTH/DISPLAY_HEIGHT constants — a one-line edit.",
+      "evidence": "packages/core/src/constants.ts: DISPLAY_WIDTH=920, DISPLAY_HEIGHT=680 (locked). Device ID: infobento-5.76.",
+      "recommendation": "Resolved. Panel locked to GDEH0576T81. Issue #47 closed.",
       "status": "fixed",
       "id": "a1b2c3d4-resolution-finding-0001",
       "relatedIds": [],

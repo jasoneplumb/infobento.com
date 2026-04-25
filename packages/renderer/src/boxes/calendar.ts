@@ -36,7 +36,7 @@ export function renderCalendarBox(
       cy,
       layout.box.label.toUpperCase(),
       width - metrics.pad * 2 - ICON_WIDTH - 3,
-      undefined,
+      GRAY_DARK,
       metrics.bodySize,
     );
     cy += metrics.bodySize + metrics.pad;
@@ -52,7 +52,7 @@ export function renderCalendarBox(
   if (!events || events.length === 0) {
     // Show "No events" placeholder
     if (cy + metrics.bodySize <= bodyEnd) {
-      drawText(fb, bodyX, cy, 'No events', bodyWidth, undefined, metrics.bodySize);
+      drawText(fb, bodyX, cy, 'No events', bodyWidth, GRAY_LIGHT, metrics.bodySize);
       cy += metrics.bodySize + metrics.pad;
     }
   } else {

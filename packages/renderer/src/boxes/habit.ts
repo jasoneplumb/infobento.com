@@ -53,7 +53,7 @@ export function renderHabitBox(
       cy,
       layout.box.label.toUpperCase(),
       width - metrics.pad * 2 - ICON_WIDTH - 3,
-      undefined,
+      GRAY_DARK,
       metrics.bodySize,
     );
     cy += metrics.bodySize + metrics.pad;

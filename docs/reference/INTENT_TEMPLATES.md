@@ -19,7 +19,7 @@ Use at the top of each module to explain its purpose:
 
 ```typescript
 /**
- * Intent: Convert bento box layouts into 1-bit eInk-compatible frame buffers
+ * Intent: Convert bento box layouts into 2-bit grayscale eInk-compatible frame buffers
  * Context: Called by @infobento/api to generate display data sent to the device
  * Pattern: Pure functions — all rendering is deterministic with no side effects
  * Future: Add bitmap font rendering, icon set, Floyd-Steinberg dithering
@@ -44,8 +44,8 @@ Use for complex functions or non-obvious design decisions:
 ```typescript
 /**
  * intent: Create an empty (white) frame buffer for the target display
- * method: Allocates a Uint8Array sized for 1-bit-per-pixel packing
- * effect: (width * height) / 8 bytes — 6000 bytes for 240x200
+ * method: Allocates a Uint8Array sized for 2-bit-per-pixel packing (4 pixels/byte)
+ * effect: (width * height) / 8 bytes — 156,400 bytes for 920x680
  */
 ```
 
@@ -62,7 +62,7 @@ Use for tradeoffs and constraints:
 ### Examples
 
 ```typescript
-// tradeoff: 1-bit only (no grayscale) for minimal power draw during refresh
+// tradeoff: 2-bit grayscale (4 levels) for minimal power draw during refresh
 // constraint: BLE MTU limits frame transfer to ~244 bytes per packet
 // future: add partial refresh to update only changed bento boxes
 ```

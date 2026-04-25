@@ -22,7 +22,7 @@ npm run build && npm test && npm run lint && npm run format:check
 ```
 infobento.com/
 ├── packages/core/      @infobento/core: types, bento box definitions, layout engine
-├── packages/renderer/  @infobento/renderer: 1-bit eInk frame buffer generation
+├── packages/renderer/  @infobento/renderer: 2-bit grayscale eInk frame buffer generation
 ├── packages/api/       @infobento/api: Hono server — stateless API + static file serving
 └── packages/web/       @infobento/web: Vite + React configuration interface (private)
 ```
@@ -47,7 +47,7 @@ npm start -w @infobento/api      # Hono serves everything on :4000
 ## Module Boundaries
 
 ```
-core (types, layout)  <──  renderer (1-bit framebuffer)  <──  api (stateless endpoints)
+core (types, layout)  <──  renderer (2-bit grayscale framebuffer)  <──  api (stateless endpoints)
   ^
   └── web (config UI)
 ```

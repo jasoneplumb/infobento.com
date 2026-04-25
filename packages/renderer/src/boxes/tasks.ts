@@ -8,7 +8,7 @@
 import type { FrameBuffer } from '../index.js';
 import type { LayoutBox, TasksBoxConfig } from '@infobento/core';
 import type { FontMetrics } from '../font-metrics.js';
-import { drawText, drawIcon, setPixel, GRAY_LIGHT } from '../draw.js';
+import { drawText, drawIcon, setPixel, GRAY_DARK, GRAY_LIGHT } from '../draw.js';
 import { BOX_ICONS, ICON_WIDTH } from '../icons.js';
 
 /**
@@ -36,7 +36,7 @@ export function renderTasksBox(
       cy,
       layout.box.label.toUpperCase(),
       width - metrics.pad * 2 - ICON_WIDTH - 3,
-      undefined,
+      GRAY_DARK,
       metrics.bodySize,
     );
     cy += metrics.bodySize + metrics.pad;

@@ -39,14 +39,14 @@ export type { FontMetrics } from './font-metrics.js';
 const LANDSCAPE_DEVICE: DeviceProfile = {
   widthPx: DISPLAY_WIDTH,
   heightPx: DISPLAY_HEIGHT,
-  deviceId: 'infobento-2.9',
+  deviceId: 'infobento-5.76',
 };
 
 /** Portrait device profile (680x920) */
 const PORTRAIT_DEVICE: DeviceProfile = {
   widthPx: DISPLAY_HEIGHT,
   heightPx: DISPLAY_WIDTH,
-  deviceId: 'infobento-2.9',
+  deviceId: 'infobento-5.76',
 };
 
 /**
@@ -173,7 +173,7 @@ export function render(config: BentoConfig, device?: DeviceProfile): FrameBuffer
   const effectiveDevice = device ?? {
     widthPx: DISPLAY_WIDTH,
     heightPx: DISPLAY_HEIGHT,
-    deviceId: 'infobento-2.9',
+    deviceId: 'infobento-5.76',
   };
   const padPx = (config.padding ?? 4) * 3;
   const layoutWidth = effectiveDevice.widthPx - padPx * 2;

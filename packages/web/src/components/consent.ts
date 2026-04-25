@@ -5,7 +5,7 @@
  */
 
 const STORAGE_KEY = 'infobento-consent';
-const CONSENT_VERSION = 1;
+const CONSENT_VERSION = 2;
 
 interface StoredConsent {
   version: number;
@@ -46,39 +46,31 @@ function buildDialog(onAccept: () => void): HTMLDivElement {
   card.className = 'consent-card';
 
   card.innerHTML = `
-    <h2 id="consent-title">Welcome to InfoBento</h2>
-    <p class="consent-tagline">See what matters. Skip the spiral.</p>
+    <h2 id="consent-title">Privacy &amp; Terms</h2>
 
     <section class="consent-section">
       <h3>Privacy</h3>
       <ul>
         <li>No accounts, no logins, no tracking, no analytics.</li>
-        <li>Your bento configuration is stored only in this browser's
-          <code>localStorage</code> on this device. It never leaves your
-          browser unless you explicitly click <strong>Export JSON</strong>.</li>
-        <li>When you use a Weather or 3hr Forecast box, the location string
-          you type is sent to OpenStreetMap's Nominatim geocoder and to
-          Open-Meteo's weather API to fetch conditions. When you use a Quote
-          box, a request is proxied through our server to ZenQuotes. We do
-          not log these requests or attach identifiers.</li>
-        <li>Each of those third-party services has its own privacy practices
-          governed by them, not us.</li>
+        <li>Your configuration is stored only in this browser's
+          <code>localStorage</code>. It never leaves your browser unless
+          you explicitly click <strong>Export JSON</strong>.</li>
+        <li>Weather and forecast boxes send your location string to
+          OpenStreetMap Nominatim and Open-Meteo. Quote boxes proxy
+          through our server to ZenQuotes. We do not log these requests
+          or attach identifiers.</li>
+        <li>Third-party services have their own privacy practices.</li>
       </ul>
     </section>
 
     <section class="consent-section">
       <h3>Terms</h3>
       <ul>
-        <li>This editor is a pre-release demo for the InfoBento dual-eInk
-          display, which is still in development. The product, its features,
-          and this web editor may change at any time without notice.</li>
-        <li>Provided <strong>as-is</strong>, with no warranties of any kind.
-          Use at your own risk. We do not guarantee uptime, data
-          preservation, or backward compatibility.</li>
-        <li>Don't abuse the geocoding, weather, or quote endpoints — they
-          are free public services with usage policies of their own.</li>
-        <li>Your configuration data is yours. We claim no rights to the
-          content you create.</li>
+        <li>Pre-release software. Features may change without notice.</li>
+        <li>Provided <strong>as-is</strong>, no warranties. We do not
+          guarantee uptime, data preservation, or backward compatibility.</li>
+        <li>Don't abuse the geocoding, weather, or quote endpoints.</li>
+        <li>Your configuration data is yours.</li>
       </ul>
     </section>
 

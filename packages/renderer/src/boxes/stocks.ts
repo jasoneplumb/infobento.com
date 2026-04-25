@@ -8,7 +8,7 @@
 import type { FrameBuffer } from '../index.js';
 import type { LayoutBox, StocksBoxConfig } from '@infobento/core';
 import type { FontMetrics } from '../font-metrics.js';
-import { drawText, drawHeroText, drawIcon, GRAY_LIGHT } from '../draw.js';
+import { drawText, drawHeroText, drawIcon, GRAY_DARK, GRAY_LIGHT } from '../draw.js';
 import { BOX_ICONS, ICON_WIDTH } from '../icons.js';
 
 /**
@@ -46,21 +46,21 @@ export function renderStocksBox(
       cy,
       layout.box.label.toUpperCase(),
       width - metrics.pad * 2 - ICON_WIDTH - 3,
-      undefined,
+      GRAY_DARK,
       metrics.bodySize,
     );
     cy += metrics.bodySize + metrics.pad;
   }
 
   // Hero symbol (e.g. "AAPL")
-  drawHeroText(fb, x + metrics.pad, cy, config.symbol, undefined, undefined, metrics.heroSize);
+  drawHeroText(fb, x + metrics.pad, cy, config.symbol, undefined, GRAY_DARK, metrics.heroSize);
   cy += metrics.heroSize + 2;
 
   if (config.data) {
     // Price in hero font
     const priceStr = config.data.price.toFixed(2);
     if (cy + metrics.heroSize <= y + height - metrics.pad) {
-      drawHeroText(fb, x + metrics.pad, cy, priceStr, undefined, undefined, metrics.heroSize);
+      drawHeroText(fb, x + metrics.pad, cy, priceStr, undefined, GRAY_DARK, metrics.heroSize);
       cy += metrics.heroSize + 4;
     }
 
@@ -73,7 +73,7 @@ export function renderStocksBox(
         cy,
         changeStr,
         width - metrics.pad * 2,
-        undefined,
+        GRAY_LIGHT,
         metrics.bodySize,
       );
       cy += metrics.bodySize + metrics.pad;
@@ -87,7 +87,7 @@ export function renderStocksBox(
         cy,
         'No data',
         width - metrics.pad * 2,
-        undefined,
+        GRAY_LIGHT,
         metrics.bodySize,
       );
       cy += metrics.bodySize + metrics.pad;

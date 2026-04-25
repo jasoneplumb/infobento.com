@@ -1,5 +1,35 @@
 # Changelog
 
+## [0.9.0] - 2026-04-24
+
+### Added
+
+- Debounced auto-fetch (500ms) on all city inputs — weather, forecast, forecast3d, sun, aqi update live as you type
+- Auto-fetch random quote when quote box is added with empty fields
+- Browser geolocation on first load — detects user's city and populates default boxes with real local data
+- Bento box grid SVG favicon (replaces default React/Vite logo)
+- CSS for `.weather-status` and `.btn-random-quote` elements
+- Mobile-responsive preview controls — sliders wrap instead of overflowing on narrow viewports
+
+### Changed
+
+- Three-tier text contrast: hero text in dark grey (large, doesn't need max contrast), important body text in black, supporting metadata in light grey
+- Portrait preview shown first, landscape second
+- Box card headers: label input shrinks on mobile, remove button stays visible
+- All docs updated from 1-bit to 2-bit grayscale terminology
+- Kickstarter copy updated from color eInk to B&W GDEH0576T81 spec
+- Consent dialog simplified — product descriptions removed, version bumped
+
+## [0.8.1] - 2026-04-24
+
+### Changed
+
+- Default font size set to 38px (was 20px)
+- Default boxes: Weather (Portland, OR), 8-Day Forecast (8 entries), Quote (Mark Manson)
+- Default headers off
+- Corner radius range extended from 0–5 to 0–10
+- Device ID updated to `infobento-5.76`
+
 ## [0.8.0] - 2026-04-24
 
 ### Added

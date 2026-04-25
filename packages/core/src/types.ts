@@ -387,7 +387,7 @@ export interface BentoConfig {
   readonly showHeaders?: boolean;
   /** Body font size in pixels (8-42). Defaults to 20. */
   readonly fontSize?: number;
-  /** Corner radius level (0=square, 5=max round). Defaults to 3. */
+  /** Corner radius level (0=square, 10=max round). Defaults to 3. */
   readonly cornerRadius?: number;
   /** Display padding level (0=none, 10=max). Defaults to 4. */
   readonly padding?: number;

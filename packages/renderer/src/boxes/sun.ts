@@ -94,10 +94,10 @@ function renderPlaceholder(
   metrics: FontMetrics,
 ): number {
   let cy = y;
-  drawTextWrapped(fb, x, cy, city, maxWidth, maxY - cy, undefined, metrics.bodySize);
+  drawTextWrapped(fb, x, cy, city, maxWidth, maxY - cy, GRAY_LIGHT, metrics.bodySize);
   cy += metrics.bodySize + 2;
   if (cy + metrics.bodySize > maxY) return cy;
-  drawText(fb, x, cy, 'No data', maxWidth, undefined, metrics.bodySize);
+  drawText(fb, x, cy, 'No data', maxWidth, GRAY_LIGHT, metrics.bodySize);
   cy += metrics.bodySize + metrics.pad;
   return cy;
 }

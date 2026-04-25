@@ -8,7 +8,7 @@
 import type { FrameBuffer } from '../index.js';
 import type { LayoutBox, CountdownBoxConfig } from '@infobento/core';
 import type { FontMetrics } from '../font-metrics.js';
-import { drawText, drawHeroText, drawIcon, GRAY_LIGHT } from '../draw.js';
+import { drawText, drawHeroText, drawIcon, GRAY_DARK, GRAY_LIGHT } from '../draw.js';
 import { BOX_ICONS, ICON_WIDTH } from '../icons.js';
 
 /**
@@ -51,7 +51,7 @@ export function renderCountdownBox(
       cy,
       'COUNTDOWN',
       width - metrics.pad * 2 - ICON_WIDTH - 3,
-      undefined,
+      GRAY_DARK,
       metrics.bodySize,
     );
     cy += metrics.bodySize + metrics.pad;
@@ -62,7 +62,7 @@ export function renderCountdownBox(
   const daysStr = String(days);
 
   // Hero day count
-  drawHeroText(fb, x + metrics.pad, cy, daysStr, undefined, undefined, metrics.heroSize);
+  drawHeroText(fb, x + metrics.pad, cy, daysStr, undefined, GRAY_DARK, metrics.heroSize);
 
   // "days to [label]" beside the hero text
   const heroWidth = daysStr.length * metrics.heroAdvance;
@@ -70,7 +70,7 @@ export function renderCountdownBox(
   const subtitleMaxW = width - metrics.pad * 2 - heroWidth - metrics.pad;
   if (subtitleMaxW > 0) {
     const subtitle = days === 0 ? 'PAST' : `days to`;
-    drawText(fb, subtitleX, cy + 4, subtitle, subtitleMaxW, undefined, metrics.bodySize);
+    drawText(fb, subtitleX, cy + 4, subtitle, subtitleMaxW, GRAY_LIGHT, metrics.bodySize);
   }
   cy += metrics.heroSize + 2;
 

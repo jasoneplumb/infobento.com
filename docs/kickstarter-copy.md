@@ -4,7 +4,7 @@
 > **Issue:** #38 (Phase 5: campaign rewrite)
 > **Cross-references:** `.tux/project.json` → "Market & Distribution" note (high-level positioning), RFC #25 (pivot context)
 
-The draft below incorporates all locked decisions through the Round 10 counter pivot (2026-04-22): counter-only color eInk decorator, ESP32-C3, Wi-Fi direct + PWA-only, captive-portal setup, recessed pinhole reset, white monolithic body with thin bezel, 4-foot drop survival, solar-powered, no companion app, no subscriptions, no accounts.
+The draft below incorporates all locked decisions through the Round 10 counter pivot (2026-04-22): counter-only B&W eInk decorator, ESP32-C3, Wi-Fi direct + PWA-only, captive-portal setup, recessed pinhole reset, white monolithic body with thin bezel, 4-foot drop survival, solar-powered, no companion app, no subscriptions, no accounts.
 
 The framing also incorporates the "Tidbyt vs InfoBento — still vs kinetic" differentiation conversation. Each section is self-contained so you can rearrange or excerpt for the Kickstarter page, pre-launch landing page, or press kit.
 
@@ -16,9 +16,9 @@ The price difference ($30-40 vs $179) is real but it's not the differentiator. I
 
 | Dimension        | Tidbyt                              | InfoBento                                      |
 | ---------------- | ----------------------------------- | ---------------------------------------------- |
-| **Display tech** | RGB LED matrix (emissive, animated) | Color eInk (reflective, still)                 |
-| **Resolution**   | 64×32 = 2,048 pixels (pixel art)    | 640×400+ (typographic)                         |
-| **Refresh**      | Continuous, 30+ fps                 | 1-2× per day, deliberate stillness             |
+| **Display tech** | RGB LED matrix (emissive, animated) | B&W eInk (reflective, still, 2-bit grayscale)  |
+| **Resolution**   | 64×32 = 2,048 pixels (pixel art)    | 920×680 (198 DPI)                              |
+| **Refresh**      | Continuous, 30+ fps                 | ~0.75s full / ~0.3s partial, 1-2× per day      |
 | **Power**        | Plugged in always (~2-5W LEDs)      | Solar-charged, no cable                        |
 | **Aesthetic**    | Retro pixel art, GameBoy/arcade     | Soft printed-poster feel                       |
 | **Form factor**  | Wooden box, needs outlet, ~6"×3"    | Vertical white frame, sits anywhere with light |
@@ -36,19 +36,19 @@ This maps to the tagline. Tidbyt's continuous animation is itself a small spiral
 
 # InfoBento — _See what matters. Skip the spiral._
 
-A small color eInk decorator for the room. Configure once on the web; sips light from the window for months.
+A small B&W eInk decorator for the room. Configure once on the web; sips light from the window for months.
 
 ---
 
 ## Hero subhead
 
-> Most of the time your phone holds your whole life beautifully. Sometimes you just want to know if it's going to rain — without opening five apps and resurfacing twenty minutes later. **InfoBento is the calm color screen for that moment.**
+> Most of the time your phone holds your whole life beautifully. Sometimes you just want to know if it's going to rain — without opening five apps and resurfacing twenty minutes later. **InfoBento is the calm B&W screen for that moment.**
 
 ---
 
 ## What it is (~250 words)
 
-InfoBento is a small color eInk display in a thin white frame that sits on a kitchen counter, a desk, or a shelf. It shows the things you check most often — weather, your next meeting, the countdown to your trip, a quote that lifts the room — in soft color eInk, visible from across the room.
+InfoBento is a small B&W eInk display in a thin white frame that sits on a kitchen counter, a desk, or a shelf. It shows the things you check most often — weather, your next meeting, the countdown to your trip, a quote that lifts the room — in calm B&W eInk, visible from across the room.
 
 It runs on light. The upper portion of the back is a small solar panel. Set it near a window with indirect light and the device charges itself. No cable. No outlet. No batteries to swap.
 
@@ -67,7 +67,7 @@ It's designed to survive a four-foot drop onto a hard floor (we tested), built a
 Three honest comparisons. The point isn't that InfoBento is cheaper — it's that it's a different kind of object.
 
 **Compared to LED-matrix displays (Tidbyt, LaMetric, Vestaboard):**
-Those are alive. Pixels move, content animates, the screen glows. That's a real choice some people want — a tiny arcade in the kitchen. InfoBento is the opposite. Color eInk. Doesn't move. Doesn't glow. The stillness is the point.
+Those are alive. Pixels move, content animates, the screen glows. That's a real choice some people want — a tiny arcade in the kitchen. InfoBento is the opposite. B&W eInk. Doesn't move. Doesn't glow. The stillness is the point.
 
 **Compared to DIY eInk frames (Inkplate, Pimoroni Inky):**
 Same aesthetic, but you don't have to write Python or solder anything. InfoBento ships assembled, drop-tested, solar-powered, and configured from a web browser. The DIY kits are wonderful for people who want a project. InfoBento is for people who just want the object on their counter.
@@ -79,7 +79,7 @@ Smaller, calmer, useful. It doesn't loop your wedding photos — it shows what m
 
 ## Specs
 
-- **Display:** color eInk, 7-color palette, [resolution TBD per panel pick]
+- **Display:** B&W eInk, 2-bit grayscale (4 levels), 920×680, 198 DPI (GDEH0576T81)
 - **Power:** solar panel + 100mAh LiPo (refreshes 1-2× per day)
 - **Connectivity:** Wi-Fi (no companion app needed, configured from any web browser)
 - **Setup:** captive portal — join the device's network from your phone or laptop, enter your home Wi-Fi, done
@@ -92,7 +92,7 @@ Smaller, calmer, useful. It doesn't loop your wedding photos — it shows what m
 
 ## What you can put on it (day one)
 
-Six box types, all working today on the demo at infobento.com:
+Six core box types, all working today on the demo at infobento.com (shipping with 6 core box types; 17 types available in the web editor):
 
 - **Weather** — current conditions for any location worldwide (try "Mt. St. Helens")
 - **3-hour forecast** — next three hours of temperature and conditions
@@ -135,7 +135,7 @@ _Reward tiers and pricing finalized after manufacturing partner quote. Above is 
 
 We've worked through three categories of risk that have killed similar Kickstarter projects:
 
-- **Hardware:** we've chosen off-the-shelf parts (color eInk panel, ESP32-C3, AEM10941 solar harvester) with documented sourcing. No custom silicon. No exotic materials. The hardest engineering bet — getting drop survival on a thin-bezel design — has a documented protocol and prototype budget.
+- **Hardware:** we've chosen off-the-shelf parts (B&W eInk panel, ESP32-C3, AEM10941 solar harvester) with documented sourcing. No custom silicon. No exotic materials. The hardest engineering bet — getting drop survival on a thin-bezel design — has a documented protocol and prototype budget.
 - **Software:** the entire web editor and rendering pipeline is already working at infobento.com. You can use it today before you back. The cloud API is one Hono server on a small DigitalOcean droplet — boring, well-understood, repairable.
 - **Long-term:** if InfoBento ever winds down, the device is designed to keep showing its last frame indefinitely. The cloud architecture is documented and minimal so a third party (or you) could rehost it. We don't want to be a Pebble.
 
@@ -147,7 +147,7 @@ Timeline: we've broken the project into explicit phases, each tracked publicly o
 
 [**Open the editor at infobento.com →**](https://infobento.com)
 
-Configure boxes, see the live color preview, save, share the JSON. No account, no signup, no email capture. This is the actual editor that will configure the production device.
+Configure boxes, see the live B&W preview, save, share the JSON. No account, no signup, no email capture. This is the actual editor that will configure the production device.
 
 ---
 

@@ -161,21 +161,54 @@ const LABELS: Record<EditorBoxType, string> = {
 
 function defaultBoxes(): EditorBox[] {
   return [
-    { id: uid(), type: 'weather', label: 'Weather', config: DEFAULTS.weather() },
-    { id: uid(), type: 'countdown', label: 'Countdown', config: DEFAULTS.countdown() },
-    { id: uid(), type: 'text', label: 'Text', config: DEFAULTS.text() },
+    {
+      id: uid(),
+      type: 'weather',
+      label: 'Weather',
+      config: {
+        city: 'Portland, OR',
+        data: { temperature: 47, condition: 'Partly Cloudy', high: 62, low: 42 },
+      } as WeatherConfig,
+    },
+    {
+      id: uid(),
+      type: 'forecast3d',
+      label: '8-Day Forecast',
+      config: {
+        city: 'Portland, OR',
+        entries: [
+          { day: 'Sat', high: 62, low: 43, condition: 'Partly Cloudy' },
+          { day: 'Sun', high: 70, low: 46, condition: 'Rain' },
+          { day: 'Mon', high: 56, low: 45, condition: 'Partly Cloudy' },
+          { day: 'Tue', high: 59, low: 47, condition: 'Rain' },
+          { day: 'Wed', high: 74, low: 42, condition: 'Clear' },
+          { day: 'Thu', high: 78, low: 49, condition: 'Partly Cloudy' },
+          { day: 'Fri', high: 75, low: 53, condition: 'Partly Cloudy' },
+          { day: 'Sat', high: 70, low: 48, condition: 'Partly Cloudy' },
+        ],
+      } as Forecast3DConfig,
+    },
+    {
+      id: uid(),
+      type: 'quote',
+      label: 'Quote',
+      config: {
+        content: 'Being wrong brings the opportunity for growth.',
+        author: 'Mark Manson',
+      } as QuoteConfig,
+    },
   ];
 }
 
 // -- State + render callback ------------------------------------------------
 
-const DEFAULT_FONT_SIZE = 20;
+const DEFAULT_FONT_SIZE = 38;
 const DEFAULT_CORNER_RADIUS = 3;
 const DEFAULT_PADDING = 4;
 
 const state: EditorState = {
   boxes: defaultBoxes(),
-  showHeaders: true,
+  showHeaders: false,
   fontSize: DEFAULT_FONT_SIZE,
   cornerRadius: DEFAULT_CORNER_RADIUS,
   padding: DEFAULT_PADDING,
@@ -335,7 +368,7 @@ export function getCornerRadius(): number {
 }
 
 export function setCornerRadius(value: number): void {
-  state.cornerRadius = Math.max(0, Math.min(5, value));
+  state.cornerRadius = Math.max(0, Math.min(10, value));
   persistToLocalStorage();
   renderPreview();
 }

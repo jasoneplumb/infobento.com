@@ -274,8 +274,9 @@ main {
 .preview-controls {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 12px 16px;
   width: 100%;
+  flex-wrap: wrap;
 }
 
 .preview-meta {
@@ -514,6 +515,7 @@ button {
 
 .box-label-input {
   flex: 1;
+  min-width: 0;
   border: none;
   background: transparent;
   font-size: 13px;
@@ -530,6 +532,7 @@ button {
 .box-order-controls {
   display: flex;
   gap: 4px;
+  flex-shrink: 0;
 }
 
 .box-card-body {
@@ -587,6 +590,37 @@ button {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 10px;
+}
+
+/* -- Data fetch status ------------------------------------------------------ */
+
+.weather-status {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--muted);
+  padding: 4px 0;
+  min-height: 18px;
+}
+
+.btn-random-quote {
+  font-family: inherit;
+  font-size: 12px;
+  background: transparent;
+  color: var(--accent);
+  border: 1px solid var(--accent);
+  border-radius: var(--radius);
+  padding: 4px 10px;
+  cursor: pointer;
+}
+
+.btn-random-quote:hover {
+  background: var(--accent);
+  color: #fff;
+}
+
+.btn-random-quote:disabled {
+  opacity: 0.5;
+  cursor: default;
 }
 
 /* -- Validation states ----------------------------------------------------- */
@@ -763,6 +797,25 @@ button {
 
   .preview-meta {
     font-size: 9px;
+    width: 100%;
+  }
+
+  .preview-controls {
+    gap: 8px 12px;
+  }
+
+  .preview-control {
+    font-size: 9px;
+    gap: 4px;
+  }
+
+  .preview-control input[type='range'] {
+    width: 60px;
+  }
+
+  .preview-toggle {
+    font-size: 9px;
+    gap: 4px;
   }
 
   /* Editor cell: scrollable */
@@ -803,6 +856,11 @@ button {
 
   .box-card-header {
     padding: 8px 10px;
+    gap: 6px;
+  }
+
+  .box-card-header .btn-danger {
+    flex-shrink: 0;
   }
 
   .box-card-body {

@@ -70,7 +70,7 @@ function renderEntries(
   for (const entry of entries.slice(0, 8)) {
     if (cy + metrics.bodySize > maxY) return;
 
-    drawText(fb, x, cy, entry.day, dayColWidth, undefined, metrics.bodySize);
+    drawText(fb, x, cy, entry.day, dayColWidth, GRAY_LIGHT, metrics.bodySize);
 
     const tempStr = `${Math.round(entry.high)}/${Math.round(entry.low)}`;
     drawText(fb, x + dayColWidth, cy, tempStr, tempColWidth, undefined, metrics.bodySize);
@@ -95,8 +95,8 @@ function renderPlaceholder(
   metrics: FontMetrics,
 ): void {
   let cy = y;
-  drawTextWrapped(fb, x, cy, city, maxWidth, maxY - cy, undefined, metrics.bodySize);
+  drawTextWrapped(fb, x, cy, city, maxWidth, maxY - cy, GRAY_LIGHT, metrics.bodySize);
   cy += metrics.bodySize + 2;
   if (cy + metrics.bodySize > maxY) return;
-  drawText(fb, x, cy, 'No data', maxWidth, undefined, metrics.bodySize);
+  drawText(fb, x, cy, 'No data', maxWidth, GRAY_LIGHT, metrics.bodySize);
 }

@@ -20,7 +20,7 @@ describe('core constants', () => {
   it('should define default device profile from display dimensions', () => {
     expect(DEFAULT_DEVICE.widthPx).toBe(DISPLAY_WIDTH);
     expect(DEFAULT_DEVICE.heightPx).toBe(DISPLAY_HEIGHT);
-    expect(DEFAULT_DEVICE.deviceId).toBe('infobento-2.9');
+    expect(DEFAULT_DEVICE.deviceId).toBe('infobento-5.76');
   });
 
   it('derives frame buffer byte size from dimensions', () => {

@@ -80,5 +80,5 @@ export function renderPlaceholderBox(
   const labelWidth = label.length * m.bodyAdvance;
   const labelX = x + Math.floor((width - labelWidth) / 2);
   const labelY = y + Math.floor((height - m.bodySize) / 2);
-  drawText(fb, labelX, labelY, label, width - 4, undefined, m.bodySize);
+  drawText(fb, labelX, labelY, label, width - 4, GRAY_LIGHT, m.bodySize);
 }

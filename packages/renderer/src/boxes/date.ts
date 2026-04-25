@@ -102,7 +102,7 @@ export function renderDateBox(
 
   // Line 2: Hero day number
   if (cy + metrics.heroSize > contentEnd) return;
-  drawHeroText(fb, x + metrics.pad, cy, String(dayNum), undefined, undefined, metrics.heroSize);
+  drawHeroText(fb, x + metrics.pad, cy, String(dayNum), undefined, GRAY_DARK, metrics.heroSize);
   cy += metrics.heroSize + 1;
 
   // Line 3: Month + year (small font)
@@ -132,7 +132,7 @@ export function renderDateBox(
   const barX = x + metrics.pad + labelWidth + 4;
   const barWidth = contentWidth - labelWidth - 4;
 
-  drawText(fb, x + metrics.pad, cy, progressLabel, labelWidth, undefined, metrics.bodySize);
+  drawText(fb, x + metrics.pad, cy, progressLabel, labelWidth, GRAY_LIGHT, metrics.bodySize);
   if (barWidth > 10) {
     drawProgressBar(fb, barX, cy + 1, barWidth, barHeight, doy / total);
   }

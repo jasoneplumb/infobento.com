@@ -211,7 +211,7 @@ export function renderMoonBox(
         cy,
         `${String(illumination)}% lit`,
         textMaxW,
-        undefined,
+        GRAY_LIGHT,
         metrics.bodySize,
       );
       textBottom = cy + metrics.bodySize;
