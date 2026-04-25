@@ -1,5 +1,33 @@
 # Changelog
 
+## [0.10.0] - 2026-04-24
+
+### Added
+
+- Merge/split box pairs: "Merge into row" button between adjacent boxes creates a side-by-side split pair; "Split apart" undoes it
+- [L]/[R] badges and blue accent group border on paired boxes in the editor
+- Adjustable box height weight (S/M/L buttons on each box card) for proportional height allocation
+- Adjustable split ratio (left arrow/equal/right arrow) on merged pairs for 1:3, 1:2, 2:3 width distribution
+- +/- stepper buttons replace range sliders for font size, corners, and padding (better mobile UX)
+- Preview and editor side-by-side on wide screens (>=1024px)
+- Add box toolbar moved to bottom of editor
+
+### Changed
+
+- Previews stacked vertically (portrait first, landscape below)
+- Show Box Headers toggle moved after stepper controls
+- Layout engine distributes height by total weight instead of even split
+- Merged row height uses max weight of the two boxes in the pair
+- Quote boxes are always content-sized (S/M/L controls hidden)
+- Quote author rendered as "— Name" on its own line in light grey (em dash, no wrapping issues)
+- Quote height hints account for split pair width and correct line height
+
+### Fixed
+
+- S/M/L weight buttons now trigger full re-render (was preview-only)
+- Quote height hint uses correct drawTextWrapped line height (fontSize * 1.3)
+- Right box in split pair was using left box's weight for height calculation
+
 ## [0.9.1] - 2026-04-24
 
 ### Fixed
