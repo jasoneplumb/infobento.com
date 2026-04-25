@@ -123,8 +123,25 @@ function renderBox(
 }
 
 /**
- * intent: Compute minimum pixel height for content-heavy boxes (e.g. quotes)
- * method: Simulate word-wrap to count lines, add space for header + author + padding
+ * intent: Extract the wrapped text plus any extra body lines for a content-heavy box.
+ * Returns null for box types whose height is fixed by content + layout, not by text length.
+ */
+function extractWrappedText(box: BentoBox): { text: string; extraLines: number } | null {
+  if (box.type === 'quote' && box.config?.type === 'quote') {
+    return { text: box.config.text, extraLines: box.config.author ? 1 : 0 };
+  }
+  if (box.type === 'horoscope' && box.config?.type === 'horoscope') {
+    return { text: box.config.text, extraLines: 0 };
+  }
+  if (box.type === 'joke' && box.config?.type === 'joke') {
+    return { text: box.config.text, extraLines: 0 };
+  }
+  return null;
+}
+
+/**
+ * intent: Compute minimum pixel height for content-heavy boxes (quote, horoscope, joke)
+ * method: Simulate word-wrap to count lines, add space for header + extras + padding
  */
 function computeHeightHints(
   boxes: readonly BentoBox[],
@@ -137,7 +154,9 @@ function computeHeightHints(
 
   for (let i = 0; i < boxes.length; i++) {
     const box = boxes[i];
-    if (box?.type !== 'quote' || box.config?.type !== 'quote') continue;
+    if (!box) continue;
+    const content = extractWrappedText(box);
+    if (!content) continue;
 
     // Determine actual box width (accounts for split pairs)
     let boxWidth = totalWidth;
@@ -157,9 +176,9 @@ function computeHeightHints(
     const bodyWidth = boxWidth - metrics.pad * 2;
     const lineHeight = Math.round(metrics.bodySize * 1.3); // matches drawTextWrapped
 
-    // Count wrapped lines for quote text only
+    // Count wrapped lines for the body text
     let lines = 1;
-    const words = box.config.text.split(' ');
+    const words = content.text.split(' ');
     let line = '';
 
     for (const word of words) {
@@ -177,10 +196,8 @@ function computeHeightHints(
     if (showHeaders) {
       needed += metrics.bodySize + metrics.pad; // header row
     }
-    needed += lines * lineHeight; // quote text
-    if (box.config.author) {
-      needed += lineHeight; // author line
-    }
+    needed += lines * lineHeight; // body text
+    needed += content.extraLines * lineHeight; // extras (e.g. author line)
     needed += metrics.pad; // bottom padding
 
     hints.set(i, needed);
