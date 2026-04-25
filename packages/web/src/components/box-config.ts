@@ -328,14 +328,18 @@ function buildQuoteForm(box: EditorBox): DocumentFragment {
 
   const quoteTextarea = textareaEl(cfg.content, (v) => updateConfig(box.id, 'content', v));
   const authorInput = inputEl('text', cfg.author, (v) => updateConfig(box.id, 'author', v));
-  const tagsInput = inputEl('text', cfg.tags ?? '', (v) => updateConfig(box.id, 'tags', v));
-  tagsInput.placeholder = 'wisdom, happiness, life';
 
   const btn = document.createElement('button');
   btn.type = 'button';
   btn.className = 'btn-random-quote';
   btn.textContent = 'Random Quote';
-  btn.addEventListener('click', async () => {
+
+  const tagsInput = document.createElement('input');
+  tagsInput.type = 'text';
+  tagsInput.value = cfg.tags ?? '';
+  tagsInput.placeholder = 'wisdom, happiness, life';
+
+  const doFetch = async (): Promise<void> => {
     btn.disabled = true;
     btn.textContent = 'Fetching\u2026';
     const result = await fetchQuote(tagsInput.value);
@@ -352,6 +356,15 @@ function buildQuoteForm(box: EditorBox): DocumentFragment {
       }, 2000);
     }
     btn.disabled = false;
+  };
+
+  tagsInput.addEventListener('input', () => {
+    updateConfig(box.id, 'tags', tagsInput.value);
+    debouncedFetch(box.id, doFetch);
+  });
+
+  btn.addEventListener('click', () => {
+    void doFetch();
   });
 
   frag.appendChild(makeField('Quote Text', quoteTextarea, validateRequired('a quote')));
@@ -361,19 +374,7 @@ function buildQuoteForm(box: EditorBox): DocumentFragment {
 
   // Auto-fetch a random quote when the box is freshly added (both fields empty)
   if (!cfg.content.trim() && !cfg.author.trim()) {
-    void (async () => {
-      btn.disabled = true;
-      btn.textContent = 'Fetching\u2026';
-      const result = await fetchQuote(tagsInput.value);
-      if (result) {
-        quoteTextarea.value = result.text;
-        authorInput.value = result.author;
-        updateConfig(box.id, 'content', result.text);
-        updateConfig(box.id, 'author', result.author);
-      }
-      btn.disabled = false;
-      btn.textContent = 'Random Quote';
-    })();
+    void doFetch();
   }
 
   return frag;
