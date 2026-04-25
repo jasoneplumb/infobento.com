@@ -86,6 +86,12 @@ export interface JokeConfig {
   categories?: string; // user's CSV input filter
 }
 
+export interface OnThisDayConfig {
+  content: string;
+  year?: string;
+  category: string; // events | births | deaths | holidays | all
+}
+
 export type EditorBoxConfig =
   | TextConfig
   | CountdownConfig
@@ -100,7 +106,8 @@ export type EditorBoxConfig =
   | AQIConfig
   | ProgressConfig
   | HoroscopeConfig
-  | JokeConfig;
+  | JokeConfig
+  | OnThisDayConfig;
 
 export type EditorBoxType = Extract<
   BentoBoxType,
@@ -118,6 +125,7 @@ export type EditorBoxType = Extract<
   | 'progress'
   | 'horoscope'
   | 'joke'
+  | 'onthisday'
 >;
 
 export interface EditorBox {
@@ -162,6 +170,7 @@ const DEFAULTS: Record<EditorBoxType, () => EditorBoxConfig> = {
   progress: () => ({ progressLabel: 'Year', startDate: '', endDate: '' }),
   horoscope: () => ({ sign: '', content: '', date: '' }),
   joke: () => ({ content: '' }),
+  onthisday: () => ({ content: '', category: 'events' }),
 };
 
 const LABELS: Record<EditorBoxType, string> = {
@@ -179,6 +188,7 @@ const LABELS: Record<EditorBoxType, string> = {
   progress: 'Progress',
   horoscope: 'Horoscope',
   joke: 'Joke',
+  onthisday: 'On This Day',
 };
 
 // -- Default box set --------------------------------------------------------

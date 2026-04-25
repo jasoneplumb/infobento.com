@@ -27,6 +27,7 @@ import { renderHabitBox } from './boxes/habit.js';
 import { renderWorldclockBox } from './boxes/worldclock.js';
 import { renderHoroscopeBox } from './boxes/horoscope.js';
 import { renderJokeBox } from './boxes/joke.js';
+import { renderOnThisDayBox } from './boxes/onthisday.js';
 import type { FrameBuffer } from './types.js';
 import type { FontMetrics } from './font-metrics.js';
 import { computeFontMetrics } from './font-metrics.js';
@@ -117,6 +118,8 @@ function renderBox(
     renderHoroscopeBox(fb, layoutBox, box.config, metrics, showHeaders);
   } else if (box.type === 'joke' && box.config?.type === 'joke') {
     renderJokeBox(fb, layoutBox, box.config, metrics, showHeaders);
+  } else if (box.type === 'onthisday' && box.config?.type === 'onthisday') {
+    renderOnThisDayBox(fb, layoutBox, box.config, metrics, showHeaders);
   } else {
     renderPlaceholderBox(fb, layoutBox);
   }
@@ -134,6 +137,9 @@ function extractWrappedText(box: BentoBox): { text: string; extraLines: number }
     return { text: box.config.text, extraLines: 0 };
   }
   if (box.type === 'joke' && box.config?.type === 'joke') {
+    return { text: box.config.text, extraLines: 0 };
+  }
+  if (box.type === 'onthisday' && box.config?.type === 'onthisday') {
     return { text: box.config.text, extraLines: 0 };
   }
   return null;

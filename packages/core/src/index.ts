@@ -36,6 +36,7 @@ export type {
   WorldclockBoxConfig,
   HoroscopeBoxConfig,
   JokeBoxConfig,
+  OnThisDayBoxConfig,
   BoxConfig,
   BentoBoxType,
   BentoBox,

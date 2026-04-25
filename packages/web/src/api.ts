@@ -398,6 +398,32 @@ export interface HoroscopeResult {
   date: string;
 }
 
+export interface OnThisDayResult {
+  text: string;
+  year: string;
+  category: string;
+}
+
+/**
+ * Fetch a random "On This Day" entry for today's UTC date via the
+ * /api/onthisday proxy. `category` is one of events/births/deaths/holidays/all.
+ * Returns null on network/API failure or empty pool.
+ */
+export async function fetchOnThisDay(category?: string): Promise<OnThisDayResult | null> {
+  try {
+    const params = new URLSearchParams();
+    if (category && category.trim()) params.set('category', category.trim());
+    const qs = params.toString();
+    const res = await fetch(`/api/onthisday${qs ? `?${qs}` : ''}`);
+    if (!res.ok) return null;
+    const data = (await res.json()) as { text?: string; year?: string; category?: string };
+    if (!data.text) return null;
+    return { text: data.text, year: data.year ?? '', category: data.category ?? '' };
+  } catch {
+    return null;
+  }
+}
+
 export interface JokeResult {
   text: string;
   category: string;

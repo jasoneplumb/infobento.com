@@ -18,6 +18,7 @@ import type {
   ProgressConfig,
   HoroscopeConfig,
   JokeConfig,
+  OnThisDayConfig,
 } from '../state';
 import { getBoxes, getShowHeaders, getFontSize, getCornerRadius, getPadding } from '../state';
 
@@ -138,6 +139,19 @@ function toBentoBox(editor: EditorBox): BentoBox {
         config: {
           type: 'joke',
           text: c.content,
+          category: c.category || undefined,
+        },
+      };
+    }
+    case 'onthisday': {
+      const c = editor.config as OnThisDayConfig;
+      return {
+        ...base,
+        type: 'onthisday',
+        config: {
+          type: 'onthisday',
+          text: c.content,
+          year: c.year || undefined,
           category: c.category || undefined,
         },
       };

@@ -168,6 +168,14 @@ export interface HabitBoxConfig {
   readonly habits: readonly HabitEntry[];
 }
 
+/** Pre-fetched "On This Day" entry from Wikipedia */
+export interface OnThisDayBoxConfig {
+  readonly type: 'onthisday';
+  readonly text: string;
+  readonly year?: string; // empty for holidays
+  readonly category?: string; // events | births | deaths | holidays | all
+}
+
 /** Pre-fetched joke text from a category-filtered API */
 export interface JokeBoxConfig {
   readonly type: 'joke';
@@ -214,7 +222,8 @@ export type BoxConfig =
   | HabitBoxConfig
   | WorldclockBoxConfig
   | HoroscopeBoxConfig
-  | JokeBoxConfig;
+  | JokeBoxConfig
+  | OnThisDayBoxConfig;
 
 // --- Core types ---
 
@@ -238,7 +247,8 @@ export type BentoBoxType =
   | 'habit'
   | 'worldclock'
   | 'horoscope'
-  | 'joke';
+  | 'joke'
+  | 'onthisday';
 
 /** Base fields shared by all bento boxes */
 interface BentoBoxBase {
@@ -366,6 +376,12 @@ interface JokeBentoBox extends BentoBoxBase {
   readonly config?: JokeBoxConfig;
 }
 
+/** On This Day box with typed config */
+interface OnThisDayBentoBox extends BentoBoxBase {
+  readonly type: 'onthisday';
+  readonly config?: OnThisDayBoxConfig;
+}
+
 /** Box types that don't have a config yet (placeholder) */
 interface UnconfiguredBentoBox extends BentoBoxBase {
   readonly type: Exclude<
@@ -389,6 +405,7 @@ interface UnconfiguredBentoBox extends BentoBoxBase {
     | 'worldclock'
     | 'horoscope'
     | 'joke'
+    | 'onthisday'
   >;
   readonly config?: undefined;
 }
@@ -417,6 +434,7 @@ export type BentoBox =
   | WorldclockBentoBox
   | HoroscopeBentoBox
   | JokeBentoBox
+  | OnThisDayBentoBox
   | UnconfiguredBentoBox;
 
 /** Full device configuration */

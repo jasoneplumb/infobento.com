@@ -16,6 +16,7 @@ import type {
   ProgressConfig,
   HoroscopeConfig,
   JokeConfig,
+  OnThisDayConfig,
 } from '../state';
 import {
   updateConfig,
@@ -32,6 +33,7 @@ import {
   fetchQuote,
   fetchHoroscope,
   fetchJoke,
+  fetchOnThisDay,
   fetchSunTimes,
   fetchAirQuality,
 } from '../api';
@@ -655,6 +657,73 @@ function buildJokeForm(box: EditorBox): DocumentFragment {
   return frag;
 }
 
+const ONTHISDAY_CATEGORIES: Array<[string, string]> = [
+  ['events', 'Events'],
+  ['births', 'Births'],
+  ['deaths', 'Deaths'],
+  ['holidays', 'Holidays'],
+  ['all', 'All'],
+];
+
+function buildOnThisDayForm(box: EditorBox): DocumentFragment {
+  const frag = document.createDocumentFragment();
+  const cfg = box.config as OnThisDayConfig;
+
+  const categorySelect = document.createElement('select');
+  for (const [value, label] of ONTHISDAY_CATEGORIES) {
+    const opt = document.createElement('option');
+    opt.value = value;
+    opt.textContent = label;
+    if ((cfg.category || 'events') === value) opt.selected = true;
+    categorySelect.appendChild(opt);
+  }
+
+  const textArea = textareaEl(cfg.content, (v) => updateConfig(box.id, 'content', v));
+
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.className = 'btn-random-quote';
+  btn.textContent = 'Refresh';
+
+  const doFetch = async (): Promise<void> => {
+    btn.disabled = true;
+    btn.textContent = 'Fetching\u2026';
+    const result = await fetchOnThisDay(categorySelect.value);
+    if (result) {
+      textArea.value = result.text;
+      updateConfig(box.id, 'content', result.text);
+      updateConfig(box.id, 'year', result.year);
+      btn.textContent = 'Refresh';
+    } else {
+      btn.textContent = 'No entry found';
+      setTimeout(() => {
+        btn.textContent = 'Refresh';
+      }, 2000);
+    }
+    btn.disabled = false;
+  };
+
+  categorySelect.addEventListener('change', () => {
+    updateConfig(box.id, 'category', categorySelect.value);
+    void doFetch();
+  });
+
+  btn.addEventListener('click', () => {
+    void doFetch();
+  });
+
+  frag.appendChild(makeField('Category', categorySelect));
+  frag.appendChild(makeField('Entry', textArea));
+  frag.appendChild(btn);
+
+  // Auto-fetch when freshly added (empty body)
+  if (!cfg.content.trim()) {
+    void doFetch();
+  }
+
+  return frag;
+}
+
 // -- Registry ---------------------------------------------------------------
 
 const formBuilders: Record<EditorBoxType, (box: EditorBox) => DocumentFragment> = {
@@ -672,6 +741,7 @@ const formBuilders: Record<EditorBoxType, (box: EditorBox) => DocumentFragment> 
   progress: buildProgressForm,
   horoscope: buildHoroscopeForm,
   joke: buildJokeForm,
+  onthisday: buildOnThisDayForm,
 };
 
 export function buildConfigForm(box: EditorBox): DocumentFragment {
