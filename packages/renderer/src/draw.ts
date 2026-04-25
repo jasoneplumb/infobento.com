@@ -234,7 +234,7 @@ export function drawTextWrapped(
   maxHeight: number,
   level: number = GRAY_BLACK,
   fontSize: number = BODY_FONT_SIZE,
-): void {
+): number {
   const lineHeight = Math.round(fontSize * 1.3);
   const words = text.split(' ');
   let line = '';
@@ -249,7 +249,7 @@ export function drawTextWrapped(
       const raster = rasterizeText(line, fontSize, false, maxWidth);
       blitRaster(fb, x, cy, raster.data, raster.width, raster.height, level);
       cy += lineHeight;
-      if (cy + fontSize > y + maxHeight) return;
+      if (cy + fontSize > y + maxHeight) return cy - y;
       line = word;
     } else {
       line = testLine;
@@ -260,7 +260,10 @@ export function drawTextWrapped(
   if (line) {
     const raster = rasterizeText(line, fontSize, false, maxWidth);
     blitRaster(fb, x, cy, raster.data, raster.width, raster.height, level);
+    cy += lineHeight;
   }
+
+  return cy - y;
 }
 
 /**

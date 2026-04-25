@@ -57,7 +57,7 @@ export function renderQuoteBox(
 
   // Draw quote text wrapped in body area
   if (quoteMaxHeight > 0) {
-    drawTextWrapped(
+    const usedHeight = drawTextWrapped(
       fb,
       bodyX,
       cy,
@@ -67,7 +67,7 @@ export function renderQuoteBox(
       undefined,
       metrics.bodySize,
     );
-    cy += quoteMaxHeight;
+    cy += usedHeight;
   }
 
   // Draw author attribution right-aligned with "-- " prefix
