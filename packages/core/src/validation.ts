@@ -172,6 +172,13 @@ const WorldclockBoxConfigSchema = z.object({
   zones: z.array(ClockZoneSchema).min(1, 'At least one timezone is required'),
 });
 
+const HoroscopeBoxConfigSchema = z.object({
+  type: z.literal('horoscope'),
+  sign: z.string().min(1, 'Sign is required'),
+  text: z.string().min(1, 'Text is required'),
+  date: z.string().optional(),
+});
+
 // --- BentoBox schema ---
 
 const BentoBoxBaseSchema = z.object({
@@ -267,6 +274,11 @@ const WorldclockBentoBoxSchema = BentoBoxBaseSchema.extend({
   config: WorldclockBoxConfigSchema.optional(),
 });
 
+const HoroscopeBentoBoxSchema = BentoBoxBaseSchema.extend({
+  type: z.literal('horoscope'),
+  config: HoroscopeBoxConfigSchema.optional(),
+});
+
 const BentoBoxSchema = z.discriminatedUnion('type', [
   TextBentoBoxSchema,
   WeatherBentoBoxSchema,
@@ -285,6 +297,7 @@ const BentoBoxSchema = z.discriminatedUnion('type', [
   CalendarBentoBoxSchema,
   HabitBentoBoxSchema,
   WorldclockBentoBoxSchema,
+  HoroscopeBentoBoxSchema,
 ]);
 
 // --- Full config schema ---

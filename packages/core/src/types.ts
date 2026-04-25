@@ -168,6 +168,14 @@ export interface HabitBoxConfig {
   readonly habits: readonly HabitEntry[];
 }
 
+/** Pre-fetched horoscope reading for a single zodiac sign */
+export interface HoroscopeBoxConfig {
+  readonly type: 'horoscope';
+  readonly sign: string; // e.g. 'aries' (lowercase)
+  readonly text: string; // the reading body
+  readonly date?: string; // ISO date the reading is for
+}
+
 /** A timezone entry for world clock display */
 export interface ClockZone {
   readonly label: string; // e.g. 'Tokyo', 'NYC'
@@ -197,7 +205,8 @@ export type BoxConfig =
   | TasksBoxConfig
   | CalendarBoxConfig
   | HabitBoxConfig
-  | WorldclockBoxConfig;
+  | WorldclockBoxConfig
+  | HoroscopeBoxConfig;
 
 // --- Core types ---
 
@@ -219,7 +228,8 @@ export type BentoBoxType =
   | 'aqi'
   | 'progress'
   | 'habit'
-  | 'worldclock';
+  | 'worldclock'
+  | 'horoscope';
 
 /** Base fields shared by all bento boxes */
 interface BentoBoxBase {
@@ -335,6 +345,12 @@ interface WorldclockBentoBox extends BentoBoxBase {
   readonly config?: WorldclockBoxConfig;
 }
 
+/** Horoscope box with typed config */
+interface HoroscopeBentoBox extends BentoBoxBase {
+  readonly type: 'horoscope';
+  readonly config?: HoroscopeBoxConfig;
+}
+
 /** Box types that don't have a config yet (placeholder) */
 interface UnconfiguredBentoBox extends BentoBoxBase {
   readonly type: Exclude<
@@ -356,6 +372,7 @@ interface UnconfiguredBentoBox extends BentoBoxBase {
     | 'calendar'
     | 'habit'
     | 'worldclock'
+    | 'horoscope'
   >;
   readonly config?: undefined;
 }
@@ -382,6 +399,7 @@ export type BentoBox =
   | CalendarBentoBox
   | HabitBentoBox
   | WorldclockBentoBox
+  | HoroscopeBentoBox
   | UnconfiguredBentoBox;
 
 /** Full device configuration */

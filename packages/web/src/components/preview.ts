@@ -16,6 +16,7 @@ import type {
   SunConfig,
   AQIConfig,
   ProgressConfig,
+  HoroscopeConfig,
 } from '../state';
 import { getBoxes, getShowHeaders, getFontSize, getCornerRadius, getPadding } from '../state';
 
@@ -112,6 +113,19 @@ function toBentoBox(editor: EditorBox): BentoBox {
           label: c.progressLabel || undefined,
           startDate: c.startDate || undefined,
           endDate: c.endDate || undefined,
+        },
+      };
+    }
+    case 'horoscope': {
+      const c = editor.config as HoroscopeConfig;
+      return {
+        ...base,
+        type: 'horoscope',
+        config: {
+          type: 'horoscope',
+          sign: c.sign,
+          text: c.content,
+          date: c.date || undefined,
         },
       };
     }

@@ -401,6 +401,30 @@ const MAX_QUOTE_RETRIES = 5;
  * to fit in the display box without truncation.
  * Returns null if the API is unavailable (e.g. dev mode without API running).
  */
+export interface HoroscopeResult {
+  sign: string;
+  text: string;
+  date: string;
+}
+
+/**
+ * Fetch a daily horoscope reading for the given zodiac sign via the
+ * /api/horoscope proxy. Returns null on network/API failure.
+ */
+export async function fetchHoroscope(sign: string): Promise<HoroscopeResult | null> {
+  const trimmed = sign.trim().toLowerCase();
+  if (!trimmed) return null;
+  try {
+    const res = await fetch(`/api/horoscope?sign=${encodeURIComponent(trimmed)}`);
+    if (!res.ok) return null;
+    const data = (await res.json()) as { sign?: string; text?: string; date?: string };
+    if (!data.text) return null;
+    return { sign: data.sign ?? trimmed, text: data.text, date: data.date ?? '' };
+  } catch {
+    return null;
+  }
+}
+
 export async function fetchQuote(): Promise<QuoteResult | null> {
   for (let attempt = 0; attempt < MAX_QUOTE_RETRIES; attempt++) {
     try {
