@@ -53,7 +53,7 @@ Set it on a kitchen counter, a desk, or a shelf. The body is its own stand — s
                                    └───────────┘
 ```
 
-The cloud API is a pure function: BentoConfig in, frame buffer out. The device polls or subscribes for updated frames on its refresh schedule. The web editor is where you set up your boxes; configuration lives in browser localStorage and can be exported/imported as JSON.
+The cloud API is a pure function: BentoConfig in, frame buffer out. The server renders the framebuffer; the device caches the last framebuffer in flash for offline resilience (stale display, not blank). First-time setup via captive portal; config updates polled from cloud via `infobento.com/api/config/{device-id}`. The web editor is where you set up your boxes; configuration lives in browser localStorage and can be exported/imported as JSON.
 
 ## Quick Start
 

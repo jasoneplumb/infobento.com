@@ -26,10 +26,12 @@ Single mode: counter-standing. Refreshes 1–2× per day on solar power. There i
 
 ### Data Flow
 
-1. **User** configures bento boxes via the **Web UI** (browser localStorage)
-2. **Cloud API** is a pure function: config in, frame buffer out
-3. **Device** wakes on RTC alarm, joins saved Wi-Fi, fetches the current frame from the API via HTTPS
-4. **Device** writes the frame to the eInk display and returns to deep sleep
+1. **User** configures bento boxes via the **Web UI** (browser localStorage). Config is uploaded to the device during captive-portal setup or polled from `infobento.com/api/config/{device-id}` for OTA updates.
+2. **Device** stores config in ESP32 NVS.
+3. **Device** wakes on RTC alarm, joins saved Wi-Fi, sends config to the **Cloud API** via HTTPS.
+4. **Cloud API** renders the framebuffer (pure function: config in, frame buffer out) and returns it.
+5. **Device** caches the framebuffer in flash, writes it to the eInk display, and returns to deep sleep.
+6. **Offline resilience:** if Wi-Fi is unavailable, the device displays the last cached framebuffer from flash (stale content, not blank).
 
 ### Key Design Decisions
 

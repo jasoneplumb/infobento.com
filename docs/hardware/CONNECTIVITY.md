@@ -41,6 +41,22 @@ Standard pattern, well-trod in IoT (every smart bulb does this):
 
 The captive-portal HTML is part of the firmware — small enough to fit in flash without bloat.
 
+## Config delivery
+
+Config flows to the device in two stages:
+
+1. **First-time (captive portal):** During AP-mode setup, the user enters Wi-Fi credentials and uploads a config JSON (exported from the web editor). The device stores config in ESP32 NVS.
+2. **Ongoing (cloud poll):** The device polls `infobento.com/api/config/{device-id}` on each refresh cycle for config updates. If the cloud has a newer config, the device downloads it and overwrites the NVS copy.
+
+### Server-side rendering
+
+The device does not render locally. On each refresh cycle it sends its config JSON to the cloud API and receives a framebuffer back. The device caches the last framebuffer in flash so that if Wi-Fi is unavailable, the display shows stale content rather than going blank.
+
+### Storage
+
+- **Config:** ESP32 NVS (survives deep sleep and power loss; cleared by pinhole factory reset)
+- **Last framebuffer:** flash (survives deep sleep and power loss; overwritten on each successful fetch)
+
 ## Recovery (pinhole reset)
 
 The device has no buttons. The pinhole reset is the only physical recovery affordance.

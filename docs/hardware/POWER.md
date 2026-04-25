@@ -26,7 +26,7 @@ Solar panel exposed to indirect window light. Display facing the room. 1–2 ref
 
 **Daily budget (2 refreshes):** ~2–3 mAh active + sleep ≈ ~2.5 mAh/day
 
-Wi-Fi is the dominant power cost per refresh cycle. The B&W eInk refresh itself is sub-second and negligible. Daily budget is well inside the solar harvest budget below.
+Wi-Fi is the dominant power cost per refresh cycle. The B&W eInk refresh itself is sub-second and negligible. Wi-Fi is needed for every refresh (server-side rendering), not just data fetching — the device sends config to the cloud API and receives the rendered framebuffer back. Daily budget is well inside the solar harvest budget below.
 
 ## Power Sources
 
