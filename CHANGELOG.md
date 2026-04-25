@@ -25,7 +25,7 @@
 ### Fixed
 
 - S/M/L weight buttons now trigger full re-render (was preview-only)
-- Quote height hint uses correct drawTextWrapped line height (fontSize * 1.3)
+- Quote height hint uses correct drawTextWrapped line height (fontSize \* 1.3)
 - Right box in split pair was using left box's weight for height calculation
 
 ## [0.9.1] - 2026-04-24
