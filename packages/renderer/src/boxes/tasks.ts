@@ -78,7 +78,7 @@ export function renderTasksBox(
     }
 
     // Draw task text — dimmed for done items
-    const level = item.done ? GRAY_LIGHT : GRAY_DARK;
+    const level = item.done ? GRAY_LIGHT : undefined;
     drawText(fb, textX, cy, item.text, textMaxWidth, level, metrics.bodySize);
 
     cy += metrics.bodyLineHeight;

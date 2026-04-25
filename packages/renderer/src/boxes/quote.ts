@@ -78,7 +78,7 @@ export function renderQuoteBox(
     const authorX = Math.max(bodyX, x + width - metrics.pad - authorWidth);
 
     if (cy + metrics.bodySize <= bodyEnd) {
-      drawText(fb, authorX, cy, authorText, bodyWidth, GRAY_DARK, metrics.bodySize);
+      drawText(fb, authorX, cy, authorText, bodyWidth, GRAY_LIGHT, metrics.bodySize);
       cy += metrics.bodySize + metrics.pad;
     }
   }

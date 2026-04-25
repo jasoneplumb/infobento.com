@@ -52,7 +52,7 @@ export function renderCalendarBox(
   if (!events || events.length === 0) {
     // Show "No events" placeholder
     if (cy + metrics.bodySize <= bodyEnd) {
-      drawText(fb, bodyX, cy, 'No events', bodyWidth, GRAY_DARK, metrics.bodySize);
+      drawText(fb, bodyX, cy, 'No events', bodyWidth, GRAY_LIGHT, metrics.bodySize);
       cy += metrics.bodySize + metrics.pad;
     }
   } else {
@@ -77,11 +77,11 @@ export function renderCalendarBox(
         const titleX = bodyX + timeWidth + gap;
         const titleWidth = bodyWidth - timeWidth - gap;
         if (titleWidth > 0) {
-          drawText(fb, titleX, cy, event.title, titleWidth, GRAY_DARK, metrics.bodySize);
+          drawText(fb, titleX, cy, event.title, titleWidth, undefined, metrics.bodySize);
         }
       } else {
         // No time — just draw the title
-        drawText(fb, bodyX, cy, event.title, bodyWidth, GRAY_DARK, metrics.bodySize);
+        drawText(fb, bodyX, cy, event.title, bodyWidth, undefined, metrics.bodySize);
       }
 
       cy += rowHeight;

@@ -75,7 +75,7 @@ export function renderWorldclockBox(
 
     // Time right-aligned
     const timeX = x + width - metrics.pad - timeWidth;
-    drawText(fb, timeX, cy, timeStr, timeWidth, GRAY_DARK, metrics.bodySize);
+    drawText(fb, timeX, cy, timeStr, timeWidth, undefined, metrics.bodySize);
 
     cy += rowHeight;
   }

@@ -124,7 +124,7 @@ export function renderProgressBox(
   const pctStr = `${String(pct)}%`;
 
   // Hero percentage
-  drawHeroText(fb, x + metrics.pad, cy, pctStr, undefined, undefined, metrics.heroSize);
+  drawHeroText(fb, x + metrics.pad, cy, pctStr, undefined, GRAY_DARK, metrics.heroSize);
 
   const heroWidth = pctStr.length * metrics.heroAdvance;
   cy += metrics.heroSize + 2;
@@ -146,7 +146,7 @@ export function renderProgressBox(
       cy,
       `Day ${String(daysCurrent)} of ${String(daysTotal)}`,
       width - metrics.pad * 2,
-      GRAY_DARK,
+      GRAY_LIGHT,
       metrics.bodySize,
     );
     cy += metrics.bodySize + metrics.pad;
