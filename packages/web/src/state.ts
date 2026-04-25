@@ -351,19 +351,19 @@ export function splitBoxes(leftId: number): void {
 }
 
 export function setWeight(id: number, weight: 1 | 2 | 3): void {
-  const box = findBox(id);
-  if (!box) return;
-  box.weight = weight;
-  persistToLocalStorage();
-  renderPreview();
+  setState(() => {
+    const box = findBox(id);
+    if (!box) return;
+    box.weight = weight;
+  });
 }
 
 export function setSplitRatio(id: number, ratio: 1 | 2 | 3): void {
-  const box = findBox(id);
-  if (!box) return;
-  box.splitRatio = ratio;
-  persistToLocalStorage();
-  renderPreview();
+  setState(() => {
+    const box = findBox(id);
+    if (!box) return;
+    box.splitRatio = ratio;
+  });
 }
 
 export function updateConfig(id: number, key: string, value: string): void {
