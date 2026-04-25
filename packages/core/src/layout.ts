@@ -86,9 +86,14 @@ export function calculateLayout(
     const box = boxes[i];
     if (!box || box.type === 'qr') continue;
     if (heightHints?.has(i)) continue;
-    // For split pairs, count only the left box's weight (they share a row)
+    // For split pairs, use the max weight of the two boxes (they share a row)
     if (box.split === 'right') continue;
-    totalWeight += box.weight ?? 2;
+    if (box.split === 'left') {
+      const partner = boxes[i + 1];
+      totalWeight += Math.max(box.weight ?? 2, partner?.weight ?? 2);
+    } else {
+      totalWeight += box.weight ?? 2;
+    }
   }
 
   let qrHeight: number;
@@ -140,8 +145,10 @@ export function calculateLayout(
       if (isLastPair) {
         height = Math.max(0, totalHeight - y);
       } else {
-        const leftH = isLeftQR ? qrHeight : (heightHints?.get(i) ?? weightedHeight(leftBox));
-        const rightH = isRightQR ? qrHeight : (heightHints?.get(i + 1) ?? weightedHeight(leftBox));
+        const pairWeight = Math.max(leftBox.weight ?? 2, rightBox.weight ?? 2);
+        const pairH = weightedHeight({ weight: pairWeight });
+        const leftH = isLeftQR ? qrHeight : (heightHints?.get(i) ?? pairH);
+        const rightH = isRightQR ? qrHeight : (heightHints?.get(i + 1) ?? pairH);
         height = Math.max(leftH, rightH, MIN_BOX_HEIGHT);
       }
 
