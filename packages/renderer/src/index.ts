@@ -124,6 +124,7 @@ function computeHeightHints(
   boxes: readonly BentoBox[],
   metrics: FontMetrics,
   totalWidth: number,
+  showHeaders: boolean,
 ): ReadonlyMap<number, number> | undefined {
   const hints = new Map<number, number>();
   const bodyWidth = totalWidth - metrics.pad * 2;
@@ -148,12 +149,13 @@ function computeHeightHints(
       }
     }
 
-    // Header + padding + quote lines + author line + bottom padding
     let needed = metrics.pad; // top padding
-    needed += metrics.bodySize + metrics.pad; // header row
+    if (showHeaders) {
+      needed += metrics.bodySize + metrics.pad; // header row
+    }
     needed += lines * lineHeight; // quote text
     if (box.config.author) {
-      needed += metrics.pad + lineHeight; // author attribution
+      needed += lineHeight; // author line (tight, no extra pad)
     }
     needed += metrics.pad; // bottom padding
 
@@ -177,7 +179,8 @@ export function render(config: BentoConfig, device?: DeviceProfile): FrameBuffer
   };
   const padPx = (config.padding ?? 4) * 3;
   const layoutWidth = effectiveDevice.widthPx - padPx * 2;
-  const heightHints = computeHeightHints(config.boxes, metrics, layoutWidth);
+  const showHeaders = config.showHeaders !== false;
+  const heightHints = computeHeightHints(config.boxes, metrics, layoutWidth, showHeaders);
   const layout = calculateLayout(config, effectiveDevice, heightHints);
   const fb = createFrameBuffer(layout.device);
 
@@ -186,7 +189,6 @@ export function render(config: BentoConfig, device?: DeviceProfile): FrameBuffer
     fb.data.fill(0x55); // 0b01010101 = GRAY_LIGHT (1) for all 4 pixels per byte
   }
 
-  const showHeaders = config.showHeaders !== false;
   const radiusLevel = config.cornerRadius ?? 3;
   const cornerRadius = radiusLevel * 4; // 0=0px, 3=12px (default), 5=20px
   const borderPx = 4;
