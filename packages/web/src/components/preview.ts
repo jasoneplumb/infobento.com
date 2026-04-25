@@ -17,6 +17,7 @@ import type {
   AQIConfig,
   ProgressConfig,
   HoroscopeConfig,
+  JokeConfig,
 } from '../state';
 import { getBoxes, getShowHeaders, getFontSize, getCornerRadius, getPadding } from '../state';
 
@@ -126,6 +127,18 @@ function toBentoBox(editor: EditorBox): BentoBox {
           sign: c.sign,
           text: c.content,
           date: c.date || undefined,
+        },
+      };
+    }
+    case 'joke': {
+      const c = editor.config as JokeConfig;
+      return {
+        ...base,
+        type: 'joke',
+        config: {
+          type: 'joke',
+          text: c.content,
+          category: c.category || undefined,
         },
       };
     }

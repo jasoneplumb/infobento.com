@@ -35,6 +35,7 @@ export type {
   ClockZone,
   WorldclockBoxConfig,
   HoroscopeBoxConfig,
+  JokeBoxConfig,
   BoxConfig,
   BentoBoxType,
   BentoBox,

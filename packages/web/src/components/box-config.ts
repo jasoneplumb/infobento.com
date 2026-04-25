@@ -15,6 +15,7 @@ import type {
   AQIConfig,
   ProgressConfig,
   HoroscopeConfig,
+  JokeConfig,
 } from '../state';
 import {
   updateConfig,
@@ -30,6 +31,7 @@ import {
   fetchWeather,
   fetchQuote,
   fetchHoroscope,
+  fetchJoke,
   fetchSunTimes,
   fetchAirQuality,
 } from '../api';
@@ -596,6 +598,63 @@ function buildHoroscopeForm(box: EditorBox): DocumentFragment {
   return frag;
 }
 
+function buildJokeForm(box: EditorBox): DocumentFragment {
+  const frag = document.createDocumentFragment();
+  const cfg = box.config as JokeConfig;
+
+  const jokeTextarea = textareaEl(cfg.content, (v) => updateConfig(box.id, 'content', v));
+
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.className = 'btn-random-quote';
+  btn.textContent = 'Random Joke';
+
+  const categoriesInput = document.createElement('input');
+  categoriesInput.type = 'text';
+  categoriesInput.value = cfg.categories ?? '';
+  categoriesInput.placeholder = 'Programming, Pun, Misc, Dark, Spooky, Christmas';
+
+  const doFetch = async (): Promise<void> => {
+    btn.disabled = true;
+    btn.textContent = 'Fetching\u2026';
+    const result = await fetchJoke(categoriesInput.value);
+    if (result) {
+      jokeTextarea.value = result.text;
+      updateConfig(box.id, 'content', result.text);
+      updateConfig(box.id, 'category', result.category);
+      btn.textContent = 'Random Joke';
+    } else {
+      btn.textContent = categoriesInput.value.trim()
+        ? 'No joke for those categories'
+        : 'Fetch failed';
+      setTimeout(() => {
+        btn.textContent = 'Random Joke';
+      }, 2000);
+    }
+    btn.disabled = false;
+  };
+
+  categoriesInput.addEventListener('input', () => {
+    updateConfig(box.id, 'categories', categoriesInput.value);
+    debouncedFetch(box.id, doFetch);
+  });
+
+  btn.addEventListener('click', () => {
+    void doFetch();
+  });
+
+  frag.appendChild(makeField('Joke Text', jokeTextarea, validateRequired('a joke')));
+  frag.appendChild(makeField('Categories (optional)', categoriesInput));
+  frag.appendChild(btn);
+
+  // Auto-fetch when freshly added (empty body)
+  if (!cfg.content.trim()) {
+    void doFetch();
+  }
+
+  return frag;
+}
+
 // -- Registry ---------------------------------------------------------------
 
 const formBuilders: Record<EditorBoxType, (box: EditorBox) => DocumentFragment> = {
@@ -612,6 +671,7 @@ const formBuilders: Record<EditorBoxType, (box: EditorBox) => DocumentFragment> 
   aqi: buildAQIForm,
   progress: buildProgressForm,
   horoscope: buildHoroscopeForm,
+  joke: buildJokeForm,
 };
 
 export function buildConfigForm(box: EditorBox): DocumentFragment {

@@ -168,6 +168,13 @@ export interface HabitBoxConfig {
   readonly habits: readonly HabitEntry[];
 }
 
+/** Pre-fetched joke text from a category-filtered API */
+export interface JokeBoxConfig {
+  readonly type: 'joke';
+  readonly text: string; // the joke body (single-line; multi-line jokes normalized server-side)
+  readonly category?: string; // the API-returned category (e.g. 'Programming', 'Pun')
+}
+
 /** Pre-fetched horoscope reading for a single zodiac sign */
 export interface HoroscopeBoxConfig {
   readonly type: 'horoscope';
@@ -206,7 +213,8 @@ export type BoxConfig =
   | CalendarBoxConfig
   | HabitBoxConfig
   | WorldclockBoxConfig
-  | HoroscopeBoxConfig;
+  | HoroscopeBoxConfig
+  | JokeBoxConfig;
 
 // --- Core types ---
 
@@ -229,7 +237,8 @@ export type BentoBoxType =
   | 'progress'
   | 'habit'
   | 'worldclock'
-  | 'horoscope';
+  | 'horoscope'
+  | 'joke';
 
 /** Base fields shared by all bento boxes */
 interface BentoBoxBase {
@@ -351,6 +360,12 @@ interface HoroscopeBentoBox extends BentoBoxBase {
   readonly config?: HoroscopeBoxConfig;
 }
 
+/** Joke box with typed config */
+interface JokeBentoBox extends BentoBoxBase {
+  readonly type: 'joke';
+  readonly config?: JokeBoxConfig;
+}
+
 /** Box types that don't have a config yet (placeholder) */
 interface UnconfiguredBentoBox extends BentoBoxBase {
   readonly type: Exclude<
@@ -373,6 +388,7 @@ interface UnconfiguredBentoBox extends BentoBoxBase {
     | 'habit'
     | 'worldclock'
     | 'horoscope'
+    | 'joke'
   >;
   readonly config?: undefined;
 }
@@ -400,6 +416,7 @@ export type BentoBox =
   | HabitBentoBox
   | WorldclockBentoBox
   | HoroscopeBentoBox
+  | JokeBentoBox
   | UnconfiguredBentoBox;
 
 /** Full device configuration */

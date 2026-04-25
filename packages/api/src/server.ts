@@ -42,6 +42,7 @@ app.get('/api/box-types', (c) => {
     { type: 'weather', label: 'Weather', requiresAuth: false },
     { type: 'quote', label: 'Daily Quote', requiresAuth: false },
     { type: 'horoscope', label: 'Horoscope', requiresAuth: false },
+    { type: 'joke', label: 'Joke', requiresAuth: false },
     { type: 'countdown', label: 'Countdown', requiresAuth: false },
     { type: 'qr', label: 'QR Code', requiresAuth: false },
     { type: 'text', label: 'Static Text', requiresAuth: false },
@@ -116,6 +117,56 @@ app.post('/api/render-dual', async (c) => {
       data: Buffer.from(dual.portrait.data).toString('base64'),
     },
   });
+});
+
+// JokeAPI v2 categories per its live error response (Knock-Knock is NOT one
+// of them — the URL path treats hyphens as separators, so it's unreachable).
+const VALID_JOKE_CATEGORIES = new Set([
+  'Programming',
+  'Misc',
+  'Pun',
+  'Dark',
+  'Spooky',
+  'Christmas',
+]);
+
+/** Title-case the user's category input so it matches JokeAPI casing. */
+function normalizeJokeCategory(input: string): string {
+  const lower = input.toLowerCase();
+  return lower.charAt(0).toUpperCase() + lower.slice(1);
+}
+
+app.get('/api/joke', async (c) => {
+  try {
+    const raw = (c.req.query('categories') ?? '').trim();
+    let categoriesPath = 'Any';
+    if (raw) {
+      const valid = raw
+        .split(',')
+        .map((s) => s.trim())
+        .filter((s) => s.length > 0)
+        .map(normalizeJokeCategory)
+        .filter((s) => VALID_JOKE_CATEGORIES.has(s));
+      if (valid.length > 0) categoriesPath = valid.join(',');
+    }
+    const url =
+      `https://v2.jokeapi.dev/joke/${categoriesPath}` +
+      `?safe-mode&type=single` +
+      `&blacklistFlags=nsfw,religious,political,racist,sexist,explicit`;
+    const res = await fetch(url);
+    if (!res.ok) {
+      return c.json({ error: 'Joke API returned an error' }, 502);
+    }
+    const data = (await res.json()) as { error?: boolean; joke?: string; category?: string };
+    if (data.error || !data.joke) {
+      return c.json({ error: 'No joke found matching the criteria' }, 404);
+    }
+    // Normalize whitespace — jokes can be multi-line; eInk box wraps better as single line.
+    const text = data.joke.replace(/\s+/g, ' ').trim();
+    return c.json({ text, category: data.category ?? '' });
+  } catch {
+    return c.json({ error: 'Failed to fetch joke' }, 502);
+  }
 });
 
 const VALID_ZODIAC_SIGNS = new Set([
