@@ -185,6 +185,13 @@ const JokeBoxConfigSchema = z.object({
   category: z.string().optional(),
 });
 
+const OnThisDayBoxConfigSchema = z.object({
+  type: z.literal('onthisday'),
+  text: z.string().min(1, 'Text is required'),
+  year: z.string().optional(),
+  category: z.string().optional(),
+});
+
 // --- BentoBox schema ---
 
 const BentoBoxBaseSchema = z.object({
@@ -290,6 +297,11 @@ const JokeBentoBoxSchema = BentoBoxBaseSchema.extend({
   config: JokeBoxConfigSchema.optional(),
 });
 
+const OnThisDayBentoBoxSchema = BentoBoxBaseSchema.extend({
+  type: z.literal('onthisday'),
+  config: OnThisDayBoxConfigSchema.optional(),
+});
+
 const BentoBoxSchema = z.discriminatedUnion('type', [
   TextBentoBoxSchema,
   WeatherBentoBoxSchema,
@@ -310,6 +322,7 @@ const BentoBoxSchema = z.discriminatedUnion('type', [
   WorldclockBentoBoxSchema,
   HoroscopeBentoBoxSchema,
   JokeBentoBoxSchema,
+  OnThisDayBentoBoxSchema,
 ]);
 
 // --- Full config schema ---

@@ -43,6 +43,7 @@ app.get('/api/box-types', (c) => {
     { type: 'quote', label: 'Daily Quote', requiresAuth: false },
     { type: 'horoscope', label: 'Horoscope', requiresAuth: false },
     { type: 'joke', label: 'Joke', requiresAuth: false },
+    { type: 'onthisday', label: 'On This Day', requiresAuth: false },
     { type: 'countdown', label: 'Countdown', requiresAuth: false },
     { type: 'qr', label: 'QR Code', requiresAuth: false },
     { type: 'text', label: 'Static Text', requiresAuth: false },
@@ -135,6 +136,68 @@ function normalizeJokeCategory(input: string): string {
   const lower = input.toLowerCase();
   return lower.charAt(0).toUpperCase() + lower.slice(1);
 }
+
+const VALID_ONTHISDAY_CATEGORIES = new Set(['events', 'births', 'deaths', 'holidays', 'all']);
+
+interface WikiOnThisDayEntry {
+  text?: string;
+  year?: number;
+}
+interface WikiOnThisDayResponse {
+  events?: WikiOnThisDayEntry[];
+  births?: WikiOnThisDayEntry[];
+  deaths?: WikiOnThisDayEntry[];
+  holidays?: WikiOnThisDayEntry[];
+}
+
+app.get('/api/onthisday', async (c) => {
+  const requested = (c.req.query('category') ?? 'events').trim().toLowerCase();
+  const category = VALID_ONTHISDAY_CATEGORIES.has(requested) ? requested : 'events';
+  try {
+    const now = new Date();
+    const mm = String(now.getUTCMonth() + 1).padStart(2, '0');
+    const dd = String(now.getUTCDate()).padStart(2, '0');
+    // Wikipedia's /all endpoint returns the union of categories; we then sample
+    // from the requested subset (or across all four for category='all').
+    const url = `https://api.wikimedia.org/feed/v1/wikipedia/en/onthisday/all/${mm}/${dd}`;
+    const res = await fetch(url);
+    if (!res.ok) {
+      return c.json({ error: 'Wikipedia API returned an error' }, 502);
+    }
+    const data = (await res.json()) as WikiOnThisDayResponse;
+    let pool: WikiOnThisDayEntry[] = [];
+    if (category === 'all') {
+      pool = [
+        ...(data.events ?? []),
+        ...(data.births ?? []),
+        ...(data.deaths ?? []),
+        ...(data.holidays ?? []),
+      ];
+    } else if (category === 'events') {
+      pool = data.events ?? [];
+    } else if (category === 'births') {
+      pool = data.births ?? [];
+    } else if (category === 'deaths') {
+      pool = data.deaths ?? [];
+    } else if (category === 'holidays') {
+      pool = data.holidays ?? [];
+    }
+    if (pool.length === 0) {
+      return c.json({ error: 'No entries found for this date and category' }, 404);
+    }
+    const pick = pool[Math.floor(Math.random() * pool.length)];
+    if (!pick?.text) {
+      return c.json({ error: 'Selected entry had no text' }, 502);
+    }
+    return c.json({
+      text: pick.text,
+      year: pick.year != null ? String(pick.year) : '',
+      category,
+    });
+  } catch {
+    return c.json({ error: 'Failed to fetch On This Day entry' }, 502);
+  }
+});
 
 app.get('/api/joke', async (c) => {
   try {
