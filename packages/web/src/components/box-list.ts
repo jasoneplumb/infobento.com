@@ -5,7 +5,16 @@
  */
 
 import type { EditorBox } from '../state';
-import { getBoxes, moveBox, removeBox, updateLabel, mergeBoxes, splitBoxes } from '../state';
+import {
+  getBoxes,
+  moveBox,
+  removeBox,
+  updateLabel,
+  mergeBoxes,
+  splitBoxes,
+  setWeight,
+  setSplitRatio,
+} from '../state';
 import { buildConfigForm } from './box-config';
 
 // -- Card builder -----------------------------------------------------------
@@ -73,7 +82,26 @@ function buildCard(
   orderDiv.appendChild(btnUp);
   orderDiv.appendChild(btnDown);
 
+  // Height weight selector (1=S, 2=M, 3=L)
+  const weightDiv = document.createElement('div');
+  weightDiv.className = 'box-weight-controls';
+  const weightLabels: Array<[1 | 2 | 3, string]> = [
+    [1, 'S'],
+    [2, 'M'],
+    [3, 'L'],
+  ];
+  for (const [w, label] of weightLabels) {
+    const btn = document.createElement('button');
+    btn.className = 'btn-weight' + ((box.weight ?? 2) === w ? ' active' : '');
+    btn.textContent = label;
+    btn.title = `Height: ${label}`;
+    btn.type = 'button';
+    btn.addEventListener('click', () => setWeight(box.id, w));
+    weightDiv.appendChild(btn);
+  }
+
   header.appendChild(labelInput);
+  header.appendChild(weightDiv);
   header.appendChild(orderDiv);
   header.appendChild(btnRemove);
 
@@ -144,12 +172,39 @@ export function renderBoxList(containerId: string): void {
       group.appendChild(buildCard(box, i, boxes.length, 'left'));
       group.appendChild(buildCard(nextBox, i + 1, boxes.length, 'right'));
 
+      // Split ratio + split apart controls
+      const controlsDiv = document.createElement('div');
+      controlsDiv.className = 'box-pair-controls';
+
+      const ratioDiv = document.createElement('div');
+      ratioDiv.className = 'box-ratio-controls';
+      const ratioLabel = document.createElement('span');
+      ratioLabel.textContent = 'Ratio';
+      ratioLabel.className = 'box-ratio-label';
+      ratioDiv.appendChild(ratioLabel);
+      const ratioOptions: Array<[1 | 2 | 3, string]> = [
+        [1, '\u2190'],
+        [2, '='],
+        [3, '\u2192'],
+      ];
+      const leftId = box.id;
+      for (const [r, label] of ratioOptions) {
+        const btn = document.createElement('button');
+        btn.className = 'btn-weight' + ((box.splitRatio ?? 2) === r ? ' active' : '');
+        btn.textContent = label;
+        btn.type = 'button';
+        btn.addEventListener('click', () => setSplitRatio(leftId, r));
+        ratioDiv.appendChild(btn);
+      }
+      controlsDiv.appendChild(ratioDiv);
+
       const splitBtn = document.createElement('button');
       splitBtn.className = 'box-split-btn btn-ghost';
       splitBtn.textContent = 'Split apart';
-      const leftId = box.id;
       splitBtn.addEventListener('click', () => splitBoxes(leftId));
-      group.appendChild(splitBtn);
+      controlsDiv.appendChild(splitBtn);
+
+      group.appendChild(controlsDiv);
 
       frag.appendChild(group);
       i += 2;

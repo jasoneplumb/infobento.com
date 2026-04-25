@@ -178,6 +178,8 @@ const BentoBoxBaseSchema = z.object({
   id: z.string().min(1),
   label: z.string().min(1),
   split: z.enum(['left', 'right']).optional(),
+  weight: z.union([z.literal(1), z.literal(2), z.literal(3)]).optional(),
+  splitRatio: z.union([z.literal(1), z.literal(2), z.literal(3)]).optional(),
 });
 
 const TextBentoBoxSchema = BentoBoxBaseSchema.extend({

@@ -109,6 +109,8 @@ export interface EditorBox {
   label: string;
   config: EditorBoxConfig;
   split?: 'left' | 'right';
+  weight?: 1 | 2 | 3;
+  splitRatio?: 1 | 2 | 3;
 }
 
 export interface EditorState {
@@ -348,6 +350,22 @@ export function splitBoxes(leftId: number): void {
   });
 }
 
+export function setWeight(id: number, weight: 1 | 2 | 3): void {
+  const box = findBox(id);
+  if (!box) return;
+  box.weight = weight;
+  persistToLocalStorage();
+  renderPreview();
+}
+
+export function setSplitRatio(id: number, ratio: 1 | 2 | 3): void {
+  const box = findBox(id);
+  if (!box) return;
+  box.splitRatio = ratio;
+  persistToLocalStorage();
+  renderPreview();
+}
+
 export function updateConfig(id: number, key: string, value: string): void {
   const box = findBox(id);
   if (!box) return;
@@ -455,6 +473,8 @@ function persistToLocalStorage(): void {
         label: b.label,
         config: { ...b.config },
         ...(b.split ? { split: b.split } : {}),
+        ...(b.weight && b.weight !== 2 ? { weight: b.weight } : {}),
+        ...(b.splitRatio && b.splitRatio !== 2 ? { splitRatio: b.splitRatio } : {}),
       })),
       showHeaders: state.showHeaders,
       fontSize: state.fontSize,
@@ -468,7 +488,14 @@ function persistToLocalStorage(): void {
 }
 
 function hydrateBoxes(
-  raw: Array<{ type: string; label: string; config: Record<string, string>; split?: string }>,
+  raw: Array<{
+    type: string;
+    label: string;
+    config: Record<string, string>;
+    split?: string;
+    weight?: number;
+    splitRatio?: number;
+  }>,
 ): EditorBox[] {
   return raw.map((b) => ({
     id: uid(),
@@ -476,6 +503,8 @@ function hydrateBoxes(
     label: b.label,
     config: { ...b.config } as EditorBoxConfig,
     ...(b.split === 'left' || b.split === 'right' ? { split: b.split } : {}),
+    ...(b.weight === 1 || b.weight === 3 ? { weight: b.weight } : {}),
+    ...(b.splitRatio === 1 || b.splitRatio === 3 ? { splitRatio: b.splitRatio } : {}),
   }));
 }
 

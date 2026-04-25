@@ -40,10 +40,6 @@
         <div id="eink-display" class="eink-display"></div>
         <div class="preview-controls">
           <span class="preview-meta">2-bit grayscale &middot; landscape + portrait</span>
-          <label class="preview-toggle" id="toggle-headers">
-            <input type="checkbox" />
-            Show Box Headers
-          </label>
           <div class="preview-stepper" id="font-size-control">
             <span>Font</span>
             <button class="stepper-btn" id="font-size-dec" type="button">-</button>
@@ -62,13 +58,17 @@
             <span class="stepper-value" id="padding-display">4</span>
             <button class="stepper-btn" id="padding-inc" type="button">+</button>
           </div>
+          <label class="preview-toggle" id="toggle-headers">
+            <input type="checkbox" />
+            Show Box Headers
+          </label>
         </div>
       </section>
 
       <!-- Editor -->
       <section class="editor-cell">
-        <div class="config-toolbar">
-          <h2>Boxes</h2>
+        <div id="box-list"></div>
+        <div class="config-toolbar config-toolbar-bottom">
           <div class="add-box-wrapper">
             <select id="add-type-select">
               <option value="forecast3d">8-Day Forecast</option>
@@ -87,7 +87,6 @@
             <button class="btn-primary" id="btn-add">+ Add Box</button>
           </div>
         </div>
-        <div id="box-list"></div>
       </section>
     </main>
 

@@ -71,40 +71,50 @@ export function calculateLayout(
 
   // Compute height reserved by hints (content-aware minimum heights)
   let hintedHeight = 0;
-  let hintedNonQRCount = 0;
   if (heightHints) {
     for (const [idx, minH] of heightHints) {
       const box = boxes[idx];
       if (box && box.type !== 'qr') {
         hintedHeight += minH;
-        hintedNonQRCount++;
       }
     }
   }
 
+  // Compute total weight of unhinted non-QR rows for proportional height distribution
+  let totalWeight = 0;
+  for (let i = 0; i < boxes.length; i++) {
+    const box = boxes[i];
+    if (!box || box.type === 'qr') continue;
+    if (heightHints?.has(i)) continue;
+    // For split pairs, count only the left box's weight (they share a row)
+    if (box.split === 'right') continue;
+    totalWeight += box.weight ?? 2;
+  }
+
   let qrHeight: number;
-  let nonQRHeight: number;
-  const unhintedNonQRCount = nonQRCount - hintedNonQRCount;
+  let nonQRRemainder: number;
 
   if (hasQR && nonQRCount > 0) {
-    // QR gets ~half, but cap total QR allocation to avoid overflow with multiple QR boxes
     const maxQRShare = availableHeight - nonQRCount * MIN_BOX_HEIGHT;
     const totalQRHeight = Math.min(
       Math.floor(availableHeight * QR_HEIGHT_RATIO) * qrCount,
       maxQRShare,
     );
     qrHeight = Math.floor(totalQRHeight / qrCount);
-    const remainingHeight = availableHeight - qrHeight * qrCount - hintedHeight;
-    nonQRHeight = unhintedNonQRCount > 0 ? Math.floor(remainingHeight / unhintedNonQRCount) : 0;
+    nonQRRemainder = availableHeight - qrHeight * qrCount - hintedHeight;
   } else if (hasQR) {
-    // All boxes are QR — split evenly by row count
     qrHeight = Math.floor(availableHeight / rowCount);
-    nonQRHeight = 0;
+    nonQRRemainder = 0;
   } else {
-    // No QR — distribute remaining height after hinted boxes
     qrHeight = 0;
-    const remainingHeight = availableHeight - hintedHeight;
-    nonQRHeight = unhintedNonQRCount > 0 ? Math.floor(remainingHeight / unhintedNonQRCount) : 0;
+    nonQRRemainder = availableHeight - hintedHeight;
+  }
+
+  /** Get weighted height for a non-QR, non-hinted box */
+  function weightedHeight(box: { weight?: number }): number {
+    const w = box.weight ?? 2;
+    if (totalWeight <= 0) return 0;
+    return Math.floor((nonQRRemainder * w) / totalWeight);
   }
 
   // Build layout boxes — handles horizontal split pairs
@@ -130,26 +140,30 @@ export function calculateLayout(
       if (isLastPair) {
         height = Math.max(0, totalHeight - y);
       } else {
-        // Use the larger allocation of the two box types, respecting height hints
-        const leftH = isLeftQR ? qrHeight : (heightHints?.get(i) ?? nonQRHeight);
-        const rightH = isRightQR ? qrHeight : (heightHints?.get(i + 1) ?? nonQRHeight);
+        const leftH = isLeftQR ? qrHeight : (heightHints?.get(i) ?? weightedHeight(leftBox));
+        const rightH = isRightQR ? qrHeight : (heightHints?.get(i + 1) ?? weightedHeight(leftBox));
         height = Math.max(leftH, rightH, MIN_BOX_HEIGHT);
       }
 
-      const halfWidth = Math.floor((totalWidth - gap) / 2);
-      const rightWidth = totalWidth - halfWidth - gap;
+      // Split ratio: 1=1/3, 2=1/2 (default), 3=2/3 of available width for left box
+      const ratio = leftBox.splitRatio ?? 2;
+      const fractions: Record<number, number> = { 1: 1 / 3, 2: 1 / 2, 3: 2 / 3 };
+      const leftFraction = fractions[ratio] ?? 0.5;
+      const innerWidth = totalWidth - gap;
+      const leftWidth = Math.floor(innerWidth * leftFraction);
+      const rightWidth = innerWidth - leftWidth;
 
       layoutBoxes.push({
         box: leftBox,
         x: pad,
         y: y + pad,
-        width: halfWidth,
+        width: leftWidth,
         height,
       });
 
       layoutBoxes.push({
         box: rightBox,
-        x: pad + halfWidth + gap,
+        x: pad + leftWidth + gap,
         y: y + pad,
         width: rightWidth,
         height,
@@ -170,7 +184,7 @@ export function calculateLayout(
     } else if (isQR) {
       height = qrHeight;
     } else {
-      height = heightHints?.get(i) ?? nonQRHeight;
+      height = heightHints?.get(i) ?? weightedHeight(box);
     }
 
     // Only clamp non-last boxes — last box absorbs rounding residue

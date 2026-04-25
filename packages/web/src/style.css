@@ -152,7 +152,7 @@ header .badge {
   border-radius: 3px;
 }
 
-/* -- Main layout: single column (preview on top, editor below) ------------- */
+/* -- Main layout: preview left, editor right on wide screens --------------- */
 
 main {
   display: flex;
@@ -160,6 +160,12 @@ main {
   flex: 1;
   overflow: hidden;
   min-height: 0;
+}
+
+@media (min-width: 1024px) {
+  main {
+    flex-direction: row;
+  }
 }
 
 /* -- Preview cell ---------------------------------------------------------- */
@@ -176,14 +182,25 @@ main {
   min-height: 0;
 }
 
+@media (min-width: 1024px) {
+  .preview-cell {
+    border-bottom: none;
+    border-right: 1px solid #111;
+    width: 50%;
+    max-width: 520px;
+    overflow-y: auto;
+    flex-shrink: 0;
+  }
+}
+
 /* eInk display mock: sizes itself to the canvas via --eink-w / --eink-h
    CSS variables set by the preview renderer (fb.width/height x SCALE). */
 
 .eink-display {
   display: flex;
+  flex-direction: column;
   gap: 16px;
   align-items: flex-start;
-  flex-wrap: wrap;
 }
 
 .eink-preview-pair {
@@ -369,6 +386,12 @@ main {
   flex: 1;
 }
 
+@media (min-width: 1024px) {
+  .editor-cell {
+    overflow-y: auto;
+  }
+}
+
 .config-toolbar {
   background: var(--surface);
   border-bottom: 1px solid var(--border);
@@ -382,6 +405,11 @@ main {
   font-size: 13px;
   font-weight: 600;
   flex: 1;
+}
+
+.config-toolbar-bottom {
+  border-bottom: none;
+  border-top: 1px solid var(--border);
 }
 
 /* -- Buttons --------------------------------------------------------------- */
@@ -523,6 +551,58 @@ button {
   align-self: center;
   font-size: 11px;
   padding: 3px 12px;
+}
+
+.box-weight-controls {
+  display: flex;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.btn-weight {
+  font-family: var(--mono);
+  font-size: 10px;
+  width: 22px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  color: var(--muted);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  cursor: pointer;
+  padding: 0;
+}
+
+.btn-weight:hover {
+  background: var(--bg);
+}
+
+.btn-weight.active {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
+}
+
+.box-pair-controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+
+.box-ratio-controls {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.box-ratio-label {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--muted);
+  margin-right: 4px;
 }
 
 .box-split-badge {

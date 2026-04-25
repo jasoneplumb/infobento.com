@@ -227,6 +227,10 @@ interface BentoBoxBase {
   readonly label: string;
   /** Optional horizontal subdivision — 'left' and 'right' boxes share a row */
   readonly split?: 'left' | 'right';
+  /** Relative height weight (1=compact, 2=normal, 3=tall). Defaults to 2. */
+  readonly weight?: 1 | 2 | 3;
+  /** Left box width ratio in a split pair (1=narrow, 2=equal, 3=wide). Defaults to 2. */
+  readonly splitRatio?: 1 | 2 | 3;
 }
 
 /** Text box with typed config */
