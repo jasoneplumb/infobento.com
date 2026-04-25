@@ -51,8 +51,21 @@ export function renderQuoteBox(
 
   if (bodyWidth <= 0 || bodyMaxHeight <= 0) return;
 
-  // Combine quote text and author into a single wrapped block
-  const fullText = config.author ? `${config.text} -- ${config.author}` : config.text;
+  // Quote text in black
+  const usedHeight = drawTextWrapped(
+    fb,
+    bodyX,
+    cy,
+    config.text,
+    bodyWidth,
+    bodyMaxHeight,
+    undefined,
+    metrics.bodySize,
+  );
+  cy += usedHeight;
 
-  drawTextWrapped(fb, bodyX, cy, fullText, bodyWidth, bodyMaxHeight, undefined, metrics.bodySize);
+  // Author attribution in light grey on the next line
+  if (config.author && cy + metrics.bodySize <= bodyEnd) {
+    drawText(fb, bodyX, cy, `\u2014 ${config.author}`, bodyWidth, GRAY_LIGHT, metrics.bodySize);
+  }
 }

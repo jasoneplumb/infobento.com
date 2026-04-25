@@ -151,13 +151,9 @@ function computeHeightHints(
     const bodyWidth = boxWidth - metrics.pad * 2;
     const lineHeight = Math.round(metrics.bodySize * 1.3); // matches drawTextWrapped
 
-    // Combine quote + author into one block (matches renderer)
-    const fullText = box.config.author
-      ? `${box.config.text} -- ${box.config.author}`
-      : box.config.text;
-
+    // Count wrapped lines for quote text only
     let lines = 1;
-    const words = fullText.split(' ');
+    const words = box.config.text.split(' ');
     let line = '';
 
     for (const word of words) {
@@ -175,7 +171,10 @@ function computeHeightHints(
     if (showHeaders) {
       needed += metrics.bodySize + metrics.pad; // header row
     }
-    needed += lines * lineHeight; // quote + author text
+    needed += lines * lineHeight; // quote text
+    if (box.config.author) {
+      needed += lineHeight; // author line
+    }
     needed += metrics.pad; // bottom padding
 
     hints.set(i, needed);
