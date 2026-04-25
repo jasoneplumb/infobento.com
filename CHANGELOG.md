@@ -1,5 +1,24 @@
 # Changelog
 
+## [0.9.1] - 2026-04-24
+
+### Fixed
+
+- Quote box layout: author attribution positioned directly after wrapped text instead of at bottom of allocated space
+- Quote height hint respects showHeaders flag and removes extra padding, giving weather/forecast boxes more vertical space at large font sizes
+- drawTextWrapped returns actual pixel height consumed (was void)
+
+### Added
+
+- Product brief (`docs/product-brief.md`) — hardware, software, rendering, box types, power budget, competitive positioning
+- Design brief (`docs/design-brief.md`) — work roles, user classes, design principles, requirements, scenarios, wireframes, config delivery, rendering pipeline
+
+### Changed
+
+- Enclosure shrunk from ~18x12cm to ~14x11cm to fit GDEH0576T81 panel closely
+- Config delivery: captive portal for first-time setup + cloud poll for OTA updates
+- Server-side rendering with device-side framebuffer caching for offline resilience
+
 ## [0.9.0] - 2026-04-24
 
 ### Added
