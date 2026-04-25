@@ -1,5 +1,26 @@
 # Changelog
 
+## [0.11.0] - 2026-04-25
+
+### Added
+
+- **Horoscope** box: pick your zodiac sign (12 options) and refresh for a daily reading via api-ninjas (#59)
+- **Joke** box: optional category filter (Programming, Misc, Pun, Dark, Spooky, Christmas) with safe-mode and content blacklist always on, via JokeAPI (#60)
+- Quote box optional **tag steering** — comma-separated tags (e.g. `wisdom, life`) steer random selection
+- Quote box tag changes auto-refresh debounced (~500ms after last keystroke)
+- "Horoscope" and "Joke" entries in the Add Box dropdown
+
+### Changed
+
+- Quote provider switched from `zenquotes.io` to the actively-hosted `api.quotable.kurokeita.dev` mirror — enables tag filtering and improves reliability
+- `fetchQuote` retry-for-length loop dropped; server enforces `maxLength` upstream so a single fetch suffices
+- Horoscope and Joke boxes now expand to fit their text, matching Quote box behavior
+
+### Fixed
+
+- Reordering an unpaired box around a split pair no longer strips the pair's split markers (which made the merge buttons disappear); existing corrupted localStorage state is repaired automatically on next load
+- CHANGELOG.md prettier compliance — escape `*` so CI format check passes
+
 ## [0.10.0] - 2026-04-24
 
 ### Added
