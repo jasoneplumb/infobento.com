@@ -156,18 +156,49 @@ app.get('/api/horoscope', async (c) => {
 
 app.get('/api/quote', async (c) => {
   try {
-    const res = await fetch('https://zenquotes.io/api/random');
+    const tagsParam = c.req.query('tags')?.trim() ?? '';
+    const maxLengthParam = c.req.query('maxLength')?.trim() ?? '';
+
+    const url = new URL('https://api.quotable.kurokeita.dev/api/quotes/random');
+    if (tagsParam) {
+      // Quotable API expects title-cased tag names (e.g. "Wisdom", "Famous Quotes").
+      // Normalize each comma-separated tag, title-casing every space-separated word.
+      const tags = tagsParam
+        .split(',')
+        .map((t) => t.trim())
+        .filter((t) => t.length > 0)
+        .map((t) =>
+          t
+            .split(/\s+/)
+            .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+            .join(' '),
+        )
+        .join(',');
+      if (tags) url.searchParams.set('tags', tags);
+    }
+    if (maxLengthParam && /^\d+$/.test(maxLengthParam)) {
+      url.searchParams.set('maxLength', maxLengthParam);
+    }
+
+    const res = await fetch(url.toString());
     if (!res.ok) {
-      return c.json({ error: 'ZenQuotes API returned an error' }, 502);
+      return c.json({ error: 'Quote API returned an error' }, 502);
     }
     const data: unknown = await res.json();
-    if (!Array.isArray(data) || data.length === 0) {
-      return c.json({ error: 'Unexpected response from ZenQuotes' }, 502);
+    if (
+      !data ||
+      typeof data !== 'object' ||
+      !('quote' in data) ||
+      (data as { quote: unknown }).quote == null ||
+      typeof (data as { quote: unknown }).quote !== 'object'
+    ) {
+      // Empty `{}` response means no quote matched the given filters.
+      return c.json({ error: 'No quote found matching the criteria' }, 404);
     }
-    const quote = data[0] as { q?: string; a?: string };
-    return c.json({ q: quote.q ?? '', a: quote.a ?? '' });
+    const quote = (data as { quote: { content?: string; author?: { name?: string } } }).quote;
+    return c.json({ q: quote.content ?? '', a: quote.author?.name ?? '' });
   } catch {
-    return c.json({ error: 'Failed to fetch quote from ZenQuotes' }, 502);
+    return c.json({ error: 'Failed to fetch quote' }, 502);
   }
 });
 

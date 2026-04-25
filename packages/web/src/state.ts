@@ -47,6 +47,7 @@ export interface QRConfig {
 export interface QuoteConfig {
   content: string;
   author: string;
+  tags?: string;
 }
 
 export interface DateConfig {

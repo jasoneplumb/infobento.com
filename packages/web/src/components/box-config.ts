@@ -328,6 +328,8 @@ function buildQuoteForm(box: EditorBox): DocumentFragment {
 
   const quoteTextarea = textareaEl(cfg.content, (v) => updateConfig(box.id, 'content', v));
   const authorInput = inputEl('text', cfg.author, (v) => updateConfig(box.id, 'author', v));
+  const tagsInput = inputEl('text', cfg.tags ?? '', (v) => updateConfig(box.id, 'tags', v));
+  tagsInput.placeholder = 'wisdom, happiness, life';
 
   const btn = document.createElement('button');
   btn.type = 'button';
@@ -336,24 +338,25 @@ function buildQuoteForm(box: EditorBox): DocumentFragment {
   btn.addEventListener('click', async () => {
     btn.disabled = true;
     btn.textContent = 'Fetching\u2026';
-    const result = await fetchQuote();
+    const result = await fetchQuote(tagsInput.value);
     if (result) {
       quoteTextarea.value = result.text;
       authorInput.value = result.author;
       updateConfig(box.id, 'content', result.text);
       updateConfig(box.id, 'author', result.author);
+      btn.textContent = 'Random Quote';
     } else {
-      btn.textContent = 'Fetch failed';
+      btn.textContent = tagsInput.value.trim() ? 'No quote for those tags' : 'Fetch failed';
       setTimeout(() => {
         btn.textContent = 'Random Quote';
       }, 2000);
     }
     btn.disabled = false;
-    if (result) btn.textContent = 'Random Quote';
   });
 
   frag.appendChild(makeField('Quote Text', quoteTextarea, validateRequired('a quote')));
   frag.appendChild(makeField('Author (optional)', authorInput));
+  frag.appendChild(makeField('Tags (optional)', tagsInput));
   frag.appendChild(btn);
 
   // Auto-fetch a random quote when the box is freshly added (both fields empty)
@@ -361,7 +364,7 @@ function buildQuoteForm(box: EditorBox): DocumentFragment {
     void (async () => {
       btn.disabled = true;
       btn.textContent = 'Fetching\u2026';
-      const result = await fetchQuote();
+      const result = await fetchQuote(tagsInput.value);
       if (result) {
         quoteTextarea.value = result.text;
         authorInput.value = result.author;
