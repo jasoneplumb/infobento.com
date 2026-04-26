@@ -198,7 +198,7 @@ const DEFAULTS: Record<EditorBoxType, () => EditorBoxConfig> = {
   habit: () => ({ habits: [{ name: '', streak: 0, completedToday: false }] }),
 };
 
-const LABELS: Record<EditorBoxType, string> = {
+export const BOX_TYPE_LABELS: Record<EditorBoxType, string> = {
   text: 'Text',
   countdown: 'Countdown',
   weather: 'Weather',
@@ -330,9 +330,30 @@ export function addBox(type: EditorBoxType): void {
     state.boxes.push({
       id: uid(),
       type,
-      label: LABELS[type],
+      label: BOX_TYPE_LABELS[type],
       config: DEFAULTS[type](),
     });
+  });
+}
+
+/**
+ * Change a box's type in place. Preserves layout (split partner, weight,
+ * splitRatio, ordering) and resets `config` to the new type's defaults.
+ * The label is overwritten with the new default only if the user has not
+ * customized it (i.e. it still matches the old type's default label) —
+ * a custom label like "Today" survives a type swap.
+ */
+export function changeBoxType(id: number, newType: EditorBoxType): void {
+  // Guard outside setState so a no-op self-swap doesn't trigger a
+  // localStorage write + full re-render. (The browser's change event won't
+  // fire for same-option reselection, but a programmatic call could.)
+  const box = findBox(id);
+  if (!box || box.type === newType) return;
+  setState(() => {
+    const wasDefaultLabel = box.label === BOX_TYPE_LABELS[box.type];
+    box.type = newType;
+    box.config = DEFAULTS[newType]();
+    if (wasDefaultLabel) box.label = BOX_TYPE_LABELS[newType];
   });
 }
 
