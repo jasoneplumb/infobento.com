@@ -3,7 +3,7 @@
   "name": "InfoBento",
   "description": "Solar-powered B&W eInk decorator for kitchen counters, desks, and shelves. Enclosure sized to fit the GDEH0576T81 panel closely (~14x11cm) with a Good Display GDEH0576T81 5.76\" 920x680 198-DPI eInk panel (SSD2677 driver) that nearly fills the front face. Monolithic white housing, solar panel on the upper back, body-as-stand with ~12-15° tilt. Two tilt switches detect orientation for auto-rotate. Designed to survive a 4-foot drop. Configure once on a web page; refreshes 1-2x/day on solar power. $30-40 target via Kickstarter. Renderer produces 2-bit grayscale (4-level) framebuffers with antialiased TTF fonts (Inter) and configurable rounded box borders. Color deferred to v2.",
   "domain": "consumer-electronics",
-  "version": 2,
+  "version": 3,
   "currentPhase": "campaign",
   "createdAt": 1776109685435,
   "artifacts": [
@@ -889,6 +889,17 @@
       "metadata": {},
       "createdAt": 1777168105114,
       "updatedAt": 1777168105114
+    },
+    {
+      "type": "note",
+      "title": "Round 12 — implementation status (2026-04-25)",
+      "body": "## v0.13.0 → v0.14.0 (2026-04-25)\n\nRound 12 implementation backlog status.\n\n### Shipped (closed)\n- **Q4 — curated 5-box first-time defaults** (#70 → v0.14.0). `state.ts:defaultBoxes()` now returns `[Date | Weather]` merged + Forecast + Quote + On This Day, all auto-populated on first render. Geolocation hook generalized from `Portland, OR` sentinel to \"city is empty\".\n- **Q3 — bundled local fallback for quote/joke/horoscope** (#71 → v0.14.0). 243 quotes + 37 jokes + 30 evergreen horoscopes (~50KB total — lighter than the ~180KB estimate, mostly because of the ≤120-char quote filter). Fallback fires automatically on upstream non-2xx; response gains a `fallback: true` flag.\n\n### Filed as epics, not yet started\n- **Q5 — SaaS-default hosting** → epic #77 with 5 sub-issues:\n  - #72 multi-tenant config storage (SQLite)\n  - #73 magic-link email auth\n  - #74 `/pair/<code>` route\n  - #75 device-pull config & frame endpoints\n  - #76 web account binding\n- **Sticker / boot-time URL** → epic #80 with 2 sub-issues + extension to #39:\n  - #78 per-device QR generator script\n  - #79 sticker production specification (hardware-gated on #57 dev kit)\n  - #39 (existing) extended to display device ID and accept custom server URL\n\n### Build infra change worth noting\n- `npm run build` now chains `node scripts/post-build.mjs` to copy non-`.ts` static assets (the fallback JSON bundles) from each package's `src/` to `dist/`. ESLint config adds `**/*.mjs` to ignores.\n\n### Releases since Round 12\n- v0.13.0 (2026-04-25) — content-aware heights for all box types, 5-box editor wiring (stocks/tasks/calendar/habit/worldclock), deploy-on-tag-only\n- v0.14.0 (2026-04-25) — fallback bundle + curated defaults\n",
+      "tags": ["round-12", "milestone", "implementation", "v0.14.0"],
+      "id": "613c264a-b6a0-4772-8679-43daaa912bfd",
+      "relatedIds": [],
+      "metadata": {},
+      "createdAt": 1777170459176,
+      "updatedAt": 1777170459176
     }
   ],
   "extensions": {}
