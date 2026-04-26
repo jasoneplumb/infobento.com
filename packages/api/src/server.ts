@@ -25,6 +25,21 @@ import {
 } from './index.js';
 import { DISPLAY_WIDTH, DISPLAY_HEIGHT } from '@infobento/core';
 import { pickFallbackQuote, pickFallbackJoke, pickFallbackHoroscope } from './fallback/index.js';
+import { createAccount, getDb, type OAuthProvider } from './db.js';
+import { clearSessionCookie, issueSessionCookie, readSession } from './auth/session.js';
+import {
+  createAuthenticationOptions,
+  createRegistrationOptions,
+  verifyAuthentication,
+  verifyRegistration,
+} from './auth/passkey.js';
+import {
+  buildAuthorizationRequest,
+  handleOAuthCallback,
+  readOAuthCredentials,
+  redirectUriFor,
+} from './auth/oauth.js';
+import { setCookie, getCookie, deleteCookie } from 'hono/cookie';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -357,6 +372,186 @@ app.get('/api/quote', async (c) => {
     return c.json({ q: fb.text, a: fb.author, fallback: true });
   }
   return c.json({ error: 'No quote found matching the criteria' }, 502);
+});
+
+// --- Auth routes (issue #73) ---
+//
+// Passkey is the primary credential. OAuth (Apple, Google) is the fallback.
+// Session cookie is decoupled from credential type — adding/removing a
+// passkey or OAuth identity does not invalidate sessions.
+//
+// All endpoints return generic responses to avoid account-existence leaks
+// where applicable.
+
+const PENDING_ACCOUNT_COOKIE = 'ib_pending_account';
+const PENDING_ACCOUNT_TTL = 15 * 60; // 15 minutes
+
+/**
+ * Resolve the account id for a passkey-registration request. Either:
+ *  - the user is already signed in (linking a new passkey), OR
+ *  - a one-shot pending-account cookie identifies a freshly-created account
+ *    that has yet to register its first credential.
+ *
+ * If neither, mint a new account and emit the pending cookie. This keeps the
+ * "first-time visitor with no email" UX seamless: registration creates the
+ * account, the verification step finalizes the credential. Self-hosters that
+ * want an invite-only model can layer policy on top.
+ */
+function resolveOrCreatePendingAccount(c: import('hono').Context): string {
+  const session = readSession(c);
+  if (session) return session.accountId;
+  const pending = getCookie(c, PENDING_ACCOUNT_COOKIE);
+  if (pending) return pending;
+  const db = getDb();
+  const account = createAccount(db);
+  setCookie(c, PENDING_ACCOUNT_COOKIE, account.id, {
+    httpOnly: true,
+    sameSite: 'Lax',
+    secure: process.env['NODE_ENV'] === 'production',
+    path: '/',
+    maxAge: PENDING_ACCOUNT_TTL,
+  });
+  return account.id;
+}
+
+app.post('/api/auth/passkey/register/options', async (c) => {
+  try {
+    const accountId = resolveOrCreatePendingAccount(c);
+    const result = await createRegistrationOptions(getDb(), accountId);
+    return c.json({ options: result.options, challengeToken: result.challengeToken });
+  } catch (e) {
+    return c.json(
+      { error: 'registration_options_failed', detail: e instanceof Error ? e.message : 'unknown' },
+      500,
+    );
+  }
+});
+
+app.post('/api/auth/passkey/register/verify', async (c) => {
+  let body: { credential?: unknown; challengeToken?: unknown };
+  try {
+    body = (await c.req.json()) as { credential?: unknown; challengeToken?: unknown };
+  } catch {
+    return c.json({ error: 'invalid_json' }, 400);
+  }
+  if (!body.credential || typeof body.challengeToken !== 'string') {
+    return c.json({ error: 'invalid_request' }, 400);
+  }
+  const result = await verifyRegistration(getDb(), {
+    credential: body.credential as Parameters<typeof verifyRegistration>[1]['credential'],
+    challengeToken: body.challengeToken,
+  });
+  if (!result.ok) return c.json({ error: result.reason }, 400);
+  issueSessionCookie(c, result.accountId);
+  deleteCookie(c, PENDING_ACCOUNT_COOKIE, { path: '/' });
+  return c.json({ ok: true });
+});
+
+app.post('/api/auth/passkey/login/options', async (c) => {
+  try {
+    const result = await createAuthenticationOptions(getDb());
+    return c.json({ options: result.options, challengeToken: result.challengeToken });
+  } catch (e) {
+    return c.json(
+      {
+        error: 'authentication_options_failed',
+        detail: e instanceof Error ? e.message : 'unknown',
+      },
+      500,
+    );
+  }
+});
+
+app.post('/api/auth/passkey/login/verify', async (c) => {
+  let body: { assertion?: unknown; challengeToken?: unknown };
+  try {
+    body = (await c.req.json()) as { assertion?: unknown; challengeToken?: unknown };
+  } catch {
+    return c.json({ error: 'invalid_json' }, 400);
+  }
+  if (!body.assertion || typeof body.challengeToken !== 'string') {
+    return c.json({ error: 'invalid_request' }, 400);
+  }
+  const result = await verifyAuthentication(getDb(), {
+    assertion: body.assertion as Parameters<typeof verifyAuthentication>[1]['assertion'],
+    challengeToken: body.challengeToken,
+  });
+  if (!result.ok) return c.json({ error: result.reason }, 401);
+  issueSessionCookie(c, result.accountId);
+  return c.json({ ok: true });
+});
+
+const OAUTH_STATE_COOKIE = 'ib_oauth_state';
+
+function oauthProviderFromParam(param: string): OAuthProvider | null {
+  if (param === 'apple' || param === 'google') return param;
+  return null;
+}
+
+app.get('/api/auth/oauth/:provider/start', (c) => {
+  const provider = oauthProviderFromParam(c.req.param('provider'));
+  if (!provider) {
+    // Always 302 to keep behavior consistent (avoid endpoint-existence leaks).
+    return c.redirect('/');
+  }
+  const creds = readOAuthCredentials();
+  const clientId = provider === 'apple' ? creds.apple.clientId : creds.google.clientId;
+  if (!clientId) return c.redirect('/');
+  const next = c.req.query('next');
+  const result = buildAuthorizationRequest(provider, {
+    clientId,
+    redirectUri: redirectUriFor(provider, creds.redirectUriBase),
+    next: next ?? undefined,
+  });
+  setCookie(c, OAUTH_STATE_COOKIE, result.stateToken, {
+    httpOnly: true,
+    sameSite: 'Lax',
+    secure: process.env['NODE_ENV'] === 'production',
+    path: '/',
+    maxAge: 10 * 60,
+  });
+  return c.redirect(result.redirectUrl);
+});
+
+app.get('/api/auth/oauth/:provider/callback', async (c) => {
+  const provider = oauthProviderFromParam(c.req.param('provider'));
+  if (!provider) return c.redirect('/');
+  const code = c.req.query('code');
+  const state = c.req.query('state');
+  const stateToken = getCookie(c, OAUTH_STATE_COOKIE);
+  if (!code || !state || !stateToken) {
+    return c.redirect('/?auth_error=missing_params');
+  }
+  const creds = readOAuthCredentials();
+  const result = await handleOAuthCallback(getDb(), {
+    provider,
+    code,
+    state,
+    stateToken,
+    creds,
+  });
+  deleteCookie(c, OAUTH_STATE_COOKIE, { path: '/' });
+  if (!result.ok) {
+    return c.redirect(`/?auth_error=${encodeURIComponent(result.reason)}`);
+  }
+  issueSessionCookie(c, result.accountId);
+  // When we linked into an existing account on email match, surface a flag so
+  // the editor can prompt the user to confirm — don't auto-link silently.
+  const next = result.next;
+  const sep = next.includes('?') ? '&' : '?';
+  const suffix = result.linkedToExistingEmail ? `${sep}linked=1` : '';
+  return c.redirect(`${next}${suffix}`);
+});
+
+app.post('/api/auth/signout', (c) => {
+  clearSessionCookie(c);
+  return c.json({ ok: true });
+});
+
+app.get('/api/auth/session', (c) => {
+  const session = readSession(c);
+  if (!session) return c.json({ authenticated: false });
+  return c.json({ authenticated: true, accountId: session.accountId, exp: session.exp });
 });
 
 // --- Static file serving (production) ---
