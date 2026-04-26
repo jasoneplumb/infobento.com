@@ -4,7 +4,7 @@
  * for horizontal pairs, and delegates type-specific forms to box-config.ts.
  */
 
-import type { EditorBox } from '../state';
+import type { EditorBox, EditorBoxType } from '../state';
 import {
   getBoxes,
   moveBox,
@@ -14,8 +14,17 @@ import {
   splitBoxes,
   setWeight,
   setSplitRatio,
+  changeBoxType,
+  BOX_TYPE_LABELS,
 } from '../state';
 import { buildConfigForm } from './box-config';
+
+/** Editor type-switcher options sorted by display label, matching the Add Box dropdown. */
+const TYPE_OPTIONS: ReadonlyArray<{ value: EditorBoxType; label: string }> = (
+  Object.entries(BOX_TYPE_LABELS) as Array<[EditorBoxType, string]>
+)
+  .map(([value, label]) => ({ value, label }))
+  .sort((a, b) => a.label.localeCompare(b.label));
 
 // -- Card builder -----------------------------------------------------------
 
@@ -36,12 +45,22 @@ function buildCard(
   handle.className = 'box-drag-handle';
   handle.innerHTML = '<span></span><span></span><span></span>';
 
-  const badge = document.createElement('span');
-  badge.className = `box-type-badge type-${box.type}`;
-  badge.textContent = box.type;
+  const typeSelect = document.createElement('select');
+  typeSelect.className = `box-type-select type-${box.type}`;
+  typeSelect.title = 'Change box type — layout (merge, order, size) is preserved';
+  for (const opt of TYPE_OPTIONS) {
+    const optEl = document.createElement('option');
+    optEl.value = opt.value;
+    optEl.textContent = opt.label;
+    if (opt.value === box.type) optEl.selected = true;
+    typeSelect.appendChild(optEl);
+  }
+  typeSelect.addEventListener('change', () => {
+    changeBoxType(box.id, typeSelect.value as EditorBoxType);
+  });
 
   header.appendChild(handle);
-  header.appendChild(badge);
+  header.appendChild(typeSelect);
 
   if (splitSide) {
     const splitBadge = document.createElement('span');
