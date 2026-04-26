@@ -5,7 +5,15 @@
 set -e
 
 DEPLOY_DIR="/var/www/infobento"
+DATA_DIR="/var/lib/infobento"
 SERVICE_NAME="infobento"
+
+# Ensure the SaaS data directory exists and is owned by the service user.
+# The SQLite file at $DATA_DIR/data.db lives outside DEPLOY_DIR so it
+# survives `rm -rf "$DEPLOY_DIR/packages"` and version rollbacks.
+mkdir -p "$DATA_DIR"
+chown www-data:www-data "$DATA_DIR"
+chmod 700 "$DATA_DIR"
 
 echo "Receiving and extracting InfoBento deployment..."
 
