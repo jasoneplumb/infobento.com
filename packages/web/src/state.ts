@@ -344,10 +344,12 @@ export function addBox(type: EditorBoxType): void {
  * a custom label like "Today" survives a type swap.
  */
 export function changeBoxType(id: number, newType: EditorBoxType): void {
+  // Guard outside setState so a no-op self-swap doesn't trigger a
+  // localStorage write + full re-render. (The browser's change event won't
+  // fire for same-option reselection, but a programmatic call could.)
+  const box = findBox(id);
+  if (!box || box.type === newType) return;
   setState(() => {
-    const box = findBox(id);
-    if (!box) return;
-    if (box.type === newType) return;
     const wasDefaultLabel = box.label === BOX_TYPE_LABELS[box.type];
     box.type = newType;
     box.config = DEFAULTS[newType]();
