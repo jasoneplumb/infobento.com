@@ -640,38 +640,62 @@ button {
   border-radius: 1px;
 }
 
-.box-type-badge {
+.box-type-select {
   font-family: var(--mono);
-  font-size: 10px;
-  font-weight: 700;
-  padding: 2px 6px;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 22px 2px 6px;
+  border: 1px solid transparent;
   border-radius: 3px;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
+  background-color: #f3f4f6;
+  color: var(--text);
+  cursor: pointer;
+  letter-spacing: 0.02em;
+  appearance: none;
+  -webkit-appearance: none;
+  background-image:
+    linear-gradient(45deg, transparent 50%, currentColor 50%),
+    linear-gradient(135deg, currentColor 50%, transparent 50%);
+  background-position:
+    calc(100% - 11px) 50%,
+    calc(100% - 7px) 50%;
+  background-size:
+    4px 4px,
+    4px 4px;
+  background-repeat: no-repeat;
 }
 
-.type-text {
-  background: #e0f2fe;
+.box-type-select:hover {
+  border-color: var(--border);
+}
+
+.box-type-select:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.box-type-select.type-text {
+  background-color: #e0f2fe;
   color: #0369a1;
 }
 
-.type-countdown {
-  background: #fef3c7;
+.box-type-select.type-countdown {
+  background-color: #fef3c7;
   color: #92400e;
 }
 
-.type-weather {
-  background: #d1fae5;
+.box-type-select.type-weather {
+  background-color: #d1fae5;
   color: #065f46;
 }
 
-.type-qr {
-  background: #ede9fe;
+.box-type-select.type-qr {
+  background-color: #ede9fe;
   color: #5b21b6;
 }
 
-.type-quote {
-  background: #fce7f3;
+.box-type-select.type-quote {
+  background-color: #fce7f3;
   color: #9d174d;
 }
 
