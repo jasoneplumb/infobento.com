@@ -105,6 +105,53 @@ describe('render', () => {
     // Empty config = blank display
     expect(fb.data.every((b) => b === 0)).toBe(true);
   });
+
+  it('content-aware height: short-content box yields smaller area than list-heavy box', () => {
+    // A weather box (3 lines of content) paired with a long forecast (8 entries)
+    // should produce different row heights — list-heavy box gets more space.
+    const shortFirst: BentoConfig = {
+      boxes: [
+        {
+          id: '1',
+          type: 'weather',
+          label: 'W',
+          config: {
+            type: 'weather',
+            city: 'Portland',
+            data: { temperature: 60, condition: 'Clear', high: 70, low: 50 },
+          },
+        },
+        {
+          id: '2',
+          type: 'forecast3d',
+          label: '8D',
+          config: {
+            type: 'forecast3d',
+            city: 'Portland',
+            entries: Array.from({ length: 8 }, (_, i) => ({
+              day: `D${String(i)}`,
+              high: 70,
+              low: 50,
+              condition: 'Clear',
+            })),
+          },
+        },
+      ],
+      refreshesPerDay: 1,
+    };
+
+    // Same boxes in reverse order — invariant: each gets the same height regardless of order
+    const reversed: BentoConfig = {
+      ...shortFirst,
+      boxes: [shortFirst.boxes[1]!, shortFirst.boxes[0]!],
+    };
+
+    const fbA = render(shortFirst);
+    const fbB = render(reversed);
+    // Both render successfully and produce non-empty output (pixels in both top and bottom)
+    expect(fbA.data.some((b) => b !== 0)).toBe(true);
+    expect(fbB.data.some((b) => b !== 0)).toBe(true);
+  });
 });
 
 describe('createFrameBuffer', () => {

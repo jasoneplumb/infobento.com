@@ -126,28 +126,124 @@ function renderBox(
 }
 
 /**
- * intent: Extract the wrapped text plus any extra body lines for a content-heavy box.
- * Returns null for box types whose height is fixed by content + layout, not by text length.
+ * intent: Count wrapped lines a body of text would occupy at a given width
+ * method: Simulate word-by-word wrapping using the same metrics as drawTextWrapped
  */
-function extractWrappedText(box: BentoBox): { text: string; extraLines: number } | null {
+function countWrappedLines(text: string, bodyWidth: number, fontSize: number): number {
+  if (!text) return 1;
+  let lines = 1;
+  const words = text.split(' ');
+  let line = '';
+  for (const word of words) {
+    const testLine = line ? `${line} ${word}` : word;
+    const testWidth = measureText(testLine, fontSize);
+    if (line && testWidth > bodyWidth) {
+      lines++;
+      line = word;
+    } else {
+      line = testLine;
+    }
+  }
+  return lines;
+}
+
+/**
+ * intent: Compute the minimum pixel height needed to render a single box without truncation
+ * method: Per-type formulas mirroring each renderer's vertical layout (header + content + padding)
+ * returns: total box height in pixels, or null when the type isn't height-hinted (qr; unknown)
+ */
+function computeMinHeight(
+  box: BentoBox,
+  bodyWidth: number,
+  metrics: FontMetrics,
+  showHeaders: boolean,
+): number | null {
+  const lineH = metrics.bodyLineHeight;
+  const rowH = metrics.bodySize + metrics.rowGap;
+  const padding = 2 * metrics.pad; // top + bottom margins
+  const headerH = showHeaders ? metrics.bodySize + metrics.pad : 0;
+  const shell = (content: number): number => padding + headerH + content;
+  const wrap = (text: string): number => countWrappedLines(text, bodyWidth, metrics.bodySize);
+
   if (box.type === 'quote' && box.config?.type === 'quote') {
-    return { text: box.config.text, extraLines: box.config.author ? 1 : 0 };
+    const author = box.config.author ? lineH : 0;
+    return shell(wrap(box.config.text) * lineH + author);
   }
   if (box.type === 'horoscope' && box.config?.type === 'horoscope') {
-    return { text: box.config.text, extraLines: 0 };
+    return shell(wrap(box.config.text) * lineH);
   }
   if (box.type === 'joke' && box.config?.type === 'joke') {
-    return { text: box.config.text, extraLines: 0 };
+    return shell(wrap(box.config.text) * lineH);
   }
   if (box.type === 'onthisday' && box.config?.type === 'onthisday') {
-    return { text: box.config.text, extraLines: 0 };
+    return shell(wrap(box.config.text) * lineH);
   }
+  if (box.type === 'text' && box.config?.type === 'text') {
+    return shell(wrap(box.config.text) * lineH);
+  }
+  if (box.type === 'weather') {
+    const c = box.config?.type === 'weather' ? box.config : undefined;
+    if (c?.data) return shell(metrics.heroSize + 2 + metrics.bodySize);
+    const cityLines = c?.city ? wrap(c.city) : 1;
+    return shell(cityLines * lineH + metrics.bodySize);
+  }
+  if (box.type === 'countdown') {
+    return shell(metrics.heroSize + 2 + metrics.bodySize);
+  }
+  if (box.type === 'date') {
+    return shell(2 * metrics.bodySize + 5 + metrics.heroSize + Math.max(metrics.bodySize, 5));
+  }
+  if (box.type === 'moon') {
+    return shell(Math.max(20, 2 * metrics.bodySize + 3));
+  }
+  if (box.type === 'sun') {
+    return shell(3 * metrics.bodySize + 2 * metrics.rowGap);
+  }
+  if (box.type === 'aqi') {
+    return shell(metrics.heroSize + 2 + metrics.bodySize);
+  }
+  if (box.type === 'progress') {
+    return shell(metrics.heroSize + 2 + 7 + 3 + metrics.bodySize);
+  }
+  if (box.type === 'stocks') {
+    const c = box.config?.type === 'stocks' ? box.config : undefined;
+    if (c?.data) {
+      return shell(metrics.heroSize + 2 + metrics.heroSize + 4 + metrics.bodySize);
+    }
+    return shell(metrics.heroSize + 2 + metrics.bodySize);
+  }
+  if (box.type === 'forecast' && box.config?.type === 'forecast') {
+    const n = Math.max(1, Math.min(8, box.config.entries?.length ?? 8));
+    return shell(n * rowH);
+  }
+  if (box.type === 'forecast3d' && box.config?.type === 'forecast3d') {
+    const n = Math.max(1, Math.min(8, box.config.entries?.length ?? 8));
+    return shell(n * rowH);
+  }
+  if (box.type === 'tasks' && box.config?.type === 'tasks') {
+    const n = Math.max(1, box.config.items.length);
+    return shell(n * lineH);
+  }
+  if (box.type === 'calendar') {
+    const c = box.config?.type === 'calendar' ? box.config : undefined;
+    const n = Math.max(1, c?.events?.length ?? 1);
+    return shell(n * rowH);
+  }
+  if (box.type === 'habit' && box.config?.type === 'habit') {
+    const n = Math.max(1, box.config.habits.length);
+    return shell(n * lineH);
+  }
+  if (box.type === 'worldclock' && box.config?.type === 'worldclock') {
+    const n = Math.max(1, box.config.zones.length);
+    return shell(n * rowH);
+  }
+  // qr is sized by the layout engine itself (QR_HEIGHT_RATIO); no hint.
   return null;
 }
 
 /**
- * intent: Compute minimum pixel height for content-heavy boxes (quote, horoscope, joke)
- * method: Simulate word-wrap to count lines, add space for header + extras + padding
+ * intent: Compute minimum pixel height per box for content-aware layout
+ * method: Walks all boxes; for each type computeMinHeight returns its renderer-specific minimum
  */
 function computeHeightHints(
   boxes: readonly BentoBox[],
@@ -161,8 +257,6 @@ function computeHeightHints(
   for (let i = 0; i < boxes.length; i++) {
     const box = boxes[i];
     if (!box) continue;
-    const content = extractWrappedText(box);
-    if (!content) continue;
 
     // Determine actual box width (accounts for split pairs)
     let boxWidth = totalWidth;
@@ -171,7 +265,6 @@ function computeHeightHints(
       const fractions: Record<number, number> = { 1: 1 / 3, 2: 1 / 2, 3: 2 / 3 };
       boxWidth = Math.floor((totalWidth - padPx) * (fractions[ratio] ?? 0.5));
     } else if (box.split === 'right') {
-      // Find left partner's ratio
       const leftBox = i > 0 ? boxes[i - 1] : undefined;
       const ratio = leftBox?.splitRatio ?? 2;
       const fractions: Record<number, number> = { 1: 1 / 3, 2: 1 / 2, 3: 2 / 3 };
@@ -180,33 +273,9 @@ function computeHeightHints(
     }
 
     const bodyWidth = boxWidth - metrics.pad * 2;
-    const lineHeight = Math.round(metrics.bodySize * 1.3); // matches drawTextWrapped
-
-    // Count wrapped lines for the body text
-    let lines = 1;
-    const words = content.text.split(' ');
-    let line = '';
-
-    for (const word of words) {
-      const testLine = line ? `${line} ${word}` : word;
-      const testWidth = measureText(testLine, metrics.bodySize);
-      if (line && testWidth > bodyWidth) {
-        lines++;
-        line = word;
-      } else {
-        line = testLine;
-      }
-    }
-
-    let needed = metrics.pad; // top padding
-    if (showHeaders) {
-      needed += metrics.bodySize + metrics.pad; // header row
-    }
-    needed += lines * lineHeight; // body text
-    needed += content.extraLines * lineHeight; // extras (e.g. author line)
-    needed += metrics.pad; // bottom padding
-
-    hints.set(i, needed);
+    const minH = computeMinHeight(box, bodyWidth, metrics, showHeaders);
+    if (minH == null) continue;
+    hints.set(i, minH);
   }
 
   return hints.size > 0 ? hints : undefined;
