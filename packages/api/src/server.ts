@@ -24,6 +24,7 @@ import {
   validateConfig,
 } from './index.js';
 import { DISPLAY_WIDTH, DISPLAY_HEIGHT } from '@infobento/core';
+import { pickFallbackQuote, pickFallbackJoke, pickFallbackHoroscope } from './fallback/index.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -201,36 +202,38 @@ app.get('/api/onthisday', async (c) => {
 });
 
 app.get('/api/joke', async (c) => {
-  try {
-    const raw = (c.req.query('categories') ?? '').trim();
-    let categoriesPath = 'Any';
-    if (raw) {
-      const valid = raw
-        .split(',')
-        .map((s) => s.trim())
-        .filter((s) => s.length > 0)
-        .map(normalizeJokeCategory)
-        .filter((s) => VALID_JOKE_CATEGORIES.has(s));
-      if (valid.length > 0) categoriesPath = valid.join(',');
-    }
-    const url =
-      `https://v2.jokeapi.dev/joke/${categoriesPath}` +
-      `?safe-mode&type=single` +
-      `&blacklistFlags=nsfw,religious,political,racist,sexist,explicit`;
-    const res = await fetch(url);
-    if (!res.ok) {
-      return c.json({ error: 'Joke API returned an error' }, 502);
-    }
-    const data = (await res.json()) as { error?: boolean; joke?: string; category?: string };
-    if (data.error || !data.joke) {
-      return c.json({ error: 'No joke found matching the criteria' }, 404);
-    }
-    // Normalize whitespace — jokes can be multi-line; eInk box wraps better as single line.
-    const text = data.joke.replace(/\s+/g, ' ').trim();
-    return c.json({ text, category: data.category ?? '' });
-  } catch {
-    return c.json({ error: 'Failed to fetch joke' }, 502);
+  const raw = (c.req.query('categories') ?? '').trim();
+  let categoriesPath = 'Any';
+  if (raw) {
+    const valid = raw
+      .split(',')
+      .map((s) => s.trim())
+      .filter((s) => s.length > 0)
+      .map(normalizeJokeCategory)
+      .filter((s) => VALID_JOKE_CATEGORIES.has(s));
+    if (valid.length > 0) categoriesPath = valid.join(',');
   }
+  const url =
+    `https://v2.jokeapi.dev/joke/${categoriesPath}` +
+    `?safe-mode&type=single` +
+    `&blacklistFlags=nsfw,religious,political,racist,sexist,explicit`;
+  try {
+    const res = await fetch(url);
+    if (res.ok) {
+      const data = (await res.json()) as { error?: boolean; joke?: string; category?: string };
+      if (!data.error && data.joke) {
+        const text = data.joke.replace(/\s+/g, ' ').trim();
+        return c.json({ text, category: data.category ?? '' });
+      }
+    }
+  } catch {
+    // fall through to bundled fallback
+  }
+  const fb = pickFallbackJoke(raw);
+  if (fb) {
+    return c.json({ text: fb.text, category: fb.category, fallback: true });
+  }
+  return c.json({ error: 'No joke found matching the criteria' }, 502);
 });
 
 const VALID_ZODIAC_SIGNS = new Set([
@@ -256,17 +259,20 @@ app.get('/api/horoscope', async (c) => {
   try {
     const url = `https://api.api-ninjas.com/v1/horoscope?zodiac=${sign}`;
     const res = await fetch(url);
-    if (!res.ok) {
-      return c.json({ error: 'Horoscope API returned an error' }, 502);
+    if (res.ok) {
+      const data = (await res.json()) as { sign?: string; date?: string; horoscope?: string };
+      if (data.horoscope) {
+        return c.json({ sign, text: data.horoscope, date: data.date ?? '' });
+      }
     }
-    const data = (await res.json()) as { sign?: string; date?: string; horoscope?: string };
-    if (!data.horoscope) {
-      return c.json({ error: 'Unexpected response from Horoscope API' }, 502);
-    }
-    return c.json({ sign, text: data.horoscope, date: data.date ?? '' });
   } catch {
-    return c.json({ error: 'Failed to fetch horoscope' }, 502);
+    // fall through to bundled fallback
   }
+  const fb = pickFallbackHoroscope(sign);
+  if (fb) {
+    return c.json({ sign: fb.sign, text: fb.text, date: '', fallback: true });
+  }
+  return c.json({ error: 'Failed to fetch horoscope' }, 502);
 });
 
 app.get('/api/stocks', async (c) => {
@@ -303,51 +309,54 @@ app.get('/api/stocks', async (c) => {
 });
 
 app.get('/api/quote', async (c) => {
-  try {
-    const tagsParam = c.req.query('tags')?.trim() ?? '';
-    const maxLengthParam = c.req.query('maxLength')?.trim() ?? '';
+  const tagsParam = c.req.query('tags')?.trim() ?? '';
+  const maxLengthParam = c.req.query('maxLength')?.trim() ?? '';
 
-    const url = new URL('https://api.quotable.kurokeita.dev/api/quotes/random');
-    if (tagsParam) {
-      // Quotable API expects title-cased tag names (e.g. "Wisdom", "Famous Quotes").
-      // Normalize each comma-separated tag, title-casing every space-separated word.
-      const tags = tagsParam
-        .split(',')
-        .map((t) => t.trim())
-        .filter((t) => t.length > 0)
-        .map((t) =>
-          t
-            .split(/\s+/)
-            .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
-            .join(' '),
-        )
-        .join(',');
-      if (tags) url.searchParams.set('tags', tags);
-    }
-    if (maxLengthParam && /^\d+$/.test(maxLengthParam)) {
-      url.searchParams.set('maxLength', maxLengthParam);
-    }
-
-    const res = await fetch(url.toString());
-    if (!res.ok) {
-      return c.json({ error: 'Quote API returned an error' }, 502);
-    }
-    const data: unknown = await res.json();
-    if (
-      !data ||
-      typeof data !== 'object' ||
-      !('quote' in data) ||
-      (data as { quote: unknown }).quote == null ||
-      typeof (data as { quote: unknown }).quote !== 'object'
-    ) {
-      // Empty `{}` response means no quote matched the given filters.
-      return c.json({ error: 'No quote found matching the criteria' }, 404);
-    }
-    const quote = (data as { quote: { content?: string; author?: { name?: string } } }).quote;
-    return c.json({ q: quote.content ?? '', a: quote.author?.name ?? '' });
-  } catch {
-    return c.json({ error: 'Failed to fetch quote' }, 502);
+  const url = new URL('https://api.quotable.kurokeita.dev/api/quotes/random');
+  if (tagsParam) {
+    // Quotable API expects title-cased tag names (e.g. "Wisdom", "Famous Quotes").
+    // Normalize each comma-separated tag, title-casing every space-separated word.
+    const tags = tagsParam
+      .split(',')
+      .map((t) => t.trim())
+      .filter((t) => t.length > 0)
+      .map((t) =>
+        t
+          .split(/\s+/)
+          .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+          .join(' '),
+      )
+      .join(',');
+    if (tags) url.searchParams.set('tags', tags);
   }
+  if (maxLengthParam && /^\d+$/.test(maxLengthParam)) {
+    url.searchParams.set('maxLength', maxLengthParam);
+  }
+  try {
+    const res = await fetch(url.toString());
+    if (res.ok) {
+      const data: unknown = await res.json();
+      if (
+        data &&
+        typeof data === 'object' &&
+        'quote' in data &&
+        (data as { quote: unknown }).quote != null &&
+        typeof (data as { quote: unknown }).quote === 'object'
+      ) {
+        const quote = (data as { quote: { content?: string; author?: { name?: string } } }).quote;
+        if (quote.content) {
+          return c.json({ q: quote.content, a: quote.author?.name ?? '' });
+        }
+      }
+    }
+  } catch {
+    // fall through to bundled fallback
+  }
+  const fb = pickFallbackQuote(tagsParam);
+  if (fb) {
+    return c.json({ q: fb.text, a: fb.author, fallback: true });
+  }
+  return c.json({ error: 'No quote found matching the criteria' }, 502);
 });
 
 // --- Static file serving (production) ---

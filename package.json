@@ -7,7 +7,7 @@
     "packages/*"
   ],
   "scripts": {
-    "build": "tsc -b",
+    "build": "tsc -b && node scripts/post-build.mjs",
     "typecheck": "tsc -b",
     "test": "vitest run",
     "lint": "eslint .",
