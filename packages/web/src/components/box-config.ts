@@ -33,6 +33,7 @@ import {
   updateWeatherData,
   updateSunData,
   updateAQIData,
+  updateStocksData,
 } from '../state';
 import type { TaskItem, CalendarEvent, HabitEntry, ClockZone } from '@infobento/core';
 import {
@@ -43,6 +44,7 @@ import {
   fetchHoroscope,
   fetchJoke,
   fetchOnThisDay,
+  fetchStocks,
   fetchSunTimes,
   fetchAirQuality,
 } from '../api';
@@ -788,13 +790,47 @@ function buildListField(
 function buildStocksForm(box: EditorBox): DocumentFragment {
   const frag = document.createDocumentFragment();
   const cfg = box.config as StocksConfig;
-  const symbolInput = inputEl('text', cfg.symbol, (v) => updateConfig(box.id, 'symbol', v));
+
+  const statusEl = document.createElement('div');
+  statusEl.className = 'weather-status';
+  if (cfg.data) {
+    const sign = cfg.data.change >= 0 ? '+' : '';
+    statusEl.textContent =
+      `${cfg.data.price.toFixed(2)} ` +
+      `(${sign}${cfg.data.change.toFixed(2)}, ` +
+      `${sign}${cfg.data.changePercent.toFixed(2)}%)`;
+  }
+
+  const doFetch = async (): Promise<void> => {
+    const symbol = cfg.symbol;
+    if (!symbol.trim()) return;
+    statusEl.textContent = 'Fetching quote\u2026';
+    const data = await fetchStocks(symbol);
+    if (data) {
+      updateStocksData(box.id, data);
+      const sign = data.change >= 0 ? '+' : '';
+      statusEl.textContent =
+        `${data.price.toFixed(2)} ` +
+        `(${sign}${data.change.toFixed(2)}, ` +
+        `${sign}${data.changePercent.toFixed(2)}%)`;
+    } else {
+      statusEl.textContent = 'Symbol not found or fetch failed.';
+    }
+  };
+
+  const symbolInput = inputEl('text', cfg.symbol, (v) => {
+    updateConfig(box.id, 'symbol', v);
+    debouncedFetch(box.id, doFetch);
+  });
   symbolInput.placeholder = 'e.g. AAPL';
+
   frag.appendChild(makeField('Symbol', symbolInput, validateRequired('a symbol')));
-  const note = document.createElement('div');
-  note.className = 'weather-status';
-  note.textContent = 'Live price data not yet wired — box renders "No data" until then.';
-  frag.appendChild(note);
+  frag.appendChild(statusEl);
+
+  if (cfg.symbol.trim() && !cfg.data) {
+    void doFetch();
+  }
+
   return frag;
 }
 
@@ -944,6 +980,42 @@ function buildHabitForm(box: EditorBox): DocumentFragment {
   return frag;
 }
 
+/**
+ * Parse a UTC offset string into minutes. Accepts:
+ *   "+5", "-5", "5"             → hours
+ *   "+5:30", "-3:30"            → hours:minutes
+ *   "UTC+5", "UTC-5:30", "UTC"  → UTC-prefixed
+ * Returns null on invalid input. Caps at ±840 minutes (±14h).
+ */
+function parseUtcOffset(input: string): number | null {
+  const s = input
+    .trim()
+    .replace(/^UTC\s*/i, '')
+    .trim();
+  if (s === '') return 0;
+  const m = s.match(/^([+-]?)(\d{1,2})(?::(\d{1,2}))?$/);
+  if (!m) return null;
+  const sign = m[1] === '-' ? -1 : 1;
+  const hours = parseInt(m[2] ?? '0', 10);
+  const mins = m[3] ? parseInt(m[3], 10) : 0;
+  if (mins >= 60) return null;
+  const total = sign * (hours * 60 + mins);
+  if (Math.abs(total) > 840) return null;
+  return total;
+}
+
+/** Format an offset in minutes back to a canonical "UTC±H[:MM]" string. */
+function formatUtcOffset(minutes: number): string {
+  if (!Number.isFinite(minutes)) return 'UTC+0';
+  const sign = minutes < 0 ? '-' : '+';
+  const abs = Math.abs(minutes);
+  const h = Math.floor(abs / 60);
+  const m = abs % 60;
+  return m === 0
+    ? `UTC${sign}${String(h)}`
+    : `UTC${sign}${String(h)}:${String(m).padStart(2, '0')}`;
+}
+
 function buildWorldclockForm(box: EditorBox): DocumentFragment {
   const frag = document.createDocumentFragment();
   const cfg = box.config as WorldclockConfig;
@@ -961,16 +1033,26 @@ function buildWorldclockForm(box: EditorBox): DocumentFragment {
     label.placeholder = 'NYC';
 
     const offset = document.createElement('input');
-    offset.type = 'number';
-    offset.value = String(zone.offsetMinutes);
+    offset.type = 'text';
+    offset.value = formatUtcOffset(zone.offsetMinutes);
     offset.style.width = '6rem';
-    offset.title = 'UTC offset (minutes) — e.g. -300 for EST';
-    offset.placeholder = '-300';
+    offset.title = 'UTC offset — e.g. -5, +5:30, UTC-8';
+    offset.placeholder = 'UTC-5';
     offset.addEventListener('input', () => {
-      const n = parseInt(offset.value, 10);
-      if (Number.isFinite(n)) {
-        const next = cfg.zones.map((z, i) => (i === idx ? { ...z, offsetMinutes: n } : z));
+      const parsed = parseUtcOffset(offset.value);
+      if (parsed != null) {
+        offset.classList.remove('field-error');
+        const next = cfg.zones.map((z, i) => (i === idx ? { ...z, offsetMinutes: parsed } : z));
         updateConfigList<ClockZone>(box.id, 'zones', next);
+      } else {
+        offset.classList.add('field-error');
+      }
+    });
+    offset.addEventListener('blur', () => {
+      const parsed = parseUtcOffset(offset.value);
+      if (parsed != null) {
+        offset.value = formatUtcOffset(parsed);
+        offset.classList.remove('field-error');
       }
     });
 
