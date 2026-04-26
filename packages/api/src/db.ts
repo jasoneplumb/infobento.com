@@ -28,6 +28,26 @@ export interface Device {
   readonly last_modified: number;
 }
 
+export interface PasskeyCredential {
+  readonly credential_id: string;
+  readonly account_id: string;
+  readonly public_key: Uint8Array;
+  readonly sign_count: number;
+  readonly transports: string | null;
+  readonly created_at: number;
+  readonly last_used_at: number | null;
+}
+
+export type OAuthProvider = 'apple' | 'google';
+
+export interface OAuthIdentity {
+  readonly provider: OAuthProvider;
+  readonly subject: string;
+  readonly account_id: string;
+  readonly email: string | null;
+  readonly created_at: number;
+}
+
 const SCHEMA = `
   CREATE TABLE IF NOT EXISTS accounts (
     id           TEXT PRIMARY KEY,
@@ -46,6 +66,29 @@ const SCHEMA = `
     paired_at        INTEGER,
     last_modified    INTEGER NOT NULL
   );
+
+  CREATE TABLE IF NOT EXISTS passkey_credentials (
+    credential_id  TEXT PRIMARY KEY,
+    account_id     TEXT NOT NULL REFERENCES accounts(id),
+    public_key     BLOB NOT NULL,
+    sign_count     INTEGER NOT NULL,
+    transports     TEXT,
+    created_at     INTEGER NOT NULL,
+    last_used_at   INTEGER
+  );
+  CREATE INDEX IF NOT EXISTS passkey_credentials_account_idx
+    ON passkey_credentials(account_id);
+
+  CREATE TABLE IF NOT EXISTS oauth_identities (
+    provider     TEXT NOT NULL CHECK (provider IN ('apple','google')),
+    subject      TEXT NOT NULL,
+    account_id   TEXT NOT NULL REFERENCES accounts(id),
+    email        TEXT,
+    created_at   INTEGER NOT NULL,
+    PRIMARY KEY (provider, subject)
+  );
+  CREATE INDEX IF NOT EXISTS oauth_identities_account_idx
+    ON oauth_identities(account_id);
 `;
 
 /**
@@ -185,4 +228,154 @@ export function getDevicesForAccount(db: DB, accountId: string): readonly Device
   return db
     .prepare('SELECT * FROM devices WHERE owner_account_id = ? ORDER BY paired_at DESC, rowid DESC')
     .all(accountId) as Device[];
+}
+
+// -- Passkey credentials ----------------------------------------------------
+
+interface PasskeyRow {
+  credential_id: string;
+  account_id: string;
+  public_key: Buffer;
+  sign_count: number;
+  transports: string | null;
+  created_at: number;
+  last_used_at: number | null;
+}
+
+function rowToPasskey(row: PasskeyRow): PasskeyCredential {
+  return {
+    credential_id: row.credential_id,
+    account_id: row.account_id,
+    public_key: new Uint8Array(row.public_key),
+    sign_count: row.sign_count,
+    transports: row.transports,
+    created_at: row.created_at,
+    last_used_at: row.last_used_at,
+  };
+}
+
+export function insertPasskey(
+  db: DB,
+  input: {
+    credentialId: string;
+    accountId: string;
+    publicKey: Uint8Array;
+    signCount: number;
+    transports?: readonly string[];
+  },
+): PasskeyCredential {
+  const now = Date.now();
+  const transportsJson = input.transports?.length ? JSON.stringify(input.transports) : null;
+  db.prepare(
+    `INSERT INTO passkey_credentials
+       (credential_id, account_id, public_key, sign_count, transports, created_at)
+     VALUES (?, ?, ?, ?, ?, ?)`,
+  ).run(
+    input.credentialId,
+    input.accountId,
+    Buffer.from(input.publicKey),
+    input.signCount,
+    transportsJson,
+    now,
+  );
+  return {
+    credential_id: input.credentialId,
+    account_id: input.accountId,
+    public_key: input.publicKey,
+    sign_count: input.signCount,
+    transports: transportsJson,
+    created_at: now,
+    last_used_at: null,
+  };
+}
+
+export function getPasskey(db: DB, credentialId: string): PasskeyCredential | null {
+  const row = db
+    .prepare('SELECT * FROM passkey_credentials WHERE credential_id = ?')
+    .get(credentialId) as PasskeyRow | undefined;
+  return row ? rowToPasskey(row) : null;
+}
+
+export function getPasskeysForAccount(db: DB, accountId: string): readonly PasskeyCredential[] {
+  const rows = db
+    .prepare('SELECT * FROM passkey_credentials WHERE account_id = ? ORDER BY created_at ASC')
+    .all(accountId) as PasskeyRow[];
+  return rows.map(rowToPasskey);
+}
+
+/**
+ * Bump the stored sign counter to `newCount`. Reject (return false) if
+ * `newCount` does not strictly increase the previous value — guards against
+ * authenticator clones / replay attempts.
+ *
+ * Note: WebAuthn permits an authenticator that always reports counter=0
+ * (e.g. some platform authenticators). The strict "must increase" rule
+ * applies only when the previous stored counter was non-zero; counter=0
+ * → 0 transitions are allowed.
+ */
+export function updatePasskeySignCount(db: DB, credentialId: string, newCount: number): boolean {
+  const now = Date.now();
+  const result = db
+    .prepare(
+      `UPDATE passkey_credentials
+         SET sign_count = ?, last_used_at = ?
+       WHERE credential_id = ?
+         AND (sign_count = 0 OR ? > sign_count)`,
+    )
+    .run(newCount, now, credentialId, newCount);
+  return result.changes > 0;
+}
+
+// -- OAuth identities -------------------------------------------------------
+
+export function getOAuthIdentity(
+  db: DB,
+  provider: OAuthProvider,
+  subject: string,
+): OAuthIdentity | null {
+  const row = db
+    .prepare('SELECT * FROM oauth_identities WHERE provider = ? AND subject = ?')
+    .get(provider, subject) as OAuthIdentity | undefined;
+  return row ?? null;
+}
+
+export function insertOAuthIdentity(
+  db: DB,
+  input: {
+    provider: OAuthProvider;
+    subject: string;
+    accountId: string;
+    email?: string | null;
+  },
+): OAuthIdentity {
+  const now = Date.now();
+  db.prepare(
+    `INSERT INTO oauth_identities (provider, subject, account_id, email, created_at)
+     VALUES (?, ?, ?, ?, ?)`,
+  ).run(input.provider, input.subject, input.accountId, input.email ?? null, now);
+  return {
+    provider: input.provider,
+    subject: input.subject,
+    account_id: input.accountId,
+    email: input.email ?? null,
+    created_at: now,
+  };
+}
+
+export function getOAuthIdentitiesForAccount(db: DB, accountId: string): readonly OAuthIdentity[] {
+  return db
+    .prepare('SELECT * FROM oauth_identities WHERE account_id = ? ORDER BY created_at ASC')
+    .all(accountId) as OAuthIdentity[];
+}
+
+/**
+ * Set the email on an account if it is currently null. Used when an OAuth
+ * provider supplies an email for an account that was created without one.
+ * No-op if the account already has an email (returns false).
+ */
+export function setAccountEmailIfMissing(db: DB, accountId: string, email: string): boolean {
+  const result = db
+    .prepare('UPDATE accounts SET email = ? WHERE id = ? AND email IS NULL')
+    .run(email, accountId);
+  return result.changes > 0;
 }

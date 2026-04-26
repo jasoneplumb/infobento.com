@@ -78,6 +78,42 @@ npm run lint
 | `packages/api/`      | `@infobento/api`      | Stateless pure-function cloud API           |
 | `packages/web/`      | `@infobento/web`      | Web configuration interface                 |
 
+## Self-hosting & auth env vars
+
+The hosted SaaS (`infobento.com`) is the default path, but the API code is
+public so you can run it yourself. The auth flows in `@infobento/api` need
+the following env vars at runtime:
+
+| Variable               | Purpose                                                                              |
+| ---------------------- | ------------------------------------------------------------------------------------ |
+| `SESSION_SECRET`       | HMAC key for session + challenge cookies. Required. ≥16 chars, generate randomly.    |
+| `RP_ID`                | WebAuthn Relying Party ID — your domain (e.g. `infobento.com`).                      |
+| `RP_ORIGIN`            | Origin(s) the browser will use, comma-separated (e.g. `https://infobento.com`).      |
+| `OAUTH_REDIRECT_BASE`  | Base URL for OAuth callbacks (e.g. `https://infobento.com/api/auth/oauth`).          |
+| `GOOGLE_CLIENT_ID`     | Google OAuth client ID. Get from console.cloud.google.com → Credentials.             |
+| `GOOGLE_CLIENT_SECRET` | Google OAuth client secret.                                                          |
+| `APPLE_CLIENT_ID`      | Apple "Service ID" identifier (e.g. `com.example.signin`).                           |
+| `APPLE_TEAM_ID`        | Apple Developer team ID (10-char alphanumeric).                                      |
+| `APPLE_KEY_ID`         | Apple "Sign in with Apple" private key ID (10-char alphanumeric).                    |
+| `APPLE_PRIVATE_KEY`    | PEM-encoded ES256 private key (PKCS8) for Apple. Multi-line — use the literal value. |
+| `INFOBENTO_DB_PATH`    | (Optional) SQLite file path. Default `/var/lib/infobento/data.db`.                   |
+
+Setting up the OAuth credentials:
+
+- **Google** — create an OAuth 2.0 Client ID (Web application) at
+  [console.cloud.google.com → APIs & Services → Credentials](https://console.cloud.google.com/apis/credentials).
+  Authorized redirect URI: `https://<your-domain>/api/auth/oauth/google/callback`.
+- **Apple** — at [developer.apple.com → Certificates, Identifiers & Profiles](https://developer.apple.com/account/resources/identifiers/list):
+  1. Create an App ID with "Sign in with Apple" capability.
+  2. Create a Services ID (this is your `APPLE_CLIENT_ID`); enable Sign in with Apple
+     and configure return URLs: `https://<your-domain>/api/auth/oauth/apple/callback`.
+  3. Create a Key with "Sign in with Apple" enabled; download the `.p8` and note the
+     Key ID (`APPLE_KEY_ID`). Your team ID is in the top-right of the Developer portal.
+
+If neither OAuth provider is configured, the app falls back to passkey-only
+auth (still usable on any modern browser/OS). Passkey login does not require
+OAuth credentials at all.
+
 ## Documentation
 
 See [docs/README.md](docs/README.md) for the full documentation index.

@@ -15,6 +15,42 @@ mkdir -p "$DATA_DIR"
 chown www-data:www-data "$DATA_DIR"
 chmod 700 "$DATA_DIR"
 
+# Write the auth env file (issue #73). The systemd unit picks this up via
+# `EnvironmentFile=-/etc/infobento/auth.env`. We rewrite it on every deploy
+# so rotating any secret only requires a redeploy. Variables that arrive
+# unset on this run keep their existing values from the prior file (avoiding
+# accidental wipes when a single secret is omitted from the deploy
+# environment).
+AUTH_ENV_DIR="/etc/infobento"
+AUTH_ENV_FILE="$AUTH_ENV_DIR/auth.env"
+mkdir -p "$AUTH_ENV_DIR"
+chmod 750 "$AUTH_ENV_DIR"
+
+write_env_kv() {
+  local key="$1"
+  local value="$2"
+  if [ -n "$value" ]; then
+    echo "$key=$value" >> "$AUTH_ENV_FILE.new"
+  elif [ -f "$AUTH_ENV_FILE" ] && grep -q "^$key=" "$AUTH_ENV_FILE"; then
+    grep "^$key=" "$AUTH_ENV_FILE" >> "$AUTH_ENV_FILE.new"
+  fi
+}
+
+: > "$AUTH_ENV_FILE.new"
+write_env_kv "SESSION_SECRET" "${SESSION_SECRET:-}"
+write_env_kv "RP_ID" "${RP_ID:-}"
+write_env_kv "RP_ORIGIN" "${RP_ORIGIN:-}"
+write_env_kv "OAUTH_REDIRECT_BASE" "${OAUTH_REDIRECT_BASE:-}"
+write_env_kv "GOOGLE_CLIENT_ID" "${GOOGLE_CLIENT_ID:-}"
+write_env_kv "GOOGLE_CLIENT_SECRET" "${GOOGLE_CLIENT_SECRET:-}"
+write_env_kv "APPLE_CLIENT_ID" "${APPLE_CLIENT_ID:-}"
+write_env_kv "APPLE_TEAM_ID" "${APPLE_TEAM_ID:-}"
+write_env_kv "APPLE_KEY_ID" "${APPLE_KEY_ID:-}"
+write_env_kv "APPLE_PRIVATE_KEY" "${APPLE_PRIVATE_KEY:-}"
+mv "$AUTH_ENV_FILE.new" "$AUTH_ENV_FILE"
+chown root:www-data "$AUTH_ENV_FILE"
+chmod 640 "$AUTH_ENV_FILE"
+
 echo "Receiving and extracting InfoBento deployment..."
 
 mkdir -p "$DEPLOY_DIR"

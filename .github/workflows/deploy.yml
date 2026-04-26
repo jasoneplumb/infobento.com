@@ -69,6 +69,20 @@ jobs:
           ssh-keyscan -H ${{ secrets.DEPLOY_HOST }} >> ~/.ssh/known_hosts 2>/dev/null || true
 
       - name: Deploy
+        env:
+          # Auth env vars (issue #73): the deploy script forwards these into
+          # the systemd unit so they're available at runtime. They are NOT
+          # baked into the build artifact.
+          SESSION_SECRET: ${{ secrets.SESSION_SECRET }}
+          RP_ID: ${{ secrets.RP_ID }}
+          RP_ORIGIN: ${{ secrets.RP_ORIGIN }}
+          OAUTH_REDIRECT_BASE: ${{ secrets.OAUTH_REDIRECT_BASE }}
+          GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+          GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+          APPLE_CLIENT_ID: ${{ secrets.APPLE_CLIENT_ID }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          APPLE_KEY_ID: ${{ secrets.APPLE_KEY_ID }}
+          APPLE_PRIVATE_KEY: ${{ secrets.APPLE_PRIVATE_KEY }}
         run: |
           SSH_OPTS="-i ~/.ssh/deploy_key -o ConnectTimeout=60 -o ServerAliveInterval=30"
           SSH_TARGET="${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}"
@@ -77,7 +91,7 @@ jobs:
           source "$GITHUB_WORKSPACE/scripts/ssh-retry.sh"
 
           ssh_retry "scp $SSH_OPTS scripts/deploy-infobento.sh $SSH_TARGET:/tmp/deploy-infobento.sh"
-          ssh_retry "cat infobento-deploy.tar.gz | ssh $SSH_OPTS $SSH_TARGET 'DEPLOY_SHA=${{ github.sha }} DEPLOY_VERSION=$VERSION bash /tmp/deploy-infobento.sh'"
+          ssh_retry "cat infobento-deploy.tar.gz | ssh $SSH_OPTS $SSH_TARGET 'DEPLOY_SHA=${{ github.sha }} DEPLOY_VERSION=$VERSION SESSION_SECRET=\"$SESSION_SECRET\" RP_ID=\"$RP_ID\" RP_ORIGIN=\"$RP_ORIGIN\" OAUTH_REDIRECT_BASE=\"$OAUTH_REDIRECT_BASE\" GOOGLE_CLIENT_ID=\"$GOOGLE_CLIENT_ID\" GOOGLE_CLIENT_SECRET=\"$GOOGLE_CLIENT_SECRET\" APPLE_CLIENT_ID=\"$APPLE_CLIENT_ID\" APPLE_TEAM_ID=\"$APPLE_TEAM_ID\" APPLE_KEY_ID=\"$APPLE_KEY_ID\" APPLE_PRIVATE_KEY=\"$APPLE_PRIVATE_KEY\" bash /tmp/deploy-infobento.sh'"
 
       - name: Cleanup SSH key
         if: always()
