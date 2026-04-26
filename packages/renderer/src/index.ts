@@ -21,10 +21,8 @@ import { renderSunBox } from './boxes/sun.js';
 import { renderAQIBox } from './boxes/aqi.js';
 import { renderProgressBox } from './boxes/progress.js';
 import { renderStocksBox } from './boxes/stocks.js';
-import { renderTasksBox } from './boxes/tasks.js';
 import { renderCalendarBox } from './boxes/calendar.js';
 import { renderHabitBox } from './boxes/habit.js';
-import { renderWorldclockBox } from './boxes/worldclock.js';
 import { renderHoroscopeBox } from './boxes/horoscope.js';
 import { renderJokeBox } from './boxes/joke.js';
 import { renderOnThisDayBox } from './boxes/onthisday.js';
@@ -106,14 +104,10 @@ function renderBox(
     renderProgressBox(fb, layoutBox, box.config, metrics, undefined, showHeaders);
   } else if (box.type === 'stocks' && box.config?.type === 'stocks') {
     renderStocksBox(fb, layoutBox, box.config, metrics, showHeaders);
-  } else if (box.type === 'tasks' && box.config?.type === 'tasks') {
-    renderTasksBox(fb, layoutBox, box.config, metrics, showHeaders);
   } else if (box.type === 'calendar' && box.config?.type === 'calendar') {
     renderCalendarBox(fb, layoutBox, box.config, metrics, showHeaders);
   } else if (box.type === 'habit' && box.config?.type === 'habit') {
     renderHabitBox(fb, layoutBox, box.config, metrics, showHeaders);
-  } else if (box.type === 'worldclock' && box.config?.type === 'worldclock') {
-    renderWorldclockBox(fb, layoutBox, box.config, metrics, undefined, showHeaders);
   } else if (box.type === 'horoscope' && box.config?.type === 'horoscope') {
     renderHoroscopeBox(fb, layoutBox, box.config, metrics, showHeaders);
   } else if (box.type === 'joke' && box.config?.type === 'joke') {
@@ -127,24 +121,33 @@ function renderBox(
 
 /**
  * intent: Count wrapped lines a body of text would occupy at a given width
- * method: Simulate word-by-word wrapping using the same metrics as drawTextWrapped
+ * method: Split on \n first (each newline starts a new line), then word-wrap
+ *   each segment using the same metrics as drawTextWrapped.
  */
 function countWrappedLines(text: string, bodyWidth: number, fontSize: number): number {
   if (!text) return 1;
-  let lines = 1;
-  const words = text.split(' ');
-  let line = '';
-  for (const word of words) {
-    const testLine = line ? `${line} ${word}` : word;
-    const testWidth = measureText(testLine, fontSize);
-    if (line && testWidth > bodyWidth) {
-      lines++;
-      line = word;
-    } else {
-      line = testLine;
+  let total = 0;
+  for (const segment of text.split('\n')) {
+    if (!segment) {
+      total += 1; // an empty line still occupies one row
+      continue;
     }
+    const words = segment.split(' ');
+    let line = '';
+    let lines = 1;
+    for (const word of words) {
+      const testLine = line ? `${line} ${word}` : word;
+      const testWidth = measureText(testLine, fontSize);
+      if (line && testWidth > bodyWidth) {
+        lines++;
+        line = word;
+      } else {
+        line = testLine;
+      }
+    }
+    total += lines;
   }
-  return lines;
+  return total;
 }
 
 /**
@@ -220,10 +223,6 @@ function computeMinHeight(
     const n = Math.max(1, Math.min(8, box.config.entries?.length ?? 8));
     return shell(n * rowH);
   }
-  if (box.type === 'tasks' && box.config?.type === 'tasks') {
-    const n = Math.max(1, box.config.items.length);
-    return shell(n * lineH);
-  }
   if (box.type === 'calendar') {
     const c = box.config?.type === 'calendar' ? box.config : undefined;
     const n = Math.max(1, c?.events?.length ?? 1);
@@ -232,10 +231,6 @@ function computeMinHeight(
   if (box.type === 'habit' && box.config?.type === 'habit') {
     const n = Math.max(1, box.config.habits.length);
     return shell(n * lineH);
-  }
-  if (box.type === 'worldclock' && box.config?.type === 'worldclock') {
-    const n = Math.max(1, box.config.zones.length);
-    return shell(n * rowH);
   }
   // qr is sized by the layout engine itself (QR_HEIGHT_RATIO); no hint.
   return null;

@@ -223,7 +223,8 @@ export function drawText(
 
 /**
  * intent: Render multi-line text with word wrapping using TTF body font
- * method: Measure words with TTF metrics, wrap at maxWidth, rasterize each line
+ * method: Split on \n first so explicit newlines start fresh lines; word-wrap
+ *   within each segment at maxWidth.
  */
 export function drawTextWrapped(
   fb: FrameBuffer,
@@ -236,31 +237,40 @@ export function drawTextWrapped(
   fontSize: number = BODY_FONT_SIZE,
 ): number {
   const lineHeight = Math.round(fontSize * 1.3);
-  const words = text.split(' ');
-  let line = '';
   let cy = y;
 
-  for (const word of words) {
-    const testLine = line ? `${line} ${word}` : word;
-    const testWidth = measureText(testLine, fontSize);
-
-    if (line && testWidth > maxWidth) {
-      // Flush current line
+  const flush = (line: string): boolean => {
+    if (line) {
       const raster = rasterizeText(line, fontSize, false, maxWidth);
       blitRaster(fb, x, cy, raster.data, raster.width, raster.height, level);
-      cy += lineHeight;
-      if (cy + fontSize > y + maxHeight) return cy - y;
-      line = word;
-    } else {
-      line = testLine;
     }
-  }
-
-  // Flush last line
-  if (line) {
-    const raster = rasterizeText(line, fontSize, false, maxWidth);
-    blitRaster(fb, x, cy, raster.data, raster.width, raster.height, level);
     cy += lineHeight;
+    return cy + fontSize <= y + maxHeight;
+  };
+
+  const segments = text.split('\n');
+  for (let s = 0; s < segments.length; s++) {
+    const segment = segments[s] ?? '';
+    if (!segment) {
+      // Preserve blank lines.
+      if (!flush('')) return cy - y;
+      continue;
+    }
+    const words = segment.split(' ');
+    let line = '';
+    for (const word of words) {
+      const testLine = line ? `${line} ${word}` : word;
+      const testWidth = measureText(testLine, fontSize);
+      if (line && testWidth > maxWidth) {
+        if (!flush(line)) return cy - y;
+        line = word;
+      } else {
+        line = testLine;
+      }
+    }
+    if (line) {
+      if (!flush(line)) return cy - y;
+    }
   }
 
   return cy - y;
