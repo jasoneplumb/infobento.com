@@ -165,4 +165,36 @@ describe('calculateLayout', () => {
     expect(result.boxes).toHaveLength(1);
     expect(result.boxes[0]!.width).toBe(DISPLAY_WIDTH - DEFAULT_PAD * 2);
   });
+
+  it('honors per-config width/height overrides over the device profile', () => {
+    const config: BentoConfig = {
+      boxes: [makeBox('1')],
+      refreshesPerDay: 1,
+      width: 800,
+      height: 480,
+    };
+    const result = calculateLayout(config);
+    const pad = DEFAULT_PAD;
+    expect(result.device.widthPx).toBe(800);
+    expect(result.device.heightPx).toBe(480);
+    expect(result.boxes).toHaveLength(1);
+    expect(result.boxes[0]!.width).toBe(800 - pad * 2);
+    expect(result.boxes[0]!.height).toBe(480 - pad * 2);
+  });
+
+  it('config overrides take precedence over an explicit DeviceProfile', () => {
+    const config: BentoConfig = {
+      boxes: [makeBox('1')],
+      refreshesPerDay: 1,
+      width: 600,
+    };
+    const result = calculateLayout(config, {
+      widthPx: 1024,
+      heightPx: 768,
+      deviceId: 'custom',
+    });
+    expect(result.device.widthPx).toBe(600); // config wins
+    expect(result.device.heightPx).toBe(768); // device fallback when config doesn't override
+    expect(result.device.deviceId).toBe('custom');
+  });
 });

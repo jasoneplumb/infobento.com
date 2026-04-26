@@ -28,8 +28,17 @@ export function calculateLayout(
   const paddingLevel = config.padding ?? 4;
   const pad = paddingLevel * 3; // 0=0px, 4=12px (default), 10=30px
   const gap = pad; // gap between boxes matches edge padding
-  const totalWidth = device.widthPx - pad * 2;
-  const totalHeight = device.heightPx - pad * 2;
+  // Allow per-config dimension overrides (e.g. when targeting a non-default panel)
+  const effDevice: DeviceProfile =
+    config.width != null || config.height != null
+      ? {
+          ...device,
+          widthPx: config.width ?? device.widthPx,
+          heightPx: config.height ?? device.heightPx,
+        }
+      : device;
+  const totalWidth = effDevice.widthPx - pad * 2;
+  const totalHeight = effDevice.heightPx - pad * 2;
 
   // Dynamic box constraints derived from font size:
   //   MIN_BOX_HEIGHT ensures at least one line of body text + padding renders.
@@ -39,12 +48,12 @@ export function calculateLayout(
   const MAX_BOXES = Math.min(10, Math.max(4, Math.floor(totalHeight / (fontSize * 3))));
 
   if (boxes.length === 0) {
-    return { boxes: [], device };
+    return { boxes: [], device: effDevice };
   }
 
   if (boxes.length > MAX_BOXES) {
     // Truncate to MAX_BOXES rather than producing broken layout
-    return calculateLayout({ ...config, boxes: boxes.slice(0, MAX_BOXES) }, device);
+    return calculateLayout({ ...config, boxes: boxes.slice(0, MAX_BOXES) }, effDevice);
   }
 
   // Count visual rows: a split left+right pair occupies one row
@@ -210,5 +219,5 @@ export function calculateLayout(
     y += height + gap;
   }
 
-  return { boxes: layoutBoxes, device };
+  return { boxes: layoutBoxes, device: effDevice };
 }

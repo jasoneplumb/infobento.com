@@ -448,6 +448,10 @@ export interface BentoConfig {
   readonly cornerRadius?: number;
   /** Display padding level (0=none, 10=max). Defaults to 4. */
   readonly padding?: number;
+  /** Override display width in pixels. Defaults to DeviceProfile / DISPLAY_WIDTH. */
+  readonly width?: number;
+  /** Override display height in pixels. Defaults to DeviceProfile / DISPLAY_HEIGHT. */
+  readonly height?: number;
 }
 
 /** Physical device profile */
