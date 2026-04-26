@@ -1,5 +1,24 @@
 # Changelog
 
+## [0.16.0] - 2026-04-26
+
+### Added
+
+- **In-place box type switcher** — every box-card header now carries a `<select>` that swaps the box's type without disturbing layout. `split` partner, `weight`, `splitRatio`, and ordering are preserved; `config` is reset to the new type's defaults; the label is overwritten with the new default only when it still matches the old default (so a user-edited label like "Today" survives a type change). New `changeBoxType(id, newType)` action in `state.ts`; `LABELS` exported as `BOX_TYPE_LABELS`. Tests cover type+config reset, default-label overwrite, custom-label preservation, layout preservation, and no-op self-swap. (#88)
+- **Text box honors `\n`** — `drawTextWrapped` now splits on explicit newlines first and word-wraps within each segment, preserving blank lines from consecutive newlines. `countWrappedLines` (used by content-aware layout) gets the same treatment so multi-line text reserves the right height. Lets a single Text box function as a one-item-per-row list. (#84)
+
+### Removed
+
+- **Tasks** and **World Clock** box types removed end-to-end. A device that refreshes once or twice a day can't truthfully show a clock, and a checkbox list is overkill on a passive surface — newline-delimited text in a Text box now does that job (see above). 17 → 15 box types across `@infobento/core`, `@infobento/renderer`, `@infobento/web`. (#84)
+
+### Changed
+
+- `claude-review` GitHub Action `--max-turns` raised from 10 to 25 — medium-sized PRs (4–5 files across two packages, plus inline comments) routinely needed more than 10 turns. (#86)
+
+### Notes
+
+- Pre-existing user configs containing `tasks` or `worldclock` boxes will fail Zod validation on `/api/render` and render as placeholder boxes in the editor's preview. Acceptable break — pre-1.0, single-user product.
+
 ## [0.15.0] - 2026-04-26
 
 ### Added
