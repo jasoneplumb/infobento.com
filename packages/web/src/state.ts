@@ -530,6 +530,14 @@ export function updateAQIData(id: number, data: AQIData): void {
   renderPreview();
 }
 
+export function updateStocksData(id: number, data: StockData): void {
+  const box = findBox(id);
+  if (!box || box.type !== 'stocks') return;
+  (box.config as StocksConfig).data = data;
+  persistToLocalStorage();
+  renderPreview();
+}
+
 export function updateLabel(id: number, value: string): void {
   const box = findBox(id);
   if (!box) return;

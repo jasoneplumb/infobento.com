@@ -44,6 +44,7 @@ app.get('/api/box-types', (c) => {
     { type: 'horoscope', label: 'Horoscope', requiresAuth: false },
     { type: 'joke', label: 'Joke', requiresAuth: false },
     { type: 'onthisday', label: 'On This Day', requiresAuth: false },
+    { type: 'stocks', label: 'Stocks', requiresAuth: false },
     { type: 'countdown', label: 'Countdown', requiresAuth: false },
     { type: 'qr', label: 'QR Code', requiresAuth: false },
     { type: 'text', label: 'Static Text', requiresAuth: false },
@@ -265,6 +266,39 @@ app.get('/api/horoscope', async (c) => {
     return c.json({ sign, text: data.horoscope, date: data.date ?? '' });
   } catch {
     return c.json({ error: 'Failed to fetch horoscope' }, 502);
+  }
+});
+
+app.get('/api/stocks', async (c) => {
+  const raw = (c.req.query('symbol') ?? '').trim().toUpperCase();
+  // Allow letters/digits/dots/hyphens — covers AAPL, BRK.A, BTC-USD, etc.
+  if (!raw || !/^[A-Z][A-Z0-9.-]{0,9}$/.test(raw)) {
+    return c.json({ error: 'Invalid or missing symbol' }, 400);
+  }
+  try {
+    const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(raw)}?interval=1d&range=2d`;
+    const res = await fetch(url, {
+      headers: { 'User-Agent': 'Mozilla/5.0 (compatible; InfoBento/1.0)' },
+    });
+    if (!res.ok) {
+      return c.json({ error: 'Stocks API returned an error' }, 502);
+    }
+    const data = (await res.json()) as {
+      chart?: {
+        result?: { meta?: { regularMarketPrice?: number; chartPreviousClose?: number } }[];
+      };
+    };
+    const meta = data.chart?.result?.[0]?.meta;
+    const price = meta?.regularMarketPrice;
+    const prev = meta?.chartPreviousClose;
+    if (price == null || prev == null) {
+      return c.json({ error: 'No quote data available' }, 404);
+    }
+    const change = price - prev;
+    const changePercent = prev !== 0 ? (change / prev) * 100 : 0;
+    return c.json({ price, change, changePercent });
+  } catch {
+    return c.json({ error: 'Failed to fetch stock quote' }, 502);
   }
 });
 

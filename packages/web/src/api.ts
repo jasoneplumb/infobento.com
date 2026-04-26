@@ -398,6 +398,38 @@ export interface HoroscopeResult {
   date: string;
 }
 
+export interface StocksResult {
+  price: number;
+  change: number;
+  changePercent: number;
+}
+
+/**
+ * Fetch a stock quote via the /api/stocks proxy. Symbol is uppercased
+ * server-side. Returns null on network/API failure or no quote data.
+ */
+export async function fetchStocks(symbol: string): Promise<StocksResult | null> {
+  const trimmed = symbol.trim().toUpperCase();
+  if (!trimmed) return null;
+  try {
+    const res = await fetch(`/api/stocks?symbol=${encodeURIComponent(trimmed)}`);
+    if (!res.ok) return null;
+    const data = (await res.json()) as {
+      price?: number;
+      change?: number;
+      changePercent?: number;
+    };
+    if (data.price == null || data.change == null || data.changePercent == null) return null;
+    return {
+      price: data.price,
+      change: data.change,
+      changePercent: data.changePercent,
+    };
+  } catch {
+    return null;
+  }
+}
+
 export interface OnThisDayResult {
   text: string;
   year: string;
