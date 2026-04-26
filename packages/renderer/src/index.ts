@@ -288,10 +288,17 @@ function computeHeightHints(
  */
 export function render(config: BentoConfig, device?: DeviceProfile): FrameBuffer {
   const metrics = computeFontMetrics(config.fontSize);
-  const effectiveDevice = device ?? {
+  const baseDevice = device ?? {
     widthPx: DISPLAY_WIDTH,
     heightPx: DISPLAY_HEIGHT,
     deviceId: 'infobento-5.76',
+  };
+  // Apply per-config dimension overrides — calculateLayout will do the same
+  // internally; doing it here keeps height-hint and createFrameBuffer in sync.
+  const effectiveDevice: DeviceProfile = {
+    ...baseDevice,
+    widthPx: config.width ?? baseDevice.widthPx,
+    heightPx: config.height ?? baseDevice.heightPx,
   };
   const padPx = (config.padding ?? 4) * 3;
   const layoutWidth = effectiveDevice.widthPx - padPx * 2;

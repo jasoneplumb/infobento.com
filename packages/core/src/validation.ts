@@ -337,6 +337,8 @@ export const BentoConfigSchema = z.object({
   fontSize: z.number().int().min(8).max(42).optional(),
   cornerRadius: z.number().int().min(0).max(10).optional(),
   padding: z.number().int().min(0).max(10).optional(),
+  width: z.number().int().positive().max(4096).optional(),
+  height: z.number().int().positive().max(4096).optional(),
 });
 
 // --- Validation function ---

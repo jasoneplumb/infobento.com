@@ -106,6 +106,27 @@ describe('render', () => {
     expect(fb.data.every((b) => b === 0)).toBe(true);
   });
 
+  it('renders at custom dimensions when config.width/height is set', () => {
+    const config: BentoConfig = {
+      boxes: [
+        {
+          id: '1',
+          type: 'text',
+          label: 'X',
+          config: { type: 'text', text: 'sized' },
+        },
+      ],
+      refreshesPerDay: 1,
+      width: 400,
+      height: 300,
+    };
+    const fb = render(config);
+    expect(fb.width).toBe(400);
+    expect(fb.height).toBe(300);
+    // Bytes per row = ceil(400/4) = 100; total = 100 * 300 = 30000
+    expect(fb.data.length).toBe(100 * 300);
+  });
+
   it('content-aware height: short-content box yields smaller area than list-heavy box', () => {
     // A weather box (3 lines of content) paired with a long forecast (8 entries)
     // should produce different row heights — list-heavy box gets more space.
