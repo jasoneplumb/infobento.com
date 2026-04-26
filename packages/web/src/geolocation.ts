@@ -20,16 +20,16 @@ interface NominatimReverseResult {
 /**
  * Detect the user's location via browser geolocation API and populate
  * default weather/forecast boxes with real local data.
- * Only runs on first load (when boxes still have the Portland default).
+ * Only runs when the weather box's city is unset (fresh install).
  * Falls back silently on permission denial, timeout, or error.
  */
 export async function detectLocation(): Promise<void> {
-  // Only run if the default city is still Portland, OR (fresh install)
+  // Only run if the weather city hasn't been set yet (empty = fresh install)
   const boxes = getBoxes();
   const weatherBox = boxes.find((b) => b.type === 'weather');
   if (!weatherBox) return;
   const weatherCfg = weatherBox.config as WeatherConfig;
-  if (weatherCfg.city !== 'Portland, OR') return;
+  if (weatherCfg.city.trim() !== '') return;
 
   // Request browser geolocation
   let lat: number;
@@ -65,17 +65,17 @@ export async function detectLocation(): Promise<void> {
 
     const locationStr = addr.state ? `${city}, ${addr.state}` : city;
 
-    // Update all location-based boxes that still have the default city
+    // Update all location-based boxes that still have an empty city
     for (const box of boxes) {
-      if (box.type === 'weather' || box.type === 'forecast' || box.type === 'forecast3d') {
+      if (
+        box.type === 'weather' ||
+        box.type === 'forecast' ||
+        box.type === 'forecast3d' ||
+        box.type === 'sun' ||
+        box.type === 'aqi'
+      ) {
         const cfg = box.config as { city: string };
-        if (cfg.city === 'Portland, OR') {
-          updateConfig(box.id, 'city', locationStr);
-        }
-      }
-      if (box.type === 'sun' || box.type === 'aqi') {
-        const cfg = box.config as { city: string };
-        if (cfg.city === 'Portland, OR') {
+        if (cfg.city.trim() === '') {
           updateConfig(box.id, 'city', locationStr);
         }
       }

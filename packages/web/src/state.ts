@@ -239,43 +239,49 @@ const LABELS: Record<EditorBoxType, string> = {
 
 // -- Default box set --------------------------------------------------------
 
+/**
+ * First-time-user default layout (Round 12 Q4 decision, 2026-04-25).
+ * 5 boxes, zero config required, no wizard:
+ *   1. [Date | Weather]  merged top row
+ *   2. 8-Day Forecast    full width
+ *   3. Quote             full width
+ *   4. On This Day       full width
+ * All input fields empty → forms auto-fetch on first render. Geolocation
+ * (geolocation.ts:detectLocation) populates city for weather + forecast.
+ */
 function defaultBoxes(): EditorBox[] {
   return [
     {
       id: uid(),
+      type: 'date',
+      label: 'Date',
+      config: { _placeholder: '' } as DateConfig,
+      split: 'left',
+    },
+    {
+      id: uid(),
       type: 'weather',
       label: 'Weather',
-      config: {
-        city: 'Portland, OR',
-        data: { temperature: 47, condition: 'Partly Cloudy', high: 62, low: 42 },
-      } as WeatherConfig,
+      config: { city: '' } as WeatherConfig,
+      split: 'right',
     },
     {
       id: uid(),
       type: 'forecast3d',
       label: '8-Day Forecast',
-      config: {
-        city: 'Portland, OR',
-        entries: [
-          { day: 'Sat', high: 62, low: 43, condition: 'Partly Cloudy' },
-          { day: 'Sun', high: 70, low: 46, condition: 'Rain' },
-          { day: 'Mon', high: 56, low: 45, condition: 'Partly Cloudy' },
-          { day: 'Tue', high: 59, low: 47, condition: 'Rain' },
-          { day: 'Wed', high: 74, low: 42, condition: 'Clear' },
-          { day: 'Thu', high: 78, low: 49, condition: 'Partly Cloudy' },
-          { day: 'Fri', high: 75, low: 53, condition: 'Partly Cloudy' },
-          { day: 'Sat', high: 70, low: 48, condition: 'Partly Cloudy' },
-        ],
-      } as Forecast3DConfig,
+      config: { city: '' } as Forecast3DConfig,
     },
     {
       id: uid(),
       type: 'quote',
       label: 'Quote',
-      config: {
-        content: 'Being wrong brings the opportunity for growth.',
-        author: 'Mark Manson',
-      } as QuoteConfig,
+      config: { content: '', author: '' } as QuoteConfig,
+    },
+    {
+      id: uid(),
+      type: 'onthisday',
+      label: 'On This Day',
+      config: { content: '', category: 'events' } as OnThisDayConfig,
     },
   ];
 }
