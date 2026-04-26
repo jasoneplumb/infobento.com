@@ -2,7 +2,7 @@
 
 > _See what matters. Skip the spiral._
 
-A small, solar-powered B&W eInk decorator that lives on a counter, shelf, or windowsill. Configure once on a web page; it sips light from the window and shows what matters most — weather, forecast, 8-day forecast, countdown, QR code, quote, date, moon phase, sunrise/sunset, air quality, year progress, text, stocks, tasks, calendar, habits, world clock — for months on its own.
+A small, solar-powered B&W eInk decorator that lives on a counter, shelf, or windowsill. Configure once on a web page; it sips light from the window and shows what matters most — weather, forecast, 8-day forecast, countdown, QR code, quote, date, moon phase, sunrise/sunset, air quality, year progress, text, stocks, calendar, habits — for months on its own.
 
 ## Overview
 
@@ -124,4 +124,4 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for development workflow and guidelines.
 
 ## Status
 
-Active development. Renderer produces 2-bit grayscale framebuffers with 17 box types. Web editor at localhost:5173 for configuration. Hardware validation pending (GDEH0576T81 dev kit on order).
+Active development. Renderer produces 2-bit grayscale framebuffers with 15 box types. Web editor at localhost:5173 for configuration. Hardware validation pending (GDEH0576T81 dev kit on order).

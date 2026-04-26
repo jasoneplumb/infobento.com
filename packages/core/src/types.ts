@@ -134,17 +134,6 @@ export interface StocksBoxConfig {
   readonly data?: StockData;
 }
 
-/** A single task item with completion state */
-export interface TaskItem {
-  readonly text: string;
-  readonly done: boolean;
-}
-
-export interface TasksBoxConfig {
-  readonly type: 'tasks';
-  readonly items: readonly TaskItem[];
-}
-
 /** Pre-fetched calendar event data */
 export interface CalendarEvent {
   readonly title: string;
@@ -191,17 +180,6 @@ export interface HoroscopeBoxConfig {
   readonly date?: string; // ISO date the reading is for
 }
 
-/** A timezone entry for world clock display */
-export interface ClockZone {
-  readonly label: string; // e.g. 'Tokyo', 'NYC'
-  readonly offsetMinutes: number; // UTC offset in minutes, e.g. -300 for EST
-}
-
-export interface WorldclockBoxConfig {
-  readonly type: 'worldclock';
-  readonly zones: readonly ClockZone[];
-}
-
 /** Discriminated union of all box-specific configurations */
 export type BoxConfig =
   | TextBoxConfig
@@ -217,10 +195,8 @@ export type BoxConfig =
   | AQIBoxConfig
   | ProgressBoxConfig
   | StocksBoxConfig
-  | TasksBoxConfig
   | CalendarBoxConfig
   | HabitBoxConfig
-  | WorldclockBoxConfig
   | HoroscopeBoxConfig
   | JokeBoxConfig
   | OnThisDayBoxConfig;
@@ -233,7 +209,6 @@ export type BentoBoxType =
   | 'forecast'
   | 'forecast3d'
   | 'calendar'
-  | 'tasks'
   | 'quote'
   | 'countdown'
   | 'stocks'
@@ -245,7 +220,6 @@ export type BentoBoxType =
   | 'aqi'
   | 'progress'
   | 'habit'
-  | 'worldclock'
   | 'horoscope'
   | 'joke'
   | 'onthisday';
@@ -340,12 +314,6 @@ interface StocksBentoBox extends BentoBoxBase {
   readonly config?: StocksBoxConfig;
 }
 
-/** Tasks box with typed config */
-interface TasksBentoBox extends BentoBoxBase {
-  readonly type: 'tasks';
-  readonly config?: TasksBoxConfig;
-}
-
 /** Calendar box with typed config */
 interface CalendarBentoBox extends BentoBoxBase {
   readonly type: 'calendar';
@@ -356,12 +324,6 @@ interface CalendarBentoBox extends BentoBoxBase {
 interface HabitBentoBox extends BentoBoxBase {
   readonly type: 'habit';
   readonly config?: HabitBoxConfig;
-}
-
-/** World clock box with typed config */
-interface WorldclockBentoBox extends BentoBoxBase {
-  readonly type: 'worldclock';
-  readonly config?: WorldclockBoxConfig;
 }
 
 /** Horoscope box with typed config */
@@ -399,10 +361,8 @@ interface UnconfiguredBentoBox extends BentoBoxBase {
     | 'aqi'
     | 'progress'
     | 'stocks'
-    | 'tasks'
     | 'calendar'
     | 'habit'
-    | 'worldclock'
     | 'horoscope'
     | 'joke'
     | 'onthisday'
@@ -428,10 +388,8 @@ export type BentoBox =
   | AQIBentoBox
   | ProgressBentoBox
   | StocksBentoBox
-  | TasksBentoBox
   | CalendarBentoBox
   | HabitBentoBox
-  | WorldclockBentoBox
   | HoroscopeBentoBox
   | JokeBentoBox
   | OnThisDayBentoBox

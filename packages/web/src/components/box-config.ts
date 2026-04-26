@@ -18,10 +18,8 @@ import type {
   JokeConfig,
   OnThisDayConfig,
   StocksConfig,
-  TasksConfig,
   CalendarConfig,
   HabitConfig,
-  WorldclockConfig,
 } from '../state';
 import {
   updateConfig,
@@ -35,7 +33,7 @@ import {
   updateAQIData,
   updateStocksData,
 } from '../state';
-import type { TaskItem, CalendarEvent, HabitEntry, ClockZone } from '@infobento/core';
+import type { CalendarEvent, HabitEntry } from '@infobento/core';
 import {
   fetchForecast,
   fetchForecast3D,
@@ -785,7 +783,7 @@ function buildListField(
   return wrapper;
 }
 
-// -- Stocks / Tasks / Calendar / Habit / Worldclock forms ------------------
+// -- Stocks / Calendar / Habit forms ----------------------------------------
 
 function buildStocksForm(box: EditorBox): DocumentFragment {
   const frag = document.createDocumentFragment();
@@ -831,48 +829,6 @@ function buildStocksForm(box: EditorBox): DocumentFragment {
     void doFetch();
   }
 
-  return frag;
-}
-
-function buildTasksForm(box: EditorBox): DocumentFragment {
-  const frag = document.createDocumentFragment();
-  const cfg = box.config as TasksConfig;
-
-  const renderRow = (idx: number): HTMLElement => {
-    const row = document.createElement('div');
-    row.className = 'list-row-fields';
-    const item = cfg.items[idx];
-    if (!item) return row;
-
-    const checkbox = document.createElement('input');
-    checkbox.type = 'checkbox';
-    checkbox.checked = item.done;
-    checkbox.addEventListener('change', () => {
-      const next = cfg.items.map((it, i) => (i === idx ? { ...it, done: checkbox.checked } : it));
-      updateConfigList<TaskItem>(box.id, 'items', next);
-    });
-
-    const text = inputEl('text', item.text, (v) => {
-      const next = cfg.items.map((it, i) => (i === idx ? { ...it, text: v } : it));
-      updateConfigList<TaskItem>(box.id, 'items', next);
-    });
-    text.placeholder = 'Task description';
-
-    row.appendChild(checkbox);
-    row.appendChild(text);
-    return row;
-  };
-
-  frag.appendChild(
-    buildListField(
-      'Tasks',
-      cfg.items.length,
-      renderRow,
-      () => appendToConfigList<TaskItem>(box.id, 'items', { text: '', done: false }),
-      (idx) => removeFromConfigList(box.id, 'items', idx),
-      'Add task',
-    ),
-  );
   return frag;
 }
 
@@ -980,100 +936,6 @@ function buildHabitForm(box: EditorBox): DocumentFragment {
   return frag;
 }
 
-/**
- * Parse a UTC offset string into minutes. Accepts:
- *   "+5", "-5", "5"             → hours
- *   "+5:30", "-3:30"            → hours:minutes
- *   "UTC+5", "UTC-5:30", "UTC"  → UTC-prefixed
- * Returns null on invalid input. Caps at ±840 minutes (±14h).
- */
-function parseUtcOffset(input: string): number | null {
-  const s = input
-    .trim()
-    .replace(/^UTC\s*/i, '')
-    .trim();
-  if (s === '') return 0;
-  const m = s.match(/^([+-]?)(\d{1,2})(?::(\d{1,2}))?$/);
-  if (!m) return null;
-  const sign = m[1] === '-' ? -1 : 1;
-  const hours = parseInt(m[2] ?? '0', 10);
-  const mins = m[3] ? parseInt(m[3], 10) : 0;
-  if (mins >= 60) return null;
-  const total = sign * (hours * 60 + mins);
-  if (Math.abs(total) > 840) return null;
-  return total;
-}
-
-/** Format an offset in minutes back to a canonical "UTC±H[:MM]" string. */
-function formatUtcOffset(minutes: number): string {
-  if (!Number.isFinite(minutes)) return 'UTC+0';
-  const sign = minutes < 0 ? '-' : '+';
-  const abs = Math.abs(minutes);
-  const h = Math.floor(abs / 60);
-  const m = abs % 60;
-  return m === 0
-    ? `UTC${sign}${String(h)}`
-    : `UTC${sign}${String(h)}:${String(m).padStart(2, '0')}`;
-}
-
-function buildWorldclockForm(box: EditorBox): DocumentFragment {
-  const frag = document.createDocumentFragment();
-  const cfg = box.config as WorldclockConfig;
-
-  const renderRow = (idx: number): HTMLElement => {
-    const row = document.createElement('div');
-    row.className = 'list-row-fields';
-    const zone = cfg.zones[idx];
-    if (!zone) return row;
-
-    const label = inputEl('text', zone.label, (v) => {
-      const next = cfg.zones.map((z, i) => (i === idx ? { ...z, label: v } : z));
-      updateConfigList<ClockZone>(box.id, 'zones', next);
-    });
-    label.placeholder = 'NYC';
-
-    const offset = document.createElement('input');
-    offset.type = 'text';
-    offset.value = formatUtcOffset(zone.offsetMinutes);
-    offset.style.width = '6rem';
-    offset.title = 'UTC offset — e.g. -5, +5:30, UTC-8';
-    offset.placeholder = 'UTC-5';
-    offset.addEventListener('input', () => {
-      const parsed = parseUtcOffset(offset.value);
-      if (parsed != null) {
-        offset.classList.remove('field-error');
-        const next = cfg.zones.map((z, i) => (i === idx ? { ...z, offsetMinutes: parsed } : z));
-        updateConfigList<ClockZone>(box.id, 'zones', next);
-      } else {
-        offset.classList.add('field-error');
-      }
-    });
-    offset.addEventListener('blur', () => {
-      const parsed = parseUtcOffset(offset.value);
-      if (parsed != null) {
-        offset.value = formatUtcOffset(parsed);
-        offset.classList.remove('field-error');
-      }
-    });
-
-    row.appendChild(label);
-    row.appendChild(offset);
-    return row;
-  };
-
-  frag.appendChild(
-    buildListField(
-      'Time zones',
-      cfg.zones.length,
-      renderRow,
-      () => appendToConfigList<ClockZone>(box.id, 'zones', { label: '', offsetMinutes: 0 }),
-      (idx) => removeFromConfigList(box.id, 'zones', idx),
-      'Add zone',
-    ),
-  );
-  return frag;
-}
-
 // -- Registry ---------------------------------------------------------------
 
 const formBuilders: Record<EditorBoxType, (box: EditorBox) => DocumentFragment> = {
@@ -1093,10 +955,8 @@ const formBuilders: Record<EditorBoxType, (box: EditorBox) => DocumentFragment> 
   joke: buildJokeForm,
   onthisday: buildOnThisDayForm,
   stocks: buildStocksForm,
-  tasks: buildTasksForm,
   calendar: buildCalendarForm,
   habit: buildHabitForm,
-  worldclock: buildWorldclockForm,
 };
 
 export function buildConfigForm(box: EditorBox): DocumentFragment {

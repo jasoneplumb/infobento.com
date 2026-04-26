@@ -131,16 +131,6 @@ const StocksBoxConfigSchema = z.object({
   data: StockDataSchema.optional(),
 });
 
-const TaskItemSchema = z.object({
-  text: z.string().min(1),
-  done: z.boolean(),
-});
-
-const TasksBoxConfigSchema = z.object({
-  type: z.literal('tasks'),
-  items: z.array(TaskItemSchema).min(1, 'At least one task is required'),
-});
-
 const CalendarEventSchema = z.object({
   title: z.string().min(1),
   time: z.string().optional(),
@@ -160,16 +150,6 @@ const HabitEntrySchema = z.object({
 const HabitBoxConfigSchema = z.object({
   type: z.literal('habit'),
   habits: z.array(HabitEntrySchema).min(1, 'At least one habit is required'),
-});
-
-const ClockZoneSchema = z.object({
-  label: z.string().min(1),
-  offsetMinutes: z.number().int(),
-});
-
-const WorldclockBoxConfigSchema = z.object({
-  type: z.literal('worldclock'),
-  zones: z.array(ClockZoneSchema).min(1, 'At least one timezone is required'),
 });
 
 const HoroscopeBoxConfigSchema = z.object({
@@ -267,11 +247,6 @@ const StocksBentoBoxSchema = BentoBoxBaseSchema.extend({
   config: StocksBoxConfigSchema.optional(),
 });
 
-const TasksBentoBoxSchema = BentoBoxBaseSchema.extend({
-  type: z.literal('tasks'),
-  config: TasksBoxConfigSchema.optional(),
-});
-
 const CalendarBentoBoxSchema = BentoBoxBaseSchema.extend({
   type: z.literal('calendar'),
   config: CalendarBoxConfigSchema.optional(),
@@ -280,11 +255,6 @@ const CalendarBentoBoxSchema = BentoBoxBaseSchema.extend({
 const HabitBentoBoxSchema = BentoBoxBaseSchema.extend({
   type: z.literal('habit'),
   config: HabitBoxConfigSchema.optional(),
-});
-
-const WorldclockBentoBoxSchema = BentoBoxBaseSchema.extend({
-  type: z.literal('worldclock'),
-  config: WorldclockBoxConfigSchema.optional(),
 });
 
 const HoroscopeBentoBoxSchema = BentoBoxBaseSchema.extend({
@@ -316,10 +286,8 @@ const BentoBoxSchema = z.discriminatedUnion('type', [
   AQIBentoBoxSchema,
   ProgressBentoBoxSchema,
   StocksBentoBoxSchema,
-  TasksBentoBoxSchema,
   CalendarBentoBoxSchema,
   HabitBentoBoxSchema,
-  WorldclockBentoBoxSchema,
   HoroscopeBentoBoxSchema,
   JokeBentoBoxSchema,
   OnThisDayBentoBoxSchema,

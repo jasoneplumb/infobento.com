@@ -13,10 +13,8 @@ import type {
   SunData,
   AQIData,
   StockData,
-  TaskItem,
   CalendarEvent,
   HabitEntry,
-  ClockZone,
 } from '@infobento/core';
 
 // -- Editor box model (UI-local, not the core BentoBox type) ---------------
@@ -102,20 +100,12 @@ export interface StocksConfig {
   data?: StockData;
 }
 
-export interface TasksConfig {
-  items: TaskItem[];
-}
-
 export interface CalendarConfig {
   events: CalendarEvent[];
 }
 
 export interface HabitConfig {
   habits: HabitEntry[];
-}
-
-export interface WorldclockConfig {
-  zones: ClockZone[];
 }
 
 export type EditorBoxConfig =
@@ -135,10 +125,8 @@ export type EditorBoxConfig =
   | JokeConfig
   | OnThisDayConfig
   | StocksConfig
-  | TasksConfig
   | CalendarConfig
-  | HabitConfig
-  | WorldclockConfig;
+  | HabitConfig;
 
 export type EditorBoxType = Extract<
   BentoBoxType,
@@ -158,10 +146,8 @@ export type EditorBoxType = Extract<
   | 'joke'
   | 'onthisday'
   | 'stocks'
-  | 'tasks'
   | 'calendar'
   | 'habit'
-  | 'worldclock'
 >;
 
 export interface EditorBox {
@@ -208,10 +194,8 @@ const DEFAULTS: Record<EditorBoxType, () => EditorBoxConfig> = {
   joke: () => ({ content: '' }),
   onthisday: () => ({ content: '', category: 'events' }),
   stocks: () => ({ symbol: '' }),
-  tasks: () => ({ items: [{ text: '', done: false }] }),
   calendar: () => ({ events: [] }),
   habit: () => ({ habits: [{ name: '', streak: 0, completedToday: false }] }),
-  worldclock: () => ({ zones: [{ label: 'UTC', offsetMinutes: 0 }] }),
 };
 
 const LABELS: Record<EditorBoxType, string> = {
@@ -231,10 +215,8 @@ const LABELS: Record<EditorBoxType, string> = {
   joke: 'Joke',
   onthisday: 'On This Day',
   stocks: 'Stocks',
-  tasks: 'Tasks',
   calendar: 'Calendar',
   habit: 'Habits',
-  worldclock: 'World Clock',
 };
 
 // -- Default box set --------------------------------------------------------

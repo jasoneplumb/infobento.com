@@ -107,6 +107,35 @@ describe('drawTextWrapped', () => {
     const topRegion = fb.data.slice(0, Math.ceil(920 / 4) * FONT_HEIGHT);
     expect(topRegion.some((b) => b !== 0)).toBe(true);
   });
+
+  it('honors explicit newlines as line breaks', () => {
+    const fb = createFrameBuffer({ widthPx: 920, heightPx: 680, deviceId: '' });
+    // Two short segments separated by \n — well under maxWidth; only newline
+    // should drive the break, advancing cy by exactly one lineHeight.
+    const advanced = drawTextWrapped(fb, 0, 0, 'foo\nbar', 800, 680);
+    const fontSize = 20; // BODY_FONT_SIZE default
+    const lineHeight = Math.round(fontSize * 1.3);
+    // After two lines: cy = 0 + 2 * lineHeight (last flush also advances).
+    expect(advanced).toBe(2 * lineHeight);
+  });
+
+  it('preserves blank lines from consecutive newlines', () => {
+    const fb = createFrameBuffer({ widthPx: 920, heightPx: 680, deviceId: '' });
+    const advanced = drawTextWrapped(fb, 0, 0, 'a\n\nb', 800, 680);
+    const fontSize = 20;
+    const lineHeight = Math.round(fontSize * 1.3);
+    expect(advanced).toBe(3 * lineHeight);
+  });
+
+  it('stops drawing once maxHeight is exhausted', () => {
+    const fb = createFrameBuffer({ widthPx: 920, heightPx: 80, deviceId: '' });
+    // Three lines, but maxHeight only fits two.
+    const fontSize = 20;
+    const lineHeight = Math.round(fontSize * 1.3);
+    const advanced = drawTextWrapped(fb, 0, 0, 'one\ntwo\nthree', 800, 2 * lineHeight);
+    expect(advanced).toBeLessThanOrEqual(3 * lineHeight);
+    expect(advanced).toBeGreaterThanOrEqual(2 * lineHeight);
+  });
 });
 
 describe('hero font metrics', () => {
