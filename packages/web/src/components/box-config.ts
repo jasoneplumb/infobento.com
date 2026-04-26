@@ -17,15 +17,24 @@ import type {
   HoroscopeConfig,
   JokeConfig,
   OnThisDayConfig,
+  StocksConfig,
+  TasksConfig,
+  CalendarConfig,
+  HabitConfig,
+  WorldclockConfig,
 } from '../state';
 import {
   updateConfig,
+  updateConfigList,
+  appendToConfigList,
+  removeFromConfigList,
   updateForecastEntries,
   updateForecast3DEntries,
   updateWeatherData,
   updateSunData,
   updateAQIData,
 } from '../state';
+import type { TaskItem, CalendarEvent, HabitEntry, ClockZone } from '@infobento/core';
 import {
   fetchForecast,
   fetchForecast3D,
@@ -724,6 +733,265 @@ function buildOnThisDayForm(box: EditorBox): DocumentFragment {
   return frag;
 }
 
+// -- List editor helper -----------------------------------------------------
+
+/**
+ * Build a generic add/remove row editor. The caller renders the row's input
+ * fields; this helper handles list framing, the remove button per row, and
+ * an Add button that triggers a form rebuild via setState.
+ */
+function buildListField(
+  label: string,
+  rowCount: number,
+  buildRow: (idx: number) => HTMLElement,
+  onAdd: () => void,
+  onRemove: (idx: number) => void,
+  addLabel: string,
+): HTMLElement {
+  const wrapper = document.createElement('div');
+  wrapper.className = 'field';
+  const labelEl = document.createElement('label');
+  labelEl.textContent = label;
+  wrapper.appendChild(labelEl);
+
+  const list = document.createElement('div');
+  list.className = 'list-editor';
+  for (let idx = 0; idx < rowCount; idx++) {
+    const row = document.createElement('div');
+    row.className = 'list-editor-row';
+    row.appendChild(buildRow(idx));
+    const removeBtn = document.createElement('button');
+    removeBtn.type = 'button';
+    removeBtn.className = 'btn-list-remove';
+    removeBtn.textContent = '\u2715';
+    const removeIdx = idx;
+    removeBtn.addEventListener('click', () => {
+      onRemove(removeIdx);
+    });
+    row.appendChild(removeBtn);
+    list.appendChild(row);
+  }
+  wrapper.appendChild(list);
+
+  const addBtn = document.createElement('button');
+  addBtn.type = 'button';
+  addBtn.className = 'btn-list-add';
+  addBtn.textContent = `+ ${addLabel}`;
+  addBtn.addEventListener('click', onAdd);
+  wrapper.appendChild(addBtn);
+
+  return wrapper;
+}
+
+// -- Stocks / Tasks / Calendar / Habit / Worldclock forms ------------------
+
+function buildStocksForm(box: EditorBox): DocumentFragment {
+  const frag = document.createDocumentFragment();
+  const cfg = box.config as StocksConfig;
+  const symbolInput = inputEl('text', cfg.symbol, (v) => updateConfig(box.id, 'symbol', v));
+  symbolInput.placeholder = 'e.g. AAPL';
+  frag.appendChild(makeField('Symbol', symbolInput, validateRequired('a symbol')));
+  const note = document.createElement('div');
+  note.className = 'weather-status';
+  note.textContent = 'Live price data not yet wired — box renders "No data" until then.';
+  frag.appendChild(note);
+  return frag;
+}
+
+function buildTasksForm(box: EditorBox): DocumentFragment {
+  const frag = document.createDocumentFragment();
+  const cfg = box.config as TasksConfig;
+
+  const renderRow = (idx: number): HTMLElement => {
+    const row = document.createElement('div');
+    row.className = 'list-row-fields';
+    const item = cfg.items[idx];
+    if (!item) return row;
+
+    const checkbox = document.createElement('input');
+    checkbox.type = 'checkbox';
+    checkbox.checked = item.done;
+    checkbox.addEventListener('change', () => {
+      const next = cfg.items.map((it, i) => (i === idx ? { ...it, done: checkbox.checked } : it));
+      updateConfigList<TaskItem>(box.id, 'items', next);
+    });
+
+    const text = inputEl('text', item.text, (v) => {
+      const next = cfg.items.map((it, i) => (i === idx ? { ...it, text: v } : it));
+      updateConfigList<TaskItem>(box.id, 'items', next);
+    });
+    text.placeholder = 'Task description';
+
+    row.appendChild(checkbox);
+    row.appendChild(text);
+    return row;
+  };
+
+  frag.appendChild(
+    buildListField(
+      'Tasks',
+      cfg.items.length,
+      renderRow,
+      () => appendToConfigList<TaskItem>(box.id, 'items', { text: '', done: false }),
+      (idx) => removeFromConfigList(box.id, 'items', idx),
+      'Add task',
+    ),
+  );
+  return frag;
+}
+
+function buildCalendarForm(box: EditorBox): DocumentFragment {
+  const frag = document.createDocumentFragment();
+  const cfg = box.config as CalendarConfig;
+
+  const renderRow = (idx: number): HTMLElement => {
+    const row = document.createElement('div');
+    row.className = 'list-row-fields';
+    const event = cfg.events[idx];
+    if (!event) return row;
+
+    const time = inputEl('text', event.time ?? '', (v) => {
+      const next = cfg.events.map((e, i) => (i === idx ? { ...e, time: v } : e));
+      updateConfigList<CalendarEvent>(box.id, 'events', next);
+    });
+    time.placeholder = '14:00';
+    time.style.width = '5rem';
+
+    const title = inputEl('text', event.title, (v) => {
+      const next = cfg.events.map((e, i) => (i === idx ? { ...e, title: v } : e));
+      updateConfigList<CalendarEvent>(box.id, 'events', next);
+    });
+    title.placeholder = 'Event title';
+
+    row.appendChild(time);
+    row.appendChild(title);
+    return row;
+  };
+
+  frag.appendChild(
+    buildListField(
+      'Events',
+      cfg.events.length,
+      renderRow,
+      () => appendToConfigList<CalendarEvent>(box.id, 'events', { title: '', time: '' }),
+      (idx) => removeFromConfigList(box.id, 'events', idx),
+      'Add event',
+    ),
+  );
+  return frag;
+}
+
+function buildHabitForm(box: EditorBox): DocumentFragment {
+  const frag = document.createDocumentFragment();
+  const cfg = box.config as HabitConfig;
+
+  const renderRow = (idx: number): HTMLElement => {
+    const row = document.createElement('div');
+    row.className = 'list-row-fields';
+    const habit = cfg.habits[idx];
+    if (!habit) return row;
+
+    const checkbox = document.createElement('input');
+    checkbox.type = 'checkbox';
+    checkbox.checked = habit.completedToday;
+    checkbox.title = 'Completed today';
+    checkbox.addEventListener('change', () => {
+      const next = cfg.habits.map((h, i) =>
+        i === idx ? { ...h, completedToday: checkbox.checked } : h,
+      );
+      updateConfigList<HabitEntry>(box.id, 'habits', next);
+    });
+
+    const name = inputEl('text', habit.name, (v) => {
+      const next = cfg.habits.map((h, i) => (i === idx ? { ...h, name: v } : h));
+      updateConfigList<HabitEntry>(box.id, 'habits', next);
+    });
+    name.placeholder = 'Habit name';
+
+    const streak = document.createElement('input');
+    streak.type = 'number';
+    streak.min = '0';
+    streak.value = String(habit.streak);
+    streak.style.width = '4rem';
+    streak.title = 'Streak (days)';
+    streak.addEventListener('input', () => {
+      const n = Math.max(0, parseInt(streak.value, 10) || 0);
+      const next = cfg.habits.map((h, i) => (i === idx ? { ...h, streak: n } : h));
+      updateConfigList<HabitEntry>(box.id, 'habits', next);
+    });
+
+    row.appendChild(checkbox);
+    row.appendChild(name);
+    row.appendChild(streak);
+    return row;
+  };
+
+  frag.appendChild(
+    buildListField(
+      'Habits',
+      cfg.habits.length,
+      renderRow,
+      () =>
+        appendToConfigList<HabitEntry>(box.id, 'habits', {
+          name: '',
+          streak: 0,
+          completedToday: false,
+        }),
+      (idx) => removeFromConfigList(box.id, 'habits', idx),
+      'Add habit',
+    ),
+  );
+  return frag;
+}
+
+function buildWorldclockForm(box: EditorBox): DocumentFragment {
+  const frag = document.createDocumentFragment();
+  const cfg = box.config as WorldclockConfig;
+
+  const renderRow = (idx: number): HTMLElement => {
+    const row = document.createElement('div');
+    row.className = 'list-row-fields';
+    const zone = cfg.zones[idx];
+    if (!zone) return row;
+
+    const label = inputEl('text', zone.label, (v) => {
+      const next = cfg.zones.map((z, i) => (i === idx ? { ...z, label: v } : z));
+      updateConfigList<ClockZone>(box.id, 'zones', next);
+    });
+    label.placeholder = 'NYC';
+
+    const offset = document.createElement('input');
+    offset.type = 'number';
+    offset.value = String(zone.offsetMinutes);
+    offset.style.width = '6rem';
+    offset.title = 'UTC offset (minutes) — e.g. -300 for EST';
+    offset.placeholder = '-300';
+    offset.addEventListener('input', () => {
+      const n = parseInt(offset.value, 10);
+      if (Number.isFinite(n)) {
+        const next = cfg.zones.map((z, i) => (i === idx ? { ...z, offsetMinutes: n } : z));
+        updateConfigList<ClockZone>(box.id, 'zones', next);
+      }
+    });
+
+    row.appendChild(label);
+    row.appendChild(offset);
+    return row;
+  };
+
+  frag.appendChild(
+    buildListField(
+      'Time zones',
+      cfg.zones.length,
+      renderRow,
+      () => appendToConfigList<ClockZone>(box.id, 'zones', { label: '', offsetMinutes: 0 }),
+      (idx) => removeFromConfigList(box.id, 'zones', idx),
+      'Add zone',
+    ),
+  );
+  return frag;
+}
+
 // -- Registry ---------------------------------------------------------------
 
 const formBuilders: Record<EditorBoxType, (box: EditorBox) => DocumentFragment> = {
@@ -742,6 +1010,11 @@ const formBuilders: Record<EditorBoxType, (box: EditorBox) => DocumentFragment> 
   horoscope: buildHoroscopeForm,
   joke: buildJokeForm,
   onthisday: buildOnThisDayForm,
+  stocks: buildStocksForm,
+  tasks: buildTasksForm,
+  calendar: buildCalendarForm,
+  habit: buildHabitForm,
+  worldclock: buildWorldclockForm,
 };
 
 export function buildConfigForm(box: EditorBox): DocumentFragment {
