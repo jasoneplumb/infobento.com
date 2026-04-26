@@ -19,6 +19,11 @@ import type {
   HoroscopeConfig,
   JokeConfig,
   OnThisDayConfig,
+  StocksConfig,
+  TasksConfig,
+  CalendarConfig,
+  HabitConfig,
+  WorldclockConfig,
 } from '../state';
 import { getBoxes, getShowHeaders, getFontSize, getCornerRadius, getPadding } from '../state';
 
@@ -154,6 +159,46 @@ function toBentoBox(editor: EditorBox): BentoBox {
           year: c.year || undefined,
           category: c.category || undefined,
         },
+      };
+    }
+    case 'stocks': {
+      const c = editor.config as StocksConfig;
+      return {
+        ...base,
+        type: 'stocks',
+        config: { type: 'stocks', symbol: c.symbol, data: c.data },
+      };
+    }
+    case 'tasks': {
+      const c = editor.config as TasksConfig;
+      return {
+        ...base,
+        type: 'tasks',
+        config: { type: 'tasks', items: c.items },
+      };
+    }
+    case 'calendar': {
+      const c = editor.config as CalendarConfig;
+      return {
+        ...base,
+        type: 'calendar',
+        config: { type: 'calendar', events: c.events },
+      };
+    }
+    case 'habit': {
+      const c = editor.config as HabitConfig;
+      return {
+        ...base,
+        type: 'habit',
+        config: { type: 'habit', habits: c.habits },
+      };
+    }
+    case 'worldclock': {
+      const c = editor.config as WorldclockConfig;
+      return {
+        ...base,
+        type: 'worldclock',
+        config: { type: 'worldclock', zones: c.zones },
       };
     }
     default:

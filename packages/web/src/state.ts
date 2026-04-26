@@ -12,6 +12,11 @@ import type {
   Forecast3DEntry,
   SunData,
   AQIData,
+  StockData,
+  TaskItem,
+  CalendarEvent,
+  HabitEntry,
+  ClockZone,
 } from '@infobento/core';
 
 // -- Editor box model (UI-local, not the core BentoBox type) ---------------
@@ -92,6 +97,27 @@ export interface OnThisDayConfig {
   category: string; // events | births | deaths | holidays | all
 }
 
+export interface StocksConfig {
+  symbol: string;
+  data?: StockData;
+}
+
+export interface TasksConfig {
+  items: TaskItem[];
+}
+
+export interface CalendarConfig {
+  events: CalendarEvent[];
+}
+
+export interface HabitConfig {
+  habits: HabitEntry[];
+}
+
+export interface WorldclockConfig {
+  zones: ClockZone[];
+}
+
 export type EditorBoxConfig =
   | TextConfig
   | CountdownConfig
@@ -107,7 +133,12 @@ export type EditorBoxConfig =
   | ProgressConfig
   | HoroscopeConfig
   | JokeConfig
-  | OnThisDayConfig;
+  | OnThisDayConfig
+  | StocksConfig
+  | TasksConfig
+  | CalendarConfig
+  | HabitConfig
+  | WorldclockConfig;
 
 export type EditorBoxType = Extract<
   BentoBoxType,
@@ -126,6 +157,11 @@ export type EditorBoxType = Extract<
   | 'horoscope'
   | 'joke'
   | 'onthisday'
+  | 'stocks'
+  | 'tasks'
+  | 'calendar'
+  | 'habit'
+  | 'worldclock'
 >;
 
 export interface EditorBox {
@@ -171,6 +207,11 @@ const DEFAULTS: Record<EditorBoxType, () => EditorBoxConfig> = {
   horoscope: () => ({ sign: '', content: '', date: '' }),
   joke: () => ({ content: '' }),
   onthisday: () => ({ content: '', category: 'events' }),
+  stocks: () => ({ symbol: '' }),
+  tasks: () => ({ items: [{ text: '', done: false }] }),
+  calendar: () => ({ events: [] }),
+  habit: () => ({ habits: [{ name: '', streak: 0, completedToday: false }] }),
+  worldclock: () => ({ zones: [{ label: 'UTC', offsetMinutes: 0 }] }),
 };
 
 const LABELS: Record<EditorBoxType, string> = {
@@ -189,6 +230,11 @@ const LABELS: Record<EditorBoxType, string> = {
   horoscope: 'Horoscope',
   joke: 'Joke',
   onthisday: 'On This Day',
+  stocks: 'Stocks',
+  tasks: 'Tasks',
+  calendar: 'Calendar',
+  habit: 'Habits',
+  worldclock: 'World Clock',
 };
 
 // -- Default box set --------------------------------------------------------
@@ -415,6 +461,33 @@ export function updateConfig(id: number, key: string, value: string): void {
   if (!box) return;
   (box.config as unknown as Record<string, string>)[key] = value;
   renderPreview();
+}
+
+/** In-row list edits — does not rebuild the form (keeps input focus). */
+export function updateConfigList<T>(id: number, key: string, items: T[]): void {
+  const box = findBox(id);
+  if (!box) return;
+  (box.config as unknown as Record<string, T[]>)[key] = items;
+  renderPreview();
+}
+
+/** Add/remove rows — uses setState so the form rebuilds with the new row count. */
+export function appendToConfigList<T>(id: number, key: string, item: T): void {
+  setState(() => {
+    const box = findBox(id);
+    if (!box) return;
+    const list = (box.config as unknown as Record<string, T[]>)[key];
+    if (Array.isArray(list)) list.push(item);
+  });
+}
+
+export function removeFromConfigList(id: number, key: string, idx: number): void {
+  setState(() => {
+    const box = findBox(id);
+    if (!box) return;
+    const list = (box.config as unknown as Record<string, unknown[]>)[key];
+    if (Array.isArray(list) && idx >= 0 && idx < list.length) list.splice(idx, 1);
+  });
 }
 
 export function updateWeatherData(id: number, data: WeatherData): void {
