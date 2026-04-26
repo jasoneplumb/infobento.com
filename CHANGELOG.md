@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.14.0] - 2026-04-25
+
+### Added
+
+- **Bundled local fallback** for `/api/quote`, `/api/joke`, `/api/horoscope` proxies — when the upstream provider fails (network, non-2xx, empty), proxy returns a random matching entry from a built-in JSON set with `fallback: true`. Bundle: 243 quotes (filtered to ≤120 chars from quotable mirror, multi-tag), 37 jokes (Programming/Misc/Pun via JokeAPI safe-mode), 30 evergreen sign-agnostic horoscope readings (#71)
+- Curated 5-box first-time-user default: `[Date | Weather]` merged + Forecast + Quote + On This Day, all auto-populated on first render. Replaces dev-test mocks (Portland weather + sample task/quote) (#70)
+
+### Changed
+
+- Geolocation hook (`detectLocation`) now triggers when the weather city is empty, not when it equals `Portland, OR` — supports the new empty-by-default config
+- `npm run build` chains a `node scripts/post-build.mjs` step that copies non-`.ts` static assets (the fallback JSON bundles) from each package's `src/` into `dist/`. ESLint config ignores `**/*.mjs` matching the existing `.js`/`.cjs` convention
+
+### Notes
+
+- Fallback bundle came in at ~50KB total (Round 12 Q3 estimated ~180KB; lighter because of the quote-length filter + smaller-than-spec joke / horoscope sets)
+
 ## [0.13.0] - 2026-04-25
 
 ### Added
