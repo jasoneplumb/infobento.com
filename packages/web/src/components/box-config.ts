@@ -33,7 +33,8 @@ import {
   updateAQIData,
   updateStocksData,
 } from '../state';
-import type { CalendarEvent, HabitEntry } from '@infobento/core';
+import type { CalendarEvent, HabitEntry, StockDuration } from '@infobento/core';
+import { STOCK_DURATIONS, DEFAULT_STOCK_DURATION } from '@infobento/core';
 import {
   fetchForecast,
   fetchForecast3D,
@@ -803,7 +804,7 @@ function buildStocksForm(box: EditorBox): DocumentFragment {
     const symbol = cfg.symbol;
     if (!symbol.trim()) return;
     statusEl.textContent = 'Fetching quote\u2026';
-    const data = await fetchStocks(symbol);
+    const data = await fetchStocks(symbol, cfg.duration ?? DEFAULT_STOCK_DURATION);
     if (data) {
       updateStocksData(box.id, data);
       const sign = data.change >= 0 ? '+' : '';
@@ -822,7 +823,24 @@ function buildStocksForm(box: EditorBox): DocumentFragment {
   });
   symbolInput.placeholder = 'e.g. AAPL';
 
-  frag.appendChild(makeField('Symbol', symbolInput, validateRequired('a symbol')));
+  const durationSelect = document.createElement('select');
+  for (const opt of STOCK_DURATIONS) {
+    const optEl = document.createElement('option');
+    optEl.value = opt.value;
+    optEl.textContent = opt.label;
+    if (opt.value === (cfg.duration ?? DEFAULT_STOCK_DURATION)) optEl.selected = true;
+    durationSelect.appendChild(optEl);
+  }
+  durationSelect.addEventListener('change', () => {
+    updateConfig(box.id, 'duration', durationSelect.value as StockDuration);
+    debouncedFetch(box.id, doFetch);
+  });
+
+  const row = document.createElement('div');
+  row.className = 'field-row';
+  row.appendChild(makeField('Symbol', symbolInput, validateRequired('a symbol')));
+  row.appendChild(makeField('Duration', durationSelect));
+  frag.appendChild(row);
   frag.appendChild(statusEl);
 
   if (cfg.symbol.trim() && !cfg.data) {

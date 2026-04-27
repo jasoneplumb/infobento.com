@@ -128,9 +128,25 @@ export interface StockData {
   readonly changePercent: number; // percentage change
 }
 
+/** Available preset durations for stock change comparison */
+export type StockDuration = '1d' | '5d' | '1mo' | '3mo' | '6mo' | '1y' | '5y';
+
+export const STOCK_DURATIONS: ReadonlyArray<{ value: StockDuration; label: string }> = [
+  { value: '1d', label: '1 Day' },
+  { value: '5d', label: '5 Days' },
+  { value: '1mo', label: '1 Month' },
+  { value: '3mo', label: '3 Months' },
+  { value: '6mo', label: '6 Months' },
+  { value: '1y', label: '1 Year' },
+  { value: '5y', label: '5 Years' },
+];
+
+export const DEFAULT_STOCK_DURATION: StockDuration = '1d';
+
 export interface StocksBoxConfig {
   readonly type: 'stocks';
   readonly symbol: string; // e.g. 'AAPL', 'BTC'
+  readonly duration?: StockDuration; // defaults to '1d' when omitted
   readonly data?: StockData;
 }
 

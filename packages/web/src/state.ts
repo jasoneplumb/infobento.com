@@ -13,9 +13,11 @@ import type {
   SunData,
   AQIData,
   StockData,
+  StockDuration,
   CalendarEvent,
   HabitEntry,
 } from '@infobento/core';
+import { DEFAULT_STOCK_DURATION } from '@infobento/core';
 
 // -- Editor box model (UI-local, not the core BentoBox type) ---------------
 
@@ -97,6 +99,7 @@ export interface OnThisDayConfig {
 
 export interface StocksConfig {
   symbol: string;
+  duration?: StockDuration;
   data?: StockData;
 }
 
@@ -193,7 +196,7 @@ const DEFAULTS: Record<EditorBoxType, () => EditorBoxConfig> = {
   horoscope: () => ({ sign: '', content: '', date: '' }),
   joke: () => ({ content: '' }),
   onthisday: () => ({ content: '', category: 'events' }),
-  stocks: () => ({ symbol: '' }),
+  stocks: () => ({ symbol: '', duration: DEFAULT_STOCK_DURATION }),
   calendar: () => ({ events: [] }),
   habit: () => ({ habits: [{ name: '', streak: 0, completedToday: false }] }),
 };

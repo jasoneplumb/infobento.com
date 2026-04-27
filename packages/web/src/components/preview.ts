@@ -165,7 +165,12 @@ function toBentoBox(editor: EditorBox): BentoBox {
       return {
         ...base,
         type: 'stocks',
-        config: { type: 'stocks', symbol: c.symbol, data: c.data },
+        config: {
+          type: 'stocks',
+          symbol: c.symbol,
+          ...(c.duration ? { duration: c.duration } : {}),
+          data: c.data,
+        },
       };
     }
     case 'calendar': {

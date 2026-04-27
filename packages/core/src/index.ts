@@ -25,6 +25,7 @@ export type {
   AQIBoxConfig,
   ProgressBoxConfig,
   StockData,
+  StockDuration,
   StocksBoxConfig,
   CalendarEvent,
   CalendarBoxConfig,
@@ -50,6 +51,9 @@ export {
   DEFAULT_FRAME_BYTES,
   frameBufferBytes,
 } from './constants.js';
+
+// Re-export stock duration presets
+export { STOCK_DURATIONS, DEFAULT_STOCK_DURATION } from './types.js';
 
 // Re-export layout engine
 export { calculateLayout } from './layout.js';

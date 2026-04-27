@@ -10,6 +10,7 @@ import type {
   Forecast3DEntry,
   SunData,
   AQIData,
+  StockDuration,
 } from '@infobento/core';
 
 // -- Geocoding (Nominatim / OpenStreetMap) ----------------------------------
@@ -408,11 +409,16 @@ export interface StocksResult {
  * Fetch a stock quote via the /api/stocks proxy. Symbol is uppercased
  * server-side. Returns null on network/API failure or no quote data.
  */
-export async function fetchStocks(symbol: string): Promise<StocksResult | null> {
+export async function fetchStocks(
+  symbol: string,
+  duration?: StockDuration,
+): Promise<StocksResult | null> {
   const trimmed = symbol.trim().toUpperCase();
   if (!trimmed) return null;
   try {
-    const res = await fetch(`/api/stocks?symbol=${encodeURIComponent(trimmed)}`);
+    const params = new URLSearchParams({ symbol: trimmed });
+    if (duration) params.set('duration', duration);
+    const res = await fetch(`/api/stocks?${params.toString()}`);
     if (!res.ok) return null;
     const data = (await res.json()) as {
       price?: number;

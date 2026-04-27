@@ -125,9 +125,12 @@ const StockDataSchema = z.object({
   changePercent: z.number(),
 });
 
+const StockDurationSchema = z.enum(['1d', '5d', '1mo', '3mo', '6mo', '1y', '5y']);
+
 const StocksBoxConfigSchema = z.object({
   type: z.literal('stocks'),
   symbol: z.string().min(1, 'Symbol is required'),
+  duration: StockDurationSchema.optional(),
   data: StockDataSchema.optional(),
 });
 

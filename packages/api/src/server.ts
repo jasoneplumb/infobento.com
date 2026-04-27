@@ -290,14 +290,30 @@ app.get('/api/horoscope', async (c) => {
   return c.json({ error: 'Failed to fetch horoscope' }, 502);
 });
 
+/** Map a duration preset to a Yahoo Finance chart range + interval pair */
+const STOCK_RANGE_MAP: Record<string, { range: string; interval: string }> = {
+  '1d': { range: '2d', interval: '1d' },
+  '5d': { range: '5d', interval: '1d' },
+  '1mo': { range: '1mo', interval: '1d' },
+  '3mo': { range: '3mo', interval: '1d' },
+  '6mo': { range: '6mo', interval: '1d' },
+  '1y': { range: '1y', interval: '1wk' },
+  '5y': { range: '5y', interval: '1mo' },
+};
+
 app.get('/api/stocks', async (c) => {
   const raw = (c.req.query('symbol') ?? '').trim().toUpperCase();
   // Allow letters/digits/dots/hyphens — covers AAPL, BRK.A, BTC-USD, etc.
   if (!raw || !/^[A-Z][A-Z0-9.-]{0,9}$/.test(raw)) {
     return c.json({ error: 'Invalid or missing symbol' }, 400);
   }
+  const durationParam = (c.req.query('duration') ?? '1d').trim();
+  const ri = STOCK_RANGE_MAP[durationParam] ?? STOCK_RANGE_MAP['1d'];
+  if (!ri) {
+    return c.json({ error: 'Invalid duration' }, 400);
+  }
   try {
-    const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(raw)}?interval=1d&range=2d`;
+    const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(raw)}?interval=${ri.interval}&range=${ri.range}`;
     const res = await fetch(url, {
       headers: { 'User-Agent': 'Mozilla/5.0 (compatible; InfoBento/1.0)' },
     });
@@ -306,17 +322,34 @@ app.get('/api/stocks', async (c) => {
     }
     const data = (await res.json()) as {
       chart?: {
-        result?: { meta?: { regularMarketPrice?: number; chartPreviousClose?: number } }[];
+        result?: {
+          meta?: { regularMarketPrice?: number; chartPreviousClose?: number };
+          indicators?: { quote?: { close?: (number | null)[] }[] };
+        }[];
       };
     };
-    const meta = data.chart?.result?.[0]?.meta;
+    const result = data.chart?.result?.[0];
+    const meta = result?.meta;
     const price = meta?.regularMarketPrice;
-    const prev = meta?.chartPreviousClose;
-    if (price == null || prev == null) {
+    if (price == null) {
       return c.json({ error: 'No quote data available' }, 404);
     }
-    const change = price - prev;
-    const changePercent = prev !== 0 ? (change / prev) * 100 : 0;
+
+    // Baseline (start-of-range) price:
+    //   1d → previous close from meta (today vs. yesterday).
+    //   longer → first non-null close in the returned series.
+    let baseline: number | undefined;
+    if (durationParam === '1d') {
+      baseline = meta?.chartPreviousClose;
+    } else {
+      const closes = result?.indicators?.quote?.[0]?.close ?? [];
+      baseline = closes.find((v): v is number => typeof v === 'number' && Number.isFinite(v));
+    }
+    if (baseline == null) {
+      return c.json({ error: 'No baseline price for duration' }, 404);
+    }
+    const change = price - baseline;
+    const changePercent = baseline !== 0 ? (change / baseline) * 100 : 0;
     return c.json({ price, change, changePercent });
   } catch {
     return c.json({ error: 'Failed to fetch stock quote' }, 502);
