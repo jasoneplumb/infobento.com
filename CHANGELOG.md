@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.18.0] - 2026-04-27
+
+### Added
+
+- **Stocks duration selector** — every stocks box now carries a `Duration` dropdown alongside `Symbol`, with seven presets: 1 Day (default), 5 Days, 1 Month, 3 Months, 6 Months, 1 Year, 5 Years. Changing the duration triggers a debounced refetch and updates the change/percent against that range's baseline. New `StockDuration` type, `STOCK_DURATIONS` preset list, and `DEFAULT_STOCK_DURATION='1d'` exported from `@infobento/core`; Zod-validated. `/api/stocks` accepts a `duration` query parameter and maps it to Yahoo Finance `range`/`interval` pairs (`1d→2d/1d`, `1y→1y/1wk`, `5y→5y/1mo`, etc.); change is computed against `meta.chartPreviousClose` for `1d` and against the first non-null close in the returned series for longer ranges.
+
 ## [0.17.0] - 2026-04-27
 
 ### Added
