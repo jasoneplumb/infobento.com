@@ -188,7 +188,7 @@ All box types work without accounts, API keys, or subscriptions.
 
 ## Open Items
 
-- **Hardware validation:** Dev kit (ESP32-L + GDEH0576T81) on order. Validates grey rendering, refresh speed, viewing angle.
+- **Hardware validation:** Dev kit (ESP32-C3 + GDEH0576T81) on order. Validates grey rendering, refresh speed, viewing angle.
 - **Grey fallback:** If 2-bit grey looks bad on hardware, Floyd-Steinberg dithering to 1-bit as fallback (#56).
 - **Price validation:** $30-40 target needs manufacturer quotes at Kickstarter volume.
 - **Firmware:** Captive portal provisioning (#39), Wi-Fi connect, config poll, framebuffer write, deep sleep cycle.

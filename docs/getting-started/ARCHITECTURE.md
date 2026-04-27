@@ -96,7 +96,3 @@ Production:
 - **Single port:** Hono serves API + web UI + firmware from one port (default 4000), proxied by Caddy
 - **Migration path:** Hono is portable, so moving to Cloudflare Workers, Vercel Edge, or another provider is a few-hour exercise if the droplet ever becomes the bottleneck (it won't at the scales we plan for)
 - **Device firmware:** separate repo (future)
-
-## Mid-pivot status
-
-The codebase is mid-pivot from a previous dual-display MagSafe clamshell concept (D outer / P inner) to the counter-only B&W decorator described above. Some abstractions (`DisplayId`, the dual-display web editor 2x2 layout) are still present in `main` and will be migrated phase-by-phase. See RFC #25 for in-flight work.

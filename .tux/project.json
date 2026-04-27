@@ -233,7 +233,7 @@
     {
       "type": "requirement",
       "label": "REQ-001",
-      "statement": "User can configure 3-6 bento boxes on the eInk display via web interface",
+      "statement": "User can configure up to 10 bento boxes on the eInk display via web interface",
       "source": "Voice spec — user wants modular customizable information boxes",
       "category": "functional",
       "priority": "must",
@@ -287,7 +287,7 @@
     {
       "type": "requirement",
       "label": "REQ-004",
-      "statement": "MVP supports 17 box types without requiring any user accounts: weather, forecast, forecast3d, quote, countdown, QR, text, date, moon, sun, aqi, progress, stocks, tasks, calendar, habit, worldclock",
+      "statement": "MVP supports 18 box types without requiring any user accounts: weather, forecast, forecast3d, calendar, quote, countdown, stocks, qr, text, date, moon, sun, aqi, progress, habit, horoscope, joke, onthisday",
       "source": "Open question resolution — free data sources prioritized for MVP. Expanded from 6 to 11 in #41-45, then to 17 in v0.8.0 (2026-04-24).",
       "category": "functional",
       "priority": "must",
@@ -624,7 +624,7 @@
     {
       "type": "requirement",
       "label": "REQ-011",
-      "statement": "Display must be high DPI (≥200 DPI target, ≥124 DPI minimum) and nearly fill the enclosure (≤3mm visible bezel)",
+      "statement": "Display must be high DPI (≥200 DPI target, ≥124 DPI minimum) and nearly fill the enclosure (≤4mm visible bezel)",
       "source": "Round 11 direction (2026-04-23). High DPI ensures crisp text at glance distance. Minimal bezel maximizes the 'all-screen' aesthetic — the display IS the device from the front.",
       "category": "non-functional",
       "priority": "should",

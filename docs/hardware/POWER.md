@@ -21,6 +21,7 @@ Solar panel exposed to indirect window light. Display facing the room. 1–2 ref
 | B&W eInk full refresh       | ~25 mA | 0 mA   | ~0.75 s (partial: ~0.3 s) |
 | Wi-Fi connect + fetch frame | ~70 mA | ~10 µA | ~10–20 s                  |
 | MCU active (during refresh) | ~5 mA  | ~10 µA | ~15 s                     |
+| Tilt switches (2× ball-in-tube, GPIO interrupt) | 0 mA | 0 mA | event-driven |
 
 **Per refresh cycle:** ~15–20 s active, ~0.8–1.2 mAh total
 

@@ -2,7 +2,7 @@
 
 > _See what matters. Skip the spiral._
 
-A small, solar-powered B&W eInk decorator that lives on a counter, shelf, or windowsill. Configure once on a web page; it sips light from the window and shows what matters most — weather, forecast, 8-day forecast, countdown, QR code, quote, date, moon phase, sunrise/sunset, air quality, year progress, text, stocks, calendar, habits — for months on its own.
+A small, solar-powered B&W eInk decorator that lives on a counter, shelf, or windowsill. Configure once on a web page; it sips light from the window and shows what matters most — weather, 3-hour forecast, 3-day forecast, calendar, quote, countdown, stocks, QR code, text, date, moon phase, sunrise/sunset, air quality, year progress, habits, horoscope, joke, on this day — for months on its own.
 
 ## Overview
 
@@ -14,12 +14,13 @@ Set it on a kitchen counter, a desk, or a shelf. The body is its own stand — s
 
 - **Display:** Good Display GDEH0576T81, 5.76" B&W eInk, 920x680 pixels, 198 DPI, SSD2677 driver
 - **Renderer:** 2-bit grayscale framebuffer with antialiased TTF fonts (Inter via opentype.js), SDF-based rounded box borders, configurable corner radius (0-5) and padding (0-10), font size slider (8-42px)
-- **MCU:** ESP32-C3 (production), ESP32-L dev kit for validation (Wi-Fi 4 + BLE 5; BLE radio reserved for a possible v2 bridge mode)
+- **MCU:** ESP32-C3 (Wi-Fi 4 + BLE 5; BLE radio reserved for a possible v2 bridge mode)
 - **Power:** 100 mAh LiPo + AEM10941 solar harvester
 - **Solar panel:** mounted on the upper portion of the back side, ~70×100 mm
 - **Connectivity:** Wi-Fi direct + captive-portal setup; no companion phone app. Web editor at `infobento.com` is the only configuration surface. See `docs/hardware/CONNECTIVITY.md`.
 - **Recovery:** recessed pinhole reset (~2mm) on the back-lower grip area; press with paperclip for 5s = factory reset.
 - **Form factor:** monolithic body. No hinge, no kickstand, no MagSafe. The body is the stand.
+- **Orientation:** two ball-in-tube tilt switches mounted at 90° on GPIO interrupts; firmware auto-rotates the layout across landscape, portrait, and inverted variants. Zero standby current, ~$0.10 BOM.
 - **Industrial design:** white housing, thin bezel (≤4mm visible)
 - **Drop survival:** designed to survive a 4-foot drop onto a hard surface — soft polymer bumper between glass and housing, edge-radiused corners, inset display recess
 
@@ -124,4 +125,4 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for development workflow and guidelines.
 
 ## Status
 
-Active development. Renderer produces 2-bit grayscale framebuffers with 15 box types. Web editor at localhost:5173 for configuration. Hardware validation pending (GDEH0576T81 dev kit on order).
+Active development. Renderer produces 2-bit grayscale framebuffers with 18 box types. Web editor at localhost:5173 for configuration. Hardware validation pending (GDEH0576T81 dev kit on order).
