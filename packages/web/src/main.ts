@@ -21,7 +21,7 @@ import {
   setShowHeaders,
 } from './state';
 import { renderBoxList } from './components/box-list';
-import { renderPreview } from './components/preview';
+import { renderPreview, setPreviewOrientation } from './components/preview';
 import { requireConsent } from './components/consent';
 import { detectLocation } from './geolocation';
 
@@ -91,6 +91,14 @@ const headersToggle = document.querySelector<HTMLInputElement>('#toggle-headers 
 if (headersToggle) {
   headersToggle.checked = getShowHeaders();
   headersToggle.addEventListener('change', () => setShowHeaders(headersToggle.checked));
+}
+
+// -- Wire up Landscape toggle -----------------------------------------------
+
+const landscapeToggle = document.querySelector<HTMLInputElement>('#toggle-landscape input');
+if (landscapeToggle) {
+  landscapeToggle.checked = false;
+  landscapeToggle.addEventListener('change', () => setPreviewOrientation(landscapeToggle.checked));
 }
 
 // -- Wire up Font Size stepper -----------------------------------------------

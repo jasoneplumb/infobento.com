@@ -1,6 +1,7 @@
 /**
  * eInk preview — fetches server-rendered PNGs (landscape + portrait) from the API.
- * Converts editor state to BentoConfig, POSTs to /api/preview?dual=1, displays both PNGs.
+ * Converts editor state to BentoConfig, POSTs to /api/preview?dual=1.
+ * Displays one orientation at a time, toggled by the Landscape checkbox.
  */
 
 import type { BentoBox, BentoConfig } from '@infobento/core';
@@ -204,11 +205,19 @@ let _imgLandscape: HTMLImageElement | undefined;
 let _imgPortrait: HTMLImageElement | undefined;
 let _pendingRequest: AbortController | undefined;
 let _debounceTimer: ReturnType<typeof setTimeout> | undefined;
+let _showLandscape = false;
+let _containerId: string | undefined;
 
 export function renderPreview(containerId: string): void {
+  _containerId = containerId;
   // Debounce: wait 150ms after last call before fetching
   if (_debounceTimer) clearTimeout(_debounceTimer);
   _debounceTimer = setTimeout(() => renderPreviewNow(containerId), 150);
+}
+
+export function setPreviewOrientation(landscape: boolean): void {
+  _showLandscape = landscape;
+  if (_containerId) mountActivePreview(_containerId);
 }
 
 function ensureImg(existing: HTMLImageElement | undefined, className: string): HTMLImageElement {
@@ -217,6 +226,16 @@ function ensureImg(existing: HTMLImageElement | undefined, className: string): H
   img.className = className;
   img.style.imageRendering = 'pixelated';
   return img;
+}
+
+function mountActivePreview(containerId: string): void {
+  const display = document.getElementById(containerId);
+  if (!display || !_imgLandscape || !_imgPortrait) return;
+  display.innerHTML = '';
+  const div = document.createElement('div');
+  div.className = `eink-preview-pair ${_showLandscape ? 'landscape' : 'portrait'}`;
+  div.appendChild(_showLandscape ? _imgLandscape : _imgPortrait);
+  display.appendChild(div);
 }
 
 function renderPreviewNow(containerId: string): void {
@@ -269,21 +288,7 @@ function renderPreviewNow(containerId: string): void {
       const radiusPx = getCornerRadius() * 4;
       display.style.setProperty('--eink-radius', `${String(Math.round(radiusPx * 0.5))}px`);
 
-      if (_imgPortrait.parentElement !== display) {
-        display.innerHTML = '';
-
-        // Portrait preview (shown first)
-        const pDiv = document.createElement('div');
-        pDiv.className = 'eink-preview-pair portrait';
-        pDiv.appendChild(_imgPortrait);
-        display.appendChild(pDiv);
-
-        // Landscape preview
-        const lDiv = document.createElement('div');
-        lDiv.className = 'eink-preview-pair landscape';
-        lDiv.appendChild(_imgLandscape);
-        display.appendChild(lDiv);
-      }
+      mountActivePreview(containerId);
     })
     .catch((err: unknown) => {
       if (err instanceof DOMException && err.name === 'AbortError') return;
