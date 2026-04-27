@@ -13,11 +13,14 @@ import { BOX_ICONS, ICON_WIDTH } from '../icons.js';
 
 /**
  * intent: Format a price change with sign prefix and percentage
- * method: Prefix with + or - (negative already has -), format to 2 decimal places
+ * method: Prefix with + or - (negative already has -), format to 2 decimal places.
+ *   When a duration is provided, append it after a middle dot so the change
+ *   reads "+2.45 (+1.23%) · 1mo" — disambiguates 1-day vs longer-range moves.
  */
-function formatChange(change: number, changePercent: number): string {
+function formatChange(change: number, changePercent: number, duration?: string): string {
   const sign = change >= 0 ? '+' : '';
-  return `${sign}${change.toFixed(2)} (${sign}${changePercent.toFixed(2)}%)`;
+  const base = `${sign}${change.toFixed(2)} (${sign}${changePercent.toFixed(2)}%)`;
+  return duration ? `${base} \u00b7 ${duration}` : base;
 }
 
 /**
@@ -64,8 +67,8 @@ export function renderStocksBox(
       cy += metrics.heroSize + 4;
     }
 
-    // Change line in body font
-    const changeStr = formatChange(config.data.change, config.data.changePercent);
+    // Change line in body font (with duration suffix when available)
+    const changeStr = formatChange(config.data.change, config.data.changePercent, config.duration);
     if (cy + metrics.bodySize <= y + height - metrics.pad) {
       drawText(
         fb,
