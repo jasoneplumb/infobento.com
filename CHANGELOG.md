@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.17.0] - 2026-04-27
+
+### Added
+
+- **Landscape preview toggle** — preview shows one orientation at a time (portrait by default), swapped by a new "Landscape" checkbox in the preview controls. Both PNGs are still fetched in one round-trip so the toggle is instant. Replaces the always-on dual-preview layout.
+
+### Changed
+
+- **Editor cards reflow horizontally and tighten vertically** — the box-config form inside each card uses flex-wrap, so multi-field forms (date+label, city+entries, etc.) sit side-by-side when there's room and stack only on narrow widths. Tighter padding/labels/inputs and a 40px-min textarea (down from 72px) let several boxes fit on screen without scrolling at typical desktop widths.
+
+### Documentation
+
+- Reconciled `README.md`, `docs/`, and `.tux/project.json` with the actual code: 18 box types (was 15/17, with stale `tasks`/`worldclock` and missing `horoscope`/`joke`/`onthisday`); `forecast3d` correctly described as 3-day; dropped phantom "ESP32-L" mentions; surfaced tilt-switch hardware (REQ-012) in README and POWER.md; removed stale "Mid-pivot status" section from `ARCHITECTURE.md` (`DisplayId` is gone); aligned bezel spec at ≤4mm; bumped REQ-001 from "3-6" to "up to 10" boxes to match `MAX_BOXES`.
+
 ## [0.16.0] - 2026-04-26
 
 ### Added
