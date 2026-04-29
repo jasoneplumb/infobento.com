@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.20.0] - 2026-04-28
+
+### Added
+
+- **Location button on all location fields** — weather, forecast, 3-day forecast, sun, and AQI boxes now show a small location icon inline with the LOCATION label. Clicking it calls ipapi.co (no browser permission required) to detect the device's city via IP and fills the field immediately, also propagating to any other empty location boxes in the layout.
+
 ## [0.19.0] - 2026-04-27
 
 ### Added
