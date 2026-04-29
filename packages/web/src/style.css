@@ -512,9 +512,15 @@ button {
 
 .box-card {
   background: var(--surface);
-  border: 1px solid var(--border);
+  border: 2px solid var(--accent);
   border-radius: var(--radius);
   overflow: hidden;
+}
+
+/* Inside a merged pair, the group already carries the accent border —
+   subdue the inner cards so the group reads as one unit. */
+.box-pair-group .box-card {
+  border: 1px solid var(--border);
 }
 
 /* -- Split pair grouping ------------------------------------------------- */
@@ -744,6 +750,54 @@ button {
 
 .box-card-body > .field {
   flex: 1 1 180px;
+}
+
+.field-label-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.field-label-row label {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.btn-locate {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--muted);
+  border: 1px solid var(--border);
+  cursor: pointer;
+  transition:
+    color 0.1s,
+    border-color 0.1s,
+    background 0.1s;
+  flex-shrink: 0;
+}
+
+.btn-locate:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+.btn-locate:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.btn-locate-error {
+  color: var(--danger);
+  border-color: var(--danger);
 }
 
 .field label {

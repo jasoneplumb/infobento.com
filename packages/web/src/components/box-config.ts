@@ -35,6 +35,7 @@ import {
 } from '../state';
 import type { CalendarEvent, HabitEntry, StockDuration } from '@infobento/core';
 import { STOCK_DURATIONS, DEFAULT_STOCK_DURATION } from '@infobento/core';
+import { propagateLocationToEmptyBoxes } from '../geolocation.js';
 import {
   fetchForecast,
   fetchForecast3D,
@@ -142,6 +143,57 @@ function makeField(labelText: string, inputEl: HTMLElement, rule?: ValidationRul
   return wrapper;
 }
 
+const LOCATE_ICON =
+  `<svg width="11" height="11" viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">` +
+  `<path d="M14 2 L2 7 Q7 9 8 14 Z"/>` +
+  `</svg>`;
+
+function makeLocationField(
+  cityInput: HTMLInputElement,
+  onCity: (city: string) => void,
+): HTMLDivElement {
+  const wrapper = document.createElement('div');
+  wrapper.className = 'field';
+
+  const labelRow = document.createElement('div');
+  labelRow.className = 'field-label-row';
+
+  const label = document.createElement('label');
+  label.textContent = 'Location';
+
+  const locBtn = document.createElement('button');
+  locBtn.type = 'button';
+  locBtn.className = 'btn-locate';
+  locBtn.title = 'Use my location';
+  locBtn.setAttribute('aria-label', 'Use my location');
+  locBtn.innerHTML = LOCATE_ICON;
+
+  locBtn.addEventListener('click', () => {
+    locBtn.disabled = true;
+    void fetch('https://ipapi.co/json/')
+      .then((r) => r.json())
+      .then((data: { city?: string; region?: string; error?: boolean }) => {
+        locBtn.disabled = false;
+        if (data.error || !data.city) return;
+        const city = data.region ? `${data.city}, ${data.region}` : data.city;
+        cityInput.value = city;
+        onCity(city);
+        propagateLocationToEmptyBoxes(city);
+      })
+      .catch(() => {
+        locBtn.disabled = false;
+      });
+  });
+
+  labelRow.appendChild(label);
+  labelRow.appendChild(locBtn);
+  wrapper.appendChild(labelRow);
+  wrapper.appendChild(cityInput);
+  attachValidation(cityInput, wrapper, validateRequired('a location'));
+
+  return wrapper;
+}
+
 function inputEl(type: string, value: string, onInput: (v: string) => void): HTMLInputElement {
   const el = document.createElement('input');
   el.type = type;
@@ -223,7 +275,12 @@ function buildWeatherForm(box: EditorBox): DocumentFragment {
   });
   cityInput.placeholder = 'e.g. Portland, OR';
 
-  frag.appendChild(makeField('Location', cityInput, validateRequired('a location')));
+  frag.appendChild(
+    makeLocationField(cityInput, (city) => {
+      updateConfig(box.id, 'city', city);
+      void doFetch();
+    }),
+  );
   frag.appendChild(statusEl);
 
   if (cfg.city.trim() && !cfg.data) {
@@ -268,7 +325,12 @@ function buildForecastForm(box: EditorBox): DocumentFragment {
   });
   cityInput.placeholder = 'e.g. Portland, OR';
 
-  frag.appendChild(makeField('Location', cityInput, validateRequired('a location')));
+  frag.appendChild(
+    makeLocationField(cityInput, (city) => {
+      updateConfig(box.id, 'city', city);
+      void doFetch();
+    }),
+  );
   frag.appendChild(statusEl);
 
   if (cfg.city.trim() && (!cfg.entries || cfg.entries.length === 0)) {
@@ -313,7 +375,12 @@ function buildForecast3DForm(box: EditorBox): DocumentFragment {
   });
   cityInput.placeholder = 'e.g. Portland, OR';
 
-  frag.appendChild(makeField('Location', cityInput, validateRequired('a location')));
+  frag.appendChild(
+    makeLocationField(cityInput, (city) => {
+      updateConfig(box.id, 'city', city);
+      void doFetch();
+    }),
+  );
   frag.appendChild(statusEl);
 
   if (cfg.city.trim() && (!cfg.entries || cfg.entries.length === 0)) {
@@ -441,7 +508,12 @@ function buildSunForm(box: EditorBox): DocumentFragment {
   });
   cityInput.placeholder = 'e.g. Portland, OR';
 
-  frag.appendChild(makeField('Location', cityInput, validateRequired('a location')));
+  frag.appendChild(
+    makeLocationField(cityInput, (city) => {
+      updateConfig(box.id, 'city', city);
+      void doFetch();
+    }),
+  );
   frag.appendChild(statusEl);
 
   if (cfg.city.trim() && !cfg.data) {
@@ -482,7 +554,12 @@ function buildAQIForm(box: EditorBox): DocumentFragment {
   });
   cityInput.placeholder = 'e.g. Portland, OR';
 
-  frag.appendChild(makeField('Location', cityInput, validateRequired('a location')));
+  frag.appendChild(
+    makeLocationField(cityInput, (city) => {
+      updateConfig(box.id, 'city', city);
+      void doFetch();
+    }),
+  );
   frag.appendChild(statusEl);
 
   if (cfg.city.trim() && !cfg.data) {

@@ -4,7 +4,7 @@
  * default weather/forecast boxes with real local data.
  */
 
-import { getBoxes, updateConfig } from './state';
+import { getBoxes, updateConfig, setState } from './state';
 import { fetchWeather, fetchForecast3D } from './api';
 import type { WeatherConfig, Forecast3DConfig } from './state';
 
@@ -15,6 +15,44 @@ interface NominatimReverseResult {
     village?: string;
     state?: string;
   };
+}
+
+export async function reverseGeocode(lat: number, lon: number): Promise<string | null> {
+  try {
+    const url =
+      `https://nominatim.openstreetmap.org/reverse` +
+      `?lat=${String(lat)}&lon=${String(lon)}` +
+      `&format=json&zoom=10`;
+    const res = await fetch(url, { headers: { 'Accept-Language': 'en' } });
+    if (!res.ok) return null;
+    const data = (await res.json()) as NominatimReverseResult;
+    const addr = data.address;
+    if (!addr) return null;
+    const city = addr.city ?? addr.town ?? addr.village;
+    if (!city) return null;
+    return addr.state ? `${city}, ${addr.state}` : city;
+  } catch {
+    return null;
+  }
+}
+
+export function propagateLocationToEmptyBoxes(city: string): void {
+  setState((s) => {
+    for (const box of s.boxes) {
+      if (
+        box.type === 'weather' ||
+        box.type === 'forecast' ||
+        box.type === 'forecast3d' ||
+        box.type === 'sun' ||
+        box.type === 'aqi'
+      ) {
+        const cfg = box.config as { city: string };
+        if (cfg.city.trim() === '') {
+          cfg.city = city;
+        }
+      }
+    }
+  });
 }
 
 /**
@@ -47,65 +85,47 @@ export async function detectLocation(): Promise<void> {
     return; // Permission denied or timeout — keep Portland default
   }
 
-  // Reverse-geocode via Nominatim
-  try {
-    const url =
-      `https://nominatim.openstreetmap.org/reverse` +
-      `?lat=${String(lat)}&lon=${String(lon)}` +
-      `&format=json&zoom=10`;
-    const res = await fetch(url, { headers: { 'Accept-Language': 'en' } });
-    if (!res.ok) return;
+  const locationStr = await reverseGeocode(lat, lon);
+  if (!locationStr) return;
 
-    const data = (await res.json()) as NominatimReverseResult;
-    const addr = data.address;
-    if (!addr) return;
+  // Update all location-based boxes that still have an empty city
+  for (const box of boxes) {
+    if (
+      box.type === 'weather' ||
+      box.type === 'forecast' ||
+      box.type === 'forecast3d' ||
+      box.type === 'sun' ||
+      box.type === 'aqi'
+    ) {
+      const cfg = box.config as { city: string };
+      if (cfg.city.trim() === '') {
+        updateConfig(box.id, 'city', locationStr);
+      }
+    }
+  }
 
-    const city = addr.city ?? addr.town ?? addr.village;
-    if (!city) return;
-
-    const locationStr = addr.state ? `${city}, ${addr.state}` : city;
-
-    // Update all location-based boxes that still have an empty city
-    for (const box of boxes) {
-      if (
-        box.type === 'weather' ||
-        box.type === 'forecast' ||
-        box.type === 'forecast3d' ||
-        box.type === 'sun' ||
-        box.type === 'aqi'
-      ) {
-        const cfg = box.config as { city: string };
-        if (cfg.city.trim() === '') {
-          updateConfig(box.id, 'city', locationStr);
+  // Fetch real data for weather and forecast boxes
+  const updatedBoxes = getBoxes();
+  for (const box of updatedBoxes) {
+    if (box.type === 'weather') {
+      const cfg = box.config as WeatherConfig;
+      if (cfg.city === locationStr && !cfg.data) {
+        const weatherData = await fetchWeather(locationStr);
+        if (weatherData) {
+          const { updateWeatherData } = await import('./state');
+          updateWeatherData(box.id, weatherData);
         }
       }
     }
-
-    // Fetch real data for weather and forecast boxes
-    const updatedBoxes = getBoxes();
-    for (const box of updatedBoxes) {
-      if (box.type === 'weather') {
-        const cfg = box.config as WeatherConfig;
-        if (cfg.city === locationStr && !cfg.data) {
-          const weatherData = await fetchWeather(locationStr);
-          if (weatherData) {
-            const { updateWeatherData } = await import('./state');
-            updateWeatherData(box.id, weatherData);
-          }
-        }
-      }
-      if (box.type === 'forecast3d') {
-        const cfg = box.config as Forecast3DConfig;
-        if (cfg.city === locationStr) {
-          const entries = await fetchForecast3D(locationStr);
-          if (entries) {
-            const { updateForecast3DEntries } = await import('./state');
-            updateForecast3DEntries(box.id, entries);
-          }
+    if (box.type === 'forecast3d') {
+      const cfg = box.config as Forecast3DConfig;
+      if (cfg.city === locationStr) {
+        const entries = await fetchForecast3D(locationStr);
+        if (entries) {
+          const { updateForecast3DEntries } = await import('./state');
+          updateForecast3DEntries(box.id, entries);
         }
       }
     }
-  } catch {
-    // Nominatim error — keep Portland default
   }
 }
