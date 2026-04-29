@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.21.0] - 2026-04-28
+
+### Changed
+
+- **Add box chips** — replaces the two-step select + "Add Box" button with a wrapping row of pill-shaped chips, one per box type sorted alphabetically. Single click adds a box directly with no intermediate step.
+
 ## [0.20.0] - 2026-04-28
 
 ### Added
