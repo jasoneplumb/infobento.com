@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.22.0] - 2026-04-29
+
+### Added
+
+- **Device-pull config and frame endpoints** — `GET /api/device/:id/config` returns the bound `BentoConfig` JSON; `GET /api/device/:id/frame?orientation=landscape|portrait` returns the rendered 2-bit framebuffer bytes (~157 KB per orientation). Both endpoints carry `Last-Modified` headers and honor `If-Modified-Since` with `304 Not Modified` (second-precision compare). The device id is the bearer secret (no auth header — long opaque token, treated like an API key). Per-device-id token-bucket rate limiter at 10/min in-memory, returns `429` with `Retry-After: 60` when exceeded. New `packages/api/src/device.ts` (pure helpers) + `packages/api/src/rate-limit.ts` (token bucket); 21 new tests cover 200/304/404 paths, rate-limit enforcement, corrupt-config 500, orientation default. Closes #75. Part of epic #77 (SaaS-default hosting).
+
+### Documentation
+
+- Reconciled `README.md`, `docs/product-brief.md`, and `.tux/project.json` with the v0.21.0 code: 18 box types (no longer mentions removed `tasks`/`worldclock`), correct 8-hour / 8-day forecast labels, corner radius 0–10, version v0.21.0, and a Round 13 implementation note covering v0.15.0 → v0.21.0 (auth, type switcher, tasks/worldclock removal, stocks duration, location button, chip rail).
+
 ## [0.21.0] - 2026-04-28
 
 ### Changed
