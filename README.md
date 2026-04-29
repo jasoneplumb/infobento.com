@@ -2,7 +2,7 @@
 
 > _See what matters. Skip the spiral._
 
-A small, solar-powered B&W eInk decorator that lives on a counter, shelf, or windowsill. Configure once on a web page; it sips light from the window and shows what matters most — weather, 3-hour forecast, 3-day forecast, calendar, quote, countdown, stocks, QR code, text, date, moon phase, sunrise/sunset, air quality, year progress, habits, horoscope, joke, on this day — for months on its own.
+A small, solar-powered B&W eInk decorator that lives on a counter, shelf, or windowsill. Configure once on a web page; it sips light from the window and shows what matters most — weather, 8-hour forecast, 8-day forecast, calendar, quote, countdown, stocks, QR code, text, date, moon phase, sunrise/sunset, air quality, year progress, habits, horoscope, joke, on this day — for months on its own.
 
 ## Overview
 
@@ -13,7 +13,7 @@ Set it on a kitchen counter, a desk, or a shelf. The body is its own stand — s
 ### Hardware
 
 - **Display:** Good Display GDEH0576T81, 5.76" B&W eInk, 920x680 pixels, 198 DPI, SSD2677 driver
-- **Renderer:** 2-bit grayscale framebuffer with antialiased TTF fonts (Inter via opentype.js), SDF-based rounded box borders, configurable corner radius (0-5) and padding (0-10), font size slider (8-42px)
+- **Renderer:** 2-bit grayscale framebuffer with antialiased TTF fonts (Inter via opentype.js), SDF-based rounded box borders, configurable corner radius (0-10) and padding (0-10), font size slider (8-42px)
 - **MCU:** ESP32-C3 (Wi-Fi 4 + BLE 5; BLE radio reserved for a possible v2 bridge mode)
 - **Power:** 100 mAh LiPo + AEM10941 solar harvester
 - **Solar panel:** mounted on the upper portion of the back side, ~70×100 mm
@@ -125,4 +125,4 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for development workflow and guidelines.
 
 ## Status
 
-Active development. Renderer produces 2-bit grayscale framebuffers with 18 box types. Web editor at localhost:5173 for configuration. Hardware validation pending (GDEH0576T81 dev kit on order).
+Active development (v0.21.0). Renderer produces 2-bit grayscale framebuffers with 18 box types. Web editor at localhost:5173 for configuration. Passkey + Apple/Google OAuth wired in `@infobento/api`; SaaS pairing flow in progress (epic #77). Hardware validation pending (GDEH0576T81 dev kit on order).

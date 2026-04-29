@@ -106,18 +106,19 @@ InfoBento is a small, calm surface for the room. The information you check most 
 
 ---
 
-## Box Types (17 total)
+## Box Types (18 total)
 
-| Category        | Types                                            | Data Source                    |
-| --------------- | ------------------------------------------------ | ------------------------------ |
-| **Weather**     | Current weather, 8-hour forecast, 8-day forecast | Open-Meteo (free, no key)      |
-| **Environment** | Sunrise/sunset, air quality, moon phase          | Open-Meteo + local computation |
-| **Personal**    | Countdown, year progress, date                   | Local computation              |
-| **Content**     | Quote, text                                      | ZenQuotes (free) / user input  |
-| **Utility**     | QR code, tasks, calendar, habits                 | User input                     |
-| **Data**        | Stocks, world clock                              | TBD / local computation        |
+| Category          | Types                                            | Data Source                         |
+| ----------------- | ------------------------------------------------ | ----------------------------------- |
+| **Weather**       | Current weather, 8-hour forecast, 8-day forecast | Open-Meteo (free, no key)           |
+| **Environment**   | Sunrise/sunset, air quality, moon phase          | Open-Meteo + local computation      |
+| **Personal**      | Countdown, year progress, date                   | Local computation                   |
+| **Content**       | Quote, text                                      | quotable mirror (free) / user input |
+| **Utility**       | QR code, calendar, habits                        | User input                          |
+| **Data**          | Stocks                                           | Yahoo Finance (free)                |
+| **Entertainment** | Horoscope, joke, on this day                     | api-ninjas / JokeAPI / Wikipedia    |
 
-All box types work without accounts, API keys, or subscriptions.
+All box types work without accounts, API keys, or subscriptions. Quote, joke, and horoscope responses fall back to a bundled local set on upstream failure (~50KB built-in).
 
 ---
 
@@ -179,7 +180,7 @@ All box types work without accounts, API keys, or subscriptions.
 
 1. **Zero Device Interaction** — No buttons, no app, no charging ritual. Configure once, glance forever.
 2. **Pure Function Architecture** — Stateless API. Same config in, same frame out. No server-side state.
-3. **Free by Default** — All 17 box types work without accounts or API keys.
+3. **Free by Default** — All 18 box types work without accounts or API keys.
 4. **Grayscale Elegance** — Four shades used with intention. Hero data, body text, and metadata each earn their contrast level.
 5. **Web-Only Configuration** — Browser is the only config surface. No native app for v1.
 6. **Solar-Powered Counter Display** — Monolithic body, no hinge, no kickstand. Body is the stand.
@@ -193,7 +194,7 @@ All box types work without accounts, API keys, or subscriptions.
 - **Price validation:** $30-40 target needs manufacturer quotes at Kickstarter volume.
 - **Firmware:** Captive portal provisioning (#39), Wi-Fi connect, config poll, framebuffer write, deep sleep cycle.
 - **Enclosure:** SCAD model (#50) for ~14x11cm housing, <=3mm bezel, tilt switch cavities, pinhole reset.
-- **Content-aware layout:** Height allocation for all 17 box types, not just quotes (#54).
+- **Content-aware layout:** Height allocation for all 18 box types — shipped in v0.13.0 via `computeMinHeight` per renderer.
 
 ---
 
@@ -207,8 +208,8 @@ infobento.com/
   packages/web/       Vite web editor (vanilla JS, no framework)
 ```
 
-**Current version:** v0.9.0
-**Tests:** 145 passing across 20 test files
+**Current version:** v0.21.0
+**Tests:** 28 test files across `packages/*/src/**/*.test.ts`
 **Quality gate:** `npm run build && npm test && npm run lint && npm run format:check`
 
 ---

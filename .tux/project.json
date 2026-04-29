@@ -183,7 +183,7 @@
       "type": "design-principle",
       "name": "Free by Default",
       "statement": "All box types must work without accounts, API keys, or subscriptions",
-      "description": "All 17 box types use free data sources or local computation. Weather, forecast, forecast3d, sunrise/sunset, and air quality use Open-Meteo (free, no key). Quotes use ZenQuotes (free, no auth). Date, moon, countdown, progress, QR, text, habits, tasks, and worldclock are pure local computation. Stocks and calendar data sources TBD but will target free APIs. No user should need to create an account anywhere to use the product.",
+      "description": "All 18 box types use free data sources or local computation. Weather, forecast, forecast3d, sunrise/sunset, and air quality use Open-Meteo (free, no key). Quotes use the api.quotable.kurokeita.dev mirror (free, no auth). Horoscope uses api-ninjas (free), joke uses JokeAPI (free), on-this-day uses Wikipedia (free). Stocks uses Yahoo Finance (free, no key). Date, moon, countdown, progress, QR, text, habits, and calendar are pure local computation or user input. Quote/joke/horoscope additionally fall back to a bundled ~50KB local set on upstream failure. No user should need to create an account anywhere to use the product.",
       "source": "User research — friction in setup kills adoption for consumer hardware",
       "examples": [
         "Weather, forecast, sunrise/sunset, air quality via Open-Meteo (free, no API key)",
@@ -462,7 +462,7 @@
         "No account required — config lives in localStorage with JSON import/export",
         "Responsive layout: stacks vertically on narrow viewports (<=720px)",
         "Vanilla JS with reactive state, no framework",
-        "17 box types: text, countdown, weather, forecast, forecast3d, qr, quote, date, moon, sun, aqi, progress, stocks, tasks, calendar, habit, worldclock",
+        "18 box types: text, countdown, weather, forecast, forecast3d, qr, quote, date, moon, sun, aqi, progress, stocks, calendar, habit, horoscope, joke, onthisday (tasks + worldclock removed in v0.16.0)",
         "Geocoding via Nominatim handles 'Portland, OR', addresses, and landmarks like 'Mt. St. Helens'"
       ],
       "externalRef": null,
@@ -533,10 +533,10 @@
     {
       "type": "prototype",
       "name": "Rendering Pipeline (v0.4.0+)",
-      "description": "Full rendering pipeline: BentoConfig (Zod-validated) -> layout (vertical + horizontal split, configurable padding) -> Inter TTF fonts + SDF rounded borders + 14x14 icons -> draw -> 156,400-byte frame buffer (920x680, 2-bit grayscale). 17 box types with content-aware height allocation. Web editor with font size, corner radius, and padding controls. Deployed to infobento.com.",
+      "description": "Full rendering pipeline: BentoConfig (Zod-validated) -> layout (vertical + horizontal split, configurable padding) -> Inter TTF fonts + SDF rounded borders + 14x14 icons -> draw -> 156,400-byte frame buffer (920x680, 2-bit grayscale). 18 box types with content-aware height allocation. Web editor with font size, corner radius, and padding controls, in-place box type switcher, and add-box chip rail. Deployed to infobento.com.",
       "fidelity": "high",
       "format": "TypeScript (packages/core + packages/renderer + packages/api + packages/web)",
-      "scope": "Core types with Zod validation, layout engine (920x680, configurable padding, horizontal split, content-aware height hints), Inter TTF fonts via opentype.js, SDF rounded borders, 14x14 icons, 17 box renderers, single-column web editor with font/corner/padding controls + server-rendered PNG preview + localStorage v2, API with structured errors, deployed",
+      "scope": "Core types with Zod validation, layout engine (920x680, configurable padding, horizontal split, content-aware height hints), Inter TTF fonts via opentype.js, SDF rounded borders, 14x14 icons, 18 box renderers, single-column web editor with font/corner/padding controls + server-rendered PNG preview + localStorage v2, API with structured errors, passkey + Apple/Google OAuth auth, deployed",
       "designArtifactIds": ["45f1b6df-a76f-4c48-8ab2-bd1cfc067f00"],
       "location": "packages/",
       "knownLimitations": [
@@ -900,6 +900,29 @@
       "metadata": {},
       "createdAt": 1777170459176,
       "updatedAt": 1777170459176
+    },
+    {
+      "type": "note",
+      "title": "Round 13 — auth, box-library reshape, editor polish (v0.15.0 → v0.21.0, 2026-04-25 → 2026-04-28)",
+      "body": "Status snapshot covering everything that landed after the Round 12 implementation note.\n\n## SaaS-default hosting (epic #77) — partially shipped\n- **#72 SQLite storage layer** (v0.15.0). `accounts` and `devices` tables in a single SQLite file at `/var/lib/infobento/data.db` (override via `INFOBENTO_DB_PATH`). Helpers for account create/lookup, device pair-code claim (idempotent per account, rejects cross-account claims), config write, per-account device listing. Schema accommodates the planned passkey + OAuth columns without future migration.\n- **#73 Passkey + Apple/Google OAuth** (v0.15.0). `@simplewebauthn/server` for WebAuthn (registration + authentication, sign-counter rollback rejection with 0→0 pass-through). `jose` for OIDC + PKCE flows (Sign in with Apple, Google). HMAC-signed session cookies (`{account_id, exp}`, 90-day TTL, HttpOnly, SameSite=Lax, Secure in production) decoupled from credential type. Stateless 5-minute challenge cookies bridge `/options`↔`/verify` and `/start`↔`/callback` without server-side store. Account upsert surfaces a `linkedToExistingEmail` flag — never silently merges. Seven new auth endpoints: `POST /api/auth/passkey/{register,login}/{options,verify}`, `GET /api/auth/oauth/{apple,google}/{start,callback}`, `POST /api/auth/signout`, `GET /api/auth/session`. Round 12 Q5 originally specified magic-link email auth; the team substituted passkeys + native-IdP OAuth (better UX, no SMTP dependency, broader device coverage).\n- **#74 / #75 / #76 — open.** Pair-code claim flow, device-pull config/frame endpoints, web editor account binding remain.\n\n### Self-host env vars (new)\nProduction deploy now forwards `SESSION_SECRET`, `RP_ID`, `RP_ORIGIN`, `OAUTH_REDIRECT_BASE`, and the Apple/Google OAuth secrets from GitHub secrets to `/etc/infobento/auth.env` (mode 640, root:www-data) for the systemd unit's `EnvironmentFile`. Values omitted from a given run preserve their prior value rather than wiping. README documents the env-var contract and Apple/Google OAuth setup steps for self-hosters. Passkey-only fallback works without any OAuth credentials.\n\n## Box library reshape (v0.16.0)\n- **Tasks + World Clock removed** (#84). A device that refreshes once or twice a day can't truthfully show a clock; a checkbox list is overkill on a passive surface. 17 → 15 → 18 net (after horoscope/joke/onthisday). Pre-existing user configs containing `tasks` or `worldclock` will fail Zod validation and render as placeholder boxes. Acceptable break — pre-1.0, single-user product.\n- **In-place box type switcher** (#88). Every box-card header now carries a `<select>` that swaps the box's type without disturbing layout. `split` partner, `weight`, `splitRatio`, ordering preserved; `config` reset to new defaults; label overwritten only when it still matches the old default (so user-edited labels survive). New `changeBoxType(id, newType)` action; `LABELS` exported as `BOX_TYPE_LABELS`.\n- **Text box honors `\\n`** (#84). `drawTextWrapped` and `countWrappedLines` split on explicit newlines first, then word-wrap within each segment. A single Text box now functions as a one-item-per-row list — replaces what the removed Tasks/World Clock boxes did.\n\n## Stocks polish (v0.18.0 → v0.19.0)\n- **Duration selector** on every stocks box: `1d` (default), `5d`, `1mo`, `3mo`, `6mo`, `1y`, `5y`. Triggers debounced refetch; change/percent computed against the range's baseline. New `StockDuration` type, `STOCK_DURATIONS` preset list, `DEFAULT_STOCK_DURATION='1d'` exported from `@infobento/core`. `/api/stocks` accepts a `duration` query param mapped to Yahoo `range`/`interval` pairs.\n- **Duration shown on the rendered box** — change line appends ` · 1mo` (or current preset) so move magnitude is unambiguous about its time horizon. No suffix when duration unset (preserves the look of older configs).\n\n## Editor polish\n- **Landscape preview toggle** (v0.17.0). Preview shows one orientation at a time (portrait by default), swapped by a `Landscape` checkbox. Both PNGs still fetched in one round-trip so the toggle is instant. Replaces the always-on dual-preview layout.\n- **Editor cards reflow horizontally** (v0.17.0). Box-config form uses flex-wrap so multi-field forms (date+label, city+entries, etc.) sit side-by-side when there's room. Tighter padding/labels/inputs and a 40px-min textarea (down from 72px) — several boxes fit on screen without scrolling at typical desktop widths.\n- **Location-detect button** (v0.20.0). All location fields (weather, forecast, forecast3d, sun, AQI) get a small icon inline with the LOCATION label. One click calls `ipapi.co` (no browser permission required), fills the field, and propagates to other empty location boxes in the layout.\n- **Add-box chip rail** (v0.21.0). Replaces the two-step select + `Add Box` button with a wrapping row of pill chips (one per box type, alphabetically). Single click adds.\n\n## Deploy / CI hygiene\n- **Deploy gated to `v*` tag pushes only** (v0.13.0). Was deploying on every mainline push.\n- **`claude-review` Action `--max-turns` raised 10 → 25** (v0.16.0). Medium PRs (4–5 files across two packages, plus inline comments) routinely needed more than 10.\n\n## Released versions in this round\n- v0.15.0 (2026-04-26) — SQLite + passkey + OAuth\n- v0.16.0 (2026-04-26) — type switcher, text-box \\n, tasks/worldclock removed\n- v0.17.0 (2026-04-27) — landscape preview toggle, card reflow, doc reconciliation\n- v0.18.0 (2026-04-27) — stocks duration selector\n- v0.19.0 (2026-04-27) — stocks duration on render\n- v0.20.0 (2026-04-28) — IP-based location button\n- v0.21.0 (2026-04-28) — add-box chip rail\n\n## Open from this round\n- Epic #77 sub-issues #74, #75, #76 (pair-code claim, device-pull endpoints, web editor binding)\n- Epic #80 sub-issues (per-device QR generator, sticker production spec)\n- Hardware: #47 panel sourcing, #48 tilt switches, #50 SCAD, #36 drop test, #57 dev kit\n",
+      "tags": [
+        "round-13",
+        "milestone",
+        "implementation",
+        "auth",
+        "saas",
+        "box-library",
+        "editor",
+        "v0.15-0.21"
+      ],
+      "id": "round-13-implementation-status-0001",
+      "relatedIds": [
+        "613c264a-b6a0-4772-8679-43daaa912bfd",
+        "c5a132a7-110c-4bac-b0e7-e4518a2bdb7f"
+      ],
+      "metadata": {},
+      "createdAt": 1777502400000,
+      "updatedAt": 1777502400000
     }
   ],
   "extensions": {}
