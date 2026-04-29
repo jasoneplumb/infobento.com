@@ -40,6 +40,13 @@ import {
   redirectUriFor,
 } from './auth/oauth.js';
 import { setCookie, getCookie, deleteCookie } from 'hono/cookie';
+import {
+  formatHttpDate,
+  getDeviceConfigForPull,
+  getDeviceFrameForPull,
+  parseOrientation,
+} from './device.js';
+import { consumeToken } from './rate-limit.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -585,6 +592,68 @@ app.get('/api/auth/session', (c) => {
   const session = readSession(c);
   if (!session) return c.json({ authenticated: false });
   return c.json({ authenticated: true, accountId: session.accountId, exp: session.exp });
+});
+
+// --- Device-pull endpoints (issue #75) ---
+//
+// Firmware fetches its current config + rendered frame on each refresh tick.
+// Both endpoints are keyed by device id; the device id is the bearer secret
+// (no auth header — long opaque token, treat like an API key).
+// Rate-limited per device id to 10/min as a misbehaving-firmware guard;
+// normal traffic is 1-2/day per device.
+
+app.get('/api/device/:id/config', (c) => {
+  const id = c.req.param('id');
+  if (!consumeToken(id)) {
+    return c.json({ error: 'rate_limited' }, 429, { 'Retry-After': '60' });
+  }
+  const result = getDeviceConfigForPull(getDb(), id, c.req.header('if-modified-since') ?? null);
+  if (result.status === 404) return c.json({ error: 'not_found' }, 404);
+  if (result.status === 304) {
+    return new Response(null, {
+      status: 304,
+      headers: { 'Last-Modified': formatHttpDate(result.lastModifiedMs) },
+    });
+  }
+  return new Response(result.configJson, {
+    status: 200,
+    headers: {
+      'Content-Type': 'application/json',
+      'Last-Modified': formatHttpDate(result.lastModifiedMs),
+    },
+  });
+});
+
+app.get('/api/device/:id/frame', (c) => {
+  const id = c.req.param('id');
+  if (!consumeToken(id)) {
+    return c.json({ error: 'rate_limited' }, 429, { 'Retry-After': '60' });
+  }
+  const orientation = parseOrientation(c.req.query('orientation'));
+  const result = getDeviceFrameForPull(
+    getDb(),
+    id,
+    orientation,
+    c.req.header('if-modified-since') ?? null,
+  );
+  if (result.status === 404) return c.json({ error: 'not_found' }, 404);
+  if (result.status === 500) return c.json({ error: result.error }, 500);
+  if (result.status === 304) {
+    return new Response(null, {
+      status: 304,
+      headers: { 'Last-Modified': formatHttpDate(result.lastModifiedMs) },
+    });
+  }
+  return new Response(result.data as unknown as BodyInit, {
+    status: 200,
+    headers: {
+      'Content-Type': 'application/octet-stream',
+      'Content-Length': String(result.data.byteLength),
+      'Last-Modified': formatHttpDate(result.lastModifiedMs),
+      'X-Frame-Width': String(result.width),
+      'X-Frame-Height': String(result.height),
+    },
+  });
 });
 
 // --- Static file serving (production) ---
