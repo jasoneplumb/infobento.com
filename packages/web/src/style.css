@@ -474,28 +474,36 @@ button {
   background: var(--bg);
 }
 
-/* Add box dropdown wrapper */
+/* Add box chips */
 
-.add-box-wrapper {
-  position: relative;
-  display: inline-flex;
-  gap: 0;
+.add-chips-toolbar {
+  padding: 6px 12px;
 }
 
-.add-box-wrapper select {
-  font-family: inherit;
-  font-size: 13px;
-  padding: 6px 8px;
+.add-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.btn-add-chip {
+  font-size: 11px;
+  padding: 3px 9px;
+  background: transparent;
+  color: var(--muted);
   border: 1px solid var(--border);
-  border-right: none;
-  border-radius: var(--radius) 0 0 var(--radius);
-  background: var(--surface);
-  color: var(--text);
+  border-radius: 10px;
   cursor: pointer;
+  transition:
+    color 0.1s,
+    border-color 0.1s,
+    background 0.1s;
 }
 
-.add-box-wrapper button {
-  border-radius: 0 var(--radius) var(--radius) 0;
+.btn-add-chip:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+  background: rgba(37, 99, 235, 0.05);
 }
 
 /* -- Box list -------------------------------------------------------------- */

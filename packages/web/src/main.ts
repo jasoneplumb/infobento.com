@@ -7,6 +7,7 @@
 import type { EditorBoxType } from './state';
 import {
   addBox,
+  BOX_TYPE_LABELS,
   exportJSON,
   getCornerRadius,
   getFontSize,
@@ -39,14 +40,22 @@ function render(): void {
 onRender(render);
 onPreviewRender(renderAllPreviews);
 
-// -- Wire up Add button -----------------------------------------------------
+// -- Wire up Add chips -------------------------------------------------------
 
-const addBtn = document.getElementById('btn-add');
-const addSelect = document.getElementById('add-type-select') as HTMLSelectElement | null;
-addBtn?.addEventListener('click', () => {
-  if (!addSelect) return;
-  addBox(addSelect.value as EditorBoxType);
-});
+const addChips = document.getElementById('add-chips');
+if (addChips) {
+  const sorted = (Object.entries(BOX_TYPE_LABELS) as Array<[EditorBoxType, string]>).sort(
+    ([, a], [, b]) => a.localeCompare(b),
+  );
+  for (const [type, label] of sorted) {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'btn-add-chip';
+    btn.textContent = `+ ${label}`;
+    btn.addEventListener('click', () => addBox(type));
+    addChips.appendChild(btn);
+  }
+}
 
 // -- Wire up header menu (Import / Export) ---------------------------------
 
