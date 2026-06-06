@@ -1,7 +1,7 @@
 ---
 title: 'InfoBento Design Brief'
 subtitle: 'UX model, requirements, and design decisions'
-date: 'April 2026'
+date: 'June 2026 (Round 18 revision, 2026-06-06)'
 ---
 
 # InfoBento Design Brief
@@ -10,7 +10,7 @@ _A bento dashboard that can sense the room._
 
 **Domain:** Consumer electronics
 **Phase:** Campaign (pre-Kickstarter), Round 18 — 5.76" multi-box dashboard with Core AQ + Presence
-**Version:** v0.23.0
+**Version:** v0.22.0
 
 ---
 
@@ -410,4 +410,4 @@ Research across Tidbyt, Watchy, TRMNL, thermal printer art, and eInk phone acces
 ---
 
 _InfoBento -- A bento dashboard that can sense the room._
-_Phase: Campaign (Round 18 — 5.76" multi-box dashboard, Core AQ + Presence) | Version: v0.23.0 | June 2026_
+_Phase: Campaign (Round 18 — 5.76" multi-box dashboard, Core AQ + Presence) | Version: v0.22.0 | June 2026_

@@ -249,7 +249,7 @@ infobento.com/
   packages/web/       Vite web editor (vanilla JS, no framework)
 ```
 
-**Current version:** v0.23.0
+**Current version:** v0.22.0
 **Tests:** 28 test files across `packages/*/src/**/*.test.ts`
 **Quality gate:** `npm run build && npm test && npm run lint && npm run format:check`
 

@@ -206,7 +206,7 @@ Typical sync target: <2 seconds for a day's records (~500 records × 32 bytes / 
 
 ## Open questions (RFC-level)
 
-1. **Pocket sensor bundle final spec.** SCD41 + SEN54 fits thermals; BME688 may fit if heat dissipation works. Bring-up will tell us. Confirm by Q3 2026.
+1. **Pocket sensor bundle final spec.** SCD41 + SEN54 fits thermals; BME688 may fit if heat dissipation works. Bring-up will tell us. Confirm during pocket-board bring-up.
 2. **Pair code printing.** Sticker on the back at assembly? QR code? Plain alphanumeric? ID firm decides post-counter-launch.
 3. **Counter discovers pocket vs pocket discovers counter.** Currently spec'd as pocket-discovers (driven by RSSI threshold of counter's advertisement). Alternative: counter scans periodically. Power tradeoff: pocket-discovers saves counter power; counter-discovers reduces pocket battery cost. Re-evaluate after counter-board power validation against the rechargeable + solar budget.
 4. **Web editor UI for paired pockets.** New section showing per-pocket name + exposure timeline + pair/revoke controls. Lifts to the existing editor schema (`packages/web/src/state.ts`).
