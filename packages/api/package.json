@@ -1,6 +1,7 @@
 {
   "name": "@infobento/api",
   "version": "0.22.0",
+  "license": "Apache-2.0",
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
