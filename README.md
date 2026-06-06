@@ -10,6 +10,8 @@ InfoBento is a small calm surface for the room. The information you check most o
 
 Set it on a kitchen counter, a desk, or a shelf. The body is its own stand — slightly back-tilted so the display angles toward you. The upper portion of the back is a solar panel that charges the device from indirect light through a window. It refreshes once or twice a day, which is plenty for the things you actually look at it for. $30–40 target via Kickstarter.
 
+InfoBento also senses the room locally — CO2, particulates, VOCs, and presence — to drive air-quality boxes and a full-screen alert state when the room needs attention. **Sensor and presence data stay on-device. Always.** The cloud renderer never sees a reading, and a hardware slider on the back physically disconnects the presence radar.
+
 ### Hardware
 
 - **Display:** Good Display GDEH0576T81, 5.76" B&W eInk, 920x680 pixels, 198 DPI, SSD2677 driver
@@ -23,6 +25,15 @@ Set it on a kitchen counter, a desk, or a shelf. The body is its own stand — s
 - **Orientation:** two ball-in-tube tilt switches mounted at 90° on GPIO interrupts; firmware auto-rotates the layout across landscape, portrait, and inverted variants. Zero standby current, ~$0.10 BOM.
 - **Industrial design:** white housing, thin bezel (≤4mm visible)
 - **Drop survival:** designed to survive a 4-foot drop onto a hard surface — soft polymer bumper between glass and housing, edge-radiused corners, inset display recess
+
+### Sensors — Core AQ + Presence
+
+All readings stay on the device; the cloud renderer never receives sensor data. See `docs/hardware/SENSORS.md`.
+
+- **Air quality:** Sensirion SCD41 (NDIR CO2 + temp/humidity), Bosch BME688 (VOC/IAQ index + pressure), Sensirion SEN54 (PM1/PM2.5/PM10)
+- **Presence:** HLK-LD2410C mmWave radar (detects still, breathing occupants a PIR misses) + AM312 PIR for low-power wake and radar power-gating
+- **Privacy:** hardware slider on the back physically disconnects radar power
+- **Interaction:** LIS3DH accelerometer (knock-to-dismiss), one front tactile button, one dimmable RGB LED (off by default; amber pulse on alert escalation)
 
 ### Form factor
 
@@ -54,7 +65,7 @@ Set it on a kitchen counter, a desk, or a shelf. The body is its own stand — s
                                    └───────────┘
 ```
 
-The cloud API is a pure function: BentoConfig in, frame buffer out. The server renders the framebuffer; the device caches the last framebuffer in flash for offline resilience (stale display, not blank). First-time setup via captive portal; config updates polled from cloud via `infobento.com/api/config/{device-id}`. The web editor is where you set up your boxes; configuration lives in browser localStorage and can be exported/imported as JSON.
+The cloud API is a pure function: BentoConfig in, frame buffer out — it never sees sensor readings. The server renders the base framebuffer; the firmware overlays local sensor-aware boxes and alert states before drawing, and caches the last framebuffer in flash for offline resilience (stale display, not blank). First-time setup via captive portal; config updates polled from cloud via `infobento.com/api/config/{device-id}`. The web editor is where you set up your boxes; configuration lives in browser localStorage and can be exported/imported as JSON.
 
 ## Quick Start
 
@@ -123,6 +134,19 @@ See [docs/README.md](docs/README.md) for the full documentation index.
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for development workflow and guidelines.
 
+## License
+
+InfoBento is open-source hardware. Each part of the repo uses the license that
+fits the work, and **all of them permit building and selling devices based on
+this design**:
+
+- **Software** (`packages/`, `scripts/`, root) — [Apache-2.0](LICENSE)
+- **Hardware** (`hardware/`) — [CERN-OHL-P-2.0](hardware/LICENSE)
+- **Documentation** (`docs/`) — [CC-BY-4.0](docs/LICENSE)
+
+See [LICENSING.md](LICENSING.md) for the full breakdown. Copyright © 2026 Jason
+E Plumb and InfoBento contributors.
+
 ## Status
 
-Active development (v0.21.0). Renderer produces 2-bit grayscale framebuffers with 18 box types. Web editor at localhost:5173 for configuration. Passkey + Apple/Google OAuth wired in `@infobento/api`; SaaS pairing flow in progress (epic #77). Hardware validation pending (GDEH0576T81 dev kit on order).
+Active development (v0.22.0). Renderer produces 2-bit grayscale framebuffers with 18 box types. Web editor at localhost:5173 for configuration. Passkey + Apple/Google OAuth wired in `@infobento/api`; SaaS pairing flow in progress (epic #77). The Core AQ + Presence sensor bundle (SCD41 / BME688 / SEN54 + mmWave/PIR presence behind a hardware privacy switch) is part of the hardware design; sensor and presence readings stay on-device. Hardware validation pending (GDEH0576T81 dev kit on order).

@@ -4,9 +4,35 @@
 > **Issue:** #38 (Phase 5: campaign rewrite)
 > **Cross-references:** `.tux/project.json` → "Market & Distribution" note (high-level positioning), RFC #25 (pivot context)
 
-The draft below incorporates all locked decisions through the Round 10 counter pivot (2026-04-22): counter-only B&W eInk decorator, ESP32-C3, Wi-Fi direct + PWA-only, captive-portal setup, recessed pinhole reset, white monolithic body with thin bezel, 4-foot drop survival, solar-powered, no companion app, no subscriptions, no accounts.
+The draft below is a legacy working artifact. Round 18 (2026-06-06) is now the canonical direction, superseding the Round 17 (2026-05-07) 2.13" "tiny dashboard" pivot: a **5.76" multi-box bento dashboard** with **Core AQ + Presence**, on a Good Display **GDEH0576T81** B&W eInk panel (920×680, 198 DPI, SSD2677, 2-bit grayscale), ESP32-class controller, Wi-Fi.
 
 The framing also incorporates the "Tidbyt vs InfoBento — still vs kinetic" differentiation conversation. Each section is self-contained so you can rearrange or excerpt for the Kickstarter page, pre-launch landing page, or press kit.
+
+---
+
+## Product update — 2026-04-29 (presence-aware AQ-monitor pivot)
+
+> Superseded by Round 18. This Round 14/15/16 AQ-monitor pivot remains useful context for the sensor/privacy story, but no longer defines the display size, product category, or campaign lead — Round 18 restores the 5.76" multi-box bento dashboard as the lead.
+
+As of 2026-04-29 InfoBento is repositioned as a **calm air-quality monitor with a built-in dashboard, not a dashboard with sensors.** Three named sensors carry the pitch — Sensirion **SCD41** (NDIR CO2, the same chip Aranet4 uses), Bosch **BME688** (VOC/IAQ + pressure), and Sensirion **SEN54** (PM1/PM2.5/PM10) — paired with **HLK-LD2410C mmWave presence detection** behind a hardware privacy switch, an **LIS3DH accelerometer** for tap-to-dismiss, one front button for alert acknowledgment, and a dimmable RGB LED for across-room glance. The presence sensor unlocks the single feature no other AQ monitor can match: **alerts escalate only when someone has actually been breathing the bad air for ≥30 minutes.** A child sitting still in their bedroom counts (PIR alone misses them); an unattended kitchen at 3am does not. A pocket SKU is reserved for v2, BLE-paired with the counter unit so a child's away-from-home exposure syncs to the home's daily timeline on return. New competitor set: not TRMNL or Seeed reTerminal E (we concede the dashboard category to them) but **Aranet4** ($249, CO2-only), **AirGradient ONE** ($269, hobby IAQ), **Awair Element** ($299, consumer), and **AirThings View Plus** ($299, +radon). InfoBento at **$129–$179** is the cheapest, the most attractive, and the only one that contextualizes exposure by occupancy.
+
+The body below — solar narrative, Tidbyt comparison, "small B&W eInk decorator" framing — is preserved as a working artifact for excerpting and reference, but the next full rewrite of this file should lead with the Round 18 5.76" bento-dashboard direction.
+
+---
+
+## Product update — 2026-05-07 (Round 17 compact dashboard pivot — SUPERSEDED)
+
+> Superseded by Round 18 (2026-06-06). The 2.13" "tiny dashboard / mini grid" framing below is historical only — InfoBento never moved off the 5.76" panel in firmware or tooling. Retained for context; do not cite as a current spec.
+
+Round 17 briefly reframed InfoBento as a tiny 2.13" mini-grid dashboard. That direction is dropped. The Core AQ + Presence sensor story it introduced is kept, but the display and product shape return to the 5.76" multi-box bento dashboard (see the Round 18 update above).
+
+---
+
+## Product update — 2026-06-06 (Round 18 — 5.76" bento dashboard with Core AQ + Presence)
+
+InfoBento is a **5.76" bento dashboard that senses the room**. The Good Display **GDEH0576T81** B&W eInk panel (920×680 px, 198 DPI, SSD2677 driver, 2-bit grayscale / 4 levels, 156,400-byte framebuffer) gives you a full multi-box grid — up to ten boxes across multiple columns, big glanceable numbers, configured once at infobento.com. When the room needs attention, a high-priority box or a full-screen alert takeover takes over the whole panel. Refreshes 1–2× per day; an ESP32-class controller with Wi-Fi sets up over a captive portal. Solar panel on the upper back tops a rechargeable battery, so it runs cable-free. White housing, ~14×11 cm, thin bezel (≤4 mm), body-as-stand at a ~12–15° tilt.
+
+The Core AQ + Presence bundle carries the sensing story: Sensirion **SCD41** (CO2/T/RH), Bosch **BME688** (VOC/IAQ), and Sensirion **SEN54** (PM1/PM2.5/PM10), paired with an **HLK-LD2410C** mmWave presence sensor and **AM312** PIR behind a hardware privacy switch, an **LIS3DH** accelerometer for knock-to-dismiss, a tactile button for alert acknowledgment, and a dimmable RGB LED for across-room glance. Presence is the differentiator: alerts escalate only when someone has actually been breathing the bad air. Every reading stays on-device — nothing leaves the room. See what matters. Skip the spiral.
 
 ---
 

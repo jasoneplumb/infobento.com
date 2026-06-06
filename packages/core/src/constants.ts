@@ -21,7 +21,7 @@ export function frameBufferBytes(widthPx: number, heightPx: number): number {
 /** Bytes for the default device frame buffer */
 export const DEFAULT_FRAME_BYTES = frameBufferBytes(DISPLAY_WIDTH, DISPLAY_HEIGHT);
 
-/** Default device profile for the 2.9" display */
+/** Default device profile for the 5.76" GDEH0576T81 display */
 export const DEFAULT_DEVICE: DeviceProfile = {
   widthPx: DISPLAY_WIDTH,
   heightPx: DISPLAY_HEIGHT,
