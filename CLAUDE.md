@@ -92,7 +92,7 @@ InfoBento is a bento-box-sized countertop eInk display:
 - **Active area:** 117.7 × 87.0 mm (module: 125.4 × 99.5 × 0.9 mm)
 - **Power:** Rechargeable battery + solar panel, 1-2 refreshes per day
 - **Connectivity:** Wi-Fi (ESP32); configure once via web UI
-- **Form factor:** ~14×11cm enclosure (sized to fit GDEH0576T81 panel closely), solar panel on upper back, body-as-stand with ~12-15° tilt
+- **Form factor:** ~14×11cm enclosure (sized to fit GDEH0576T81 panel closely), solar panel on upper back, body-as-stand with a fold-out kickstand for ~12-15° tilt
 
 The renderer produces 2-bit grayscale frame buffers (4 levels, 156,400 bytes for 920x680). The API is stateless and pure-functional — it takes a config, returns a frame buffer.
 

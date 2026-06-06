@@ -1,7 +1,7 @@
 ---
 title: 'InfoBento Product Brief'
 subtitle: 'See what matters. Skip the spiral. Now it can sense the room.'
-date: 'June 2026 (Round 18 revision, 2026-06-06)'
+date: 'June 2026'
 ---
 
 # InfoBento Product Brief
@@ -9,8 +9,6 @@ date: 'June 2026 (Round 18 revision, 2026-06-06)'
 **See what matters. Skip the spiral. Now it can sense the room.**
 
 A solar-powered B&W eInk bento dashboard that sits on your counter, desk, or shelf. Weather, a countdown, a quote, air-quality status, presence-aware alerts — visible at a glance from across the room, in crisp black ink on paper-white. Built around a Good Display GDEH0576T81 5.76" panel (920×680, 198 DPI) driven by an ESP32-class controller. No cables, no account, no plugin marketplace.
-
-> **Round 18 (2026-06-06):** This revision supersedes Round 17's display + product-shape pivot. Round 17 explored a compact Waveshare 2.13" (250×122) "tiny dashboard / mini grid" panel; that direction is **superseded**. We restore the canonical 5.76" GDEH0576T81 multi-box bento dashboard (up to 10 boxes, multi-column, big glanceable numbers, full-screen alert takeover) and **retain** all of the Core AQ + Presence sensor, privacy, and interaction work that Round 17 added.
 
 ---
 
@@ -20,16 +18,16 @@ InfoBento is a calm surface for the room with local room awareness. The informat
 
 Aranet4, AirGradient, Awair, and AirThings remain sensor-quality references; Tidbyt and TRMNL remain ambient-display references. InfoBento differs by combining a glanceable B&W eInk bento dashboard with on-device sensing and a no-account, solar-powered form factor.
 
-**Target price:** $30-40 via Kickstarter, to be re-validated against the Core AQ + Presence BOM (pending manufacturer quotes)
+**Target price:** $129–179 (≈ $110–115 BOM at Kickstarter volume)
 **Distribution:** Kickstarter campaign
 
 ---
 
-## Hardware Specifications (Round 18 revision)
+## Hardware Specifications
 
 | Spec                         | Value                                                                                                                                                                                                          |
 | ---------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Display**                  | Good Display GDEH0576T81                                                                                                                                                                                       |
+| **Display**                  | Good Display GDEH0576T81 panel, ~$30                                                                                                                                                                           |
 | **Size**                     | 5.76" diagonal                                                                                                                                                                                                 |
 | **Resolution**               | 920 × 680 pixels                                                                                                                                                                                               |
 | **DPI**                      | 198                                                                                                                                                                                                            |
@@ -38,7 +36,7 @@ Aranet4, AirGradient, Awair, and AirThings remain sensor-quality references; Tid
 | **Active area**              | 117.7 × 87.0 mm                                                                                                                                                                                                |
 | **Module size**              | 125.4 × 99.5 × 0.9 mm                                                                                                                                                                                          |
 | **Refresh time**             | 0.75s full / 0.3s partial; ~1–2 refreshes/day                                                                                                                                                                  |
-| **MCU**                      | ESP32-class controller (ESP32-C3 target), Wi-Fi + BLE                                                                                                                                                          |
+| **MCU**                      | ESP32-C3, ~$2.50, Wi-Fi + BLE (BLE reserved for the v2 paired pocket device)                                                                                                                                   |
 | **CO2**                      | Sensirion **SCD41** — NDIR, ~$13.50, ABC calibration (the chip Aranet4 uses)                                                                                                                                   |
 | **Air quality**              | Bosch **BME688** — VOC/IAQ index + pressure + redundant T/RH, ~$5.20                                                                                                                                           |
 | **Particulates**             | Sensirion **SEN54** — PM1/PM2.5/PM10, ~$25.00                                                                                                                                                                  |
@@ -46,14 +44,17 @@ Aranet4, AirGradient, Awair, and AirThings remain sensor-quality references; Tid
 | **Knock-detect**             | **LIS3DH** accelerometer, ~$1.20, double-tap-to-dismiss                                                                                                                                                        |
 | **Button**                   | 1× front tactile, ~$0.50                                                                                                                                                                                       |
 | **RGB LED**                  | 1× SK6812 dimmable behind frosted dot, ~$0.50, off by default; amber pulse on alert escalation                                                                                                                 |
-| **Sensor + interaction BOM** | **~$56** added; sensors on shared I2C, PIR + LIS3DH + button on GPIO interrupts; eInk on SPI                                                                                                                   |
-| **Battery**                  | ~100 mAh LiPo baseline; re-size against ESP32 radio + Core AQ + Presence sensor duty cycle                                                                                                                     |
-| **Solar**                    | ~70×100 mm amorphous-Si + AEM10941 harvester (upper back)                                                                                                                                                      |
-| **Charging**                 | USB-C                                                                                                                                                                                                          |
-| **Enclosure**                | ~14 × 11 cm white monolithic housing sized to fit GDEH0576T81 closely; thin bezel ≤4 mm; sensor grille, PIR/radar keepout, privacy slider, button, and optional LED integrated into the layout                 |
-| **Tilt detection**           | Body-as-stand ~12–15° tilt; LIS3DH covers rotation/orientation                                                                                                                                                 |
+| **Sensor + interaction BOM** | **~$56**; sensors on shared I2C, PIR + LIS3DH + button on GPIO interrupts; eInk on SPI                                                                                                                         |
+| **Battery**                  | ~2000 mAh LiPo (~$6); covers ESP32 radio + Core AQ + Presence sensor duty cycle plus solar harvest                                                                                                             |
+| **Solar**                    | ~70×100 mm amorphous-Si (~$3) + AEM10941 harvester (~$3, upper back)                                                                                                                                           |
+| **Charging**                 | USB-C, ~$2                                                                                                                                                                                                     |
+| **PCB + passives**           | ~$4                                                                                                                                                                                                            |
+| **Enclosure**                | ~14 × 11 cm white monolithic housing (~$6) sized to fit GDEH0576T81 closely; thin bezel ≤4 mm; sensor grille, PIR/radar keepout, privacy slider, button, and optional LED integrated into the layout           |
+| **Tilt detection**           | Body-as-stand; fold-out kickstand angles it ~12–15°; LIS3DH covers rotation/orientation                                                                                                                        |
 | **Connectivity**             | Wi-Fi direct, captive portal setup                                                                                                                                                                             |
 | **Privacy**                  | Sensor data + presence data stays on-device by default; hardware privacy switch on the back; cloud never sees readings                                                                                         |
+
+**Total device BOM ≈ $110–115 at Kickstarter volume (qty ~1k):** ~$56 sensor + presence + interaction + ID, plus ~$56–59 core platform (GDEH0576T81 panel ~$30, ESP32-C3 ~$2.50, PCB + passives ~$4, ~2000 mAh LiPo ~$6, solar ~$3, AEM10941 ~$3, USB-C ~$2, housing ~$6). Core-platform figures are estimates pending manufacturer quotes.
 
 ---
 
@@ -72,8 +73,8 @@ Aranet4, AirGradient, Awair, and AirThings remain sensor-quality references; Tid
        | body-as-stand      Back-lower: ESP32 + LiPo + USB-C + button
 ```
 
-- Monolithic white housing, no hinge, no kickstand
-- Body tilts ~12-15 deg so display angles toward standing viewer
+- Monolithic white housing, no hinge; fold-out kickstand to angle it
+- Fold-out kickstand angles the display ~12-15 deg toward a standing viewer
 - Designed to survive a 4-foot drop (bumper layer, radiused corners, recessed display)
 - Solar panel on the upper back; sensor grille covers SCD41/BME688/SEN54 inlets — designed to read as a brand mark, not a speaker grille
 - USB-C charging port on bottom edge; pinhole reset on back for factory reset (press 5s with paperclip)
@@ -154,7 +155,7 @@ All box types work without accounts, API keys, or subscriptions. The 5.76" panel
 
 ---
 
-## Power Budget (Round 18 revision)
+## Power Budget
 
 | Component                     | Active             | Sleep              | Duty                                    |
 | ----------------------------- | ------------------ | ------------------ | --------------------------------------- |
@@ -170,7 +171,7 @@ All box types work without accounts, API keys, or subscriptions. The 5.76" panel
 | Front button                  | 0                  | 0                  | event-driven                            |
 | RGB LED (off by default)      | ~5 mA when pulsing | ~1 µA              | event-driven (~5s amber pulse on alert) |
 
-**Battery sizing:** ~100 mAh LiPo baseline plus solar harvest (5–15 mAh/day) covers the ~1–2 refreshes/day display budget; the ESP32 radio and Core AQ + Presence sensor duty cycle now dominate the budget and drive final battery + solar sizing.
+**Battery sizing:** ~2000 mAh LiPo plus solar harvest (5–15 mAh/day) covers the ~1–2 refreshes/day display budget; the ESP32 radio and Core AQ + Presence sensor duty cycle dominate consumption and drive final battery + solar sizing.
 
 ---
 
@@ -188,13 +189,15 @@ All box types work without accounts, API keys, or subscriptions. The 5.76" panel
 
 |                | Tidbyt / TRMNL                 | InfoBento                                                  |
 | -------------- | ------------------------------ | ---------------------------------------------------------- |
-| **Display**    | LED matrix / 7.5" e-paper      | Good Display GDEH0576T81, 5.76" B&W eInk, 920×680, 198 DPI |
+| **Display**    | LED matrix / e-paper           | Good Display GDEH0576T81, 5.76" B&W eInk, 920×680, 198 DPI |
 | **MCU**        | ESP32 / ESP8266 / RP2040 class | ESP32-class controller                                     |
 | **Sensors**    | Usually none or DIY expansion  | Core AQ + Presence bundle on-device                        |
 | **Power**      | Wall outlet required           | Solar-powered, no cable                                    |
 | **Plugin/box** | DIY scripts or app marketplace | 18-box multi-box bento dashboard, up to 10 boxes           |
 | **Account**    | App + account                  | Web page, no account                                       |
-| **Price**      | $179 / varies                  | $30-40 target, re-validate against Core AQ + Presence BOM  |
+| **Price**      | $179 / varies                  | $129–179 (≈ $110–115 BOM at Kickstarter volume)            |
+
+**Against the AQ-monitor set:** InfoBento's $129–179 Kickstarter price undercuts the dedicated air-quality monitors it shares sensing with — Aranet4 ($249), AirGradient ONE ($269), Awair ($299), and AirThings ($299) — while adding a glanceable multi-box eInk dashboard and presence awareness.
 
 **Verified moat (from TRMNL's own docs):**
 
@@ -208,20 +211,20 @@ The TRMNL workaround for sensor data still requires a separate physical sensor d
 
 ---
 
-## Key Design Principles (Round 18 revision)
+## Key Design Principles
 
 1. **Multi-Box Bento Dashboard** — The 5.76" panel hosts a multi-box dashboard (up to 10 boxes, multi-column) with big glanceable numbers; the highest-priority box can take over the full screen during alerts.
-2. **Privacy by Hardware (Round 16)** — Sensor data + presence data both stay on-device. Hardware privacy switch on the back physically disconnects the radar. The cloud renderer never sees readings.
+2. **Privacy by Hardware** — Sensor data + presence data both stay on-device. Hardware privacy switch on the back physically disconnects the radar. The cloud renderer never sees readings.
 3. **Core AQ + Presence as Context** — CO2, PM, VOC, and presence readings power local boxes and alert states alongside the rest of the dashboard.
 4. **Pure Function Architecture** — Stateless cloud API. Same config in, same base frame out. Sensor-aware overlay happens on-device.
 5. **Free by Default** — All 18 dashboard box types work without accounts or API keys.
 6. **Grayscale Elegance** — Four shades used with intention. Hero data, body text, and metadata each earn their contrast level.
 7. **Web-Only Configuration** — Browser is the only config surface. No native app for v1.
-8. **Solar-Powered Counter Display** — Monolithic white body, no hinge, no kickstand. Body is the stand. Sensor grille and privacy slider remain visible trust cues.
+8. **Solar-Powered Counter Display** — Monolithic white body, no hinge. Body stands on its own, with a fold-out kickstand to angle it. Sensor grille and privacy slider remain visible trust cues.
 
 ---
 
-## Open Items (Round 18)
+## Open Items
 
 - **Hardware validation** — Dev kit (ESP32-C3 + GDEH0576T81) on order. Validates grey rendering, refresh speed, viewing angle.
 - **Grey fallback** — If 2-bit grey looks bad on hardware, Floyd-Steinberg dithering to 1-bit as fallback (#56).
@@ -231,7 +234,7 @@ The TRMNL workaround for sensor data still requires a separate physical sensor d
 - **Industrial design: sensor layout** — grille, PIR/radar keepout, privacy slider, button, LED, USB-C, solar, and battery integrated into the ~14×11 cm housing
 - **Web editor: sensor box config** — new editor surfaces, surface the on-device privacy commitment inline
 - **Live sensor dashboard at infobento.com/live** — pre-launch credibility lever; standing instance of the sensor bundle posting real readings
-- **Price validation:** $30-40 target needs manufacturer quotes at Kickstarter volume against the Core AQ + Presence BOM
+- **Price validation:** $129–179 (≈ $110–115 BOM at Kickstarter volume) needs core-platform manufacturer quotes to confirm the BOM estimate
 - **Firmware:** Captive portal provisioning (#39), Wi-Fi connect, config poll, framebuffer write, deep sleep cycle.
 - **Enclosure:** SCAD model (#50) for ~14×11 cm housing, ≤4 mm bezel, solar/sensor cavities, pinhole reset.
 - **Founder bio** — TODO in `docs/kickstarter-copy.md`; lock before Day 0 of campaign

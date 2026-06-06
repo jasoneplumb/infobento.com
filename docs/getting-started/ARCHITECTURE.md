@@ -22,7 +22,7 @@ Device makes outbound HTTPS calls to the cloud API. No companion phone app; the 
 
 ### Operating Profile
 
-Single mode: counter-standing. Refreshes 1–2× per day on solar power. There is no longer a phone-mounted minute-level mode (that died with the pivot away from the MagSafe clamshell — see RFC #25). Native phone apps + BLE bridge are deferred to a possible v2 (see `docs/hardware/CONNECTIVITY.md`'s "v2 path" section).
+Single mode: counter-standing. Refreshes 1–2× per day on solar power. There is no phone-mounted mode. Native phone apps + BLE bridge are deferred to a possible v2 (see `docs/hardware/CONNECTIVITY.md`'s "v2 path" section).
 
 ### Data Flow
 
@@ -37,9 +37,9 @@ Single mode: counter-standing. Refreshes 1–2× per day on solar power. There i
 
 - **Stateless API** — pure functions, no server-side state. Config in, frame buffer out.
 - **2-bit grayscale rendering** — B&W eInk panel with software greyscale via SSD2677 partial-refresh waveforms.
-- **Solar-only power** — no MagSafe, no charging cable. Refresh budget sized to the solar harvest budget for moderate indoor light.
+- **Solar-only power** — refresh budget sized to the solar harvest budget for moderate indoor light; USB-C tops up the battery when needed.
 - **Wi-Fi direct + web-only config** — no native phone app for v1. Captive-portal setup, web editor handles configuration.
-- **Zero device interaction** — no buttons. Configure once via web, glance forever. Single physical affordance is the recessed pinhole reset for Wi-Fi recovery.
+- **Minimal device interaction** — configure once via web, glance forever. A single front button and knock-to-dismiss handle presence-aware alerts; a recessed pinhole reset covers Wi-Fi recovery.
 - **Drop survival** — designed for a 4-foot drop onto a hard surface (bumper layer, edge-radiused corners, recessed display, pinhole instead of clickable button).
 
 ## Package Architecture

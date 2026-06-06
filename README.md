@@ -6,9 +6,9 @@ A small, solar-powered B&W eInk decorator that lives on a counter, shelf, or win
 
 ## Overview
 
-InfoBento is a small calm surface for the room. The information you check most often — weather, the next thing on your calendar, days until something you're looking forward to — sits there in crisp B&W eInk with 2-bit grayscale (4 levels: white, light gray, dark gray, black), visible at a glance from across the room. No Wi-Fi setup ritual, no account to make, no batteries to swap, no buttons to press.
+InfoBento is a small calm surface for the room. The information you check most often — weather, the next thing on your calendar, days until something you're looking forward to — sits there in crisp B&W eInk with 2-bit grayscale (4 levels: white, light gray, dark gray, black), visible at a glance from across the room. No Wi-Fi setup ritual, no account to make, no batteries to swap, nothing to fiddle with day to day.
 
-Set it on a kitchen counter, a desk, or a shelf. The body is its own stand — slightly back-tilted so the display angles toward you. The upper portion of the back is a solar panel that charges the device from indirect light through a window. It refreshes once or twice a day, which is plenty for the things you actually look at it for. $30–40 target via Kickstarter.
+Set it on a kitchen counter, a desk, or a shelf. The body is its own stand, with a fold-out kickstand to angle the display toward you if needed. The upper portion of the back is a solar panel that charges the device from indirect light through a window. It refreshes once or twice a day, which is plenty for the things you actually look at it for. $129–179 via Kickstarter (≈ $110–115 BOM at volume, with the Core AQ + Presence sensor bundle).
 
 InfoBento also senses the room locally — CO2, particulates, VOCs, and presence — to drive air-quality boxes and a full-screen alert state when the room needs attention. **Sensor and presence data stay on-device. Always.** The cloud renderer never sees a reading, and a hardware slider on the back physically disconnects the presence radar.
 
@@ -17,11 +17,11 @@ InfoBento also senses the room locally — CO2, particulates, VOCs, and presence
 - **Display:** Good Display GDEH0576T81, 5.76" B&W eInk, 920x680 pixels, 198 DPI, SSD2677 driver
 - **Renderer:** 2-bit grayscale framebuffer with antialiased TTF fonts (Inter via opentype.js), SDF-based rounded box borders, configurable corner radius (0-10) and padding (0-10), font size slider (8-42px)
 - **MCU:** ESP32-C3 (Wi-Fi 4 + BLE 5; BLE radio reserved for a possible v2 bridge mode)
-- **Power:** 100 mAh LiPo + AEM10941 solar harvester
+- **Power:** ~2000 mAh LiPo + AEM10941 solar harvester (sized for the always-on Core AQ + Presence load)
 - **Solar panel:** mounted on the upper portion of the back side, ~70×100 mm
 - **Connectivity:** Wi-Fi direct + captive-portal setup; no companion phone app. Web editor at `infobento.com` is the only configuration surface. See `docs/hardware/CONNECTIVITY.md`.
 - **Recovery:** recessed pinhole reset (~2mm) on the back-lower grip area; press with paperclip for 5s = factory reset.
-- **Form factor:** monolithic body. No hinge, no kickstand, no MagSafe. The body is the stand.
+- **Form factor:** monolithic body, no hinge. The body stands on its own, with a fold-out kickstand to angle the display if needed.
 - **Orientation:** two ball-in-tube tilt switches mounted at 90° on GPIO interrupts; firmware auto-rotates the layout across landscape, portrait, and inverted variants. Zero standby current, ~$0.10 BOM.
 - **Industrial design:** white housing, thin bezel (≤4mm visible)
 - **Drop survival:** designed to survive a 4-foot drop onto a hard surface — soft polymer bumper between glass and housing, edge-radiused corners, inset display recess

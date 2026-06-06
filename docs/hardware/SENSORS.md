@@ -1,27 +1,21 @@
 > **Intent:** Specify the local air-quality, presence, and interaction hardware that supports the InfoBento multi-box bento dashboard.
-> **Context:** Round 18 keeps Core AQ + Presence on the canonical 5.76" GDEH0576T81 multi-box dashboard, superseding Round 17's display/product-shape pivot.
+> **Context:** InfoBento is a 5.76" B&W eInk bento dashboard (Good Display GDEH0576T81, 920×680, 198 DPI, SSD2677, 1–2 refreshes/day, ESP32-C3) with a Core AQ + Presence + interaction sensor bundle.
 > **Pattern:** Treat sensor readings as local context for dashboard boxes and alert states; never require the cloud renderer to see readings.
-> **Future:** Reopen component and battery sizing after prototype burn-in on the 5.76" device.
+> **Future:** Validate component and battery sizing after prototype burn-in on the 5.76" device.
 
 # Sensor + Presence + Interaction Bundle
 
 InfoBento's primary hardware moat is the integrated AQ-sensor + presence-detection + minimal-interaction bundle. This document specifies the SKUs, bus layout, calibration approach, privacy commitment, and on-device data pipeline.
 
-## Round 18 (2026-06-06)
+## Product context
 
-The current direction is **5.76" Bento Dashboard + Core AQ + Presence**. This supersedes Round 17's display/product-shape pivot (the Waveshare 2.13" mini-grid dashboard); the code and CLAUDE.md never moved off the 5.76" panel. The sensor bundle is retained in full on the 5.76" GDEH0576T81 device. This means:
+The product is the **5.76" Bento Dashboard + Core AQ + Presence**:
 
-- The display is the Good Display **GDEH0576T81**, 5.76" B&W eInk, 920×680 px, 198 DPI, SSD2677 driver, 2-bit grayscale (4 levels), refreshing 1–2×/day, driven by an ESP32-class controller.
+- The display is the Good Display **GDEH0576T81**, 5.76" B&W eInk, 920×680 px, 198 DPI, SSD2677 driver, 2-bit grayscale (4 levels), refreshing 1–2×/day, driven by an ESP32-C3 controller.
 - The UX is a multi-box bento dashboard (up to 10 boxes, `MAX_BOXES=10`), multi-column, with big glanceable numbers and a high-priority box / full-screen alert takeover.
-- The sensor bundle remains local context for dashboard boxes and alert states.
+- The sensor bundle is local context for dashboard boxes and alert states.
 - Industrial design is built around the 5.76" face; grille, radar keepout, privacy slider, button, LED, USB-C, and battery placement follow the 5.76" enclosure.
 - Aranet4/AirGradient/Awair/AirThings remain sensor references, not the primary product category.
-
-## Pivot history
-
-- **Round 14 (2026-04-29):** original sensor bundle vs TRMNL — SCD41 + BME688 + VEML7700 + AM312 PIR (~$24 BOM)
-- **Round 15 (2026-04-29):** AQ-monitor repositioning following Seeed reTerminal E entry — dropped VEML7700, replaced AM312-as-presence, added SEN54 PM2.5
-- **Round 16 (2026-04-29):** presence + interaction layer — added HLK-LD2410C mmWave + AM312 PIR (now power-gating role) + hardware privacy switch + LIS3DH knock-detect + 1 tactile button + RGB LED + lanyard keyhole
 
 ## TRMNL sensor moat (verified)
 
@@ -29,7 +23,7 @@ The current direction is **5.76" Bento Dashboard + Core AQ + Presence**. This su
 >
 > "For a true embedded sensor solution on ESP32-C3, you may need custom firmware modifications beyond the standard TRMNL stack." — docs.trmnl.com
 
-## Current bundle (Round 18, retained from Round 16)
+## Current bundle
 
 ### Air-quality sensors
 
@@ -45,7 +39,7 @@ For prototype phase, use Adafruit breakouts:
 - BME688: Adafruit #5046
 - SEN54: Adafruit #5187
 
-### Presence detection (Round 16)
+### Presence detection
 
 | Component                            | Function                                                                                    | Interface          | Cost (~qty 1k) | Notes                                                                                 |
 | ------------------------------------ | ------------------------------------------------------------------------------------------- | ------------------ | -------------- | ------------------------------------------------------------------------------------- |
@@ -53,7 +47,7 @@ For prototype phase, use Adafruit breakouts:
 | **AM312** mini PIR                   | Cheap motion interrupt for waking ESP32-C3 + radar power-gating                             | GPIO interrupt     | ~$0.80         | Always-on (~12 µA).                                                                   |
 | Hardware **privacy switch** (slider) | Physically disconnects radar power                                                          | GPIO read          | ~$0.30         | On the back, near pinhole reset. Read at boot AND every 60s.                          |
 
-### Interaction (Round 16)
+### Interaction
 
 | Component                                       | Function                                                                                            | Interface               | Cost (~qty 1k) | Notes                                                                                               |
 | ----------------------------------------------- | --------------------------------------------------------------------------------------------------- | ----------------------- | -------------- | --------------------------------------------------------------------------------------------------- |
@@ -61,7 +55,7 @@ For prototype phase, use Adafruit breakouts:
 | 1× front tactile button (C&K PTS645)            | Acknowledge alert / cycle metric                                                                    | GPIO interrupt          | ~$0.50         | Table stakes vs Aranet4; without one, reviewers say "you can't even acknowledge an alert."          |
 | **SK6812** RGB LED behind frosted dot, dimmable | Across-room glance: amber pulse on alert escalation, visible from 4m where eInk refresh is too slow | WS2812 protocol on GPIO | ~$0.50         | Off by default; nighttime auto-off; user-toggleable in web editor.                                  |
 
-### Industrial design (Round 16 additions)
+### Industrial design hardware
 
 | Component                              | Function                                                                            | Cost                       |
 | -------------------------------------- | ----------------------------------------------------------------------------------- | -------------------------- |
@@ -74,49 +68,49 @@ For prototype phase, use Adafruit breakouts:
 
 ### Total
 
-Round 16 estimated **~$56 added BOM** beyond MCU/panel/battery/housing/USB-C circuitry. Round 18 keeps the bundle direction but reopens the price ladder after the ESP32 board, 5.76" GDEH0576T81 panel, battery, and enclosure are costed together.
+The sensor + presence + interaction bundle subtotal is **~$56**. The whole device BOM is **≈ $110–115 at Kickstarter volume** (sensor bundle ~$56 + core platform ~$57: GDEH0576T81 panel ~$30, ESP32-C3 ~$2.50, ~2000 mAh LiPo ~$6, solar+harvester ~$6, USB-C ~$2, PCB+passives ~$4, housing ~$6), supporting **$129–179 retail**.
 
 ### Reserved / rejected
 
-| Component                 | Decision           | Why                                                                                           |
-| ------------------------- | ------------------ | --------------------------------------------------------------------------------------------- |
-| VEML7700 ambient lux      | Removed (Round 15) | Doesn't differentiate vs reTerminal + GPIO header; not persona-critical                       |
-| ToF distance (VL53L1X)    | Rejected           | Cute, not meaningful; counter device doesn't need gesture                                     |
-| Microphone (ICS-43434)    | **Rejected**       | Catastrophic privacy optics in a kid's bedroom regardless of on-device-only processing claims |
-| Capacitive touch overlay  | Rejected           | $18–28 BOM kills price ladder; glass surface contradicts "calm appliance"                     |
-| Piezo buzzer              | Rejected           | Audible alerts violate "calm" — Aranet4's silence is _why_ parents trust it                   |
-| Speaker + Class-D amp     | Rejected           | Same as buzzer + worse                                                                        |
-| Rotary encoder            | Rejected           | Threshold-tuning belongs in the web UI you already built; encoder = tinker-tool               |
-| Scroll wheel / crown      | Rejected           | Months of ID for a feature nobody asked for                                                   |
-| Multi-zone radar (LD6001) | Rejected for v1    | Direction-awareness is delight, not persona-critical; doubles privacy concern                 |
-| Magnetic mount            | Rejected           | Bento is too big for a fridge; $2 solving a non-problem                                       |
-| Qi wireless charging      | Rejected           | $3 solving a once-per-6-months problem                                                        |
+| Component                 | Decision        | Why                                                                                           |
+| ------------------------- | --------------- | --------------------------------------------------------------------------------------------- |
+| VEML7700 ambient lux      | Removed         | Doesn't differentiate vs reTerminal + GPIO header; not persona-critical                       |
+| ToF distance (VL53L1X)    | Rejected        | Cute, not meaningful; counter device doesn't need gesture                                     |
+| Microphone (ICS-43434)    | **Rejected**    | Catastrophic privacy optics in a kid's bedroom regardless of on-device-only processing claims |
+| Capacitive touch overlay  | Rejected        | $18–28 BOM kills price ladder; glass surface contradicts "calm appliance"                     |
+| Piezo buzzer              | Rejected        | Audible alerts violate "calm" — Aranet4's silence is _why_ parents trust it                   |
+| Speaker + Class-D amp     | Rejected        | Same as buzzer + worse                                                                        |
+| Rotary encoder            | Rejected        | Threshold-tuning belongs in the web UI you already built; encoder = tinker-tool               |
+| Scroll wheel / crown      | Rejected        | Months of ID for a feature nobody asked for                                                   |
+| Multi-zone radar (LD6001) | Rejected for v1 | Direction-awareness is delight, not persona-critical; doubles privacy concern                 |
+| Magnetic mount            | Rejected        | Bento is too big for a fridge; $2 solving a non-problem                                       |
+| Qi wireless charging      | Rejected        | $3 solving a once-per-6-months problem                                                        |
 
-## Bus layout (ESP32-class, Round 18 draft)
+## Bus layout (ESP32-class draft)
 
 This table is a starting point, not a pin lock. The prototype path may use an off-the-shelf ESP32 dev-board pin mapping for the 5.76" GDEH0576T81 (SSD2677) panel first, then collapse into a custom board after the multi-box bento UI and sensor cadence are validated.
 
-| Pin     | Function                                 |
-| ------- | ---------------------------------------- |
-| GPIO 0  | I2C SDA (SCD41, BME688, SEN54, LIS3DH)   |
-| GPIO 1  | I2C SCL (same bus)                       |
-| GPIO 2  | AM312 PIR interrupt                      |
-| GPIO 3  | LD2410C UART RX                          |
-| GPIO 4  | SPI SCK (eInk panel)                     |
-| GPIO 5  | SPI CS (eInk)                            |
-| GPIO 6  | eInk DC                                  |
-| GPIO 7  | SPI MOSI (eInk)                          |
-| GPIO 8  | eInk BUSY                                |
-| GPIO 9  | eInk RST                                 |
-| GPIO 10 | LD2410C UART TX                          |
-| GPIO 11 | Radar power-gate MOSFET                  |
-| GPIO 12 | LIS3DH INT1 (knock interrupt)            |
-| GPIO 13 | RGB LED (SK6812 data)                    |
-| GPIO 14 | Front tactile button                     |
-| GPIO 15 | Privacy switch read                      |
-| GPIO 18 | reopened — tilt / spare / board-specific |
-| GPIO 19 | reopened — tilt / spare / board-specific |
-| GPIO 20 | SEN54 SEL (I2C address select)           |
+| Pin     | Function                               |
+| ------- | -------------------------------------- |
+| GPIO 0  | I2C SDA (SCD41, BME688, SEN54, LIS3DH) |
+| GPIO 1  | I2C SCL (same bus)                     |
+| GPIO 2  | AM312 PIR interrupt                    |
+| GPIO 3  | LD2410C UART RX                        |
+| GPIO 4  | SPI SCK (eInk panel)                   |
+| GPIO 5  | SPI CS (eInk)                          |
+| GPIO 6  | eInk DC                                |
+| GPIO 7  | SPI MOSI (eInk)                        |
+| GPIO 8  | eInk BUSY                              |
+| GPIO 9  | eInk RST                               |
+| GPIO 10 | LD2410C UART TX                        |
+| GPIO 11 | Radar power-gate MOSFET                |
+| GPIO 12 | LIS3DH INT1 (knock interrupt)          |
+| GPIO 13 | RGB LED (SK6812 data)                  |
+| GPIO 14 | Front tactile button                   |
+| GPIO 15 | Privacy switch read                    |
+| GPIO 18 | tilt / spare / board-specific          |
+| GPIO 19 | tilt / spare / board-specific          |
+| GPIO 20 | SEN54 SEL (I2C address select)         |
 
 Tight on GPIOs. If a pin pinch occurs, use 4-wire SPI by default and drop dedicated tilt switches first. The LIS3DH can cover both knock detection and orientation reads over I2C.
 
@@ -134,7 +128,7 @@ Tight on GPIOs. If a pin pinch occurs, use 4-wire SPI by default and drop dedica
 | Privacy switch | Polled at boot + every 60s         | continuous                                                    | <1 µA                          |
 | RGB LED        | Off by default                     | event-driven (5s amber pulse on escalated alert)              | <1 µA average                  |
 
-Round 16 estimate: total daily energy budget for sensors + presence + interaction was ~2.5 mAh. Combined with the old display refresh and Wi-Fi assumptions, the estimate was **~5.5 mAh/day** on a 2000 mAh battery. **Round 18 reopens this budget** for the 5.76" GDEH0576T81 panel (1–2 refreshes/day, rechargeable battery + solar), ESP32 module choice, board layout, and sensor duty cycle.
+The sensors + presence + interaction bundle adds ~2.5 mAh/day. The full device daily energy budget is being validated against the GDEH0576T81 refresh load (1–2 refreshes/day) and solar harvest on a ~2000 mAh battery, alongside ESP32 module choice, board layout, and sensor duty cycle.
 
 ## Calibration
 
@@ -173,6 +167,8 @@ The hex grille on the back panel covers the SCD41 / BME688 / SEN54 air inlets. T
 
 Industrial-design contract: the back-panel sensor grille + the privacy switch + the radar antenna keepout zone are the three visible "this device thinks about your privacy" cues in product photography. They are load-bearing visual elements of the campaign.
 
-## Pivot rationale
+## References
 
-See `~/.claude/plans/using-several-agents-develop-radiant-hearth.md` (marketing plan) and `docs/rfcs/round-16-presence-aware-paired-system.md` (firmware architecture + paired-pocket BLE protocol).
+See `~/.claude/plans/using-several-agents-develop-radiant-hearth.md` (marketing plan) and `docs/rfcs/presence-aware-paired-system.md` (firmware architecture + paired-pocket BLE protocol).
+</content>
+</invoke>

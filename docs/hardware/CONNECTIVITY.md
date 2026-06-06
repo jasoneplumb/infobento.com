@@ -6,11 +6,11 @@ InfoBento v1 ships **Wi-Fi direct + PWA-only**. No native phone app. The web edi
 
 ### Why
 
-The user-class fit analysis (Round 10 counter pivot) made the calendar / real-time use case explicit, then walked it back: the box types InfoBento ships today (text, countdown, weather, 3hr forecast, qr, quote) all work fine at 1-2 refreshes per day. "Real-time-ish" was aspirational, not load-bearing. Without that latency requirement, the entire native-app stack disappears from v1's critical path.
+The box types InfoBento ships (text, countdown, weather, 3hr forecast, qr, quote) all work fine at 1-2 refreshes per day. There is no real-time latency requirement, so the entire native-app stack stays off v1's critical path.
 
 This walks back two earlier-considered options:
 
-- **Phone-bridged BLE** would require iOS + Android companion apps, bring back the iOS background-BLE risk that gated the original clamshell concept, and add ~6+ months of engineering before launch
+- **Phone-bridged BLE** would require iOS + Android companion apps, carry iOS background-BLE risk, and add ~6+ months of engineering before launch
 - **Hybrid (BLE when phone present, Wi-Fi when not)** would require both stacks plus the dual-platform native app investment
 
 Pure Wi-Fi-direct + PWA cuts the engineering scope to something a solo founder can ship pre-Kickstarter, while still meeting all the user needs the box types actually serve.
@@ -102,4 +102,4 @@ None of this changes the v1 device. It's a firmware update + companion app, both
 - Multi-device sync via cloud account
 - User accounts of any kind
 
-These were all considered and consciously deferred to v2 as part of the Round 10 counter pivot decision.
+These were all considered and consciously deferred to v2.

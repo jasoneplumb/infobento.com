@@ -1,27 +1,12 @@
-> **Intent:** Preserve the Round 16 presence-aware counter and paired-pocket architecture for reuse on the canonical 5.76" panel.
-> **Context:** The counter display is the 5.76" GDEH0576T81 multi-box bento dashboard, while retaining Core AQ + Presence. (Round 17's 2.13" mini-grid pivot was reverted — see the Round 18 note below.)
-> **Pattern:** Keep the privacy, BLE pairing, and sensor abstractions; the 5.76" GDEH0576T81 dashboard is the current display.
-> **Future:** Reconcile this RFC into a firmware RFC once the counter prototype path is validated.
-
-# RFC: Round 16 — Presence-Aware Counter + Paired Pocket System
+# RFC: Presence-Aware Counter + Paired Pocket System
 
 **Status:** draft, 2026-04-29
 **Author:** founder
-**Supersedes:** none (new RFC)
-**Cross-references:** `~/.claude/plans/using-several-agents-develop-radiant-hearth.md` (marketing plan), `.tux/project.json` Round 16 note, `docs/hardware/SENSORS.md`
+**Cross-references:** `~/.claude/plans/using-several-agents-develop-radiant-hearth.md` (marketing plan), `docs/hardware/SENSORS.md`
 
----
-
-## Round 18 note (2026-06-06)
-
-Round 18 supersedes Round 17's display pivot and restores the canonical 5.76" panel. The counter display and product-positioning assumptions in this RFC are now:
-
-- Counter display is the Good Display GDEH0576T81, 5.76" B&W eInk, 920×680 px, 198 DPI, SSD2677 driver, 2-bit grayscale (4 levels). Refresh 1–2×/day. (The earlier 7.5" 800×480 and the Round 17 Waveshare 2.13" 250×122 mini-grid are both historical.)
-- Counter UI is the multi-box bento dashboard (up to 10 boxes, multi-column), with the high-priority / full-screen alert takeover retained.
-- ESP32-class controller drives the panel; Wi-Fi for cloud config/framebuffer fetch, BLE reserved for the paired-pocket v2 feature described below.
-- Core AQ + Presence remains in scope, so the sensor, privacy, and BLE abstraction work here is still relevant.
-
-Treat this RFC as the current presence-aware + paired-pocket architecture on the 5.76" GDEH0576T81 panel, plus reusable protocol design.
+> **Context:** The counter is the InfoBento bento-box dashboard built on the Good Display GDEH0576T81 (5.76" B&W eInk, 920×680 px, 198 DPI, SSD2677 driver, 2-bit grayscale / 4 levels, 1–2 refreshes/day). The UI is a multi-box dashboard (up to 10 boxes, multi-column) with a high-priority full-screen alert takeover. An ESP32-C3 controller drives the panel — Wi-Fi for cloud config/framebuffer fetch, BLE reserved for the paired-pocket v2 feature described below — powered by a solar panel + rechargeable LiPo. Core AQ + Presence runs on-device, so the sensor, privacy, and BLE abstraction work here is in scope.
+>
+> This RFC specifies the presence-aware counter architecture and the paired-pocket BLE protocol, plus the reusable `device_class` abstraction shared between them.
 
 ---
 
@@ -29,7 +14,7 @@ Treat this RFC as the current presence-aware + paired-pocket architecture on the
 
 Specify the firmware architecture for two related capabilities:
 
-1. **Round 16 (v1, ships in counter):** presence-aware AQ alert escalation, knock-to-dismiss, single-button acknowledgment, RGB-LED across-room glance.
+1. **v1 (ships in counter):** presence-aware AQ alert escalation, knock-to-dismiss, single-button acknowledgment, RGB-LED across-room glance.
 2. **v2 (post-launch, 6+ months after counter ships):** a paired pocket SKU that BLE-syncs the wearer's away-from-home AQ exposure to the counter unit on return.
 
 The v1 firmware must lock in a `device_class` abstraction now so the v2 pocket reuses 80%+ of the codebase. Architecting the BLE pairing protocol now is the single most expensive thing to retrofit later.
@@ -67,7 +52,7 @@ Both run the same firmware codebase with `device_class` set at boot via a hardwa
 
 ---
 
-## Round 16 (v1, counter) — firmware architecture
+## v1 (counter) — firmware architecture
 
 ### Sample schedule
 
