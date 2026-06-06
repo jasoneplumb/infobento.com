@@ -39,7 +39,7 @@ Single mode: counter-standing. Refreshes 1–2× per day on solar power. There i
 - **2-bit grayscale rendering** — B&W eInk panel with software greyscale via SSD2677 partial-refresh waveforms.
 - **Solar-only power** — refresh budget sized to the solar harvest budget for moderate indoor light; USB-C tops up the battery when needed.
 - **Wi-Fi direct + web-only config** — no native phone app for v1. Captive-portal setup, web editor handles configuration.
-- **Minimal device interaction** — configure once via web, glance forever. A single front button and knock-to-dismiss handle presence-aware alerts; a recessed pinhole reset covers Wi-Fi recovery.
+- **Zero device interaction** — no buttons. Configure once via web, glance forever. The only physical affordance is a recessed pinhole reset for Wi-Fi recovery.
 - **Drop survival** — designed for a 4-foot drop onto a hard surface (bumper layer, edge-radiused corners, recessed display, pinhole instead of clickable button).
 
 ## Package Architecture

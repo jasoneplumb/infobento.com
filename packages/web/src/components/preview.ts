@@ -4,6 +4,7 @@
  * Displays one orientation at a time, toggled by the Landscape checkbox.
  */
 
+import { DISPLAY_WIDTH, DISPLAY_HEIGHT } from '@infobento/core';
 import type { BentoBox, BentoConfig } from '@infobento/core';
 import type {
   EditorBox,
@@ -287,8 +288,8 @@ function renderPreviewNow(containerId: string): void {
       _imgPortrait.src = `data:image/png;base64,${data.portrait}`;
 
       // Set CSS vars for sizing and corner radius
-      display.style.setProperty('--eink-w', '920');
-      display.style.setProperty('--eink-h', '680');
+      display.style.setProperty('--eink-w', String(DISPLAY_WIDTH));
+      display.style.setProperty('--eink-h', String(DISPLAY_HEIGHT));
       // Match CSS border-radius to framebuffer corner radius (at 0.5x display scale)
       const radiusPx = getCornerRadius() * 4;
       display.style.setProperty('--eink-radius', `${String(Math.round(radiusPx * 0.5))}px`);

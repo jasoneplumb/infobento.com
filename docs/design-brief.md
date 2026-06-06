@@ -6,7 +6,7 @@ date: 'June 2026'
 
 # InfoBento Design Brief
 
-_A bento dashboard that can sense the room._
+_A calm bento dashboard for counters, desks, and shelves._
 
 **Domain:** Consumer electronics
 **Phase:** Campaign (pre-Kickstarter)
@@ -16,18 +16,18 @@ _A bento dashboard that can sense the room._
 
 ## Product Overview
 
-InfoBento is a 5.76" B&W eInk bento dashboard that senses the room. It is dashboard-first: air-quality and presence readings are local context and alert inputs, surfaced through a multi-box bento dashboard.
+InfoBento is a small, solar-powered B&W eInk bento dashboard for counters, desks, and shelves. It is glance-first: a calm multi-box dashboard that configures once and refreshes on schedule.
 
-- **Positioning:** Bento dashboard that can sense the room.
-- **UI model:** Multi-box bento dashboard — up to 10 boxes (`MAX_BOXES=10`), multi-column, with high-priority box / full-screen alert takeover.
+- **Positioning:** A lean, calm bento dashboard for counters, desks, and shelves.
+- **UI model:** Multi-box bento dashboard — up to 10 boxes (`MAX_BOXES=10`), multi-column.
 - **Display:** Good Display **GDEH0576T81**, 5.76" B&W eInk, **920×680 px**, **198 DPI**, **SSD2677** driver IC, 2-bit grayscale (4 levels). Framebuffer **156,400 bytes**. Refresh 1–2×/day, 0.75 s full / 0.3 s partial. Active area 117.7×87.0 mm; module 125.4×99.5×0.9 mm.
 - **Enclosure:** white monolithic housing ~14×11 cm sized to fit the GDEH0576T81 closely; thin bezel ≤4 mm; body-as-stand, with a fold-out kickstand to angle it ~12–15° if needed.
-- **MCU:** ESP32-C3 (Wi-Fi + BLE; BLE reserved for a v2 paired pocket). Captive-portal setup; no companion app v1; config via the infobento.com web editor.
-- **Power:** solar panel on the upper back + ~2000 mAh LiPo; ~1–2 refreshes/day.
-- **Sensors & interaction (Core AQ + Presence):** SCD41 CO2, BME688 VOC/IAQ, SEN54 PM (PM1/PM2.5/PM10); HLK-LD2410C mmWave presence radar, AM312 PIR; LIS3DH accelerometer (knock-to-dismiss), one front tactile button, SK6812 RGB LED for across-room glance.
-- **Privacy:** sensor + presence data stays on-device; the cloud renderer never sees readings. A hardware privacy slider cuts radar power.
+- **MCU:** ESP32-C3 (Wi-Fi + BLE; BLE reserved for a possible v2 bridge). Captive-portal setup; no companion app v1; config via the infobento.com web editor.
+- **Power:** ~70×100 mm solar panel on the upper back + ~100 mAh LiPo + AEM10941 solar harvester; ~1–2 refreshes/day.
+- **Orientation:** two ball-in-tube tilt switches for orientation auto-rotate.
+- **Interaction:** zero device interaction — no buttons (a recessed pinhole reset exists for recovery only).
 
-The killer use case is presence-aware contextual escalation: alerts escalate only when a CO2/PM threshold is crossed AND someone has been in the room long enough to matter. A BLE-paired pocket SKU is reserved for v2 — full protocol design lives in `docs/rfcs/presence-aware-paired-system.md`.
+Configure once at the infobento.com web editor; the display then runs quietly on solar power, refreshing on schedule.
 
 ---
 
@@ -113,16 +113,16 @@ Someone who wants to give a thoughtful, personalized tech gift that is useful wi
 
 ## 3. Design Principles
 
-### Minimal Device Interaction
+### Zero Device Interaction
 
-> InfoBento remains glance-first. A button or knock gesture may dismiss an alert or acknowledge an escalation, but the core loop is still configure once, glance often.
+> InfoBento has no buttons. The entire loop is configure once, glance often.
 
-InfoBento has one front tactile button and LIS3DH knock-detect so a user can dismiss a presence-aware alert without a phone. Interaction stays optional and bounded; it still charges via solar passively and refreshes on schedule.
+There are no buttons or interactive controls on the device — only a recessed pinhole reset for recovery. The display charges via solar passively and refreshes on schedule; everything else happens in the web editor.
 
 | Do                                             | Don't                             |
 | ---------------------------------------------- | --------------------------------- |
-| Glance at counter display from across the room | Require button press to refresh   |
-| Knock or button-press to dismiss an alert      | Dedicated companion app           |
+| Glance at counter display from across the room | Require a button press to refresh |
+| Configure once in the web editor               | Dedicated companion app           |
 | Solar charging near a window without cables    | Manual charging schedule or cable |
 | Captive-portal first-time setup, no app        | Notification stream or buzzer     |
 
@@ -149,7 +149,7 @@ The constraint is tight enough to feel intentional: four shades, not a gradient.
 
 > All box types must work without accounts, API keys, or subscriptions.
 
-All 18 box types use free data sources or local computation. Weather, forecast, sunrise/sunset, and air quality use Open-Meteo. Quotes use ZenQuotes. Everything else is pure local computation. On-device AQ and presence readings are computed locally and never leave the device.
+All box types use free data sources or local computation. Weather, forecast, sunrise/sunset, and air quality (AQI) use Open-Meteo cloud data. Quotes use ZenQuotes. Everything else is pure local computation.
 
 ### Web-Only Configuration
 
@@ -161,27 +161,27 @@ The web editor at infobento.com is the only configuration surface. No companion 
 
 > A single monolithic body that stands on its own, with a fold-out kickstand to angle it if needed.
 
-White monolithic enclosure ~14×11 cm sized to fit the GDEH0576T81 (5.76", 920×680) closely, with a thin bezel (≤4 mm) and a fold-out kickstand for ~12–15° tilt. Solar panel on the upper back. Sensor grille (SCD41 / BME688 / SEN54), back-mounted hardware privacy switch, front tactile button, RGB LED, and battery layout are part of the Core AQ + Presence scope and need an industrial-design pass.
+White monolithic enclosure ~14×11 cm sized to fit the GDEH0576T81 (5.76", 920×680) closely, with a thin bezel (≤4 mm) and a fold-out kickstand for ~12–15° tilt. Solar panel on the upper back, with the AEM10941 harvester topping up the ~100 mAh LiPo. Two ball-in-tube tilt switches drive orientation auto-rotate.
 
 ---
 
 ## 4. Requirements
 
-| ID      | Statement                                                   | Priority |
-| ------- | ----------------------------------------------------------- | -------- |
-| REQ-001 | User can configure 3-6 bento boxes via web interface        | Must     |
-| REQ-002 | Device syncs via Wi-Fi direct, no companion phone app       | Must     |
-| REQ-003 | Display refreshes 1-2x/day on solar power alone             | Must     |
-| REQ-004 | 18 box types without user accounts, up to MAX_BOXES=10      | Must     |
-| REQ-005 | Web UI and API served from same port in production          | Must     |
-| REQ-006 | Config persists in localStorage with JSON export/import     | Must     |
-| REQ-007 | QR code gets ~half display height for scannability          | Must     |
-| REQ-008 | Live PNG preview before syncing to device                   | Must     |
-| REQ-009 | V1 ships B&W with 4-level grayscale, no color               | Must     |
-| REQ-010 | Enclosure ~14x11cm, fits GDEH0576T81 panel closely          | Must     |
-| REQ-011 | Display >=198 DPI, <=4mm visible bezel                      | Should   |
-| REQ-012 | Auto-rotate via two tilt switches, 4 orientations           | Must     |
-| REQ-013 | Sensor + presence data stays on-device, never sent to cloud | Must     |
+| ID      | Statement                                                 | Priority |
+| ------- | --------------------------------------------------------- | -------- |
+| REQ-001 | User can configure 3-6 bento boxes via web interface      | Must     |
+| REQ-002 | Device syncs via Wi-Fi direct, no companion phone app     | Must     |
+| REQ-003 | Display refreshes 1-2x/day on solar power alone           | Must     |
+| REQ-004 | 18 box types without user accounts, up to MAX_BOXES=10    | Must     |
+| REQ-005 | Web UI and API served from same port in production        | Must     |
+| REQ-006 | Config persists in localStorage with JSON export/import   | Must     |
+| REQ-007 | QR code gets ~half display height for scannability        | Must     |
+| REQ-008 | Live PNG preview before syncing to device                 | Must     |
+| REQ-009 | V1 ships B&W with 4-level grayscale, no color             | Must     |
+| REQ-010 | Enclosure ~14x11cm, fits GDEH0576T81 panel closely        | Must     |
+| REQ-011 | Display >=198 DPI, <=4mm visible bezel                    | Should   |
+| REQ-012 | Auto-rotate via two tilt switches, 4 orientations         | Must     |
+| REQ-013 | Zero device interaction — no buttons (pinhole reset only) | Must     |
 
 ---
 
@@ -192,7 +192,7 @@ White monolithic enclosure ~14×11 cm sized to fit the GDEH0576T81 (5.76", 920×
 **User class:** Daily Glancer
 **Setting:** Kitchen counter near window, 7:15 AM, making coffee
 
-Sam's InfoBento is standing on the kitchen counter near the window, its solar panel catching the morning light. The crisp 5.76" B&W eInk display shows a multi-box dashboard: weather (62F, partly cloudy), a countdown (14 days to vacation), today's date, a motivational quote, and a CO2 status box. Sam grabs a jacket based on the weather and notices the CO2 box is high enough to open a window. The display refreshed on schedule at 6 AM via Wi-Fi.
+Sam's InfoBento is standing on the kitchen counter near the window, its solar panel catching the morning light. The crisp 5.76" B&W eInk display shows a multi-box dashboard: weather (62F, partly cloudy), a countdown (14 days to vacation), today's date, and a motivational quote. Sam grabs a jacket based on the weather and notes the vacation countdown. The display refreshed on schedule at 6 AM via Wi-Fi.
 
 **Preconditions:** Device completed captive-portal Wi-Fi setup; config has weather, countdown, date, and quote boxes; device refreshed on schedule.
 
@@ -228,7 +228,6 @@ Single B&W eInk panel (Good Display GDEH0576T81, 5.76", 920×680, 198 DPI), encl
 - Configurable corner radius (0-10) and padding (0-10)
 - 4-level grayscale: anti-aliased fonts, grey labels for hierarchy
 - Multi-column layouts via horizontal splits
-- High-priority box / full-screen alert takeover for presence-aware escalations
 - Auto-rotate based on tilt switch orientation
 
 ### Web Configuration Editor
@@ -329,32 +328,21 @@ Research across Tidbyt, Watchy, TRMNL, thermal printer art, and eInk phone acces
 
 ## 10. Cost and Pricing
 
-Total BOM is approximately **$110–115** at Kickstarter volume (qty ~1k). Core-platform figures are estimates pending manufacturer quotes.
-
-**Sensor + presence + interaction + ID BOM: ~$56.**
-
-**Core platform:**
+Total BOM is approximately **$45–50** at Kickstarter volume (qty ~1k), dominated by the 5.76" panel. Figures are estimates pending manufacturer quotes.
 
 | Component                 | Est. cost |
 | ------------------------- | --------- |
 | GDEH0576T81 panel         | ~$30      |
 | ESP32-C3                  | ~$2.50    |
-| PCB + passives            | ~$4       |
-| ~2000 mAh LiPo            | ~$6       |
+| ~100 mAh LiPo             | ~$2       |
 | Solar panel               | ~$3       |
 | AEM10941 energy harvester | ~$3       |
 | USB-C charge              | ~$2       |
-| Housing                   | ~$6       |
+| PCB + passives            | ~$3       |
+| Housing                   | ~$5       |
 | Tilt switches             | ~$0.20    |
 
-**Price target:** $129–179 (Kickstarter), positioned against the air-quality monitor set:
-
-| Product             | Price |
-| ------------------- | ----- |
-| Aranet4             | $249  |
-| AirGradient ONE     | $269  |
-| Awair Element       | $299  |
-| AirThings View Plus | $299  |
+**Price target:** $49–69 (Kickstarter).
 
 ---
 
@@ -370,9 +358,8 @@ Total BOM is approximately **$110–115** at Kickstarter volume (qty ~1k). Core-
 | SCAD enclosure model (#50)                       | Open          | Prototype photography  |
 | Captive-portal firmware (#39)                    | Open          | Device functionality   |
 | Tilt switch hardware (#48)                       | Open          | Auto-rotate            |
-| Presence sensor + privacy switch integration     | Open          | Core AQ + Presence     |
 
 ---
 
-_InfoBento -- A bento dashboard that can sense the room._
+_InfoBento -- A calm bento dashboard for counters, desks, and shelves._
 _Phase: Campaign | Version: v0.22.0 | June 2026_

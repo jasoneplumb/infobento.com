@@ -1,7 +1,7 @@
 {
   "id": "15b14d22-3871-4074-a350-f4ffc78651b4",
   "name": "InfoBento",
-  "description": "Solar-powered B&W eInk bento dashboard for kitchen counters, desks, and shelves. Enclosure sized to fit the GDEH0576T81 panel closely (~14x11cm) with a Good Display GDEH0576T81 5.76\" 920x680 198-DPI eInk panel (SSD2677 driver) that nearly fills the front face. Monolithic white housing, solar panel on the upper back, body-as-stand with a fold-out kickstand to angle it ~12-15° if needed. Two tilt switches detect orientation for auto-rotate. Designed to survive a 4-foot drop. Configure once on a web page; refreshes 1-2x/day on solar power. Targeted at $129-179 via Kickstarter (~$110-115 BOM at volume, driven by the Core AQ + Presence sensor bundle). Renderer produces 2-bit grayscale (4-level) framebuffers with antialiased TTF fonts (Inter) and configurable rounded box borders. Color deferred to v2. Retains the Core AQ + Presence sensor bundle (Sensirion SCD41 CO2, Bosch BME688 VOC/IAQ, Sensirion SEN54 PM, HLK-LD2410C mmWave presence, AM312 PIR, LIS3DH knock-to-dismiss, hardware radar privacy switch, one tactile button, dimmable RGB LED) to drive air-quality boxes and full-screen alert states; sensor and presence data stay on-device and the cloud renderer never sees readings.",
+  "description": "Solar-powered B&W eInk bento dashboard for kitchen counters, desks, and shelves. Enclosure sized to fit the GDEH0576T81 panel closely (~14x11cm) with a Good Display GDEH0576T81 5.76\" 920x680 198-DPI eInk panel (SSD2677 driver) that nearly fills the front face. Monolithic white housing, solar panel on the upper back, body-as-stand with a fold-out kickstand to angle it ~12-15° if needed. Two tilt switches detect orientation for auto-rotate. Designed to survive a 4-foot drop. Configure once on a web page; refreshes 1-2x/day on solar power. Targeted at $49-69 via Kickstarter (~$45-50 BOM at volume; the 5.76\" panel dominates). Renderer produces 2-bit grayscale (4-level) framebuffers with antialiased TTF fonts (Inter) and configurable rounded box borders. Color deferred to v2.",
   "domain": "consumer-electronics",
   "version": 3,
   "currentPhase": "campaign",
@@ -109,19 +109,19 @@
     },
     {
       "type": "design-principle",
-      "name": "Minimal Device Interaction",
-      "statement": "InfoBento stays glance-first: configure once in a browser, glance often. The only on-device controls are a single tactile button and a knock (tap) gesture for acknowledging or dismissing a presence-aware alert — no app to open, no charging ritual.",
-      "description": "InfoBento has no everyday user-facing controls; it connects to Wi-Fi, refreshes on schedule, and charges via solar passively. Core AQ + Presence added one bounded exception: a front tactile button and an LIS3DH knock gesture let a user acknowledge or silence a full-screen alert without reaching for a phone. Configuration still happens only in the web UI at infobento.com.",
-      "source": "Core product vision — reduce screen time, not add to it. Everyday use is glance-only; a single front button and knock-to-dismiss exist solely to acknowledge presence-aware alerts.",
+      "name": "Zero Device Interaction",
+      "statement": "The InfoBento itself requires no interaction — no buttons, no app to open, no charging ritual. You configure it once in a browser; after that InfoBento is just there.",
+      "description": "InfoBento has no user-facing controls. It connects to Wi-Fi, refreshes on schedule, and charges via solar passively. The only physical affordance is a recessed pinhole reset for Wi-Fi recovery. Configuration happens once via the web UI at infobento.com.",
+      "source": "Core product vision — reduce screen time, not add to it. Zero interaction with the device, not zero interaction period.",
       "examples": [
-        "Glance at counter display from across the room — zero touch",
-        "Knock the side or tap the front button to dismiss a presence-aware alert",
+        "Glance at the counter display from across the room — zero touch",
+        "Solar charging near a window without any cables",
         "Wi-Fi auto-refresh on schedule (1-2x/day)",
         "Captive-portal first-time setup — no app required",
-        "Solar charging near a window without any cables"
+        "No buttons anywhere (recessed pinhole reset for recovery only)"
       ],
       "counterExamples": [
-        "Requiring a button press for routine refresh",
+        "Requiring a button press to refresh",
         "Dedicated companion app that must be opened",
         "Manual charging schedule or cable",
         "Notification stream or always-on interactive surface"
@@ -131,24 +131,6 @@
       "metadata": {},
       "createdAt": 1776109732319,
       "updatedAt": 1776109732319
-    },
-    {
-      "type": "design-principle",
-      "name": "On-Device Sensing & Presence",
-      "statement": "Sensor and presence data never leave the device. The cloud renderer is a pure function of configuration and never receives a reading; a hardware switch physically disconnects the presence radar.",
-      "description": "Core AQ + Presence (SCD41 CO2, BME688 VOC/IAQ, SEN54 PM, HLK-LD2410C mmWave presence, AM312 PIR) runs entirely on the ESP32. Readings drive local air-quality boxes and full-screen alert states; the firmware overlays them on the cloud-rendered base framebuffer. No reading is ever sent to the server. A back-panel hardware slider physically cuts radar power for unambiguous privacy.",
-      "source": "Privacy is a hardware-enforced commitment, not a policy.",
-      "examples": [
-        "CO2 box prompts opening a window without phoning home",
-        "Presence escalation handled on-device; only config is fetched from the cloud",
-        "Hardware privacy slider disconnects radar power"
-      ],
-      "counterExamples": [
-        "Uploading sensor readings to the cloud renderer",
-        "Software-only 'privacy mode' for the radar",
-        "Requiring an account to see local air quality"
-      ],
-      "id": "2cd4f1db-32af-4e59-897c-e9243f4b225f"
     },
     {
       "type": "design-principle",

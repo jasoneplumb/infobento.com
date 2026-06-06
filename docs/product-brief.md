@@ -1,60 +1,52 @@
 ---
 title: 'InfoBento Product Brief'
-subtitle: 'See what matters. Skip the spiral. Now it can sense the room.'
+subtitle: 'See what matters. Skip the spiral.'
 date: 'June 2026'
 ---
 
 # InfoBento Product Brief
 
-**See what matters. Skip the spiral. Now it can sense the room.**
+**See what matters. Skip the spiral.**
 
-A solar-powered B&W eInk bento dashboard that sits on your counter, desk, or shelf. Weather, a countdown, a quote, air-quality status, presence-aware alerts — visible at a glance from across the room, in crisp black ink on paper-white. Built around a Good Display GDEH0576T81 5.76" panel (920×680, 198 DPI) driven by an ESP32-class controller. No cables, no account, no plugin marketplace.
+A solar-powered B&W eInk bento dashboard that sits on your counter, desk, or shelf. Weather, a countdown, a quote, air-quality status — visible at a glance from across the room, in crisp black ink on paper-white. Built around a Good Display GDEH0576T81 5.76" panel (920×680, 198 DPI) driven by an ESP32-class controller. No cables, no account, no plugin marketplace.
 
 ---
 
 ## Product Overview
 
-InfoBento is a calm surface for the room with local room awareness. The information you check most often — weather, the next thing on your calendar, days until something you're looking forward to, air-quality status — sits there in sharp B&W eInk, visible at a glance from across the room. The display is a multi-box bento dashboard (up to 10 boxes, multi-column, with big glanceable numbers), and the highest-priority box can take over the full screen during alerts. CO2, particulates, VOCs, and presence detection support the dashboard with on-device context. Configure once on a web page; it sips light from the window and refreshes on its own.
+InfoBento is a calm surface for the room. The information you check most often — weather, the next thing on your calendar, days until something you're looking forward to, air-quality status from cloud data — sits there in sharp B&W eInk, visible at a glance from across the room. The display is a multi-box bento dashboard (up to 10 boxes, multi-column, with big glanceable numbers). Configure once on a web page; it sips light from the window and refreshes on its own.
 
-Aranet4, AirGradient, Awair, and AirThings remain sensor-quality references; Tidbyt and TRMNL remain ambient-display references. InfoBento differs by combining a glanceable B&W eInk bento dashboard with on-device sensing and a no-account, solar-powered form factor.
+Tidbyt and TRMNL are the ambient-display references. InfoBento differs by combining a glanceable B&W eInk bento dashboard with a no-account, solar-powered form factor — calmer, cheaper, and solar.
 
-**Target price:** $129–179 (≈ $110–115 BOM at Kickstarter volume)
+**Target price:** $49–69 (Kickstarter)
 **Distribution:** Kickstarter campaign
 
 ---
 
 ## Hardware Specifications
 
-| Spec                         | Value                                                                                                                                                                                                          |
-| ---------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Display**                  | Good Display GDEH0576T81 panel, ~$30                                                                                                                                                                           |
-| **Size**                     | 5.76" diagonal                                                                                                                                                                                                 |
-| **Resolution**               | 920 × 680 pixels                                                                                                                                                                                               |
-| **DPI**                      | 198                                                                                                                                                                                                            |
-| **Color depth**              | B&W with 2-bit grayscale (4 levels in software)                                                                                                                                                                |
-| **Driver IC**                | SSD2677                                                                                                                                                                                                        |
-| **Active area**              | 117.7 × 87.0 mm                                                                                                                                                                                                |
-| **Module size**              | 125.4 × 99.5 × 0.9 mm                                                                                                                                                                                          |
-| **Refresh time**             | 0.75s full / 0.3s partial; ~1–2 refreshes/day                                                                                                                                                                  |
-| **MCU**                      | ESP32-C3, ~$2.50, Wi-Fi + BLE (BLE reserved for the v2 paired pocket device)                                                                                                                                   |
-| **CO2**                      | Sensirion **SCD41** — NDIR, ~$13.50, ABC calibration (the chip Aranet4 uses)                                                                                                                                   |
-| **Air quality**              | Bosch **BME688** — VOC/IAQ index + pressure + redundant T/RH, ~$5.20                                                                                                                                           |
-| **Particulates**             | Sensirion **SEN54** — PM1/PM2.5/PM10, ~$25.00                                                                                                                                                                  |
-| **Presence**                 | **HLK-LD2410C** mmWave radar (~$5.00, sees breathing micro-motion) + **AM312** PIR (~$0.80, cheap interrupt + radar power-gating) + hardware **privacy switch** on back (~$0.30, physically disconnects radar) |
-| **Knock-detect**             | **LIS3DH** accelerometer, ~$1.20, double-tap-to-dismiss                                                                                                                                                        |
-| **Button**                   | 1× front tactile, ~$0.50                                                                                                                                                                                       |
-| **RGB LED**                  | 1× SK6812 dimmable behind frosted dot, ~$0.50, off by default; amber pulse on alert escalation                                                                                                                 |
-| **Sensor + interaction BOM** | **~$56**; sensors on shared I2C, PIR + LIS3DH + button on GPIO interrupts; eInk on SPI                                                                                                                         |
-| **Battery**                  | ~2000 mAh LiPo (~$6); covers ESP32 radio + Core AQ + Presence sensor duty cycle plus solar harvest                                                                                                             |
-| **Solar**                    | ~70×100 mm amorphous-Si (~$3) + AEM10941 harvester (~$3, upper back)                                                                                                                                           |
-| **Charging**                 | USB-C, ~$2                                                                                                                                                                                                     |
-| **PCB + passives**           | ~$4                                                                                                                                                                                                            |
-| **Enclosure**                | ~14 × 11 cm white monolithic housing (~$6) sized to fit GDEH0576T81 closely; thin bezel ≤4 mm; sensor grille, PIR/radar keepout, privacy slider, button, and optional LED integrated into the layout           |
-| **Tilt detection**           | Body-as-stand; fold-out kickstand angles it ~12–15°; LIS3DH covers rotation/orientation                                                                                                                        |
-| **Connectivity**             | Wi-Fi direct, captive portal setup                                                                                                                                                                             |
-| **Privacy**                  | Sensor data + presence data stays on-device by default; hardware privacy switch on the back; cloud never sees readings                                                                                         |
+| Spec               | Value                                                                                         |
+| ------------------ | --------------------------------------------------------------------------------------------- |
+| **Display**        | Good Display GDEH0576T81 panel, ~$30                                                          |
+| **Size**           | 5.76" diagonal                                                                                |
+| **Resolution**     | 920 × 680 pixels                                                                              |
+| **DPI**            | 198                                                                                           |
+| **Color depth**    | B&W with 2-bit grayscale (4 levels in software)                                               |
+| **Driver IC**      | SSD2677                                                                                       |
+| **Active area**    | 117.7 × 87.0 mm                                                                               |
+| **Module size**    | 125.4 × 99.5 × 0.9 mm                                                                         |
+| **Refresh time**   | 0.75s full / 0.3s partial; ~1–2 refreshes/day                                                 |
+| **MCU**            | ESP32-C3, ~$2.50, Wi-Fi + BLE (BLE reserved for a possible v2 bridge)                         |
+| **Battery**        | ~100 mAh LiPo (~$2); covers display + Wi-Fi only (no always-on sensors)                       |
+| **Solar**          | ~70×100 mm amorphous-Si (~$3) + AEM10941 harvester (~$3, upper back)                          |
+| **Charging**       | USB-C, ~$2                                                                                    |
+| **PCB + passives** | ~$3                                                                                           |
+| **Enclosure**      | ~14 × 11 cm white monolithic housing (~$5) sized to fit GDEH0576T81 closely; thin bezel ≤4 mm |
+| **Orientation**    | 2× ball-in-tube tilt switches (~$0.20 total) drive orientation auto-rotate                    |
+| **Stand**          | Body-as-stand; fold-out kickstand angles it ~12–15° if needed                                 |
+| **Connectivity**   | Wi-Fi direct, captive portal setup                                                            |
 
-**Total device BOM ≈ $110–115 at Kickstarter volume (qty ~1k):** ~$56 sensor + presence + interaction + ID, plus ~$56–59 core platform (GDEH0576T81 panel ~$30, ESP32-C3 ~$2.50, PCB + passives ~$4, ~2000 mAh LiPo ~$6, solar ~$3, AEM10941 ~$3, USB-C ~$2, housing ~$6). Core-platform figures are estimates pending manufacturer quotes.
+**Total device BOM ≈ $45–50 at Kickstarter volume (qty ~1k):** GDEH0576T81 panel ~$30 (dominates), ESP32-C3 ~$2.50, ~100 mAh LiPo ~$2, solar panel ~$3, AEM10941 harvester ~$3, USB-C charge ~$2, PCB + passives ~$3, housing ~$5, 2× tilt switches ~$0.20. Figures are estimates pending manufacturer quotes.
 
 ---
 
@@ -69,15 +61,15 @@ Aranet4, AirGradient, Awair, and AirThings remain sensor-quality references; Tid
 |                       |
 +-----------------------+
        ^                    Back-upper: solar panel (~70x100mm)
-       | ~12-15 deg tilt    Back/side:  sensor grille + PIR/radar keepout
-       | body-as-stand      Back-lower: ESP32 + LiPo + USB-C + button
+       | ~12-15 deg tilt    Back-lower: ESP32-C3 + LiPo + USB-C
+       | body-as-stand
 ```
 
 - Monolithic white housing, no hinge; fold-out kickstand to angle it
 - Fold-out kickstand angles the display ~12-15 deg toward a standing viewer
 - Designed to survive a 4-foot drop (bumper layer, radiused corners, recessed display)
-- Solar panel on the upper back; sensor grille covers SCD41/BME688/SEN54 inlets — designed to read as a brand mark, not a speaker grille
-- USB-C charging port on bottom edge; pinhole reset on back for factory reset (press 5s with paperclip)
+- Solar panel on the upper back
+- USB-C charging port on bottom edge; recessed pinhole reset on back for recovery only (press 5s with paperclip)
 
 ---
 
@@ -86,11 +78,11 @@ Aranet4, AirGradient, Awair, and AirThings remain sensor-quality references; Tid
 ```
 +--------------------+   Wi-Fi      +--------------+
 |       Device       |<------------>|  Cloud API   |
-|   B&W eInk         |  (no sensor  |  (stateless, |
-|   ESP32-C3         |   data)      |  no sensor   |
-|   + local sensors  |              |  data ever)  |
-|   + local overlay  |              +--------------+
-+--------------------+                     ^
+|   B&W eInk         |              |  (stateless, |
+|   ESP32-C3         |              |  pure        |
+|                    |              |  function)   |
++--------------------+              +--------------+
+                                           ^
                                            |
                                      +-----+------+
                                      |  Web UI     |
@@ -98,9 +90,9 @@ Aranet4, AirGradient, Awair, and AirThings remain sensor-quality references; Tid
                                      +------------+
 ```
 
-**Pure function API:** Config JSON in, base framebuffer binary out. No server-side state, no user accounts. **The cloud renderer never sees sensor readings** — they stay on the device.
+**Pure function API:** Config JSON in, framebuffer binary out. No server-side state, no user accounts.
 
-**On-device sensor overlay:** After the cloud returns the base framebuffer, the firmware maps it to the 920×680 panel and overlays sensor-aware boxes or full-screen alert states using local readings. This is the privacy commitment: sensor data never leaves the device.
+**On-device mapping:** After the cloud returns the framebuffer, the firmware maps it to the 920×680 panel and applies orientation from the tilt switches.
 
 **Config delivery:**
 
@@ -126,17 +118,17 @@ Aranet4, AirGradient, Awair, and AirThings remain sensor-quality references; Tid
 
 ## Box Types (18 total)
 
-| Category          | Types                                            | Data Source                         |
-| ----------------- | ------------------------------------------------ | ----------------------------------- |
-| **Weather**       | Current weather, 8-hour forecast, 8-day forecast | Open-Meteo (free, no key)           |
-| **Environment**   | Sunrise/sunset, air quality, moon phase          | Open-Meteo + local computation      |
-| **Personal**      | Countdown, year progress, date                   | Local computation                   |
-| **Content**       | Quote, text                                      | quotable mirror (free) / user input |
-| **Utility**       | QR code, calendar, habits                        | User input                          |
-| **Data**          | Stocks                                           | Yahoo Finance (free)                |
-| **Entertainment** | Horoscope, joke, on this day                     | api-ninjas / JokeAPI / Wikipedia    |
+| Category          | Types                                            | Data Source                               |
+| ----------------- | ------------------------------------------------ | ----------------------------------------- |
+| **Weather**       | Current weather, 8-hour forecast, 8-day forecast | Open-Meteo (free, no key)                 |
+| **Environment**   | Sunrise/sunset, air quality (AQI), moon phase    | Open-Meteo cloud data + local computation |
+| **Personal**      | Countdown, year progress, date                   | Local computation                         |
+| **Content**       | Quote, text                                      | quotable mirror (free) / user input       |
+| **Utility**       | QR code, calendar, habits                        | User input                                |
+| **Data**          | Stocks                                           | Yahoo Finance (free)                      |
+| **Entertainment** | Horoscope, joke, on this day                     | api-ninjas / JokeAPI / Wikipedia          |
 
-All box types work without accounts, API keys, or subscriptions. The 5.76" panel hosts a multi-box bento dashboard (up to 10 boxes, multi-column) with big glanceable numbers; the highest-priority box can take over the full screen during alerts. Quote, joke, and horoscope responses fall back to a bundled local set on upstream failure (~50KB built-in).
+The AQI box draws Open-Meteo cloud air-quality data — a cloud data box like weather, not a local sensor reading. All box types work without accounts, API keys, or subscriptions. The 5.76" panel hosts a multi-box bento dashboard (up to 10 boxes, multi-column) with big glanceable numbers. Quote, joke, and horoscope responses fall back to a bundled local set on upstream failure (~50KB built-in).
 
 ---
 
@@ -157,21 +149,14 @@ All box types work without accounts, API keys, or subscriptions. The 5.76" panel
 
 ## Power Budget
 
-| Component                     | Active             | Sleep              | Duty                                    |
-| ----------------------------- | ------------------ | ------------------ | --------------------------------------- |
-| B&W eInk full refresh         | ~25 mA             | 0 mA               | ~0.75s full, ~0.3s partial              |
-| Wi-Fi connect + frame fetch   | ~70 mA             | ~10 µA             | ~10–20s, per refresh                    |
-| MCU active (during refresh)   | ~5 mA              | ~5–10 µA           | ~15s, per refresh                       |
-| SCD41 single-shot             | ~50 mA             | ~0.15 µA           | ~5s every 5 min                         |
-| BME688 forced-mode            | ~12 mA             | <1 µA              | ~50ms every 5 min                       |
-| SEN54 measurement (fan on)    | ~50 mA             | ~5 µA              | 30s every 15 min                        |
-| HLK-LD2410C (PIR-gated burst) | ~75 mA             | 0 mA (power-gated) | ~285 µA average                         |
-| AM312 PIR                     | ~12 µA             | ~12 µA             | always-on                               |
-| LIS3DH double-tap-detect      | ~1.8 µA            | ~1.8 µA            | always-on (interrupt wake)              |
-| Front button                  | 0                  | 0                  | event-driven                            |
-| RGB LED (off by default)      | ~5 mA when pulsing | ~1 µA              | event-driven (~5s amber pulse on alert) |
+| Component                   | Active | Sleep    | Duty                       |
+| --------------------------- | ------ | -------- | -------------------------- |
+| B&W eInk full refresh       | ~25 mA | 0 mA     | ~0.75s full, ~0.3s partial |
+| Wi-Fi connect + frame fetch | ~70 mA | ~10 µA   | ~10–20s, per refresh       |
+| MCU active (during refresh) | ~5 mA  | ~5–10 µA | ~15s, per refresh          |
+| Tilt switches               | 0      | 0        | passive (orientation only) |
 
-**Battery sizing:** ~2000 mAh LiPo plus solar harvest (5–15 mAh/day) covers the ~1–2 refreshes/day display budget; the ESP32 radio and Core AQ + Presence sensor duty cycle dominate consumption and drive final battery + solar sizing.
+**Battery sizing:** ~100 mAh LiPo plus solar harvest (5–15 mAh/day) easily covers the ~1–2 refreshes/day display budget. With no always-on sensors, the only meaningful draw is the ESP32 radio during a refresh, which the panel sleeps between.
 
 ---
 
@@ -179,9 +164,7 @@ All box types work without accounts, API keys, or subscriptions. The 5.76" panel
 
 **Desk Decorator (primary):** Values aesthetic, minimal desk accessories. Wants a bento-box-sized B&W eInk display showing a quote, countdown, weather, or QR code — standing on its own, solar-powered.
 
-**Room-Aware Parent / WFH User (secondary):** Values CO2/PM/VOC and presence-aware alerts surfaced as glanceable boxes on the dashboard, with a full-screen takeover when something needs attention.
-
-**Gift Giver / Daily Glancer (tertiary):** Wants a thoughtful, personalized tech gift that works immediately, or ambient weather, schedule, and quotes visible without picking up a phone. Pre-configures via web UI.
+**Gift Giver / Daily Glancer (secondary):** Wants a thoughtful, personalized tech gift that works immediately, or ambient weather, schedule, and quotes visible without picking up a phone. Pre-configures via web UI.
 
 ---
 
@@ -190,37 +173,25 @@ All box types work without accounts, API keys, or subscriptions. The 5.76" panel
 |                | Tidbyt / TRMNL                 | InfoBento                                                  |
 | -------------- | ------------------------------ | ---------------------------------------------------------- |
 | **Display**    | LED matrix / e-paper           | Good Display GDEH0576T81, 5.76" B&W eInk, 920×680, 198 DPI |
-| **MCU**        | ESP32 / ESP8266 / RP2040 class | ESP32-class controller                                     |
-| **Sensors**    | Usually none or DIY expansion  | Core AQ + Presence bundle on-device                        |
+| **MCU**        | ESP32 / ESP8266 / RP2040 class | ESP32-C3 controller                                        |
 | **Power**      | Wall outlet required           | Solar-powered, no cable                                    |
 | **Plugin/box** | DIY scripts or app marketplace | 18-box multi-box bento dashboard, up to 10 boxes           |
 | **Account**    | App + account                  | Web page, no account                                       |
-| **Price**      | $179 / varies                  | $129–179 (≈ $110–115 BOM at Kickstarter volume)            |
+| **Price**      | $179 / varies                  | $49–69 (Kickstarter)                                       |
 
-**Against the AQ-monitor set:** InfoBento's $129–179 Kickstarter price undercuts the dedicated air-quality monitors it shares sensing with — Aranet4 ($249), AirGradient ONE ($269), Awair ($299), and AirThings ($299) — while adding a glanceable multi-box eInk dashboard and presence awareness.
-
-**Verified moat (from TRMNL's own docs):**
-
-> "Plugins do not have documented access to on-device sensors like CO2, temperature, humidity, light, or motion." — docs.trmnl.com
-
-> "For a true embedded sensor solution on ESP32-C3, you may need custom firmware modifications beyond the standard TRMNL stack." — docs.trmnl.com
-
-The TRMNL workaround for sensor data still requires a separate physical sensor device + a separate server. InfoBento keeps local sensors directly on the device, combined with a glanceable 5.76" B&W eInk bento dashboard.
-
-**Tagline vs TRMNL:** "TRMNL has 850 plugins. InfoBento has lungs."
+InfoBento is a calmer, cheaper, solar take on the ambient-display category: no wall cable, no account, no plugin marketplace — just a glanceable 5.76" B&W eInk bento dashboard that refreshes itself on window light.
 
 ---
 
 ## Key Design Principles
 
-1. **Multi-Box Bento Dashboard** — The 5.76" panel hosts a multi-box dashboard (up to 10 boxes, multi-column) with big glanceable numbers; the highest-priority box can take over the full screen during alerts.
-2. **Privacy by Hardware** — Sensor data + presence data both stay on-device. Hardware privacy switch on the back physically disconnects the radar. The cloud renderer never sees readings.
-3. **Core AQ + Presence as Context** — CO2, PM, VOC, and presence readings power local boxes and alert states alongside the rest of the dashboard.
-4. **Pure Function Architecture** — Stateless cloud API. Same config in, same base frame out. Sensor-aware overlay happens on-device.
-5. **Free by Default** — All 18 dashboard box types work without accounts or API keys.
-6. **Grayscale Elegance** — Four shades used with intention. Hero data, body text, and metadata each earn their contrast level.
-7. **Web-Only Configuration** — Browser is the only config surface. No native app for v1.
-8. **Solar-Powered Counter Display** — Monolithic white body, no hinge. Body stands on its own, with a fold-out kickstand to angle it. Sensor grille and privacy slider remain visible trust cues.
+1. **Multi-Box Bento Dashboard** — The 5.76" panel hosts a multi-box dashboard (up to 10 boxes, multi-column) with big glanceable numbers.
+2. **Zero Device Interaction** — No buttons, no taps, no gestures. The only control is a recessed pinhole reset for recovery. Configure once at the web editor; the device just shows what matters.
+3. **Pure Function Architecture** — Stateless cloud API. Same config in, same frame out.
+4. **Free by Default** — All 18 dashboard box types work without accounts or API keys.
+5. **Grayscale Elegance** — Four shades used with intention. Hero data, body text, and metadata each earn their contrast level.
+6. **Web-Only Configuration** — Browser is the only config surface. No companion app.
+7. **Solar-Powered Counter Display** — Monolithic white body, no hinge. Body stands on its own, with a fold-out kickstand to angle it.
 
 ---
 
@@ -228,15 +199,10 @@ The TRMNL workaround for sensor data still requires a separate physical sensor d
 
 - **Hardware validation** — Dev kit (ESP32-C3 + GDEH0576T81) on order. Validates grey rendering, refresh speed, viewing angle.
 - **Grey fallback** — If 2-bit grey looks bad on hardware, Floyd-Steinberg dithering to 1-bit as fallback (#56).
-- **Sensor SKU lock + sample order** — SCD41, BME688, SEN54/PM alternative, LD2410C, AM312, LIS3DH
-- **Firmware sensor pipeline** — I2C drivers, single-shot scheduling, ABC calibration, local-only data path (no cloud exposure)
-- **Renderer: sensor-aware boxes** — CO2, PM, VOC/AQI, and presence-aware full-screen alert takeover
-- **Industrial design: sensor layout** — grille, PIR/radar keepout, privacy slider, button, LED, USB-C, solar, and battery integrated into the ~14×11 cm housing
-- **Web editor: sensor box config** — new editor surfaces, surface the on-device privacy commitment inline
-- **Live sensor dashboard at infobento.com/live** — pre-launch credibility lever; standing instance of the sensor bundle posting real readings
-- **Price validation:** $129–179 (≈ $110–115 BOM at Kickstarter volume) needs core-platform manufacturer quotes to confirm the BOM estimate
+- **Orientation auto-rotate** — Validate 2× ball-in-tube tilt switches drive reliable landscape/portrait detection.
+- **Price validation:** $49–69 Kickstarter price needs manufacturer quotes to confirm the ~$45–50 BOM estimate.
 - **Firmware:** Captive portal provisioning (#39), Wi-Fi connect, config poll, framebuffer write, deep sleep cycle.
-- **Enclosure:** SCAD model (#50) for ~14×11 cm housing, ≤4 mm bezel, solar/sensor cavities, pinhole reset.
+- **Enclosure:** SCAD model (#50) for ~14×11 cm housing, ≤4 mm bezel, solar cavity, fold-out kickstand, pinhole reset.
 - **Founder bio** — TODO in `docs/kickstarter-copy.md`; lock before Day 0 of campaign
 - **Content-aware layout:** Height allocation for all 18 box types — shipped in v0.13.0 via `computeMinHeight` per renderer.
 
@@ -258,4 +224,4 @@ infobento.com/
 
 ---
 
-_InfoBento — See what matters. Skip the spiral. Now it can sense the room._
+_InfoBento — See what matters. Skip the spiral._
