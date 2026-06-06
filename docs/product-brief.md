@@ -8,15 +8,15 @@ date: 'June 2026'
 
 **See what matters. Skip the spiral.**
 
-A solar-powered B&W eInk bento dashboard that sits on your counter, desk, or shelf. Weather, a countdown, a quote, air-quality status — visible at a glance from across the room, in crisp black ink on paper-white. Built around a Good Display GDEH0576T81 5.76" panel (920×680, 198 DPI) driven by an ESP32-class controller. No cables, no account, no plugin marketplace.
+A solar-powered eInk bento dashboard that sits on your counter, desk, or shelf. Weather, a countdown, a quote, air-quality status — visible at a glance from across the room, in crisp eInk. Built around a Good Display GDEH0576T81 5.76" panel (920×680, 198 DPI) driven by an ESP32-class controller. No cables, no account, no plugin marketplace.
 
 ---
 
 ## Product Overview
 
-InfoBento is a calm surface for the room. The information you check most often — weather, the next thing on your calendar, days until something you're looking forward to, air-quality status from cloud data — sits there in sharp B&W eInk, visible at a glance from across the room. The display is a multi-box bento dashboard (up to 10 boxes, multi-column, with big glanceable numbers). Configure once on a web page; it sips light from the window and refreshes on its own.
+InfoBento is a calm surface for the room. The information you check most often — weather, the next thing on your calendar, days until something you're looking forward to, air-quality status from cloud data — sits there in sharp eInk, visible at a glance from across the room. The display is a multi-box bento dashboard (up to 10 boxes, multi-column, with big glanceable numbers). Configure once on a web page; it sips light from the window and refreshes on its own.
 
-Tidbyt and TRMNL are the ambient-display references. InfoBento differs by combining a glanceable B&W eInk bento dashboard with a no-account, solar-powered form factor — calmer, cheaper, and solar.
+Tidbyt and TRMNL are the ambient-display references. InfoBento differs by combining a glanceable eInk bento dashboard with a no-account, solar-powered form factor — calmer, cheaper, and solar.
 
 **Target price:** $49–69 (Kickstarter)
 **Distribution:** Kickstarter campaign
@@ -31,7 +31,7 @@ Tidbyt and TRMNL are the ambient-display references. InfoBento differs by combin
 | **Size**           | 5.76" diagonal                                                                                |
 | **Resolution**     | 920 × 680 pixels                                                                              |
 | **DPI**            | 198                                                                                           |
-| **Color depth**    | B&W with 2-bit grayscale (4 levels in software)                                               |
+| **Display tech**   | eInk (electrophoretic)                                                                        |
 | **Driver IC**      | SSD2677                                                                                       |
 | **Active area**    | 117.7 × 87.0 mm                                                                               |
 | **Module size**    | 125.4 × 99.5 × 0.9 mm                                                                         |
@@ -55,7 +55,7 @@ Tidbyt and TRMNL are the ambient-display references. InfoBento differs by combin
 ```
 +-----------------------+
 |                       |
-|   B&W eInk panel      |   Front: display nearly fills the face
+|   eInk panel          |   Front: display nearly fills the face
 |   920 x 680           |          minimal bezel (<=4mm)
 |   198 DPI             |
 |                       |
@@ -78,7 +78,7 @@ Tidbyt and TRMNL are the ambient-display references. InfoBento differs by combin
 ```
 +--------------------+   Wi-Fi      +--------------+
 |       Device       |<------------>|  Cloud API   |
-|   B&W eInk         |              |  (stateless, |
+|   eInk             |              |  (stateless, |
 |   ESP32-C3         |              |  pure        |
 |                    |              |  function)   |
 +--------------------+              +--------------+
@@ -111,7 +111,7 @@ Tidbyt and TRMNL are the ambient-display references. InfoBento differs by combin
 | **Font**     | Inter TTF via opentype.js, configurable 8-42px body, hero = body x 2.6                           |
 | **Borders**  | SDF-antialiased rounded rectangles, configurable corner radius (0-10)                            |
 | **Contrast** | 3-tier: hero text (dark grey), important body (black), metadata (light grey)                     |
-| **Output**   | 2-bit grayscale framebuffer (156,400 bytes for 920x680)                                          |
+| **Output**   | eInk framebuffer (packed 2-bit, 4 levels per pixel; 156,400 bytes for 920x680)                   |
 | **Export**   | PNG with 4-level grayscale mapping                                                               |
 
 ---
@@ -151,7 +151,7 @@ The AQI box draws Open-Meteo cloud air-quality data — a cloud data box like we
 
 | Component                   | Active | Sleep    | Duty                       |
 | --------------------------- | ------ | -------- | -------------------------- |
-| B&W eInk full refresh       | ~25 mA | 0 mA     | ~0.75s full, ~0.3s partial |
+| eInk full refresh           | ~25 mA | 0 mA     | ~0.75s full, ~0.3s partial |
 | Wi-Fi connect + frame fetch | ~70 mA | ~10 µA   | ~10–20s, per refresh       |
 | MCU active (during refresh) | ~5 mA  | ~5–10 µA | ~15s, per refresh          |
 | Tilt switches               | 0      | 0        | passive (orientation only) |
@@ -162,7 +162,7 @@ The AQI box draws Open-Meteo cloud air-quality data — a cloud data box like we
 
 ## User Classes
 
-**Desk Decorator (primary):** Values aesthetic, minimal desk accessories. Wants a bento-box-sized B&W eInk display showing a quote, countdown, weather, or QR code — standing on its own, solar-powered.
+**Desk Decorator (primary):** Values aesthetic, minimal desk accessories. Wants a bento-box-sized eInk display showing a quote, countdown, weather, or QR code — standing on its own, solar-powered.
 
 **Gift Giver / Daily Glancer (secondary):** Wants a thoughtful, personalized tech gift that works immediately, or ambient weather, schedule, and quotes visible without picking up a phone. Pre-configures via web UI.
 
@@ -170,16 +170,16 @@ The AQI box draws Open-Meteo cloud air-quality data — a cloud data box like we
 
 ## Competitive Positioning
 
-|                | Tidbyt / TRMNL                 | InfoBento                                                  |
-| -------------- | ------------------------------ | ---------------------------------------------------------- |
-| **Display**    | LED matrix / e-paper           | Good Display GDEH0576T81, 5.76" B&W eInk, 920×680, 198 DPI |
-| **MCU**        | ESP32 / ESP8266 / RP2040 class | ESP32-C3 controller                                        |
-| **Power**      | Wall outlet required           | Solar-powered, no cable                                    |
-| **Plugin/box** | DIY scripts or app marketplace | 18-box multi-box bento dashboard, up to 10 boxes           |
-| **Account**    | App + account                  | Web page, no account                                       |
-| **Price**      | $179 / varies                  | $49–69 (Kickstarter)                                       |
+|                | Tidbyt / TRMNL                 | InfoBento                                              |
+| -------------- | ------------------------------ | ------------------------------------------------------ |
+| **Display**    | LED matrix / e-paper           | Good Display GDEH0576T81, 5.76" eInk, 920×680, 198 DPI |
+| **MCU**        | ESP32 / ESP8266 / RP2040 class | ESP32-C3 controller                                    |
+| **Power**      | Wall outlet required           | Solar-powered, no cable                                |
+| **Plugin/box** | DIY scripts or app marketplace | 18-box multi-box bento dashboard, up to 10 boxes       |
+| **Account**    | App + account                  | Web page, no account                                   |
+| **Price**      | $179 / varies                  | $49–69 (Kickstarter)                                   |
 
-InfoBento is a calmer, cheaper, solar take on the ambient-display category: no wall cable, no account, no plugin marketplace — just a glanceable 5.76" B&W eInk bento dashboard that refreshes itself on window light.
+InfoBento is a calmer, cheaper, solar take on the ambient-display category: no wall cable, no account, no plugin marketplace — just a glanceable 5.76" eInk bento dashboard that refreshes itself on window light.
 
 ---
 
@@ -213,7 +213,7 @@ InfoBento is a calmer, cheaper, solar take on the ambient-display category: no w
 ```
 infobento.com/
   packages/core/      Types, layout engine, validation (Zod)
-  packages/renderer/  2-bit grayscale framebuffer generation
+  packages/renderer/  eInk framebuffer generation
   packages/api/       Hono server (stateless API + static files)
   packages/web/       Vite web editor (vanilla JS, no framework)
 ```

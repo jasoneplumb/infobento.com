@@ -2,12 +2,12 @@
 
 ## System Overview
 
-InfoBento is a small, solar-powered B&W eInk decorator that lives on a counter, shelf, or windowsill. Configure once on the web; the device fetches frames from a stateless cloud API and shows what matters most — weather, your next event, a countdown, a quote — refreshing once or twice a day on solar power alone.
+InfoBento is a small, solar-powered eInk decorator that lives on a counter, shelf, or windowsill. Configure once on the web; the device fetches frames from a stateless cloud API and shows what matters most — weather, your next event, a countdown, a quote — refreshing once or twice a day on solar power alone.
 
 ```
 ┌──────────────┐    Wi-Fi     ┌─────────────┐
 │    Device     │◄────────────►│  Cloud API  │
-│  B&W eInk     │              │ (stateless) │
+│  eInk         │              │ (stateless) │
 │  ESP32-C3     │              │ (Hono on DO)│
 └──────────────┘              └─────────────┘
                                       ▲
@@ -36,7 +36,7 @@ Single mode: counter-standing. Refreshes 1–2× per day on solar power. There i
 ### Key Design Decisions
 
 - **Stateless API** — pure functions, no server-side state. Config in, frame buffer out.
-- **2-bit grayscale rendering** — B&W eInk panel with software greyscale via SSD2677 partial-refresh waveforms.
+- **eInk rendering** — eInk panel driven via SSD2677 partial-refresh waveforms.
 - **Solar-only power** — refresh budget sized to the solar harvest budget for moderate indoor light; USB-C tops up the battery when needed.
 - **Wi-Fi direct + web-only config** — no native phone app for v1. Captive-portal setup, web editor handles configuration.
 - **Zero device interaction** — no buttons. Configure once via web, glance forever. The only physical affordance is a recessed pinhole reset for Wi-Fi recovery.

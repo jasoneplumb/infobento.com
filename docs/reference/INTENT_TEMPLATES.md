@@ -19,7 +19,7 @@ Use at the top of each module to explain its purpose:
 
 ```typescript
 /**
- * Intent: Convert bento box layouts into 2-bit grayscale eInk-compatible frame buffers
+ * Intent: Convert bento box layouts into eInk-compatible frame buffers
  * Context: Called by @infobento/api to generate display data sent to the device
  * Pattern: Pure functions — all rendering is deterministic with no side effects
  * Future: Add bitmap font rendering, icon set, Floyd-Steinberg dithering
@@ -62,7 +62,7 @@ Use for tradeoffs and constraints:
 ### Examples
 
 ```typescript
-// tradeoff: 2-bit grayscale (4 levels) for minimal power draw during refresh
+// tradeoff: 2-bit (4 levels) for minimal power draw during refresh
 // constraint: BLE MTU limits frame transfer to ~244 bytes per packet
 // future: add partial refresh to update only changed bento boxes
 ```

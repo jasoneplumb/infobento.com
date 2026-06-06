@@ -1,7 +1,7 @@
 {
   "id": "15b14d22-3871-4074-a350-f4ffc78651b4",
   "name": "InfoBento",
-  "description": "Solar-powered B&W eInk bento dashboard for kitchen counters, desks, and shelves. Enclosure sized to fit the GDEH0576T81 panel closely (~14x11cm) with a Good Display GDEH0576T81 5.76\" 920x680 198-DPI eInk panel (SSD2677 driver) that nearly fills the front face. Monolithic white housing, solar panel on the upper back, body-as-stand with a fold-out kickstand to angle it ~12-15° if needed. Two tilt switches detect orientation for auto-rotate. Designed to survive a 4-foot drop. Configure once on a web page; refreshes 1-2x/day on solar power. Targeted at $49-69 via Kickstarter (~$45-50 BOM at volume; the 5.76\" panel dominates). Renderer produces 2-bit grayscale (4-level) framebuffers with antialiased TTF fonts (Inter) and configurable rounded box borders. Color deferred to v2.",
+  "description": "Solar-powered eInk bento dashboard for kitchen counters, desks, and shelves. Enclosure sized to fit the GDEH0576T81 panel closely (~14x11cm) with a Good Display GDEH0576T81 5.76\" 920x680 198-DPI eInk panel (SSD2677 driver) that nearly fills the front face. Monolithic white housing, solar panel on the upper back, body-as-stand with a fold-out kickstand to angle it ~12-15° if needed. Two tilt switches detect orientation for auto-rotate. Designed to survive a 4-foot drop. Configure once on a web page; refreshes 1-2x/day on solar power. Targeted at $49-69 via Kickstarter (~$45-50 BOM at volume; the 5.76\" panel dominates). Renderer produces eInk framebuffers with antialiased TTF fonts (Inter) and configurable rounded box borders.",
   "domain": "consumer-electronics",
   "version": 3,
   "currentPhase": "campaign",
@@ -64,7 +64,7 @@
     {
       "type": "user-class",
       "name": "Desk Decorator",
-      "description": "Person who values aesthetic, minimal desk or counter accessories and wants a bento-box-sized B&W eInk display that shows a rotating quote, countdown to vacation, or personal QR code — standing on its own, the body is the stand",
+      "description": "Person who values aesthetic, minimal desk or counter accessories and wants a bento-box-sized eInk display that shows a rotating quote, countdown to vacation, or personal QR code — standing on its own, the body is the stand",
       "workRoleIds": ["7f7a8122-1767-4414-8231-77cb80d1372c"],
       "goals": [
         "Have a visually pleasing desk or counter accessory that is also functional",
@@ -156,9 +156,9 @@
     },
     {
       "type": "design-principle",
-      "name": "Grayscale Elegance",
-      "statement": "Four shades — black, dark gray, light gray, white — used with intention. Every tone earns its place.",
-      "description": "V1 ships monochrome with 4-level grayscale (2-bit per pixel). The hardware supports this natively at no extra cost. The four tones create a clear visual hierarchy: black for hero data and primary text, dark gray for secondary content and dividers, light gray for labels and metadata, white for background. Anti-aliased fonts become possible — 2-bit grayscale text is crisper than 1-bit at the same DPI, especially for the 5x7 small font where staircase aliasing is visible. The constraint is still tight enough to feel intentional: four shades, not a gradient. Think newspaper print, not a photograph.",
+      "name": "Visual Restraint",
+      "statement": "A tight, intentional visual palette — every tone earns its place. Restraint over decoration.",
+      "description": "The renderer uses a small, intentional set of tones to create clear hierarchy — hero data vs. body text vs. metadata — without clutter. Restraint, not decoration: a well-set bento, not a busy dashboard.",
       "source": "The GDEH0576T81 (SSD2677 driver) supports 4 grayscale natively. Anti-aliased TTF font rendering (Inter via opentype.js) is the primary motivation — free visual quality improvement from hardware already being purchased.",
       "examples": [
         "Hero font in black, section labels in light gray — instant hierarchy without layout gymnastics",
@@ -169,7 +169,6 @@
         "QR codes stay pure black-on-white (grayscale would reduce scannability)"
       ],
       "counterExamples": [
-        "Color eInk panels (Spectra 6, ACeP) — deferred to v2",
         "Continuous-tone gradients or photographic dithering (only 4 levels available)",
         "Using all 4 gray levels in a single small element (creates visual noise)",
         "More than two font sizes (creates visual noise — grayscale is for tone, not for adding complexity)"
@@ -270,7 +269,7 @@
       "type": "requirement",
       "label": "REQ-003",
       "statement": "Display refreshes 1-2 times per day on solar power alone under normal indoor lighting",
-      "source": "Voice spec + hardware research (issue #22). AEM10941 solar IC harvests 5-15mAh/day at 200 lux, device needs ~2-3mAh/day at 2 refreshes (B&W panel + Wi-Fi).",
+      "source": "Voice spec + hardware research (issue #22). AEM10941 solar IC harvests 5-15mAh/day at 200 lux, device needs ~2-3mAh/day at 2 refreshes (eInk panel + Wi-Fi).",
       "category": "non-functional",
       "priority": "must",
       "rationale": "Zero-maintenance power — user should never need to charge the device manually.",
@@ -345,7 +344,7 @@
       "name": "Morning glance at kitchen counter",
       "userClassIds": ["b3572422-6629-426d-9df2-20a4c3eaa3e6"],
       "setting": "Kitchen counter near window, 7:15 AM, making coffee before commute",
-      "narrative": "Sam's InfoBento is standing on the kitchen counter near the window, its solar panel catching the morning light from the upper back side. The crisp B&W eInk display shows a calm layout: weather (62F, partly cloudy), a countdown (14 days to vacation, hero-font number), today's date, and a motivational quote — all in sharp black-on-white. Sam grabs a jacket based on the weather. Total interaction with the device: zero. The display refreshed on schedule at 6 AM via Wi-Fi.",
+      "narrative": "Sam's InfoBento is standing on the kitchen counter near the window, its solar panel catching the morning light from the upper back side. The crisp eInk display shows a calm layout: weather (62F, partly cloudy), a countdown (14 days to vacation, hero-font number), today's date, and a motivational quote — all in sharp, high-contrast. Sam grabs a jacket based on the weather. Total interaction with the device: zero. The display refreshed on schedule at 6 AM via Wi-Fi.",
       "status": "draft",
       "preconditions": [
         "Device completed captive-portal Wi-Fi setup",
@@ -371,7 +370,7 @@
         "659af1c0-7967-4009-84ca-7febdab16a3d"
       ],
       "setting": "Home office, laptop open, just unboxed the InfoBento device",
-      "narrative": "Alex opens infobento.com on their laptop. The web UI shows a single eInk preview on top with the editor below. They add Weather (type Portland — geocoded via Nominatim), add Countdown (anniversary date), add a Date box, and a Quote box. The live 2-bit grayscale preview updates after each change — rendered server-side as PNG with antialiased TTF fonts and rounded box borders. They click Export Config and save the JSON. Later they'll enter these settings during the device's captive-portal Wi-Fi setup.",
+      "narrative": "Alex opens infobento.com on their laptop. The web UI shows a single eInk preview on top with the editor below. They add Weather (type Portland — geocoded via Nominatim), add Countdown (anniversary date), add a Date box, and a Quote box. The live preview updates after each change — rendered server-side as PNG with antialiased TTF fonts and rounded box borders. They click Export Config and save the JSON. Later they'll enter these settings during the device's captive-portal Wi-Fi setup.",
       "status": "draft",
       "preconditions": ["Web UI is accessible", "No account required"],
       "postconditions": [
@@ -407,7 +406,7 @@
       "type": "wireframe",
       "name": "Bento Box eInk Layout",
       "screenName": "DeviceDisplay",
-      "description": "Single B&W eInk panel on the front, enclosure ~14×11cm (fits GDEH0576T81 panel module closely with minimal bezel). Golden-ratio aspect ratio (1.618:1 target, 1.667:1 closest stock). High DPI for crisp text at glance distance. Tilt switches detect orientation — layout auto-rotates when device is stood on its short edge.",
+      "description": "Single eInk panel on the front, enclosure ~14×11cm (fits GDEH0576T81 panel module closely with minimal bezel). Golden-ratio aspect ratio (1.618:1 target, 1.667:1 closest stock). High DPI for crisp text at glance distance. Tilt switches detect orientation — layout auto-rotates when device is stood on its short edge.",
       "fidelity": "medium",
       "status": "active",
       "elements": [
@@ -424,7 +423,7 @@
         "Golden-ratio panel (~1.618:1 aspect ratio) — closest stock is 7.5\" at 5:3 (1.667:1, 3% off)",
         "High DPI target: ≥200 DPI preferred; stock 7.5\" panels are ~124 DPI, custom panel at volume for higher",
         "Display nearly fills enclosure — minimal bezel (≤3mm target)",
-        "Refresh once or twice a day on solar power (~2-3s per B&W refresh)",
+        "Refresh once or twice a day on solar power (~2-3s per refresh)",
         "Frame buffer size derived from chosen panel via frameBufferBytes() helper in @infobento/core",
         "Tilt switch GPIO interrupt triggers re-render in rotated layout — no manual config needed"
       ],
@@ -448,7 +447,7 @@
       "fidelity": "medium",
       "status": "active",
       "elements": [
-        "Top: live 2-bit grayscale eInk preview (server-rendered PNG) with rounded corners matching box borders",
+        "Top: live eInk preview (server-rendered PNG) with rounded corners matching box borders",
         "Below: box list with up/down arrow buttons for reordering",
         "Header: Menu dropdown with Import / Export JSON",
         "Per-cell: Add Box button with type picker dropdown",
@@ -502,7 +501,7 @@
       "type": "design-principle",
       "name": "Two-Font Bitmap System",
       "statement": "TrueType font rendering via Inter (OFL) with opentype.js — configurable body size (8-42px), hero size derived proportionally — no system font dependencies",
-      "description": "The renderer uses Inter (OFL-licensed TrueType font) via opentype.js for all text. Body font size is user-configurable (8-42px, default 38px); hero size is derived proportionally (bodySize * 2.6). Anti-aliased at 2-bit grayscale depth via scanline TTF rasterization. Dynamic FontMetrics system computes all spacing, padding, and line heights from the chosen body size. Two visual weights — hero (bold) and body (regular) — create clear hierarchy.",
+      "description": "The renderer uses Inter (OFL-licensed TrueType font) via opentype.js for all text. Body font size is user-configurable (8-42px, default 38px); hero size is derived proportionally (bodySize * 2.6). Anti-aliased via scanline TTF rasterization. Dynamic FontMetrics system computes all spacing, padding, and line heights from the chosen body size. Two visual weights — hero (bold) and body (regular) — create clear hierarchy.",
       "source": "Font evolution: 5x7 bitmap (v0.1) → Spleen 8x16 bitmap (v0.4) → Inter TTF via opentype.js (v0.7.0). TTF rendering enables configurable font sizes and proper kerning.",
       "examples": [
         "Inter Bold hero: '62F', '9:00', '14 days' at user-chosen size",
@@ -523,7 +522,7 @@
     {
       "type": "prototype",
       "name": "Rendering Pipeline (v0.4.0+)",
-      "description": "Full rendering pipeline: BentoConfig (Zod-validated) -> layout (vertical + horizontal split, configurable padding) -> Inter TTF fonts + SDF rounded borders + 14x14 icons -> draw -> 156,400-byte frame buffer (920x680, 2-bit grayscale). 18 box types with content-aware height allocation. Web editor with font size, corner radius, and padding controls, in-place box type switcher, and add-box chip rail. Deployed to infobento.com.",
+      "description": "Full rendering pipeline: BentoConfig (Zod-validated) -> layout (vertical + horizontal split, configurable padding) -> Inter TTF fonts + SDF rounded borders + 14x14 icons -> draw -> 156,400-byte frame buffer (920x680). 18 box types with content-aware height allocation. Web editor with font size, corner radius, and padding controls, in-place box type switcher, and add-box chip rail. Deployed to infobento.com.",
       "fidelity": "high",
       "format": "TypeScript (packages/core + packages/renderer + packages/api + packages/web)",
       "scope": "Core types with Zod validation, layout engine (920x680, configurable padding, horizontal split, content-aware height hints), Inter TTF fonts via opentype.js, SDF rounded borders, 14x14 icons, 18 box renderers, single-column web editor with font/corner/padding controls + server-rendered PNG preview + localStorage v2, API with structured errors, passkey + Apple/Google OAuth auth, deployed",
@@ -579,11 +578,11 @@
     {
       "type": "requirement",
       "label": "REQ-009",
-      "statement": "V1 ships monochrome with 4-level grayscale (2-bit framebuffer: black, dark gray, light gray, white). No color eInk.",
-      "source": "All candidate panels (GDEY075T7, GDEQ0426T82, GDEH0576T81, etc.) natively support 4 grayscale levels at zero additional BOM cost. Grayscale enables anti-aliased fonts, visual hierarchy via gray tones, and smoother renderings.",
+      "statement": "V1 uses an eInk panel. The renderer outputs a 4-level (2-bit) framebuffer; the final panel's color capability is TBD.",
+      "source": "The 4-level (2-bit) framebuffer enables anti-aliased fonts and clear visual hierarchy at zero additional BOM cost. The final panel's color capability is TBD.",
       "category": "non-functional",
       "priority": "must",
-      "rationale": "The GDEH0576T81 (SSD2677 driver) supports 4 grayscale natively. Using 2-bit instead of 1-bit costs nothing in BOM or refresh time and enables: (1) anti-aliased TTF font rendering for crisper text at 198 DPI, (2) light gray for secondary labels vs black for primary data, (3) dark gray for SDF-antialiased rounded box borders, (4) smoother moon phase and progress bar fills. Color eInk (Spectra 6, ACeP) remains deferred to v2.",
+      "rationale": "The GDEH0576T81 (SSD2677 driver) supports 4 tonal levels natively. Using 2-bit instead of 1-bit costs nothing in BOM or refresh time and enables: (1) anti-aliased TTF font rendering for crisper text at 198 DPI, (2) light gray for secondary labels vs black for primary data, (3) dark gray for SDF-antialiased rounded box borders, (4) smoother moon phase and progress bar fills. The final panel's color capability is TBD.",
       "status": "accepted",
       "userClassIds": [],
       "id": "req-009-bw-only",
@@ -649,12 +648,12 @@
     {
       "type": "design-principle",
       "name": "Solar-Powered Counter Display",
-      "statement": "InfoBento is a bento-box-sized counter device — single high-DPI B&W eInk display on the front, solar panel on the upper portion of the back, body-as-stand with a fold-out kickstand to angle it. No hinge. Tilt switches detect orientation for auto-rotate.",
-      "description": "The device is a single white-housed body sized to fit the GDEH0576T81 panel closely (~14×11cm), with a golden-ratio B&W eInk panel that nearly fills the front face (≤3mm bezel target). Front: high-DPI B&W eInk panel recessed into the bezel rim so the rim shields the glass on a face-down drop. Back-upper: solar panel cavity (~70x100mm) for indirect window-light harvesting. Back-lower: ESP32-C3 + battery + tilt switches + grip area. Two mechanical tilt switches at 90° on two GPIO pins detect orientation changes (zero standby current, ~$0.10 BOM) and fire hardware interrupts so the layout re-renders in the correct rotation — landscape when flat, portrait when stood on its short edge, plus both inverted orientations. A fold-out kickstand angles the display ~12-15° upward when desired. Designed to survive a 4-foot drop. Refreshes once or twice a day on solar power.",
-      "source": "A single-body counter device: one B&W eInk display, solar on the back, body-as-stand with a fold-out kickstand. Serves one product well rather than splitting BOM, thickness, and complexity across two use cases.",
+      "statement": "InfoBento is a bento-box-sized counter device — single high-DPI eInk display on the front, solar panel on the upper portion of the back, body-as-stand with a fold-out kickstand to angle it. No hinge. Tilt switches detect orientation for auto-rotate.",
+      "description": "The device is a single white-housed body sized to fit the GDEH0576T81 panel closely (~14×11cm), with a golden-ratio eInk panel that nearly fills the front face (≤3mm bezel target). Front: high-DPI eInk panel recessed into the bezel rim so the rim shields the glass on a face-down drop. Back-upper: solar panel cavity (~70x100mm) for indirect window-light harvesting. Back-lower: ESP32-C3 + battery + tilt switches + grip area. Two mechanical tilt switches at 90° on two GPIO pins detect orientation changes (zero standby current, ~$0.10 BOM) and fire hardware interrupts so the layout re-renders in the correct rotation — landscape when flat, portrait when stood on its short edge, plus both inverted orientations. A fold-out kickstand angles the display ~12-15° upward when desired. Designed to survive a 4-foot drop. Refreshes once or twice a day on solar power.",
+      "source": "A single-body counter device: one eInk display, solar on the back, body-as-stand with a fold-out kickstand. Serves one product well rather than splitting BOM, thickness, and complexity across two use cases.",
       "examples": [
         "Kitchen counter: device leans slightly back on its own footprint, display angled toward standing viewer, solar panel catching window light from the upper back surface",
-        "Desk: device sits next to a monitor, crisp B&W quote and weather visible from working distance",
+        "Desk: device sits next to a monitor, crisp quote and weather visible from working distance",
         "Shelf: device functions as ambient decor — quote, countdown, weather — no plug, no cable",
         "Dropped onto hardwood from 4 feet: bumper compresses, edges absorb impact, glass intact"
       ],

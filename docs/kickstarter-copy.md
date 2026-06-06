@@ -1,6 +1,6 @@
 # InfoBento — _See what matters. Skip the spiral._
 
-A calm, solar-powered 5.76" B&W eInk bento dashboard for your counter, desk, or shelf. It shows the things you check most — weather, forecast, your next event, a countdown, a quote, air quality — in crisp black ink on paper-white, visible at a glance. No account. No app. No buttons. No cables. Configure once at infobento.com.
+A calm, solar-powered 5.76" eInk bento dashboard for your counter, desk, or shelf. It shows the things you check most — weather, forecast, your next event, a countdown, a quote, air quality — in crisp eInk, visible at a glance. No account. No app. No buttons. No cables. Configure once at infobento.com.
 
 **See what matters. Skip the spiral.**
 
@@ -8,13 +8,13 @@ A calm, solar-powered 5.76" B&W eInk bento dashboard for your counter, desk, or 
 
 ## Hero subhead
 
-> Most of the time your phone holds your whole life beautifully. Sometimes you just want to know if it's going to rain, or what's next on your calendar, without opening five apps and resurfacing twenty minutes later. **InfoBento is the calm B&W screen for that moment.**
+> Most of the time your phone holds your whole life beautifully. Sometimes you just want to know if it's going to rain, or what's next on your calendar, without opening five apps and resurfacing twenty minutes later. **InfoBento is the calm eInk screen for that moment.**
 
 ---
 
 ## What it is
 
-InfoBento is a small B&W eInk display in a thin white frame that sits on a kitchen counter, a desk, or a shelf. It shows the things you check most often — weather, your next meeting, the countdown to your trip, a quote that lifts the room — in calm black ink on paper-white, visible from across the room. Build a glanceable multi-box grid, configured once in a browser at infobento.com.
+InfoBento is a small eInk display in a thin white frame that sits on a kitchen counter, a desk, or a shelf. It shows the things you check most often — weather, your next meeting, the countdown to your trip, a quote that lifts the room — calm and clear, visible from across the room. Build a glanceable multi-box grid, configured once in a browser at infobento.com.
 
 It runs on light. The upper portion of the back is a small solar panel. Set it near a window with indirect light and the device charges itself. No cable. No outlet. No batteries to swap. It refreshes once or twice a day — by design. Stillness is the feature.
 
@@ -24,14 +24,14 @@ Pick it up and turn it, and a tilt switch auto-rotates the layout to match. Fold
 
 ## How it compares
 
-We're not competing with glowing pixel-art displays. InfoBento is the calmest, simplest member of the ambient-display set — still B&W eInk instead of a glowing LED grid, solar-powered, no account, and cheaper.
+We're not competing with glowing pixel-art displays. InfoBento is the calmest, simplest member of the ambient-display set — still calm eInk instead of a glowing LED grid, solar-powered, no account, and cheaper.
 
-| Display       | Price      | Calm B&W eInk | Solar   | No account / no app |
-| ------------- | ---------- | ------------- | ------- | ------------------- |
-| **InfoBento** | **$49–69** | **Yes**       | **Yes** | **Yes**             |
-| Tidbyt        | $179       | No (LED)      | No      | App required        |
-| TRMNL         | $129       | Yes (eInk)    | No      | Account required    |
-| LaMetric Time | $199       | No (LED)      | No      | App required        |
+| Display       | Price      | Calm eInk  | Solar   | No account / no app |
+| ------------- | ---------- | ---------- | ------- | ------------------- |
+| **InfoBento** | **$49–69** | **Yes**    | **Yes** | **Yes**             |
+| Tidbyt        | $179       | No (LED)   | No      | App required        |
+| TRMNL         | $129       | Yes (eInk) | No      | Account required    |
+| LaMetric Time | $199       | No (LED)   | No      | App required        |
 
 Calmer than the glowing displays. Self-powered, so it lives anywhere there's light. And well under the price of every smart display on the shelf.
 
@@ -39,7 +39,7 @@ Calmer than the glowing displays. Self-powered, so it lives anywhere there's lig
 
 ## What's inside
 
-- **Display:** Good Display GDEH0576T81 — 5.76" B&W eInk, 920×680 px, 198 DPI, SSD2677 driver, 2-bit grayscale (4 levels)
+- **Display:** Good Display GDEH0576T81 — 5.76" eInk, 920×680 px, 198 DPI, SSD2677 driver
 - **Connectivity:** ESP32-C3 Wi-Fi — configured from any web browser, no companion app
 - **Power:** solar panel + ~100 mAh LiPo, runs cable-free; refreshes 1–2× per day
 - **Orientation:** tilt switch auto-rotates the layout when you turn the device
@@ -98,7 +98,7 @@ The bill of materials runs about $45–50 at volume — the 5.76" eInk panel alo
 
 [**Open the editor at infobento.com →**](https://infobento.com)
 
-Configure boxes, see the live B&W preview, save. No account, no signup, no email capture. This is the actual editor that will configure the production device.
+Configure boxes, see the live preview, save. No account, no signup, no email capture. This is the actual editor that will configure the production device.
 
 ---
 
@@ -112,4 +112,4 @@ Configure boxes, see the live B&W preview, save. No account, no signup, no email
 
 **Does it have any sensors?** No. InfoBento shows information you choose; it doesn't sense or record anything about you or your room. Air quality is pulled from Open-Meteo cloud data, not a sensor.
 
-**Is color coming?** The first device is B&W eInk. Color is planned for a future version.
+**What about color?** We're finalizing the exact eInk panel; we'll confirm the display details (including color) before the campaign closes.

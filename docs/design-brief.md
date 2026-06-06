@@ -16,11 +16,11 @@ _A calm bento dashboard for counters, desks, and shelves._
 
 ## Product Overview
 
-InfoBento is a small, solar-powered B&W eInk bento dashboard for counters, desks, and shelves. It is glance-first: a calm multi-box dashboard that configures once and refreshes on schedule.
+InfoBento is a small, solar-powered eInk bento dashboard for counters, desks, and shelves. It is glance-first: a calm multi-box dashboard that configures once and refreshes on schedule.
 
 - **Positioning:** A lean, calm bento dashboard for counters, desks, and shelves.
 - **UI model:** Multi-box bento dashboard — up to 10 boxes (`MAX_BOXES=10`), multi-column.
-- **Display:** Good Display **GDEH0576T81**, 5.76" B&W eInk, **920×680 px**, **198 DPI**, **SSD2677** driver IC, 2-bit grayscale (4 levels). Framebuffer **156,400 bytes**. Refresh 1–2×/day, 0.75 s full / 0.3 s partial. Active area 117.7×87.0 mm; module 125.4×99.5×0.9 mm.
+- **Display:** Good Display **GDEH0576T81**, 5.76" eInk, **920×680 px**, **198 DPI**, **SSD2677** driver IC, eInk. Framebuffer **156,400 bytes** (packed 2-bit, 4 levels per pixel). Refresh 1–2×/day, 0.75 s full / 0.3 s partial. Active area 117.7×87.0 mm; module 125.4×99.5×0.9 mm.
 - **Enclosure:** white monolithic housing ~14×11 cm sized to fit the GDEH0576T81 closely; thin bezel ≤4 mm; body-as-stand, with a fold-out kickstand to angle it ~12–15° if needed.
 - **MCU:** ESP32-C3 (Wi-Fi + BLE; BLE reserved for a possible v2 bridge). Captive-portal setup; no companion app v1; config via the infobento.com web editor.
 - **Power:** ~70×100 mm solar panel on the upper back + ~100 mAh LiPo + AEM10941 solar harvester; ~1–2 refreshes/day.
@@ -60,7 +60,7 @@ Person who purchases and pre-configures an InfoBento as a gift for someone else.
 
 ### Desk Decorator (Primary)
 
-Person who values aesthetic, minimal desk or counter accessories and wants a bento-box-sized B&W eInk display that shows a multi-box dashboard of useful status boxes -- standing on its own, the body is the stand.
+Person who values aesthetic, minimal desk or counter accessories and wants a bento-box-sized eInk display that shows a multi-box dashboard of useful status boxes -- standing on its own, the body is the stand.
 
 **Goals:**
 
@@ -132,18 +132,11 @@ There are no buttons or interactive controls on the device — only a recessed p
 
 No server-side state, no user accounts, no databases. Config lives on the client. Device caches last framebuffer in flash for offline resilience.
 
-### Grayscale Elegance
+### Visual Restraint
 
-> Four shades -- black, dark gray, light gray, white -- used with intention. Every tone earns its place.
+> A tight, intentional tonal palette used with discipline. Every tone earns its place.
 
-The constraint is tight enough to feel intentional: four shades, not a gradient. Think newspaper print, not a photograph. The GDEH0576T81 renders 2-bit grayscale (4 levels) natively.
-
-| Level      | Use                                                  |
-| ---------- | ---------------------------------------------------- |
-| Black      | Important body text (conditions, entries, names)     |
-| Dark gray  | Hero/display text (large, doesn't need max contrast) |
-| Light gray | Supporting metadata (H/L, author, streaks)           |
-| White      | Box interior background                              |
+The palette is deliberately restrained: a few intentional tones rather than a gradient, applied to express a clear visual hierarchy. Think newspaper print, not a photograph. Tone and contrast distinguish hero text, body text, and metadata — hero/display text reads large without needing maximum contrast, body text carries the most important content, and metadata sits quietly in support.
 
 ### Free by Default
 
@@ -177,7 +170,7 @@ White monolithic enclosure ~14×11 cm sized to fit the GDEH0576T81 (5.76", 920×
 | REQ-006 | Config persists in localStorage with JSON export/import   | Must     |
 | REQ-007 | QR code gets ~half display height for scannability        | Must     |
 | REQ-008 | Live PNG preview before syncing to device                 | Must     |
-| REQ-009 | V1 ships B&W with 4-level grayscale, no color             | Must     |
+| REQ-009 | V1 uses an eInk panel (display color capability TBD)      | Must     |
 | REQ-010 | Enclosure ~14x11cm, fits GDEH0576T81 panel closely        | Must     |
 | REQ-011 | Display >=198 DPI, <=4mm visible bezel                    | Should   |
 | REQ-012 | Auto-rotate via two tilt switches, 4 orientations         | Must     |
@@ -192,7 +185,7 @@ White monolithic enclosure ~14×11 cm sized to fit the GDEH0576T81 (5.76", 920×
 **User class:** Daily Glancer
 **Setting:** Kitchen counter near window, 7:15 AM, making coffee
 
-Sam's InfoBento is standing on the kitchen counter near the window, its solar panel catching the morning light. The crisp 5.76" B&W eInk display shows a multi-box dashboard: weather (62F, partly cloudy), a countdown (14 days to vacation), today's date, and a motivational quote. Sam grabs a jacket based on the weather and notes the vacation countdown. The display refreshed on schedule at 6 AM via Wi-Fi.
+Sam's InfoBento is standing on the kitchen counter near the window, its solar panel catching the morning light. The crisp 5.76" eInk display shows a multi-box dashboard: weather (62F, partly cloudy), a countdown (14 days to vacation), today's date, and a motivational quote. Sam grabs a jacket based on the weather and notes the vacation countdown. The display refreshed on schedule at 6 AM via Wi-Fi.
 
 **Preconditions:** Device completed captive-portal Wi-Fi setup; config has weather, countdown, date, and quote boxes; device refreshed on schedule.
 
@@ -203,7 +196,7 @@ Sam's InfoBento is standing on the kitchen counter near the window, its solar pa
 **User classes:** Daily Glancer, Desk Decorator
 **Setting:** Home office, laptop open, just unboxed the device
 
-Alex opens infobento.com. The web UI shows a live 5.76" eInk preview on top with the editor below. They add Weather (type Portland -- geocoded via Nominatim), add Countdown (anniversary date), add a Date box, and a Quote box. The live 2-bit grayscale preview updates after each change. They click Export Config and save the JSON. Later they'll upload it during the device's captive-portal Wi-Fi setup.
+Alex opens infobento.com. The web UI shows a live 5.76" eInk preview on top with the editor below. They add Weather (type Portland -- geocoded via Nominatim), add Countdown (anniversary date), add a Date box, and a Quote box. The live preview updates after each change. They click Export Config and save the JSON. Later they'll upload it during the device's captive-portal Wi-Fi setup.
 
 ### Gifting a Pre-Configured Device
 
@@ -218,7 +211,7 @@ Jordan buys an InfoBento for their friend who loves hiking. They configure 3 box
 
 ### Device Display
 
-Single B&W eInk panel (Good Display GDEH0576T81, 5.76", 920×680, 198 DPI), enclosure ~14x11cm (fits the panel closely with a thin bezel). Tilt switches detect orientation -- layout auto-rotates.
+Single eInk panel (Good Display GDEH0576T81, 5.76", 920×680, 198 DPI), enclosure ~14x11cm (fits the panel closely with a thin bezel). Tilt switches detect orientation -- layout auto-rotates.
 
 **Elements:**
 
@@ -236,7 +229,7 @@ Single-column layout: preview on top, editor below. Vanilla JS with reactive sta
 
 **Elements:**
 
-- Live 2-bit grayscale 5.76" eInk preview (server-rendered PNG, portrait + landscape)
+- Live 5.76" eInk preview (server-rendered PNG, portrait + landscape)
 - Box list with up/down reordering, remove button, inline-editable labels
 - Add Box dropdown with type picker (18 types available)
 - Per-box config forms (location for weather, date for countdown, URL for QR, etc.)
@@ -298,7 +291,7 @@ Draw primitives
   - Grey background (GRAY_LIGHT) with white box interiors
     |
     v
-2-bit grayscale framebuffer (156,400 bytes, 920×680)
+eInk framebuffer (156,400 bytes, 920×680)
     |
     v
 PNG export (4-level grayscale mapping)
