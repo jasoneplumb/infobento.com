@@ -29,12 +29,18 @@ export const DEFAULT_DEVICE: DeviceProfile = {
 };
 
 /** A named display resolution the web simulator can switch between.
- *  `widthPx`/`heightPx` are the native landscape dimensions (long × short). */
+ *  `widthPx`/`heightPx` are the native landscape dimensions (long × short).
+ *  `widthMm`/`heightMm` are the panel's physical active-area size (same
+ *  orientation), so the simulator can render the preview at true physical
+ *  size — a lower-resolution 7.5" panel correctly appears larger than a
+ *  higher-resolution 5.76" panel. */
 export interface DeviceProfilePreset {
   readonly id: string;
   readonly label: string;
   readonly widthPx: number;
   readonly heightPx: number;
+  readonly widthMm: number;
+  readonly heightMm: number;
 }
 
 /** Display resolutions selectable in the web simulator. Add new panels here —
@@ -45,12 +51,16 @@ export const DEVICE_PROFILES: readonly DeviceProfilePreset[] = [
     label: 'Seeed reTerminal E1001 — 7.5" 800×480',
     widthPx: 800,
     heightPx: 480,
+    widthMm: 163.2,
+    heightMm: 97.92,
   },
   {
     id: 'gdeh0576-920x680',
     label: 'Good Display GDEH0576T81 — 5.76" 920×680 (deferred)',
     widthPx: 920,
     heightPx: 680,
+    widthMm: 117.7,
+    heightMm: 87.0,
   },
 ];
 

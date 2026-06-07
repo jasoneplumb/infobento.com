@@ -296,13 +296,19 @@ function renderPreviewNow(containerId: string): void {
       _imgLandscape.src = `data:image/png;base64,${data.landscape}`;
       _imgPortrait.src = `data:image/png;base64,${data.portrait}`;
 
-      // Set CSS vars for sizing and corner radius (selected display profile)
+      // Size the preview at the panel's TRUE physical size (CSS reference
+      // 96px = 1in) so it matches the real device at 100% zoom — a 7.5" panel
+      // reads larger than a 5.76" one regardless of pixel count.
       const profile = getDeviceProfile();
-      display.style.setProperty('--eink-w', String(profile.widthPx));
-      display.style.setProperty('--eink-h', String(profile.heightPx));
-      // Match CSS border-radius to framebuffer corner radius (at 0.5x display scale)
+      const CSS_PX_PER_MM = 96 / 25.4;
+      const wCss = Math.round(profile.widthMm * CSS_PX_PER_MM);
+      const hCss = Math.round(profile.heightMm * CSS_PX_PER_MM);
+      display.style.setProperty('--eink-w', String(wCss));
+      display.style.setProperty('--eink-h', String(hCss));
+      // Match the CSS corner radius to the rendered radius at the on-screen scale.
+      const scale = wCss / profile.widthPx;
       const radiusPx = getCornerRadius() * 4;
-      display.style.setProperty('--eink-radius', `${String(Math.round(radiusPx * 0.5))}px`);
+      display.style.setProperty('--eink-radius', `${String(Math.round(radiusPx * scale))}px`);
 
       mountActivePreview(containerId);
     })

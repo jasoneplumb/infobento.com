@@ -193,8 +193,9 @@ main {
   }
 }
 
-/* eInk display mock: sizes itself to the canvas via --eink-w / --eink-h
-   CSS variables set by the preview renderer (fb.width/height x SCALE). */
+/* eInk display mock: sized at the panel's TRUE physical size via --eink-w /
+   --eink-h CSS variables (in CSS px, 96px = 1in) set by the preview renderer,
+   so the preview matches the real device at 100% zoom. */
 
 .eink-display {
   display: flex;
@@ -214,13 +215,13 @@ main {
 }
 
 .eink-preview-pair.landscape {
-  width: calc(var(--eink-w, 920) * 0.5px);
-  height: calc(var(--eink-h, 680) * 0.5px);
+  width: calc(var(--eink-w, 617) * 1px);
+  height: calc(var(--eink-h, 370) * 1px);
 }
 
 .eink-preview-pair.portrait {
-  width: calc(var(--eink-h, 680) * 0.5px);
-  height: calc(var(--eink-w, 920) * 0.5px);
+  width: calc(var(--eink-h, 370) * 1px);
+  height: calc(var(--eink-w, 617) * 1px);
 }
 
 .eink-display img,
