@@ -651,9 +651,7 @@ export function setDeviceProfile(id: string): void {
 
 const STORAGE_KEY = 'infobento-config';
 
-/** Serialize boxes for persistence AND export, including merged-row markers
- *  (split side + divider ratio) so a save/export round-trip preserves merged
- *  rows. Persistence and export share this so they can't drift apart. */
+/** Serialize boxes for persistence and export, including merged-row markers. */
 export function serializeBoxes(boxes: EditorBox[]) {
   return boxes.map((b) => ({
     type: b.type,
@@ -796,7 +794,13 @@ export function importJSON(): void {
         if (obj.version === 2 && Array.isArray(obj.boxes)) {
           setState((s) => {
             s.boxes = hydrateBoxes(
-              obj.boxes as Array<{ type: string; label: string; config: Record<string, string> }>,
+              obj.boxes as Array<{
+                type: string;
+                label: string;
+                config: Record<string, string>;
+                split?: string;
+                splitRatio?: number;
+              }>,
             );
             if (typeof obj.showHeaders === 'boolean') s.showHeaders = obj.showHeaders;
             if (typeof obj.fontSize === 'number') s.fontSize = obj.fontSize;
