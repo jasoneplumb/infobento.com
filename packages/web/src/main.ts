@@ -9,6 +9,7 @@ import {
   addBox,
   BOX_TYPE_LABELS,
   exportJSON,
+  getBoxes,
   getCornerRadius,
   getFontSize,
   getPadding,
@@ -37,20 +38,25 @@ function renderAllPreviews(): void {
 
 function render(): void {
   renderBoxList('box-list');
+  renderAddChips();
   renderAllPreviews();
 }
 
 onRender(render);
 onPreviewRender(renderAllPreviews);
 
-// -- Wire up Add chips -------------------------------------------------------
+// -- Add chips (one per box type; hidden once that type is in use) -----------
 
-const addChips = document.getElementById('add-chips');
-if (addChips) {
+function renderAddChips(): void {
+  const addChips = document.getElementById('add-chips');
+  if (!addChips) return;
+  addChips.innerHTML = '';
+  const used = new Set(getBoxes().map((b) => b.type));
   const sorted = (Object.entries(BOX_TYPE_LABELS) as Array<[EditorBoxType, string]>).sort(
     ([, a], [, b]) => a.localeCompare(b),
   );
   for (const [type, label] of sorted) {
+    if (used.has(type)) continue; // a box type is only useful once
     const btn = document.createElement('button');
     btn.type = 'button';
     btn.className = 'btn-add-chip';
