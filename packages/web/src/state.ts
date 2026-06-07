@@ -17,7 +17,8 @@ import type {
   CalendarEvent,
   HabitEntry,
 } from '@infobento/core';
-import { DEFAULT_STOCK_DURATION } from '@infobento/core';
+import { DEFAULT_STOCK_DURATION, DEVICE_PROFILES, DEFAULT_PROFILE_ID } from '@infobento/core';
+import type { DeviceProfilePreset } from '@infobento/core';
 
 // -- Editor box model (UI-local, not the core BentoBox type) ---------------
 
@@ -169,6 +170,7 @@ export interface EditorState {
   fontSize: number;
   cornerRadius: number;
   padding: number;
+  profileId: string;
 }
 
 // -- UID generator ----------------------------------------------------------
@@ -283,6 +285,7 @@ const state: EditorState = {
   fontSize: DEFAULT_FONT_SIZE,
   cornerRadius: DEFAULT_CORNER_RADIUS,
   padding: DEFAULT_PADDING,
+  profileId: DEFAULT_PROFILE_ID,
 };
 
 let _renderFn: (() => void) | null = null;
@@ -597,6 +600,23 @@ export function setPadding(value: number): void {
   renderPreview();
 }
 
+/** The selected display profile (resolution the simulator renders at). */
+export function getDeviceProfile(): DeviceProfilePreset {
+  return (
+    DEVICE_PROFILES.find((p) => p.id === state.profileId) ??
+    DEVICE_PROFILES.find((p) => p.id === DEFAULT_PROFILE_ID) ??
+    DEVICE_PROFILES[0] ?? { id: DEFAULT_PROFILE_ID, label: 'Default', widthPx: 800, heightPx: 480 }
+  );
+}
+
+export function setDeviceProfile(id: string): void {
+  if (DEVICE_PROFILES.some((p) => p.id === id)) {
+    state.profileId = id;
+    persistToLocalStorage();
+    renderPreview();
+  }
+}
+
 // -- LocalStorage persistence -----------------------------------------------
 
 const STORAGE_KEY = 'infobento-config';
@@ -617,6 +637,7 @@ function persistToLocalStorage(): void {
       fontSize: state.fontSize,
       cornerRadius: state.cornerRadius,
       padding: state.padding,
+      profileId: state.profileId,
     };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
   } catch {
@@ -675,6 +696,12 @@ function loadFromLocalStorage(): boolean {
       if (typeof obj.fontSize === 'number') state.fontSize = obj.fontSize;
       if (typeof obj.cornerRadius === 'number') state.cornerRadius = obj.cornerRadius;
       if (typeof obj.padding === 'number') state.padding = obj.padding;
+      if (
+        typeof obj.profileId === 'string' &&
+        DEVICE_PROFILES.some((p) => p.id === obj.profileId)
+      ) {
+        state.profileId = obj.profileId;
+      }
       return true;
     }
 

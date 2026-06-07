@@ -50,7 +50,10 @@ export {
   DEFAULT_DEVICE,
   DEFAULT_FRAME_BYTES,
   frameBufferBytes,
+  DEVICE_PROFILES,
+  DEFAULT_PROFILE_ID,
 } from './constants.js';
+export type { DeviceProfilePreset } from './constants.js';
 
 // Re-export stock duration presets
 export { STOCK_DURATIONS, DEFAULT_STOCK_DURATION } from './types.js';

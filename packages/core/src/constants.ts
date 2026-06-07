@@ -27,3 +27,38 @@ export const DEFAULT_DEVICE: DeviceProfile = {
   heightPx: DISPLAY_HEIGHT,
   deviceId: 'infobento-5.76',
 };
+
+/** A named display resolution the web simulator can switch between.
+ *  `widthPx`/`heightPx` are the native landscape dimensions (long × short). */
+export interface DeviceProfilePreset {
+  readonly id: string;
+  readonly label: string;
+  readonly widthPx: number;
+  readonly heightPx: number;
+}
+
+/** Display resolutions selectable in the web simulator. Add new panels here —
+ *  the simulator's dropdown is generated from this list. */
+export const DEVICE_PROFILES: readonly DeviceProfilePreset[] = [
+  {
+    id: 'seeed-reterminal-e1001',
+    label: 'Seeed reTerminal E1001 — 7.5" 800×480 (4-level gray)',
+    widthPx: 800,
+    heightPx: 480,
+  },
+  {
+    id: 'seeed-xiao-7p5',
+    label: 'Seeed XIAO 7.5" panel — 800×480 (B&W)',
+    widthPx: 800,
+    heightPx: 480,
+  },
+  {
+    id: 'gdeh0576-920x680',
+    label: 'Good Display GDEH0576T81 — 5.76" 920×680 (deferred)',
+    widthPx: 920,
+    heightPx: 680,
+  },
+];
+
+/** Default simulator profile — the panel currently being prototyped on. */
+export const DEFAULT_PROFILE_ID = 'seeed-reterminal-e1001';

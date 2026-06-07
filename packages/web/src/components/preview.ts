@@ -4,7 +4,6 @@
  * Displays one orientation at a time, toggled by the Landscape checkbox.
  */
 
-import { DISPLAY_WIDTH, DISPLAY_HEIGHT } from '@infobento/core';
 import type { BentoBox, BentoConfig } from '@infobento/core';
 import type {
   EditorBox,
@@ -25,7 +24,14 @@ import type {
   CalendarConfig,
   HabitConfig,
 } from '../state';
-import { getBoxes, getShowHeaders, getFontSize, getCornerRadius, getPadding } from '../state';
+import {
+  getBoxes,
+  getShowHeaders,
+  getFontSize,
+  getCornerRadius,
+  getPadding,
+  getDeviceProfile,
+} from '../state';
 
 /**
  * Convert an EditorBox (UI-local model) to a core BentoBox (renderer model).
@@ -196,6 +202,7 @@ function toBentoBox(editor: EditorBox): BentoBox {
 }
 
 function toBentoConfig(boxes: readonly EditorBox[]): BentoConfig {
+  const profile = getDeviceProfile();
   return {
     boxes: boxes.map(toBentoBox),
     refreshesPerDay: 1,
@@ -203,6 +210,8 @@ function toBentoConfig(boxes: readonly EditorBox[]): BentoConfig {
     fontSize: getFontSize(),
     cornerRadius: getCornerRadius(),
     padding: getPadding(),
+    width: profile.widthPx,
+    height: profile.heightPx,
   };
 }
 
@@ -287,9 +296,10 @@ function renderPreviewNow(containerId: string): void {
       _imgLandscape.src = `data:image/png;base64,${data.landscape}`;
       _imgPortrait.src = `data:image/png;base64,${data.portrait}`;
 
-      // Set CSS vars for sizing and corner radius
-      display.style.setProperty('--eink-w', String(DISPLAY_WIDTH));
-      display.style.setProperty('--eink-h', String(DISPLAY_HEIGHT));
+      // Set CSS vars for sizing and corner radius (selected display profile)
+      const profile = getDeviceProfile();
+      display.style.setProperty('--eink-w', String(profile.widthPx));
+      display.style.setProperty('--eink-h', String(profile.heightPx));
       // Match CSS border-radius to framebuffer corner radius (at 0.5x display scale)
       const radiusPx = getCornerRadius() * 4;
       display.style.setProperty('--eink-radius', `${String(Math.round(radiusPx * 0.5))}px`);

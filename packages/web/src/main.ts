@@ -13,6 +13,7 @@ import {
   getFontSize,
   getPadding,
   getShowHeaders,
+  getDeviceProfile,
   importJSON,
   onPreviewRender,
   onRender,
@@ -20,7 +21,9 @@ import {
   setFontSize,
   setPadding,
   setShowHeaders,
+  setDeviceProfile,
 } from './state';
+import { DEVICE_PROFILES } from '@infobento/core';
 import { renderBoxList } from './components/box-list';
 import { renderPreview, setPreviewOrientation } from './components/preview';
 import { requireConsent } from './components/consent';
@@ -108,6 +111,20 @@ const landscapeToggle = document.querySelector<HTMLInputElement>('#toggle-landsc
 if (landscapeToggle) {
   landscapeToggle.checked = false;
   landscapeToggle.addEventListener('change', () => setPreviewOrientation(landscapeToggle.checked));
+}
+
+// -- Wire up Display (resolution) selector ----------------------------------
+
+const profileSelect = document.querySelector<HTMLSelectElement>('#device-profile-select');
+if (profileSelect) {
+  for (const profile of DEVICE_PROFILES) {
+    const opt = document.createElement('option');
+    opt.value = profile.id;
+    opt.textContent = profile.label;
+    profileSelect.appendChild(opt);
+  }
+  profileSelect.value = getDeviceProfile().id;
+  profileSelect.addEventListener('change', () => setDeviceProfile(profileSelect.value));
 }
 
 // -- Wire up Font Size stepper -----------------------------------------------

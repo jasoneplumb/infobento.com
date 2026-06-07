@@ -36,20 +36,6 @@ export type { FrameBuffer } from './types.js';
 export { computeFontMetrics, DEFAULT_FONT_SIZE } from './font-metrics.js';
 export type { FontMetrics } from './font-metrics.js';
 
-/** Landscape device profile (920x680) */
-const LANDSCAPE_DEVICE: DeviceProfile = {
-  widthPx: DISPLAY_WIDTH,
-  heightPx: DISPLAY_HEIGHT,
-  deviceId: 'infobento-5.76',
-};
-
-/** Portrait device profile (680x920) */
-const PORTRAIT_DEVICE: DeviceProfile = {
-  widthPx: DISPLAY_HEIGHT,
-  heightPx: DISPLAY_WIDTH,
-  deviceId: 'infobento-5.76',
-};
-
 /**
  * intent: Create an empty (white) frame buffer for the target display
  * method: Allocates a Uint8Array sized for 2-bit-per-pixel packing
@@ -346,8 +332,16 @@ export interface DualRenderResult {
  * effect: Device can switch orientations without an API round-trip
  */
 export function renderBoth(config: BentoConfig): DualRenderResult {
+  // Treat config.width/height (if set) as the panel's native dimensions and
+  // derive both orientations from them, so the dual preview matches any panel.
+  const w = config.width ?? DISPLAY_WIDTH;
+  const h = config.height ?? DISPLAY_HEIGHT;
+  const long = Math.max(w, h);
+  const short = Math.min(w, h);
+  // Strip the single-value override so render() uses the per-orientation device.
+  const base: BentoConfig = { ...config, width: undefined, height: undefined };
   return {
-    landscape: render(config, LANDSCAPE_DEVICE),
-    portrait: render(config, PORTRAIT_DEVICE),
+    landscape: render(base, { widthPx: long, heightPx: short, deviceId: 'infobento' }),
+    portrait: render(base, { widthPx: short, heightPx: long, deviceId: 'infobento' }),
   };
 }
