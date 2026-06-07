@@ -9,6 +9,7 @@ import {
   addBox,
   changeBoxType,
   getBoxes,
+  serializeBoxes,
   setState,
   updateLabel,
   BOX_TYPE_LABELS,
@@ -17,6 +18,30 @@ import {
 beforeEach(() => {
   setState((s) => {
     s.boxes = [];
+  });
+});
+
+describe('serializeBoxes (export/persist round-trip)', () => {
+  it('preserves merged-row markers (split side + divider ratio)', () => {
+    addBox('weather');
+    addBox('quote');
+    setState((s) => {
+      s.boxes[0] = { ...s.boxes[0]!, split: 'left', splitRatio: 35 };
+      s.boxes[1] = { ...s.boxes[1]!, split: 'right' };
+    });
+    const out = serializeBoxes(getBoxes());
+    expect(out[0]).toMatchObject({ split: 'left', splitRatio: 35 });
+    expect(out[1]).toMatchObject({ split: 'right' });
+  });
+
+  it('omits the default divider ratio (50) but keeps the split', () => {
+    addBox('weather');
+    setState((s) => {
+      s.boxes[0] = { ...s.boxes[0]!, split: 'left', splitRatio: 50 };
+    });
+    const out = serializeBoxes(getBoxes());
+    expect(out[0]).toHaveProperty('split', 'left');
+    expect(out[0]).not.toHaveProperty('splitRatio');
   });
 });
 
