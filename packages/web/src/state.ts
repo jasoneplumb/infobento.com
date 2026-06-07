@@ -288,6 +288,29 @@ const state: EditorState = {
   profileId: DEFAULT_PROFILE_ID,
 };
 
+// Location-dependent rows share one location; a new one defaults to it.
+const LOCATION_TYPES: ReadonlySet<EditorBoxType> = new Set([
+  'weather',
+  'forecast',
+  'forecast3d',
+  'sun',
+  'aqi',
+]);
+
+// Most recently set city (from detection, the location button, or typing).
+let lastKnownLocation = '';
+
+/** The location currently in use: any populated location row, else the last set. */
+function currentLocation(): string {
+  for (const box of state.boxes) {
+    if (LOCATION_TYPES.has(box.type)) {
+      const city = (box.config as { city?: string }).city;
+      if (city && city.trim()) return city;
+    }
+  }
+  return lastKnownLocation;
+}
+
 let _renderFn: (() => void) | null = null;
 let _previewFn: (() => void) | null = null;
 
@@ -333,11 +356,18 @@ function findBox(id: number): EditorBox | undefined {
 
 export function addBox(type: EditorBoxType): void {
   setState(() => {
+    const config = DEFAULTS[type]();
+    // Location-dependent rows default to the user's current location so they
+    // work out of the box (the config form auto-fetches data on render).
+    if (LOCATION_TYPES.has(type)) {
+      const loc = currentLocation();
+      if (loc) (config as unknown as { city: string }).city = loc;
+    }
     state.boxes.push({
       id: uid(),
       type,
       label: BOX_TYPE_LABELS[type],
-      config: DEFAULTS[type](),
+      config,
     });
   });
 }
@@ -468,6 +498,8 @@ export function updateConfig(id: number, key: string, value: string): void {
   const box = findBox(id);
   if (!box) return;
   (box.config as unknown as Record<string, string>)[key] = value;
+  // Remember the latest location so newly-added location rows can default to it.
+  if (key === 'city' && value.trim()) lastKnownLocation = value;
   renderPreview();
 }
 
