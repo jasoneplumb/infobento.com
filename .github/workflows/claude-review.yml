@@ -33,4 +33,4 @@ jobs:
 
             Focus on substantive issues. Skip formatting, naming bikeshedding, and anything handled by linters.
             Post your findings as inline comments on specific lines and a summary comment on the PR.
-          claude_args: '--model claude-sonnet-4-6 --max-turns 25'
+          claude_args: '--model claude-sonnet-4-6 --max-turns 25 --debug.
