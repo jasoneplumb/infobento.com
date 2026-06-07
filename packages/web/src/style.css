@@ -568,33 +568,12 @@ button {
   padding: 3px 12px;
 }
 
-.box-weight-controls {
-  display: flex;
-  gap: 3px;
-  flex-shrink: 0;
-  margin: 0 4px;
-}
-
-.btn-weight {
-  font-family: var(--mono);
-  font-size: 12px;
-  line-height: 1;
-  background: transparent;
-  color: var(--muted);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
+.box-ratio-slider {
+  flex: 1;
+  min-width: 80px;
+  max-width: 160px;
   cursor: pointer;
-  padding: 4px 7px;
-}
-
-.btn-weight:hover {
-  background: var(--border);
-}
-
-.btn-weight.active {
-  background: var(--accent);
-  color: #fff;
-  border-color: var(--accent);
+  accent-color: var(--accent);
 }
 
 .box-pair-controls {

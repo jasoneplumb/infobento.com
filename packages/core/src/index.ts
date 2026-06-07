@@ -52,6 +52,7 @@ export {
   frameBufferBytes,
   DEVICE_PROFILES,
   DEFAULT_PROFILE_ID,
+  splitLeftFraction,
 } from './constants.js';
 export type { DeviceProfilePreset } from './constants.js';
 

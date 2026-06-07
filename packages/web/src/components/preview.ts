@@ -41,8 +41,7 @@ function toBentoBox(editor: EditorBox): BentoBox {
     id: String(editor.id),
     label: editor.label,
     ...(editor.split ? { split: editor.split } : {}),
-    ...(editor.weight && editor.weight !== 2 ? { weight: editor.weight } : {}),
-    ...(editor.splitRatio && editor.splitRatio !== 2 ? { splitRatio: editor.splitRatio } : {}),
+    ...(editor.splitRatio && editor.splitRatio !== 50 ? { splitRatio: editor.splitRatio } : {}),
   };
 
   switch (editor.type) {

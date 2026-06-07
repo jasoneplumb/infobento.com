@@ -160,8 +160,8 @@ export interface EditorBox {
   label: string;
   config: EditorBoxConfig;
   split?: 'left' | 'right';
-  weight?: 1 | 2 | 3;
-  splitRatio?: 1 | 2 | 3;
+  /** Left-box width % (divider position), 20–80, default 50. */
+  splitRatio?: number;
 }
 
 export interface EditorState {
@@ -343,8 +343,8 @@ export function addBox(type: EditorBoxType): void {
 }
 
 /**
- * Change a box's type in place. Preserves layout (split partner, weight,
- * splitRatio, ordering) and resets `config` to the new type's defaults.
+ * Change a box's type in place. Preserves layout (split partner, splitRatio,
+ * ordering) and resets `config` to the new type's defaults.
  * The label is overwritten with the new default only if the user has not
  * customized it (i.e. it still matches the old type's default label) —
  * a custom label like "Today" survives a type swap.
@@ -455,19 +455,12 @@ export function splitBoxes(leftId: number): void {
   });
 }
 
-export function setWeight(id: number, weight: 1 | 2 | 3): void {
+/** Set the divider position of a split pair (left-box width %, clamped 20–80). */
+export function setSplitRatio(id: number, ratio: number): void {
   setState(() => {
     const box = findBox(id);
     if (!box) return;
-    box.weight = weight;
-  });
-}
-
-export function setSplitRatio(id: number, ratio: 1 | 2 | 3): void {
-  setState(() => {
-    const box = findBox(id);
-    if (!box) return;
-    box.splitRatio = ratio;
+    box.splitRatio = Math.min(80, Math.max(20, Math.round(ratio)));
   });
 }
 
@@ -637,8 +630,7 @@ function persistToLocalStorage(): void {
         label: b.label,
         config: { ...b.config },
         ...(b.split ? { split: b.split } : {}),
-        ...(b.weight && b.weight !== 2 ? { weight: b.weight } : {}),
-        ...(b.splitRatio && b.splitRatio !== 2 ? { splitRatio: b.splitRatio } : {}),
+        ...(b.splitRatio && b.splitRatio !== 50 ? { splitRatio: b.splitRatio } : {}),
       })),
       showHeaders: state.showHeaders,
       fontSize: state.fontSize,
@@ -658,7 +650,6 @@ function hydrateBoxes(
     label: string;
     config: Record<string, string>;
     split?: string;
-    weight?: number;
     splitRatio?: number;
   }>,
 ): EditorBox[] {
@@ -668,8 +659,13 @@ function hydrateBoxes(
     label: b.label,
     config: { ...b.config } as EditorBoxConfig,
     ...(b.split === 'left' || b.split === 'right' ? { split: b.split } : {}),
-    ...(b.weight === 1 || b.weight === 3 ? { weight: b.weight } : {}),
-    ...(b.splitRatio === 1 || b.splitRatio === 3 ? { splitRatio: b.splitRatio } : {}),
+    ...(() => {
+      // Migrate legacy enum ratios (1/2/3) → percentages; accept raw % too.
+      const sr = b.splitRatio;
+      const pct = sr === 1 ? 33 : sr === 2 ? 50 : sr === 3 ? 67 : typeof sr === 'number' ? sr : 50;
+      const clamped = Math.min(80, Math.max(20, Math.round(pct)));
+      return clamped !== 50 ? { splitRatio: clamped } : {};
+    })(),
   }));
   // Repair orphaned split markers from older bug where reordering split pairs.
   for (let i = 0; i < boxes.length; i++) {

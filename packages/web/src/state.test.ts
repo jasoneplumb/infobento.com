@@ -46,14 +46,14 @@ describe('changeBoxType', () => {
     expect(getBoxes()[0]!.label).toBe('My favorite');
   });
 
-  it('preserves split, weight, and splitRatio (layout invariants)', () => {
+  it('preserves split and splitRatio (layout invariants)', () => {
     addBox('weather');
     addBox('quote');
     const left = getBoxes()[0]!;
     const right = getBoxes()[1]!;
     setState((s) => {
-      // Hand-set up a split pair with non-default weights.
-      s.boxes[0] = { ...left, split: 'left', weight: 3, splitRatio: 1 };
+      // Hand-set up a split pair with a non-default ratio.
+      s.boxes[0] = { ...left, split: 'left', splitRatio: 33 };
       s.boxes[1] = { ...right, split: 'right' };
     });
     const leftId = getBoxes()[0]!.id;
@@ -61,8 +61,7 @@ describe('changeBoxType', () => {
     const after = getBoxes()[0]!;
     expect(after.type).toBe('date');
     expect(after.split).toBe('left');
-    expect(after.weight).toBe(3);
-    expect(after.splitRatio).toBe(1);
+    expect(after.splitRatio).toBe(33);
     // Right partner is untouched.
     expect(getBoxes()[1]!.split).toBe('right');
   });

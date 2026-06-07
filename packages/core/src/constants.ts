@@ -66,3 +66,10 @@ export const DEVICE_PROFILES: readonly DeviceProfilePreset[] = [
 
 /** Default simulator profile — the panel currently being prototyped on. */
 export const DEFAULT_PROFILE_ID = 'seeed-reterminal-e1001';
+
+/** Left-box width fraction for a split pair, from `splitRatio` (left-side %,
+ *  default 50). Clamped to 0.2–0.8 so neither side of the divider collapses. */
+export function splitLeftFraction(splitRatio?: number): number {
+  const pct = splitRatio ?? 50;
+  return Math.min(0.8, Math.max(0.2, pct / 100));
+}
