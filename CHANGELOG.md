@@ -1,5 +1,34 @@
 # Changelog
 
+## [0.23.0] - 2026-06-07
+
+### Added
+
+- **Open-source-hardware licensing** — Apache-2.0 for software (`LICENSE`), CERN-OHL-P-2.0 for hardware (`hardware/LICENSE`), and CC-BY-4.0 for docs (`docs/LICENSE`); all three permit building and selling devices from the design. `LICENSING.md` explains the split and SPDX identifiers were added to every `package.json`. (#92)
+- **Simulator display-resolution selector** — the web preview switches panels via a `DEVICE_PROFILES` list in `@infobento/core` (default: Seeed reTerminal E1001 7.5" 800×480; also the 5.76" GDEH0576T81 920×680). The preview renders at the panel's **true physical size** (96px = 1in), so a lower-resolution 7.5" panel correctly appears larger than the 5.76" one. `renderBoth()` now derives both orientations from the selected panel.
+- **Merged-row divider slider** — `splitRatio` is now a numeric width percentage (20–80) with a fine slider instead of three fixed positions; legacy 1/2/3 values migrate to 33/50/67.
+- **Location rows default to your location** — weather, forecast, sunrise/sunset, and air-quality rows auto-fill from IP-based detection (no permission prompt) on startup and when added; the config form then fetches data automatically.
+
+### Changed
+
+- **Display described neutrally as "eInk"** — the color-vs-monochrome decision is tabled; dropped "B&W" / "2-bit grayscale" product claims across the docs, `CLAUDE.md`, and the web UI.
+- **Reconciled all documentation and the project model to the 5.76" GDEH0576T81 spec** (920×680, 198 DPI, SSD2677) and removed the round-by-round design-history scaffolding so the docs present only the current design.
+- **Editor add-box chips** are hidden once that box type is in use, and now flow directly after the boxes instead of being pinned to the bottom of the column.
+- Prototyping now targets the off-the-shelf Seeed reTerminal E1001 (7.5", 800×480) with the GDEH0576T81 as the production target (`docs/hardware/DISPLAY.md`).
+
+### Removed
+
+- **Sensor / presence / interaction bundle** (Core AQ + Presence) and its docs (`docs/hardware/SENSORS.md`, the paired-system RFC) — the product is a calm dashboard.
+- **Box-height S/M/L (weight) controls** — content-aware auto-sizing supersedes them.
+- Dead prototype editors (`prototypes/`).
+
+### Fixed
+
+- `splitRatio` Zod validation now accepts the numeric percentage (was hard-coded to 1/2/3, which would reject the new slider values).
+- Flaky `auth/session` signature test made deterministic.
+- Simulator landscape preview no longer clipped by the editor column.
+- Claude review workflow tool allowlist fixed so PR reviews post reliably.
+
 ## [0.22.0] - 2026-04-29
 
 ### Added
