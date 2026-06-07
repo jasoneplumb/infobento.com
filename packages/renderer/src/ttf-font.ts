@@ -84,15 +84,48 @@ export function rasterizeText(
 
   const data = new Float32Array(width * height);
 
-  // Get the path for the text
-  const path = font.getPath(text, 0, ascender, fontSize);
+  // Build path commands per-glyph rather than via Font.getPath. opentype.js 2.x
+  // applies GSUB layout features inside Font.getPath and throws on Inter's
+  // unsupported lookup type 6 / substFormat 2; positioning each glyph ourselves
+  // (mirroring measureText's advance + kerning walk) sidesteps that and matches
+  // opentype.js 1.x getPath output — kerning applied, no ligature substitution.
+  const cmds = textToPathCommands(font, text, fontSize, ascender);
 
   // Rasterize: for each pixel, check if it's inside the path using a scanline approach
   // opentype.js gives us path commands — we'll use a simple coverage-based approach
-  const cmds = path.commands;
   rasterizePath(cmds, data, width, height);
 
   return { data, width, height, baseline: ascender };
+}
+
+/**
+ * Build path commands for a string by positioning each glyph individually.
+ * Drives glyph.getPath directly so we never enter Font.getPath's GSUB
+ * substitution (unsupported for Inter in opentype.js 2.x). Advance and kerning
+ * match measureText so glyph positions stay consistent between measure and raster.
+ */
+function textToPathCommands(
+  font: opentype.Font,
+  text: string,
+  fontSize: number,
+  baseline: number,
+): opentype.PathCommand[] {
+  const scale = fontSize / font.unitsPerEm;
+  const commands: opentype.PathCommand[] = [];
+  let penX = 0;
+  for (let i = 0; i < text.length; i++) {
+    const glyph = font.charToGlyph(text[i] ?? ' ');
+    for (const cmd of glyph.getPath(penX, baseline, fontSize).commands) {
+      commands.push(cmd);
+    }
+    penX += (glyph.advanceWidth ?? 0) * scale;
+    // Apply kerning to the next glyph's pen position
+    if (i < text.length - 1) {
+      const nextGlyph = font.charToGlyph(text[i + 1] ?? ' ');
+      penX += font.getKerningValue(glyph, nextGlyph) * scale;
+    }
+  }
+  return commands;
 }
 
 /**
