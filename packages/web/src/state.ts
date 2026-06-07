@@ -651,17 +651,22 @@ export function setDeviceProfile(id: string): void {
 
 const STORAGE_KEY = 'infobento-config';
 
+/** Serialize boxes for persistence and export, including merged-row markers. */
+export function serializeBoxes(boxes: EditorBox[]) {
+  return boxes.map((b) => ({
+    type: b.type,
+    label: b.label,
+    config: { ...b.config },
+    ...(b.split ? { split: b.split } : {}),
+    ...(b.splitRatio && b.splitRatio !== 50 ? { splitRatio: b.splitRatio } : {}),
+  }));
+}
+
 function persistToLocalStorage(): void {
   try {
     const data = {
       version: 2,
-      boxes: state.boxes.map((b) => ({
-        type: b.type,
-        label: b.label,
-        config: { ...b.config },
-        ...(b.split ? { split: b.split } : {}),
-        ...(b.splitRatio && b.splitRatio !== 50 ? { splitRatio: b.splitRatio } : {}),
-      })),
+      boxes: serializeBoxes(state.boxes),
       showHeaders: state.showHeaders,
       fontSize: state.fontSize,
       cornerRadius: state.cornerRadius,
@@ -789,9 +794,18 @@ export function importJSON(): void {
         if (obj.version === 2 && Array.isArray(obj.boxes)) {
           setState((s) => {
             s.boxes = hydrateBoxes(
-              obj.boxes as Array<{ type: string; label: string; config: Record<string, string> }>,
+              obj.boxes as Array<{
+                type: string;
+                label: string;
+                config: Record<string, string>;
+                split?: string;
+                splitRatio?: number;
+              }>,
             );
             if (typeof obj.showHeaders === 'boolean') s.showHeaders = obj.showHeaders;
+            if (typeof obj.fontSize === 'number') s.fontSize = obj.fontSize;
+            if (typeof obj.cornerRadius === 'number') s.cornerRadius = obj.cornerRadius;
+            if (typeof obj.padding === 'number') s.padding = obj.padding;
           });
           return;
         }
@@ -836,13 +850,11 @@ export function importJSON(): void {
 export function exportJSON(): void {
   const data = {
     version: 2,
-    boxes: state.boxes.map((b) => ({
-      type: b.type,
-      label: b.label,
-      config: { ...b.config },
-    })),
+    boxes: serializeBoxes(state.boxes),
     showHeaders: state.showHeaders,
     fontSize: state.fontSize,
+    cornerRadius: state.cornerRadius,
+    padding: state.padding,
   };
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
