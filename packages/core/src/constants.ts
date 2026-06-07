@@ -42,13 +42,7 @@ export interface DeviceProfilePreset {
 export const DEVICE_PROFILES: readonly DeviceProfilePreset[] = [
   {
     id: 'seeed-reterminal-e1001',
-    label: 'Seeed reTerminal E1001 — 7.5" 800×480 (4-level gray)',
-    widthPx: 800,
-    heightPx: 480,
-  },
-  {
-    id: 'seeed-xiao-7p5',
-    label: 'Seeed XIAO 7.5" panel — 800×480 (B&W)',
+    label: 'Seeed reTerminal E1001 — 7.5" 800×480',
     widthPx: 800,
     heightPx: 480,
   },

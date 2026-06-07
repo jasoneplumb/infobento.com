@@ -16,16 +16,9 @@ Resolution, frame buffer size, and levels are defined by `DISPLAY_WIDTH` / `DISP
 
 ## Prototyping Hardware
 
-The GDEH0576T81 (5.76", 920×680) is the production target. Until that panel is sourced, development and the web simulator run on two off-the-shelf Seeed 7.5", 800×480 ePaper displays:
+The GDEH0576T81 (5.76", 920×680) is the production target. Until that panel is sourced, development and the web simulator run on the **Seeed reTerminal E1001** — a 7.5", 800×480 ePaper display with 4-level grayscale and an integrated ESP32-S3. (The standalone Seeed XIAO 7.5" panel is the same 800×480 panel on a XIAO driver board.) The reTerminal's 4-level grayscale maps 1:1 onto the renderer's 2-bit output.
 
-| Display                    | Resolution | Levels             | Notes                                              |
-| -------------------------- | ---------- | ------------------ | -------------------------------------------------- |
-| **Seeed reTerminal E1001** | 800×480    | 4-level grayscale  | Integrated ESP32-S3 terminal. Default dev display. |
-| **Seeed XIAO 7.5" panel**  | 800×480    | 1-bit B&W (UC8179) | Bare panel + driver board for a XIAO ESP32.        |
-
-The reTerminal's 4-level grayscale maps 1:1 onto the renderer's 2-bit output; on the 1-bit XIAO panel the output is quantized/dithered to black & white.
-
-The web simulator switches between all three resolutions via the **Display** dropdown (driven by `DEVICE_PROFILES` in `@infobento/core`, default = reTerminal 800×480). Add new panels by appending to that list. The renderer honors per-config `width`/`height`, so any profile renders at its native resolution and aspect ratio.
+The web simulator switches between display resolutions via the **Display** dropdown (driven by `DEVICE_PROFILES` in `@infobento/core`, default = reTerminal E1001 800×480; the GDEH0576T81 920×680 target is also selectable). Add new panels by appending to that list — the renderer honors per-config `width`/`height`, so any profile renders at its native resolution and aspect ratio.
 
 ## Form Factor
 
