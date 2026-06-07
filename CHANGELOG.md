@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.23.2] - 2026-06-07
+
+### Fixed
+
+- Exported config JSON now preserves merged rows. `exportJSON` had dropped `split`/`splitRatio`, so an export→import round-trip lost every merged row and its divider position. Export and persistence now share one serializer, and import also restores `fontSize`/`cornerRadius`/`padding`. (#98)
+
 ## [0.23.1] - 2026-06-07
 
 ### Added
