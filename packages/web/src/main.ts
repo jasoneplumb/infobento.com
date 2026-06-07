@@ -10,6 +10,7 @@ import {
   BOX_TYPE_LABELS,
   exportJSON,
   getBoxes,
+  LOCATION_TYPES,
   getCornerRadius,
   getFontSize,
   getPadding,
@@ -28,7 +29,7 @@ import { DEVICE_PROFILES } from '@infobento/core';
 import { renderBoxList } from './components/box-list';
 import { renderPreview, setPreviewOrientation } from './components/preview';
 import { requireConsent } from './components/consent';
-import { detectLocation } from './geolocation';
+import { ensureLocationDefault } from './geolocation';
 
 // -- Render callbacks -------------------------------------------------------
 
@@ -61,7 +62,11 @@ function renderAddChips(): void {
     btn.type = 'button';
     btn.className = 'btn-add-chip';
     btn.textContent = `+ ${label}`;
-    btn.addEventListener('click', () => addBox(type));
+    btn.addEventListener('click', () => {
+      addBox(type);
+      // Location rows auto-detect (IP-based) when no location is known yet.
+      if (LOCATION_TYPES.has(type)) void ensureLocationDefault();
+    });
     addChips.appendChild(btn);
   }
 }
@@ -209,4 +214,4 @@ if (versionEl) versionEl.textContent = `v${__APP_VERSION__}`;
 // Render once so the editor is visible behind the dialog (greyed by overlay),
 // then await consent before the user can interact.
 render();
-void requireConsent().then(() => void detectLocation());
+void requireConsent().then(() => void ensureLocationDefault());

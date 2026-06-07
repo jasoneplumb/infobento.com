@@ -1,41 +1,15 @@
 /**
- * Browser geolocation for first-load location detection.
- * Reverse-geocodes via Nominatim to get a city name, then updates
- * default weather/forecast boxes with real local data.
+ * Location detection for InfoBento.
+ *
+ * Uses IP-based geolocation (ipapi.co) — no browser permission prompt — to
+ * default location-dependent rows to the user's city. This is the same source
+ * as the manual "Use my location" button, so rows work out of the box without
+ * the user knowing to press anything.
  */
 
-import { getBoxes, updateConfig, setState } from './state';
-import { fetchWeather, fetchForecast3D } from './api';
-import type { WeatherConfig, Forecast3DConfig } from './state';
+import { setState, getKnownLocation, noteLocation } from './state';
 
-interface NominatimReverseResult {
-  address?: {
-    city?: string;
-    town?: string;
-    village?: string;
-    state?: string;
-  };
-}
-
-export async function reverseGeocode(lat: number, lon: number): Promise<string | null> {
-  try {
-    const url =
-      `https://nominatim.openstreetmap.org/reverse` +
-      `?lat=${String(lat)}&lon=${String(lon)}` +
-      `&format=json&zoom=10`;
-    const res = await fetch(url, { headers: { 'Accept-Language': 'en' } });
-    if (!res.ok) return null;
-    const data = (await res.json()) as NominatimReverseResult;
-    const addr = data.address;
-    if (!addr) return null;
-    const city = addr.city ?? addr.town ?? addr.village;
-    if (!city) return null;
-    return addr.state ? `${city}, ${addr.state}` : city;
-  } catch {
-    return null;
-  }
-}
-
+/** Fill any location-dependent row that still has an empty city. */
 export function propagateLocationToEmptyBoxes(city: string): void {
   setState((s) => {
     for (const box of s.boxes) {
@@ -56,76 +30,30 @@ export function propagateLocationToEmptyBoxes(city: string): void {
 }
 
 /**
- * Detect the user's location via browser geolocation API and populate
- * default weather/forecast boxes with real local data.
- * Only runs when the weather box's city is unset (fresh install).
- * Falls back silently on permission denial, timeout, or error.
+ * IP-based city lookup via ipapi.co — no browser permission prompt.
+ * Returns "City, Region" (or "City"), or null on failure.
  */
-export async function detectLocation(): Promise<void> {
-  // Only run if the weather city hasn't been set yet (empty = fresh install)
-  const boxes = getBoxes();
-  const weatherBox = boxes.find((b) => b.type === 'weather');
-  if (!weatherBox) return;
-  const weatherCfg = weatherBox.config as WeatherConfig;
-  if (weatherCfg.city.trim() !== '') return;
-
-  // Request browser geolocation
-  let lat: number;
-  let lon: number;
+export async function detectLocationByIP(): Promise<string | null> {
   try {
-    const pos = await new Promise<GeolocationPosition>((resolve, reject) => {
-      navigator.geolocation.getCurrentPosition(resolve, reject, {
-        timeout: 5000,
-        maximumAge: 300000,
-      });
-    });
-    lat = pos.coords.latitude;
-    lon = pos.coords.longitude;
+    const res = await fetch('https://ipapi.co/json/');
+    if (!res.ok) return null;
+    const data = (await res.json()) as { city?: string; region?: string; error?: boolean };
+    if (data.error || !data.city) return null;
+    return data.region ? `${data.city}, ${data.region}` : data.city;
   } catch {
-    return; // Permission denied or timeout — keep Portland default
+    return null;
   }
+}
 
-  const locationStr = await reverseGeocode(lat, lon);
-  if (!locationStr) return;
-
-  // Update all location-based boxes that still have an empty city
-  for (const box of boxes) {
-    if (
-      box.type === 'weather' ||
-      box.type === 'forecast' ||
-      box.type === 'forecast3d' ||
-      box.type === 'sun' ||
-      box.type === 'aqi'
-    ) {
-      const cfg = box.config as { city: string };
-      if (cfg.city.trim() === '') {
-        updateConfig(box.id, 'city', locationStr);
-      }
-    }
-  }
-
-  // Fetch real data for weather and forecast boxes
-  const updatedBoxes = getBoxes();
-  for (const box of updatedBoxes) {
-    if (box.type === 'weather') {
-      const cfg = box.config as WeatherConfig;
-      if (cfg.city === locationStr && !cfg.data) {
-        const weatherData = await fetchWeather(locationStr);
-        if (weatherData) {
-          const { updateWeatherData } = await import('./state');
-          updateWeatherData(box.id, weatherData);
-        }
-      }
-    }
-    if (box.type === 'forecast3d') {
-      const cfg = box.config as Forecast3DConfig;
-      if (cfg.city === locationStr) {
-        const entries = await fetchForecast3D(locationStr);
-        if (entries) {
-          const { updateForecast3DEntries } = await import('./state');
-          updateForecast3DEntries(box.id, entries);
-        }
-      }
-    }
-  }
+/**
+ * If no location is known yet, detect one (IP-based) and fill every empty
+ * location row — as if the user had pressed "Use my location". No-op when a
+ * location is already set. The config forms auto-fetch data on render.
+ */
+export async function ensureLocationDefault(): Promise<void> {
+  if (getKnownLocation().trim() !== '') return;
+  const city = await detectLocationByIP();
+  if (!city) return;
+  noteLocation(city);
+  propagateLocationToEmptyBoxes(city);
 }

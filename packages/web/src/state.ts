@@ -233,8 +233,8 @@ export const BOX_TYPE_LABELS: Record<EditorBoxType, string> = {
  *   2. 8-Day Forecast    full width
  *   3. Quote             full width
  *   4. On This Day       full width
- * All input fields empty → forms auto-fetch on first render. Geolocation
- * (geolocation.ts:detectLocation) populates city for weather + forecast.
+ * All input fields empty → forms auto-fetch on first render. IP-based
+ * detection (geolocation.ts:ensureLocationDefault) fills the city.
  */
 function defaultBoxes(): EditorBox[] {
   return [
@@ -289,7 +289,7 @@ const state: EditorState = {
 };
 
 // Location-dependent rows share one location; a new one defaults to it.
-const LOCATION_TYPES: ReadonlySet<EditorBoxType> = new Set([
+export const LOCATION_TYPES: ReadonlySet<EditorBoxType> = new Set([
   'weather',
   'forecast',
   'forecast3d',
@@ -301,7 +301,7 @@ const LOCATION_TYPES: ReadonlySet<EditorBoxType> = new Set([
 let lastKnownLocation = '';
 
 /** The location currently in use: any populated location row, else the last set. */
-function currentLocation(): string {
+export function getKnownLocation(): string {
   for (const box of state.boxes) {
     if (LOCATION_TYPES.has(box.type)) {
       const city = (box.config as { city?: string }).city;
@@ -309,6 +309,11 @@ function currentLocation(): string {
     }
   }
   return lastKnownLocation;
+}
+
+/** Record a detected/used location so new location rows can default to it. */
+export function noteLocation(city: string): void {
+  if (city.trim()) lastKnownLocation = city;
 }
 
 let _renderFn: (() => void) | null = null;
@@ -360,7 +365,7 @@ export function addBox(type: EditorBoxType): void {
     // Location-dependent rows default to the user's current location so they
     // work out of the box (the config form auto-fetches data on render).
     if (LOCATION_TYPES.has(type)) {
-      const loc = currentLocation();
+      const loc = getKnownLocation();
       if (loc) (config as unknown as { city: string }).city = loc;
     }
     state.boxes.push({

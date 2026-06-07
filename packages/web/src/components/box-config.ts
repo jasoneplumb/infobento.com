@@ -35,7 +35,7 @@ import {
 } from '../state';
 import type { CalendarEvent, HabitEntry, StockDuration } from '@infobento/core';
 import { STOCK_DURATIONS, DEFAULT_STOCK_DURATION } from '@infobento/core';
-import { propagateLocationToEmptyBoxes } from '../geolocation.js';
+import { propagateLocationToEmptyBoxes, detectLocationByIP } from '../geolocation.js';
 import {
   fetchForecast,
   fetchForecast3D,
@@ -170,19 +170,13 @@ function makeLocationField(
 
   locBtn.addEventListener('click', () => {
     locBtn.disabled = true;
-    void fetch('https://ipapi.co/json/')
-      .then((r) => r.json())
-      .then((data: { city?: string; region?: string; error?: boolean }) => {
-        locBtn.disabled = false;
-        if (data.error || !data.city) return;
-        const city = data.region ? `${data.city}, ${data.region}` : data.city;
-        cityInput.value = city;
-        onCity(city);
-        propagateLocationToEmptyBoxes(city);
-      })
-      .catch(() => {
-        locBtn.disabled = false;
-      });
+    void detectLocationByIP().then((city) => {
+      locBtn.disabled = false;
+      if (!city) return;
+      cityInput.value = city;
+      onCity(city);
+      propagateLocationToEmptyBoxes(city);
+    });
   });
 
   labelRow.appendChild(label);
