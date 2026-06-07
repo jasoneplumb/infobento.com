@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.23.1] - 2026-06-07
+
+### Added
+
+- Standard GitHub community-health files: Code of Conduct (Contributor Covenant 2.1), `SECURITY.md`, pull-request and issue templates, Dependabot config (weekly npm + GitHub Actions updates), and `CODEOWNERS`. (#93)
+
 ## [0.23.0] - 2026-06-07
 
 ### Added
