@@ -45,7 +45,7 @@ export interface DeviceProfilePreset {
 
 /** Display resolutions selectable in the web simulator. Add new panels here —
  *  the simulator's dropdown is generated from this list. */
-export const DEVICE_PROFILES: readonly DeviceProfilePreset[] = [
+export const DEVICE_PROFILES: readonly [DeviceProfilePreset, ...DeviceProfilePreset[]] = [
   {
     id: 'seeed-reterminal-e1001',
     label: 'Seeed reTerminal E1001 — 7.5" 800×480',

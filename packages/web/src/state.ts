@@ -635,14 +635,7 @@ export function getDeviceProfile(): DeviceProfilePreset {
   return (
     DEVICE_PROFILES.find((p) => p.id === state.profileId) ??
     DEVICE_PROFILES.find((p) => p.id === DEFAULT_PROFILE_ID) ??
-    DEVICE_PROFILES[0] ?? {
-      id: DEFAULT_PROFILE_ID,
-      label: 'Default',
-      widthPx: 800,
-      heightPx: 480,
-      widthMm: 163.2,
-      heightMm: 97.92,
-    }
+    DEVICE_PROFILES[0]
   );
 }
 

@@ -189,7 +189,7 @@ InfoBento is a calmer, cheaper, solar take on the ambient-display category: no w
 2. **Zero Device Interaction** — No buttons, no taps, no gestures. The only control is a recessed pinhole reset for recovery. Configure once at the web editor; the device just shows what matters.
 3. **Pure Function Architecture** — Stateless cloud API. Same config in, same frame out.
 4. **Free by Default** — All 18 dashboard box types work without accounts or API keys.
-5. **Grayscale Elegance** — Four shades used with intention. Hero data, body text, and metadata each earn their contrast level.
+5. **Visual Restraint** — Four shades used with intention. Hero data, body text, and metadata each earn their contrast level.
 6. **Web-Only Configuration** — Browser is the only config surface. No companion app.
 7. **Solar-Powered Counter Display** — Monolithic white body, no hinge. Body stands on its own, with a fold-out kickstand to angle it.
 
