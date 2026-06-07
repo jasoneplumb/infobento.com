@@ -6,7 +6,7 @@
  */
 
 import type { BentoConfig, DeviceProfile, LayoutBox, LayoutResult } from './types.js';
-import { DEFAULT_DEVICE } from './constants.js';
+import { DEFAULT_DEVICE, splitLeftFraction } from './constants.js';
 
 /**
  * intent: QR boxes get approximately half the display height for scannability
@@ -161,10 +161,8 @@ export function calculateLayout(
         height = Math.max(leftH, rightH, MIN_BOX_HEIGHT);
       }
 
-      // Split ratio: 1=1/3, 2=1/2 (default), 3=2/3 of available width for left box
-      const ratio = leftBox.splitRatio ?? 2;
-      const fractions: Record<number, number> = { 1: 1 / 3, 2: 1 / 2, 3: 2 / 3 };
-      const leftFraction = fractions[ratio] ?? 0.5;
+      // Divider position: the left box takes splitRatio% (default 50) of width.
+      const leftFraction = splitLeftFraction(leftBox.splitRatio);
       const innerWidth = totalWidth - gap;
       const leftWidth = Math.floor(innerWidth * leftFraction);
       const rightWidth = innerWidth - leftWidth;

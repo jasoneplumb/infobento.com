@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { render, createFrameBuffer } from './index.js';
+import { render, createFrameBuffer, renderBoth } from './index.js';
 import type { BentoConfig } from '@infobento/core';
 import { DISPLAY_WIDTH, DISPLAY_HEIGHT, DEFAULT_FRAME_BYTES } from '@infobento/core';
 
@@ -125,6 +125,29 @@ describe('render', () => {
     expect(fb.height).toBe(300);
     // Bytes per row = ceil(400/4) = 100; total = 100 * 300 = 30000
     expect(fb.data.length).toBe(100 * 300);
+  });
+
+  it('renderBoth derives both orientations from config.width/height (any panel)', () => {
+    const box = {
+      id: '1',
+      type: 'text' as const,
+      label: 'X',
+      config: { type: 'text' as const, text: 'sized' },
+    };
+    // 800x480 panel (Seeed 7.5") — landscape = long x short, portrait = short x long.
+    const { landscape, portrait } = renderBoth({
+      boxes: [box],
+      refreshesPerDay: 1,
+      width: 800,
+      height: 480,
+    });
+    expect([landscape.width, landscape.height]).toEqual([800, 480]);
+    expect([portrait.width, portrait.height]).toEqual([480, 800]);
+
+    // No dims → defaults to the built-in display size in both orientations.
+    const def = renderBoth({ boxes: [box], refreshesPerDay: 1 });
+    expect([def.landscape.width, def.landscape.height]).toEqual([DISPLAY_WIDTH, DISPLAY_HEIGHT]);
+    expect([def.portrait.width, def.portrait.height]).toEqual([DISPLAY_HEIGHT, DISPLAY_WIDTH]);
   });
 
   it('content-aware height: short-content box yields smaller area than list-heavy box', () => {

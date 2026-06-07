@@ -7,7 +7,7 @@ The InfoBento API is a **Hono** HTTP server with stateless pure-function endpoin
 1. **Pure functions** — Same input always produces same output
 2. **No server state** — Config comes from the client, not a database
 3. **Edge-deployable** — Hono runs on Node, Cloudflare Workers, Deno, Bun
-4. **Binary output** — Frame buffers are packed 2-bit-per-pixel arrays (4 pixels per byte, 4 grayscale levels)
+4. **Binary output** — Frame buffers are packed 2-bit-per-pixel arrays (4 pixels per byte, 4 levels per pixel)
 5. **Same-port serving** — API + static web UI from one server (like phasebot)
 
 ## Running
@@ -47,7 +47,7 @@ Validate a bento config without rendering.
 Render a bento config into a binary frame buffer.
 
 **Request:** `BentoConfig` JSON
-**Response:** Binary frame buffer (156,400 bytes for 920x680, 2-bit grayscale)
+**Response:** Binary frame buffer (156,400 bytes for 920x680, packed 2-bit, 4 levels)
 **Headers:** `X-Frame-Width`, `X-Frame-Height`
 
 ### POST /api/preview

@@ -187,14 +187,17 @@ main {
     border-bottom: none;
     border-right: 1px solid #111;
     width: 50%;
-    max-width: 520px;
-    overflow-y: auto;
+    max-width: 700px;
+    /* Scroll (don't clip) when a physical-size preview — e.g. the 7.5" panel
+       in landscape (~617px) — is wider than the cell. */
+    overflow: auto;
     flex-shrink: 0;
   }
 }
 
-/* eInk display mock: sizes itself to the canvas via --eink-w / --eink-h
-   CSS variables set by the preview renderer (fb.width/height x SCALE). */
+/* eInk display mock: sized at the panel's TRUE physical size via --eink-w /
+   --eink-h CSS variables (in CSS px, 96px = 1in) set by the preview renderer,
+   so the preview matches the real device at 100% zoom. */
 
 .eink-display {
   display: flex;
@@ -214,13 +217,13 @@ main {
 }
 
 .eink-preview-pair.landscape {
-  width: calc(var(--eink-w, 920) * 0.5px);
-  height: calc(var(--eink-h, 680) * 0.5px);
+  width: calc(var(--eink-w, 617) * 1px);
+  height: calc(var(--eink-h, 370) * 1px);
 }
 
 .eink-preview-pair.portrait {
-  width: calc(var(--eink-h, 680) * 0.5px);
-  height: calc(var(--eink-w, 920) * 0.5px);
+  width: calc(var(--eink-h, 370) * 1px);
+  height: calc(var(--eink-w, 617) * 1px);
 }
 
 .eink-display img,
@@ -380,7 +383,9 @@ main {
 .editor-cell {
   display: flex;
   flex-direction: column;
-  overflow: hidden;
+  /* The editor column scrolls as a whole, so the add-box chips flow directly
+     after the boxes instead of being pinned to the bottom. */
+  overflow-y: auto;
   min-width: 0;
   min-height: 0;
   flex: 1;
@@ -509,8 +514,6 @@ button {
 /* -- Box list -------------------------------------------------------------- */
 
 #box-list {
-  flex: 1;
-  overflow-y: auto;
   padding: 12px 16px;
   display: flex;
   flex-direction: column;
@@ -567,33 +570,12 @@ button {
   padding: 3px 12px;
 }
 
-.box-weight-controls {
-  display: flex;
-  gap: 3px;
-  flex-shrink: 0;
-  margin: 0 4px;
-}
-
-.btn-weight {
-  font-family: var(--mono);
-  font-size: 12px;
-  line-height: 1;
-  background: transparent;
-  color: var(--muted);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
+.box-ratio-slider {
+  flex: 1;
+  min-width: 80px;
+  max-width: 160px;
   cursor: pointer;
-  padding: 4px 7px;
-}
-
-.btn-weight:hover {
-  background: var(--border);
-}
-
-.btn-weight.active {
-  background: var(--accent);
-  color: #fff;
-  border-color: var(--accent);
+  accent-color: var(--accent);
 }
 
 .box-pair-controls {
@@ -1083,7 +1065,7 @@ button {
 
   /* Editor cell: scrollable */
   .editor-cell {
-    overflow: visible;
+    overflow-y: auto;
     min-height: 0;
   }
 

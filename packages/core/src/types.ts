@@ -248,8 +248,9 @@ interface BentoBoxBase {
   readonly split?: 'left' | 'right';
   /** Relative height weight (1=compact, 2=normal, 3=tall). Defaults to 2. */
   readonly weight?: 1 | 2 | 3;
-  /** Left box width ratio in a split pair (1=narrow, 2=equal, 3=wide). Defaults to 2. */
-  readonly splitRatio?: 1 | 2 | 3;
+  /** Left-box width as a percent of a split row (the divider position), 20–80,
+   *  default 50. Clamped via `splitLeftFraction` so neither box collapses. */
+  readonly splitRatio?: number;
 }
 
 /** Text box with typed config */

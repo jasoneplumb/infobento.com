@@ -12,7 +12,6 @@ import {
   updateLabel,
   mergeBoxes,
   splitBoxes,
-  setWeight,
   setSplitRatio,
   changeBoxType,
   BOX_TYPE_LABELS,
@@ -101,29 +100,7 @@ function buildCard(
   orderDiv.appendChild(btnUp);
   orderDiv.appendChild(btnDown);
 
-  // Height weight selector (1=S, 2=M, 3=L)
-  const weightDiv = document.createElement('div');
-  weightDiv.className = 'box-weight-controls';
-  const weightLabels: Array<[1 | 2 | 3, string]> = [
-    [1, 'S'],
-    [2, 'M'],
-    [3, 'L'],
-  ];
-  for (const [w, label] of weightLabels) {
-    const btn = document.createElement('button');
-    btn.className = 'btn-weight' + ((box.weight ?? 2) === w ? ' active' : '');
-    btn.textContent = label;
-    btn.title = `Height: ${label}`;
-    btn.type = 'button';
-    btn.addEventListener('click', () => setWeight(box.id, w));
-    weightDiv.appendChild(btn);
-  }
-
   header.appendChild(labelInput);
-  // Quote boxes are always content-sized — hide weight controls
-  if (box.type !== 'quote') {
-    header.appendChild(weightDiv);
-  }
   header.appendChild(orderDiv);
   header.appendChild(btnRemove);
 
@@ -201,23 +178,26 @@ export function renderBoxList(containerId: string): void {
       const ratioDiv = document.createElement('div');
       ratioDiv.className = 'box-ratio-controls';
       const ratioLabel = document.createElement('span');
-      ratioLabel.textContent = 'Ratio';
+      ratioLabel.textContent = 'Divider';
       ratioLabel.className = 'box-ratio-label';
       ratioDiv.appendChild(ratioLabel);
-      const ratioOptions: Array<[1 | 2 | 3, string]> = [
-        [1, '\u2190'],
-        [2, '='],
-        [3, '\u2192'],
-      ];
       const leftId = box.id;
-      for (const [r, label] of ratioOptions) {
-        const btn = document.createElement('button');
-        btn.className = 'btn-weight' + ((box.splitRatio ?? 2) === r ? ' active' : '');
-        btn.textContent = label;
-        btn.type = 'button';
-        btn.addEventListener('click', () => setSplitRatio(leftId, r));
-        ratioDiv.appendChild(btn);
-      }
+      // Slider sets the divider position (left-box width %, 20\u201380).
+      const slider = document.createElement('input');
+      slider.type = 'range';
+      slider.className = 'box-ratio-slider';
+      slider.min = '20';
+      slider.max = '80';
+      slider.step = '5';
+      slider.value = String(box.splitRatio ?? 50);
+      slider.title = `Divider at ${slider.value}% from left`;
+      // Update the tooltip live while dragging; commit (re-render) on release so
+      // the editor DOM isn't rebuilt mid-drag.
+      slider.addEventListener('input', () => {
+        slider.title = `Divider at ${slider.value}% from left`;
+      });
+      slider.addEventListener('change', () => setSplitRatio(leftId, Number(slider.value)));
+      ratioDiv.appendChild(slider);
       controlsDiv.appendChild(ratioDiv);
 
       const splitBtn = document.createElement('button');

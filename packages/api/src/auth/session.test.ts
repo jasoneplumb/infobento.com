@@ -21,7 +21,11 @@ describe('session token', () => {
   it('rejects a tampered signature', () => {
     const token = signSession({ accountId: 'acct-1' });
     const parts = token.split('.');
-    parts[2] = parts[2]!.replace(/.$/, parts[2]!.endsWith('A') ? 'B' : 'A');
+    // Tamper the FIRST signature char (always significant bits). The last
+    // base64url char of a 32-byte HMAC carries unused trailing bits, so
+    // flipping it can be a no-op on the decoded bytes — which made this test
+    // flaky as the time-based `exp` varied the signature each run.
+    parts[2] = (parts[2]![0] === 'A' ? 'B' : 'A') + parts[2]!.slice(1);
     expect(verifySession(parts.join('.'))).toBeNull();
   });
 

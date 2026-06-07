@@ -22,7 +22,7 @@ npm run build && npm test && npm run lint && npm run format:check
 ```
 infobento.com/
 ├── packages/core/      @infobento/core: types, bento box definitions, layout engine
-├── packages/renderer/  @infobento/renderer: 2-bit grayscale eInk frame buffer generation
+├── packages/renderer/  @infobento/renderer: eInk frame buffer generation
 ├── packages/api/       @infobento/api: Hono server — stateless API + static file serving
 └── packages/web/       @infobento/web: Vite + React configuration interface (private)
 ```
@@ -47,7 +47,7 @@ npm start -w @infobento/api      # Hono serves everything on :4000
 ## Module Boundaries
 
 ```
-core (types, layout)  <──  renderer (2-bit grayscale framebuffer)  <──  api (stateless endpoints)
+core (types, layout)  <──  renderer (eInk framebuffer)  <──  api (stateless endpoints)
   ^
   └── web (config UI)
 ```
@@ -88,13 +88,14 @@ import { render } from '@infobento/renderer';
 
 InfoBento is a bento-box-sized countertop eInk display:
 
-- **Display:** Good Display GDEH0576T81, 5.76" eInk, 920x680 pixels, 198 DPI, B&W (SSD2677 driver)
+- **Display:** Good Display GDEH0576T81, 5.76" eInk, 920x680 pixels, 198 DPI (SSD2677 driver) — production target
+- **Dev hardware:** prototyping on the Seeed reTerminal E1001 (7.5", 800×480); the web simulator switches resolutions (see `docs/hardware/DISPLAY.md`)
 - **Active area:** 117.7 × 87.0 mm (module: 125.4 × 99.5 × 0.9 mm)
 - **Power:** Rechargeable battery + solar panel, 1-2 refreshes per day
 - **Connectivity:** Wi-Fi (ESP32); configure once via web UI
-- **Form factor:** ~14×11cm enclosure (sized to fit GDEH0576T81 panel closely), solar panel on upper back, body-as-stand with ~12-15° tilt
+- **Form factor:** ~14×11cm enclosure (sized to fit GDEH0576T81 panel closely), solar panel on upper back, body-as-stand with a fold-out kickstand for ~12-15° tilt
 
-The renderer produces 2-bit grayscale frame buffers (4 levels, 156,400 bytes for 920x680). The API is stateless and pure-functional — it takes a config, returns a frame buffer.
+The renderer produces eInk frame buffers (4 levels, 156,400 bytes for 920x680). The API is stateless and pure-functional — it takes a config, returns a frame buffer.
 
 ## Deployment
 

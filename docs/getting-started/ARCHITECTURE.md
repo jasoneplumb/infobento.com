@@ -2,12 +2,12 @@
 
 ## System Overview
 
-InfoBento is a small, solar-powered B&W eInk decorator that lives on a counter, shelf, or windowsill. Configure once on the web; the device fetches frames from a stateless cloud API and shows what matters most — weather, your next event, a countdown, a quote — refreshing once or twice a day on solar power alone.
+InfoBento is a small, solar-powered eInk decorator that lives on a counter, shelf, or windowsill. Configure once on the web; the device fetches frames from a stateless cloud API and shows what matters most — weather, your next event, a countdown, a quote — refreshing once or twice a day on solar power alone.
 
 ```
 ┌──────────────┐    Wi-Fi     ┌─────────────┐
 │    Device     │◄────────────►│  Cloud API  │
-│  B&W eInk     │              │ (stateless) │
+│  eInk         │              │ (stateless) │
 │  ESP32-C3     │              │ (Hono on DO)│
 └──────────────┘              └─────────────┘
                                       ▲
@@ -22,7 +22,7 @@ Device makes outbound HTTPS calls to the cloud API. No companion phone app; the 
 
 ### Operating Profile
 
-Single mode: counter-standing. Refreshes 1–2× per day on solar power. There is no longer a phone-mounted minute-level mode (that died with the pivot away from the MagSafe clamshell — see RFC #25). Native phone apps + BLE bridge are deferred to a possible v2 (see `docs/hardware/CONNECTIVITY.md`'s "v2 path" section).
+Single mode: counter-standing. Refreshes 1–2× per day on solar power. There is no phone-mounted mode. Native phone apps + BLE bridge are deferred to a possible v2 (see `docs/hardware/CONNECTIVITY.md`'s "v2 path" section).
 
 ### Data Flow
 
@@ -36,10 +36,10 @@ Single mode: counter-standing. Refreshes 1–2× per day on solar power. There i
 ### Key Design Decisions
 
 - **Stateless API** — pure functions, no server-side state. Config in, frame buffer out.
-- **2-bit grayscale rendering** — B&W eInk panel with software greyscale via SSD2677 partial-refresh waveforms.
-- **Solar-only power** — no MagSafe, no charging cable. Refresh budget sized to the solar harvest budget for moderate indoor light.
+- **eInk rendering** — eInk panel driven via SSD2677 partial-refresh waveforms.
+- **Solar-only power** — refresh budget sized to the solar harvest budget for moderate indoor light; USB-C tops up the battery when needed.
 - **Wi-Fi direct + web-only config** — no native phone app for v1. Captive-portal setup, web editor handles configuration.
-- **Zero device interaction** — no buttons. Configure once via web, glance forever. Single physical affordance is the recessed pinhole reset for Wi-Fi recovery.
+- **Zero device interaction** — no buttons. Configure once via web, glance forever. The only physical affordance is a recessed pinhole reset for Wi-Fi recovery.
 - **Drop survival** — designed for a 4-foot drop onto a hard surface (bumper layer, edge-radiused corners, recessed display, pinhole instead of clickable button).
 
 ## Package Architecture

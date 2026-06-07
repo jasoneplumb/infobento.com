@@ -24,7 +24,14 @@ import type {
   CalendarConfig,
   HabitConfig,
 } from '../state';
-import { getBoxes, getShowHeaders, getFontSize, getCornerRadius, getPadding } from '../state';
+import {
+  getBoxes,
+  getShowHeaders,
+  getFontSize,
+  getCornerRadius,
+  getPadding,
+  getDeviceProfile,
+} from '../state';
 
 /**
  * Convert an EditorBox (UI-local model) to a core BentoBox (renderer model).
@@ -34,8 +41,7 @@ function toBentoBox(editor: EditorBox): BentoBox {
     id: String(editor.id),
     label: editor.label,
     ...(editor.split ? { split: editor.split } : {}),
-    ...(editor.weight && editor.weight !== 2 ? { weight: editor.weight } : {}),
-    ...(editor.splitRatio && editor.splitRatio !== 2 ? { splitRatio: editor.splitRatio } : {}),
+    ...(editor.splitRatio && editor.splitRatio !== 50 ? { splitRatio: editor.splitRatio } : {}),
   };
 
   switch (editor.type) {
@@ -195,6 +201,7 @@ function toBentoBox(editor: EditorBox): BentoBox {
 }
 
 function toBentoConfig(boxes: readonly EditorBox[]): BentoConfig {
+  const profile = getDeviceProfile();
   return {
     boxes: boxes.map(toBentoBox),
     refreshesPerDay: 1,
@@ -202,6 +209,8 @@ function toBentoConfig(boxes: readonly EditorBox[]): BentoConfig {
     fontSize: getFontSize(),
     cornerRadius: getCornerRadius(),
     padding: getPadding(),
+    width: profile.widthPx,
+    height: profile.heightPx,
   };
 }
 
@@ -286,12 +295,19 @@ function renderPreviewNow(containerId: string): void {
       _imgLandscape.src = `data:image/png;base64,${data.landscape}`;
       _imgPortrait.src = `data:image/png;base64,${data.portrait}`;
 
-      // Set CSS vars for sizing and corner radius
-      display.style.setProperty('--eink-w', '920');
-      display.style.setProperty('--eink-h', '680');
-      // Match CSS border-radius to framebuffer corner radius (at 0.5x display scale)
+      // Size the preview at the panel's TRUE physical size (CSS reference
+      // 96px = 1in) so it matches the real device at 100% zoom — a 7.5" panel
+      // reads larger than a 5.76" one regardless of pixel count.
+      const profile = getDeviceProfile();
+      const CSS_PX_PER_MM = 96 / 25.4;
+      const wCss = Math.round(profile.widthMm * CSS_PX_PER_MM);
+      const hCss = Math.round(profile.heightMm * CSS_PX_PER_MM);
+      display.style.setProperty('--eink-w', String(wCss));
+      display.style.setProperty('--eink-h', String(hCss));
+      // Match the CSS corner radius to the rendered radius at the on-screen scale.
+      const scale = wCss / profile.widthPx;
       const radiusPx = getCornerRadius() * 4;
-      display.style.setProperty('--eink-radius', `${String(Math.round(radiusPx * 0.5))}px`);
+      display.style.setProperty('--eink-radius', `${String(Math.round(radiusPx * scale))}px`);
 
       mountActivePreview(containerId);
     })

@@ -5,7 +5,7 @@
  */
 
 import type { BentoConfig, BentoBox, DeviceProfile, LayoutBox } from '@infobento/core';
-import { DISPLAY_WIDTH, DISPLAY_HEIGHT, calculateLayout } from '@infobento/core';
+import { DISPLAY_WIDTH, DISPLAY_HEIGHT, calculateLayout, splitLeftFraction } from '@infobento/core';
 import { measureText } from './ttf-font.js';
 import { drawRoundedRect, roundedRectSDF, setPixel, GRAY_WHITE, GRAY_DARK } from './draw.js';
 import { renderTextBox, renderPlaceholderBox } from './boxes/text.js';
@@ -35,20 +35,6 @@ export { frameToPng } from './png.js';
 export type { FrameBuffer } from './types.js';
 export { computeFontMetrics, DEFAULT_FONT_SIZE } from './font-metrics.js';
 export type { FontMetrics } from './font-metrics.js';
-
-/** Landscape device profile (920x680) */
-const LANDSCAPE_DEVICE: DeviceProfile = {
-  widthPx: DISPLAY_WIDTH,
-  heightPx: DISPLAY_HEIGHT,
-  deviceId: 'infobento-5.76',
-};
-
-/** Portrait device profile (680x920) */
-const PORTRAIT_DEVICE: DeviceProfile = {
-  widthPx: DISPLAY_HEIGHT,
-  heightPx: DISPLAY_WIDTH,
-  deviceId: 'infobento-5.76',
-};
 
 /**
  * intent: Create an empty (white) frame buffer for the target display
@@ -256,15 +242,10 @@ function computeHeightHints(
     // Determine actual box width (accounts for split pairs)
     let boxWidth = totalWidth;
     if (box.split === 'left') {
-      const ratio = box.splitRatio ?? 2;
-      const fractions: Record<number, number> = { 1: 1 / 3, 2: 1 / 2, 3: 2 / 3 };
-      boxWidth = Math.floor((totalWidth - padPx) * (fractions[ratio] ?? 0.5));
+      boxWidth = Math.floor((totalWidth - padPx) * splitLeftFraction(box.splitRatio));
     } else if (box.split === 'right') {
       const leftBox = i > 0 ? boxes[i - 1] : undefined;
-      const ratio = leftBox?.splitRatio ?? 2;
-      const fractions: Record<number, number> = { 1: 1 / 3, 2: 1 / 2, 3: 2 / 3 };
-      const leftFrac = fractions[ratio] ?? 0.5;
-      boxWidth = Math.floor((totalWidth - padPx) * (1 - leftFrac));
+      boxWidth = Math.floor((totalWidth - padPx) * (1 - splitLeftFraction(leftBox?.splitRatio)));
     }
 
     const bodyWidth = boxWidth - metrics.pad * 2;
@@ -346,8 +327,16 @@ export interface DualRenderResult {
  * effect: Device can switch orientations without an API round-trip
  */
 export function renderBoth(config: BentoConfig): DualRenderResult {
+  // Treat config.width/height (if set) as the panel's native dimensions and
+  // derive both orientations from them, so the dual preview matches any panel.
+  const w = config.width ?? DISPLAY_WIDTH;
+  const h = config.height ?? DISPLAY_HEIGHT;
+  const long = Math.max(w, h);
+  const short = Math.min(w, h);
+  // Strip the single-value override so render() uses the per-orientation device.
+  const base: BentoConfig = { ...config, width: undefined, height: undefined };
   return {
-    landscape: render(config, LANDSCAPE_DEVICE),
-    portrait: render(config, PORTRAIT_DEVICE),
+    landscape: render(base, { widthPx: long, heightPx: short, deviceId: 'infobento' }),
+    portrait: render(base, { widthPx: short, heightPx: long, deviceId: 'infobento' }),
   };
 }

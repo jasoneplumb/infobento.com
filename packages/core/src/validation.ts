@@ -182,7 +182,9 @@ const BentoBoxBaseSchema = z.object({
   label: z.string().min(1),
   split: z.enum(['left', 'right']).optional(),
   weight: z.union([z.literal(1), z.literal(2), z.literal(3)]).optional(),
-  splitRatio: z.union([z.literal(1), z.literal(2), z.literal(3)]).optional(),
+  // Left-box width percent (divider position); layout clamps to 20–80. Range
+  // is lenient (0–100) so legacy enum values (1/2/3) still validate.
+  splitRatio: z.number().min(0).max(100).optional(),
 });
 
 const TextBentoBoxSchema = BentoBoxBaseSchema.extend({

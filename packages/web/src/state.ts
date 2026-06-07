@@ -17,7 +17,8 @@ import type {
   CalendarEvent,
   HabitEntry,
 } from '@infobento/core';
-import { DEFAULT_STOCK_DURATION } from '@infobento/core';
+import { DEFAULT_STOCK_DURATION, DEVICE_PROFILES, DEFAULT_PROFILE_ID } from '@infobento/core';
+import type { DeviceProfilePreset } from '@infobento/core';
 
 // -- Editor box model (UI-local, not the core BentoBox type) ---------------
 
@@ -159,8 +160,8 @@ export interface EditorBox {
   label: string;
   config: EditorBoxConfig;
   split?: 'left' | 'right';
-  weight?: 1 | 2 | 3;
-  splitRatio?: 1 | 2 | 3;
+  /** Left-box width % (divider position), 20–80, default 50. */
+  splitRatio?: number;
 }
 
 export interface EditorState {
@@ -169,6 +170,7 @@ export interface EditorState {
   fontSize: number;
   cornerRadius: number;
   padding: number;
+  profileId: string;
 }
 
 // -- UID generator ----------------------------------------------------------
@@ -231,8 +233,8 @@ export const BOX_TYPE_LABELS: Record<EditorBoxType, string> = {
  *   2. 8-Day Forecast    full width
  *   3. Quote             full width
  *   4. On This Day       full width
- * All input fields empty → forms auto-fetch on first render. Geolocation
- * (geolocation.ts:detectLocation) populates city for weather + forecast.
+ * All input fields empty → forms auto-fetch on first render. IP-based
+ * detection (geolocation.ts:ensureLocationDefault) fills the city.
  */
 function defaultBoxes(): EditorBox[] {
   return [
@@ -283,7 +285,36 @@ const state: EditorState = {
   fontSize: DEFAULT_FONT_SIZE,
   cornerRadius: DEFAULT_CORNER_RADIUS,
   padding: DEFAULT_PADDING,
+  profileId: DEFAULT_PROFILE_ID,
 };
+
+// Location-dependent rows share one location; a new one defaults to it.
+export const LOCATION_TYPES: ReadonlySet<EditorBoxType> = new Set([
+  'weather',
+  'forecast',
+  'forecast3d',
+  'sun',
+  'aqi',
+]);
+
+// Most recently set city (from detection, the location button, or typing).
+let lastKnownLocation = '';
+
+/** The location currently in use: any populated location row, else the last set. */
+export function getKnownLocation(): string {
+  for (const box of state.boxes) {
+    if (LOCATION_TYPES.has(box.type)) {
+      const city = (box.config as { city?: string }).city;
+      if (city && city.trim()) return city;
+    }
+  }
+  return lastKnownLocation;
+}
+
+/** Record a detected/used location so new location rows can default to it. */
+export function noteLocation(city: string): void {
+  if (city.trim()) lastKnownLocation = city;
+}
 
 let _renderFn: (() => void) | null = null;
 let _previewFn: (() => void) | null = null;
@@ -330,18 +361,25 @@ function findBox(id: number): EditorBox | undefined {
 
 export function addBox(type: EditorBoxType): void {
   setState(() => {
+    const config = DEFAULTS[type]();
+    // Location-dependent rows default to the user's current location so they
+    // work out of the box (the config form auto-fetches data on render).
+    if (LOCATION_TYPES.has(type)) {
+      const loc = getKnownLocation();
+      if (loc) (config as unknown as { city: string }).city = loc;
+    }
     state.boxes.push({
       id: uid(),
       type,
       label: BOX_TYPE_LABELS[type],
-      config: DEFAULTS[type](),
+      config,
     });
   });
 }
 
 /**
- * Change a box's type in place. Preserves layout (split partner, weight,
- * splitRatio, ordering) and resets `config` to the new type's defaults.
+ * Change a box's type in place. Preserves layout (split partner, splitRatio,
+ * ordering) and resets `config` to the new type's defaults.
  * The label is overwritten with the new default only if the user has not
  * customized it (i.e. it still matches the old type's default label) —
  * a custom label like "Today" survives a type swap.
@@ -452,19 +490,12 @@ export function splitBoxes(leftId: number): void {
   });
 }
 
-export function setWeight(id: number, weight: 1 | 2 | 3): void {
+/** Set the divider position of a split pair (left-box width %, clamped 20–80). */
+export function setSplitRatio(id: number, ratio: number): void {
   setState(() => {
     const box = findBox(id);
     if (!box) return;
-    box.weight = weight;
-  });
-}
-
-export function setSplitRatio(id: number, ratio: 1 | 2 | 3): void {
-  setState(() => {
-    const box = findBox(id);
-    if (!box) return;
-    box.splitRatio = ratio;
+    box.splitRatio = Math.min(80, Math.max(20, Math.round(ratio)));
   });
 }
 
@@ -472,6 +503,8 @@ export function updateConfig(id: number, key: string, value: string): void {
   const box = findBox(id);
   if (!box) return;
   (box.config as unknown as Record<string, string>)[key] = value;
+  // Remember the latest location so newly-added location rows can default to it.
+  if (key === 'city' && value.trim()) lastKnownLocation = value;
   renderPreview();
 }
 
@@ -597,6 +630,23 @@ export function setPadding(value: number): void {
   renderPreview();
 }
 
+/** The selected display profile (resolution the simulator renders at). */
+export function getDeviceProfile(): DeviceProfilePreset {
+  return (
+    DEVICE_PROFILES.find((p) => p.id === state.profileId) ??
+    DEVICE_PROFILES.find((p) => p.id === DEFAULT_PROFILE_ID) ??
+    DEVICE_PROFILES[0]
+  );
+}
+
+export function setDeviceProfile(id: string): void {
+  if (DEVICE_PROFILES.some((p) => p.id === id)) {
+    state.profileId = id;
+    persistToLocalStorage();
+    renderPreview();
+  }
+}
+
 // -- LocalStorage persistence -----------------------------------------------
 
 const STORAGE_KEY = 'infobento-config';
@@ -610,13 +660,13 @@ function persistToLocalStorage(): void {
         label: b.label,
         config: { ...b.config },
         ...(b.split ? { split: b.split } : {}),
-        ...(b.weight && b.weight !== 2 ? { weight: b.weight } : {}),
-        ...(b.splitRatio && b.splitRatio !== 2 ? { splitRatio: b.splitRatio } : {}),
+        ...(b.splitRatio && b.splitRatio !== 50 ? { splitRatio: b.splitRatio } : {}),
       })),
       showHeaders: state.showHeaders,
       fontSize: state.fontSize,
       cornerRadius: state.cornerRadius,
       padding: state.padding,
+      profileId: state.profileId,
     };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
   } catch {
@@ -630,7 +680,6 @@ function hydrateBoxes(
     label: string;
     config: Record<string, string>;
     split?: string;
-    weight?: number;
     splitRatio?: number;
   }>,
 ): EditorBox[] {
@@ -640,8 +689,13 @@ function hydrateBoxes(
     label: b.label,
     config: { ...b.config } as EditorBoxConfig,
     ...(b.split === 'left' || b.split === 'right' ? { split: b.split } : {}),
-    ...(b.weight === 1 || b.weight === 3 ? { weight: b.weight } : {}),
-    ...(b.splitRatio === 1 || b.splitRatio === 3 ? { splitRatio: b.splitRatio } : {}),
+    ...(() => {
+      // Migrate legacy enum ratios (1/2/3) → percentages; accept raw % too.
+      const sr = b.splitRatio;
+      const pct = sr === 1 ? 33 : sr === 2 ? 50 : sr === 3 ? 67 : typeof sr === 'number' ? sr : 50;
+      const clamped = Math.min(80, Math.max(20, Math.round(pct)));
+      return clamped !== 50 ? { splitRatio: clamped } : {};
+    })(),
   }));
   // Repair orphaned split markers from older bug where reordering split pairs.
   for (let i = 0; i < boxes.length; i++) {
@@ -675,6 +729,12 @@ function loadFromLocalStorage(): boolean {
       if (typeof obj.fontSize === 'number') state.fontSize = obj.fontSize;
       if (typeof obj.cornerRadius === 'number') state.cornerRadius = obj.cornerRadius;
       if (typeof obj.padding === 'number') state.padding = obj.padding;
+      if (
+        typeof obj.profileId === 'string' &&
+        DEVICE_PROFILES.some((p) => p.id === obj.profileId)
+      ) {
+        state.profileId = obj.profileId;
+      }
       return true;
     }
 
