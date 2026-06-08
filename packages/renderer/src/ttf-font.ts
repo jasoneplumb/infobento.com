@@ -18,8 +18,37 @@ function loadFont(filename: string): opentype.Font {
   return opentype.parse(buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength));
 }
 
-const regularFont = loadFont('Inter-Regular.ttf');
-const boldFont = loadFont('Inter-Bold.ttf');
+/** Inter static weights (100–900) for the Font Weight control. */
+const WEIGHT_FILES: Record<number, string> = {
+  100: 'Inter-Thin.ttf',
+  200: 'Inter-ExtraLight.ttf',
+  300: 'Inter-Light.ttf',
+  400: 'Inter-Regular.ttf',
+  500: 'Inter-Medium.ttf',
+  600: 'Inter-SemiBold.ttf',
+  700: 'Inter-Bold.ttf',
+  800: 'Inter-ExtraBold.ttf',
+  900: 'Inter-Black.ttf',
+};
+const regularFont = loadFont('Inter-Regular.ttf'); // guaranteed fallback weight
+const weightFonts = new Map<number, opentype.Font>();
+for (const [w, file] of Object.entries(WEIGHT_FILES)) {
+  weightFonts.set(Number(w), Number(w) === 400 ? regularFont : loadFont(file));
+}
+
+/** Body text weight for this render (snapped to a loaded weight). Bold text
+ *  (headers/hero) renders ~3 steps heavier, preserving the Regular→Bold gap. */
+let bodyWeight = 400;
+
+/** Set the body text weight (100–900), snapped to the nearest loaded weight. */
+export function setBodyWeight(weight: number): void {
+  bodyWeight = Math.max(100, Math.min(900, Math.round(weight / 100) * 100));
+}
+
+function fontFor(bold: boolean): opentype.Font {
+  const w = bold ? Math.min(900, bodyWeight + 300) : bodyWeight;
+  return weightFonts.get(w) ?? regularFont;
+}
 
 /** Body text size in pixels (height) — appropriate for 920x680 at ~130-200 DPI */
 export const BODY_FONT_SIZE = 20;
@@ -67,7 +96,7 @@ function walkGlyphs(
  * Measure the width of a string in pixels at the given font size.
  */
 export function measureText(text: string, fontSize: number, bold = false): number {
-  const font = bold ? boldFont : regularFont;
+  const font = fontFor(bold);
   return Math.round(walkGlyphs(font, text, fontSize));
 }
 
@@ -88,7 +117,7 @@ export function rasterizeText(
   bold = false,
   maxWidth?: number,
 ): RasterResult {
-  const font = bold ? boldFont : regularFont;
+  const font = fontFor(bold);
   const scale = fontSize / font.unitsPerEm;
   const ascender = Math.round(font.ascender * scale);
   const descender = Math.round(Math.abs(font.descender * scale));

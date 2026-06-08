@@ -172,7 +172,7 @@ export interface EditorState {
   boxes: EditorBox[];
   showHeaders: boolean;
   fontSize: number;
-  /** Text edge weight — AA round threshold (0.1–0.9). */
+  /** Body font weight (0.1–0.9 → Inter static weight 100–900). */
   fontWeight: number;
   cornerRadius: number;
   padding: number;
@@ -301,7 +301,7 @@ function defaultBoxes(): EditorBox[] {
 // -- State + render callback ------------------------------------------------
 
 const DEFAULT_FONT_SIZE = 38;
-const DEFAULT_FONT_WEIGHT = 0.6;
+const DEFAULT_FONT_WEIGHT = 0.4; // Inter Regular (400)
 const DEFAULT_CORNER_RADIUS = 3;
 const DEFAULT_PADDING = 4;
 

@@ -202,10 +202,10 @@ const weightDisplay = document.getElementById('font-weight-display');
 if (weightSlider) {
   const v = Math.round(getFontWeight() * 10);
   weightSlider.value = String(v);
-  if (weightDisplay) weightDisplay.textContent = String(v);
+  if (weightDisplay) weightDisplay.textContent = String(v * 100); // show weight (100–900)
   weightSlider.addEventListener('input', () => {
     const n = Number(weightSlider.value);
-    if (weightDisplay) weightDisplay.textContent = String(n);
+    if (weightDisplay) weightDisplay.textContent = String(n * 100);
     setFontWeight(n / 10);
   });
 }
