@@ -305,9 +305,9 @@ export function render(config: BentoConfig, device?: DeviceProfile): FrameBuffer
   const { layout, metrics, showHeaders } = buildRenderLayout(config, device);
   const fb = createFrameBuffer(layout.device);
 
-  // Fill background with light grey when boxes exist
+  // Fill background (gaps + margins) with dark grey when boxes exist
   if (layout.boxes.length > 0) {
-    fb.data.fill(0x55); // 0b01010101 = GRAY_LIGHT (1) for all 4 pixels per byte
+    fb.data.fill(0xaa); // 0b10101010 = GRAY_DARK (2) for all 4 pixels per byte
   }
 
   const radiusLevel = config.cornerRadius ?? 3;
