@@ -210,7 +210,7 @@ function flattenPath(cmds: opentype.PathCommand[]): Array<[number, number, numbe
 }
 
 /**
- * Fast scanline rasterizer with 2x supersampling for anti-aliased edges.
+ * Fast scanline rasterizer with 3x supersampling for anti-aliased edges.
  * Pre-flattens beziers, then for each scanline finds edge intersections and fills.
  */
 function rasterizePath(
@@ -220,7 +220,7 @@ function rasterizePath(
   height: number,
 ): void {
   const segments = flattenPath(cmds);
-  const SS = 2; // supersampling factor
+  const SS = 3; // supersampling factor (3x3 sub-samples → 10 coverage levels)
   const subStep = 1 / SS;
   const invSS2 = 1 / (SS * SS);
 
