@@ -175,12 +175,11 @@ function blitRaster(
     for (let col = 0; col < width; col++) {
       const coverage = data[row * width + col] ?? 0;
       if (coverage <= 0.01) continue; // skip fully transparent
-      let gray: number;
-      if (coverage > 0.66) gray = GRAY_BLACK;
-      else if (coverage > 0.33) gray = GRAY_DARK;
-      else gray = GRAY_LIGHT;
-      // Cap at the requested level
-      if (gray > level) gray = level;
+      // Proportional anti-aliasing: ramp coverage across the text color's own
+      // tonal range (e.g. dark-grey text fades white→light→dark), instead of
+      // mapping to absolute black and clamping — which flattened the AA for any
+      // non-black text.
+      const gray = Math.round(coverage * level);
       if (gray > 0) setPixel(fb, x + col, y + row, gray);
     }
   }
