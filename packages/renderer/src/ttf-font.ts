@@ -121,7 +121,9 @@ function textToPathCommands(
   let glyph: opentype.Glyph | undefined;
   for (let i = 0; i < text.length; i++) {
     const current = glyph ?? font.charToGlyph(text[i] ?? ' ');
-    for (const cmd of current.getPath(penX, baseline, fontSize).commands) {
+    // Pass `font` so composite/compound glyphs (e.g. some accented chars) can
+    // resolve their component glyphs; without it they silently emit empty paths.
+    for (const cmd of current.getPath(penX, baseline, fontSize, {}, font).commands) {
       commands.push(cmd);
     }
     penX += (current.advanceWidth ?? 0) * scale;
