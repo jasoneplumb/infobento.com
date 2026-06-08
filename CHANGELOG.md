@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.24.0] - 2026-06-07
+
+### Changed
+
+- **opentype.js upgraded 1.3.4 → 2.0.0.** The 2.x release runs GSUB layout substitution inside `Font.getPath`, which throws on Inter's unsupported lookup type (6 / substFormat 2) and would break all TTF text rendering. The renderer now positions each glyph via `glyph.getPath` through a shared `walkGlyphs` helper (advance + kerning applied, composite glyphs resolved) — behavior-neutral versus 1.x. (#101)
+- Dependency maintenance: safe in-range npm updates applied, and Dependabot now ignores npm major bumps so they can be migrated manually. (#99)
+- CI: `actions/setup-node` bumped 4 → 6 and `actions/checkout` bumped 4 → 6. (#94, #95)
+
 ## [0.23.2] - 2026-06-07
 
 ### Fixed
