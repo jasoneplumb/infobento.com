@@ -1,5 +1,6 @@
 /**
- * Intent: Render an 8-day daily forecast bento box — single line per day
+ * Intent: Render a daily forecast bento box — single line per day
+ *         (day count from config.days, default 3)
  * Context: Called by the main render() dispatcher for boxes with type 'forecast3d'
  * Pattern: Pure function — reads LayoutBox + config, draws into frame buffer
  *
@@ -9,8 +10,8 @@
 import type { FrameBuffer } from '../index.js';
 import type { LayoutBox, Forecast3DBoxConfig } from '@infobento/core';
 import type { FontMetrics } from '../font-metrics.js';
-import { drawText, drawTextWrapped, drawIcon, GRAY_DARK, GRAY_LIGHT } from '../draw.js';
-import { BOX_ICONS, ICON_WIDTH } from '../icons.js';
+import { drawText, drawTextWrapped, GRAY_LIGHT } from '../draw.js';
+import { drawBoxHeader } from './header.js';
 
 export function renderForecast3DBox(
   fb: FrameBuffer,
@@ -23,22 +24,9 @@ export function renderForecast3DBox(
   const { x, y, width, height } = layout;
   let cy = y + pad;
 
-  if (showHeaders) {
-    const icon = BOX_ICONS['forecast3d'];
-    if (icon) drawIcon(fb, x + pad, cy, icon, GRAY_LIGHT);
-    const labelX = x + pad + ICON_WIDTH + 3;
-    const headerText = config.city ? `${config.city.toUpperCase()} 8D` : '8-DAY';
-    drawText(
-      fb,
-      labelX,
-      cy,
-      headerText,
-      width - pad * 2 - ICON_WIDTH - 3,
-      GRAY_DARK,
-      metrics.bodySize,
-    );
-    cy += metrics.bodySize + pad;
-  }
+  const count = config.days ?? 3;
+
+  if (showHeaders) cy = drawBoxHeader(fb, layout, metrics);
 
   const contentWidth = width - pad * 2;
   const contentEnd = y + height - pad;
@@ -48,7 +36,7 @@ export function renderForecast3DBox(
   if (entries.length === 0) {
     renderPlaceholder(fb, x + pad, cy, contentWidth, contentEnd, config.city, metrics);
   } else {
-    renderEntries(fb, x + pad, cy, contentWidth, contentEnd, entries, metrics);
+    renderEntries(fb, x + pad, cy, contentWidth, contentEnd, entries, count, metrics);
   }
 }
 
@@ -59,20 +47,21 @@ function renderEntries(
   maxWidth: number,
   maxY: number,
   entries: readonly { day: string; high: number; low: number; condition: string }[],
+  count: number,
   metrics: FontMetrics,
 ): void {
   const rowGap = metrics.rowGap;
   const dayColWidth = 4 * metrics.bodyAdvance;
-  const tempColWidth = 6 * metrics.bodyAdvance;
+  const tempColWidth = 7 * metrics.bodyAdvance;
   const rowHeight = metrics.bodySize + rowGap;
   let cy = y;
 
-  for (const entry of entries.slice(0, 8)) {
+  for (const entry of entries.slice(0, count)) {
     if (cy + metrics.bodySize > maxY) return;
 
     drawText(fb, x, cy, entry.day, dayColWidth, GRAY_LIGHT, metrics.bodySize);
 
-    const tempStr = `${Math.round(entry.high)}/${Math.round(entry.low)}`;
+    const tempStr = `${Math.round(entry.high)}°/${Math.round(entry.low)}°`;
     drawText(fb, x + dayColWidth, cy, tempStr, tempColWidth, undefined, metrics.bodySize);
 
     const condX = x + dayColWidth + tempColWidth;

@@ -332,3 +332,32 @@ export function drawIcon(
     }
   }
 }
+
+/**
+ * intent: Render a square source icon scaled to an arbitrary size
+ * method: Nearest-neighbour sample a `srcSize`x`srcSize` bitmap (one srcSize-bit
+ *   number per row, bit srcSize-1 = leftmost) into a `target`x`target` block
+ * effect: Lets header icons track the font size instead of a fixed pixel grid
+ */
+export function drawIconScaled(
+  fb: FrameBuffer,
+  x: number,
+  y: number,
+  srcRows: readonly number[],
+  srcSize: number,
+  target: number,
+  level: number = GRAY_BLACK,
+): void {
+  if (target <= 0) return;
+  for (let ty = 0; ty < target; ty++) {
+    const sr = Math.floor((ty * srcSize) / target);
+    const rowData = srcRows[sr];
+    if (rowData == null) continue;
+    for (let tx = 0; tx < target; tx++) {
+      const sc = Math.floor((tx * srcSize) / target);
+      if (rowData & (1 << (srcSize - 1 - sc))) {
+        setPixel(fb, x + tx, y + ty, level);
+      }
+    }
+  }
+}

@@ -29,7 +29,7 @@ export interface WeatherBoxConfig {
   readonly data?: WeatherData;
 }
 
-/** Single entry in a 3-hour forecast — time label + temperature + condition */
+/** Single entry in an hourly forecast — time label + temperature + condition */
 export interface ForecastEntry {
   readonly time: string; // e.g. '14:00' or '+1h'
   readonly temperature: number;
@@ -41,6 +41,8 @@ export interface ForecastBoxConfig {
   readonly city: string;
   readonly lat?: number;
   readonly lon?: number;
+  /** Number of upcoming hours to fetch/render (1–24, default 3). */
+  readonly hours?: number;
   readonly entries?: readonly ForecastEntry[];
 }
 
@@ -105,7 +107,7 @@ export interface ProgressBoxConfig {
   readonly endDate?: string;
 }
 
-/** Single entry in a 3-day daily forecast — day label + high/low + condition */
+/** Single entry in a daily forecast — day label + high/low + condition */
 export interface Forecast3DEntry {
   readonly day: string; // e.g. 'Mon', 'Tue'
   readonly high: number;
@@ -118,6 +120,8 @@ export interface Forecast3DBoxConfig {
   readonly city: string;
   readonly lat?: number;
   readonly lon?: number;
+  /** Number of upcoming days to fetch/render (1–20, default 3). */
+  readonly days?: number;
   readonly entries?: readonly Forecast3DEntry[];
 }
 
@@ -265,13 +269,13 @@ interface WeatherBentoBox extends BentoBoxBase {
   readonly config?: WeatherBoxConfig;
 }
 
-/** Forecast box (3-hour) with typed config */
+/** Hourly forecast box with typed config */
 interface ForecastBentoBox extends BentoBoxBase {
   readonly type: 'forecast';
   readonly config?: ForecastBoxConfig;
 }
 
-/** 3-day forecast box with typed config */
+/** Daily forecast box with typed config */
 interface Forecast3DBentoBox extends BentoBoxBase {
   readonly type: 'forecast3d';
   readonly config?: Forecast3DBoxConfig;

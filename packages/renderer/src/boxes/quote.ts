@@ -8,8 +8,8 @@
 import type { FrameBuffer } from '../index.js';
 import type { LayoutBox, QuoteBoxConfig } from '@infobento/core';
 import type { FontMetrics } from '../font-metrics.js';
-import { drawText, drawTextWrapped, drawIcon, GRAY_DARK, GRAY_LIGHT } from '../draw.js';
-import { BOX_ICONS, ICON_WIDTH } from '../icons.js';
+import { drawText, drawTextWrapped, GRAY_LIGHT } from '../draw.js';
+import { drawBoxHeader } from './header.js';
 
 /**
  * intent: Render a complete quote bento box into the frame buffer
@@ -26,22 +26,7 @@ export function renderQuoteBox(
   const { x, y, width, height } = layout;
   let cy = y + metrics.pad;
 
-  if (showHeaders) {
-    // Icon + uppercase label (5x7 font)
-    const icon = BOX_ICONS['quote'];
-    if (icon) drawIcon(fb, x + metrics.pad, cy, icon, GRAY_LIGHT);
-    const labelX = x + metrics.pad + ICON_WIDTH + 3;
-    drawText(
-      fb,
-      labelX,
-      cy,
-      layout.box.label.toUpperCase(),
-      width - metrics.pad * 2 - ICON_WIDTH - 3,
-      GRAY_DARK,
-      metrics.bodySize,
-    );
-    cy += metrics.bodySize + metrics.pad;
-  }
+  if (showHeaders) cy = drawBoxHeader(fb, layout, metrics);
 
   // Body area
   const bodyX = x + metrics.pad;

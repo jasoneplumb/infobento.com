@@ -216,14 +216,20 @@ main {
   flex-direction: column;
 }
 
+/* Ideal size is the panel's TRUE physical size, but never exceed the cell —
+   a wide landscape panel scales down (keeping aspect) instead of being clipped
+   by the editor on the right. aspect-ratio keeps height in step with the
+   capped width. */
 .eink-preview-pair.landscape {
   width: calc(var(--eink-w, 617) * 1px);
-  height: calc(var(--eink-h, 370) * 1px);
+  max-width: 100%;
+  aspect-ratio: var(--eink-w, 617) / var(--eink-h, 370);
 }
 
 .eink-preview-pair.portrait {
   width: calc(var(--eink-h, 370) * 1px);
-  height: calc(var(--eink-w, 617) * 1px);
+  max-width: 100%;
+  aspect-ratio: var(--eink-h, 370) / var(--eink-w, 617);
 }
 
 .eink-display img,
@@ -397,6 +403,28 @@ main {
   }
 }
 
+/* -- Rendered / "won't fit" indicator (box list) --------------------------- */
+
+/* Boxes the layout dropped because they don't fit the current panel/font. */
+.box-card.box-dropped,
+.box-pair-group.box-dropped {
+  opacity: 0.5;
+  filter: grayscale(0.4);
+}
+
+/* Boundary between what renders and what was dropped. */
+.box-fit-divider {
+  margin: 10px 12px;
+  padding: 5px 10px;
+  border: 1px dashed var(--danger);
+  border-radius: var(--radius);
+  background: rgba(220, 38, 38, 0.05);
+  color: var(--danger);
+  font-size: 11px;
+  font-weight: 600;
+  text-align: center;
+}
+
 .config-toolbar {
   background: var(--surface);
   border-bottom: 1px solid var(--border);
@@ -487,8 +515,61 @@ button {
 
 .add-chips {
   display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.chip-group-label {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+  margin-bottom: 4px;
+}
+
+.chip-group-chips {
+  display: flex;
   flex-wrap: wrap;
   gap: 4px;
+}
+
+/* Each chip is the add button plus a hover × to hide it from the palette. */
+.chip-wrap {
+  position: relative;
+  display: inline-flex;
+}
+
+.chip-hide {
+  position: absolute;
+  top: 50%;
+  right: 3px;
+  transform: translateY(-50%);
+  width: 15px;
+  height: 15px;
+  padding: 0;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  line-height: 1;
+  border: none;
+  border-radius: 50%;
+  background: var(--surface);
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.chip-wrap:hover .chip-hide {
+  display: flex;
+}
+
+.chip-wrap:hover .btn-add-chip {
+  padding-right: 20px;
+}
+
+.chip-hide:hover {
+  color: var(--danger);
 }
 
 .btn-add-chip {
@@ -509,6 +590,52 @@ button {
   color: var(--accent);
   border-color: var(--accent);
   background: rgba(37, 99, 235, 0.05);
+}
+
+/* Collapsible "Hidden (N)" list of chips the user removed from the palette. */
+.chips-hidden > summary {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+  cursor: pointer;
+  padding: 2px 0;
+  list-style: none;
+}
+
+.chips-hidden > summary::-webkit-details-marker {
+  display: none;
+}
+
+.chips-hidden > summary::before {
+  content: '▸ ';
+}
+
+.chips-hidden[open] > summary::before {
+  content: '▾ ';
+}
+
+.chips-hidden > .chip-group-chips {
+  margin-top: 4px;
+}
+
+.btn-restore-chip {
+  font-size: 11px;
+  padding: 3px 9px;
+  background: transparent;
+  color: var(--muted);
+  border: 1px dashed var(--border);
+  border-radius: 10px;
+  cursor: pointer;
+  transition:
+    color 0.1s,
+    border-color 0.1s;
+}
+
+.btn-restore-chip:hover {
+  color: var(--accent);
+  border-color: var(--accent);
 }
 
 /* -- Box list -------------------------------------------------------------- */
@@ -824,6 +951,51 @@ button {
   min-height: 40px;
   font-family: var(--mono);
   font-size: 12px;
+}
+
+/* Compact integer stepper inside a config form field (e.g. forecast Hours/Days). */
+.field-stepper {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.field-stepper .stepper-btn {
+  font-family: var(--mono);
+  font-size: 14px;
+  line-height: 1;
+  width: 26px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition:
+    border-color 0.1s,
+    color 0.1s;
+}
+
+.field-stepper .stepper-btn:hover:not(:disabled) {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.field-stepper .stepper-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.field-stepper .stepper-value {
+  font-family: var(--mono);
+  font-size: 12px;
+  min-width: 24px;
+  text-align: center;
+  color: var(--text);
 }
 
 .field-row {

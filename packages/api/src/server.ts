@@ -112,6 +112,8 @@ app.post('/api/preview', async (c) => {
     return c.json({
       landscape: Buffer.from(pngs.landscape).toString('base64'),
       portrait: Buffer.from(pngs.portrait).toString('base64'),
+      landscapeIds: pngs.landscapeIds,
+      portraitIds: pngs.portraitIds,
     });
   }
 

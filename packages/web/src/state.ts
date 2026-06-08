@@ -38,11 +38,15 @@ export interface WeatherConfig {
 
 export interface ForecastConfig {
   city: string;
+  /** Number of upcoming hours to fetch/render (1–24, default 3). */
+  hours?: number;
   entries?: ForecastEntry[];
 }
 
 export interface Forecast3DConfig {
   city: string;
+  /** Number of upcoming days to fetch/render (1–20, default 3). */
+  days?: number;
   entries?: Forecast3DEntry[];
 }
 
@@ -171,6 +175,10 @@ export interface EditorState {
   cornerRadius: number;
   padding: number;
   profileId: string;
+  /** Temperature unit for weather/forecast displays (derived from IP locale). */
+  tempUnit: 'F' | 'C';
+  /** Box-type chips the user has hidden from the Add palette. */
+  hiddenChips: EditorBoxType[];
 }
 
 // -- UID generator ----------------------------------------------------------
@@ -186,8 +194,8 @@ const DEFAULTS: Record<EditorBoxType, () => EditorBoxConfig> = {
   text: () => ({ content: '' }),
   countdown: () => ({ date: '', countdownLabel: '' }),
   weather: () => ({ city: '' }),
-  forecast: () => ({ city: '' }),
-  forecast3d: () => ({ city: '' }),
+  forecast: () => ({ city: '', hours: 3 }),
+  forecast3d: () => ({ city: '', days: 3 }),
   qr: () => ({ url: '' }),
   quote: () => ({ content: '', author: '' }),
   date: () => ({ _placeholder: '' }),
@@ -207,8 +215,8 @@ export const BOX_TYPE_LABELS: Record<EditorBoxType, string> = {
   text: 'Text',
   countdown: 'Countdown',
   weather: 'Weather',
-  forecast: '8hr Forecast',
-  forecast3d: '8-Day Forecast',
+  forecast: 'Hourly Forecast',
+  forecast3d: 'Daily Forecast',
   qr: 'QR Code',
   quote: 'Quote',
   date: 'Date',
@@ -224,13 +232,28 @@ export const BOX_TYPE_LABELS: Record<EditorBoxType, string> = {
   habit: 'Habits',
 };
 
+/**
+ * Add-palette chips grouped by theme so related box types are easy to find.
+ * Every EditorBoxType appears in exactly one group, in display order.
+ */
+export const CHIP_GROUPS: ReadonlyArray<{
+  readonly label: string;
+  readonly types: readonly EditorBoxType[];
+}> = [
+  { label: 'Weather & Sky', types: ['weather', 'forecast', 'forecast3d', 'aqi', 'moon', 'sun'] },
+  { label: 'Time & Dates', types: ['date', 'countdown', 'progress', 'calendar'] },
+  { label: 'Personal', types: ['habit', 'stocks'] },
+  { label: 'Fun & Discovery', types: ['quote', 'joke', 'horoscope', 'onthisday'] },
+  { label: 'Utility', types: ['text', 'qr'] },
+];
+
 // -- Default box set --------------------------------------------------------
 
 /**
  * First-time-user default layout (Round 12 Q4 decision, 2026-04-25).
  * 5 boxes, zero config required, no wizard:
  *   1. [Date | Weather]  merged top row
- *   2. 8-Day Forecast    full width
+ *   2. Daily Forecast    full width
  *   3. Quote             full width
  *   4. On This Day       full width
  * All input fields empty → forms auto-fetch on first render. IP-based
@@ -255,8 +278,8 @@ function defaultBoxes(): EditorBox[] {
     {
       id: uid(),
       type: 'forecast3d',
-      label: '8-Day Forecast',
-      config: { city: '' } as Forecast3DConfig,
+      label: 'Daily Forecast',
+      config: { city: '', days: 3 } as Forecast3DConfig,
     },
     {
       id: uid(),
@@ -286,6 +309,8 @@ const state: EditorState = {
   cornerRadius: DEFAULT_CORNER_RADIUS,
   padding: DEFAULT_PADDING,
   profileId: DEFAULT_PROFILE_ID,
+  tempUnit: 'F',
+  hiddenChips: [],
 };
 
 // Location-dependent rows share one location; a new one defaults to it.
@@ -499,12 +524,12 @@ export function setSplitRatio(id: number, ratio: number): void {
   });
 }
 
-export function updateConfig(id: number, key: string, value: string): void {
+export function updateConfig(id: number, key: string, value: string | number): void {
   const box = findBox(id);
   if (!box) return;
-  (box.config as unknown as Record<string, string>)[key] = value;
+  (box.config as unknown as Record<string, string | number>)[key] = value;
   // Remember the latest location so newly-added location rows can default to it.
-  if (key === 'city' && value.trim()) lastKnownLocation = value;
+  if (key === 'city' && typeof value === 'string' && value.trim()) lastKnownLocation = value;
   renderPreview();
 }
 
@@ -647,6 +672,38 @@ export function setDeviceProfile(id: string): void {
   }
 }
 
+/** The temperature unit (F/C) used by weather & forecast boxes. */
+export function getTempUnit(): 'F' | 'C' {
+  return state.tempUnit;
+}
+
+/** Set the temperature unit (typically from IP-locale detection). */
+export function setTempUnit(unit: 'F' | 'C'): void {
+  if (state.tempUnit === unit) return;
+  state.tempUnit = unit;
+  persistToLocalStorage();
+  renderPreview();
+}
+
+/** Box-type chips the user has hidden from the Add palette. */
+export function getHiddenChips(): EditorBoxType[] {
+  return state.hiddenChips;
+}
+
+/** Hide a chip from the Add palette (still restorable from the Hidden list). */
+export function hideChip(type: EditorBoxType): void {
+  setState((s) => {
+    if (!s.hiddenChips.includes(type)) s.hiddenChips.push(type);
+  });
+}
+
+/** Restore a previously hidden chip to its group in the Add palette. */
+export function restoreChip(type: EditorBoxType): void {
+  setState((s) => {
+    s.hiddenChips = s.hiddenChips.filter((t) => t !== type);
+  });
+}
+
 // -- LocalStorage persistence -----------------------------------------------
 
 const STORAGE_KEY = 'infobento-config';
@@ -672,6 +729,8 @@ function persistToLocalStorage(): void {
       cornerRadius: state.cornerRadius,
       padding: state.padding,
       profileId: state.profileId,
+      tempUnit: state.tempUnit,
+      hiddenChips: state.hiddenChips,
     };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
   } catch {
@@ -739,6 +798,13 @@ function loadFromLocalStorage(): boolean {
         DEVICE_PROFILES.some((p) => p.id === obj.profileId)
       ) {
         state.profileId = obj.profileId;
+      }
+      if (obj.tempUnit === 'F' || obj.tempUnit === 'C') state.tempUnit = obj.tempUnit;
+      if (Array.isArray(obj.hiddenChips)) {
+        const valid = new Set(Object.keys(BOX_TYPE_LABELS));
+        state.hiddenChips = (obj.hiddenChips as unknown[]).filter(
+          (t): t is EditorBoxType => typeof t === 'string' && valid.has(t),
+        );
       }
       return true;
     }
@@ -855,6 +921,7 @@ export function exportJSON(): void {
     fontSize: state.fontSize,
     cornerRadius: state.cornerRadius,
     padding: state.padding,
+    tempUnit: state.tempUnit,
   };
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
   const url = URL.createObjectURL(blob);

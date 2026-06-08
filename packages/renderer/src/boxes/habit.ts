@@ -8,8 +8,8 @@
 import type { FrameBuffer } from '../index.js';
 import type { LayoutBox, HabitBoxConfig } from '@infobento/core';
 import type { FontMetrics } from '../font-metrics.js';
-import { drawText, drawIcon, setPixel, GRAY_DARK, GRAY_LIGHT } from '../draw.js';
-import { BOX_ICONS, ICON_WIDTH } from '../icons.js';
+import { drawText, setPixel, GRAY_DARK } from '../draw.js';
+import { drawBoxHeader } from './header.js';
 import { measureText } from '../ttf-font.js';
 
 /**
@@ -43,21 +43,7 @@ export function renderHabitBox(
   const { x, y, width, height } = layout;
   let cy = y + metrics.pad;
 
-  if (showHeaders) {
-    const icon = BOX_ICONS['habit'];
-    if (icon) drawIcon(fb, x + metrics.pad, cy, icon, GRAY_LIGHT);
-    const labelX = x + metrics.pad + ICON_WIDTH + 3;
-    drawText(
-      fb,
-      labelX,
-      cy,
-      layout.box.label.toUpperCase(),
-      width - metrics.pad * 2 - ICON_WIDTH - 3,
-      GRAY_DARK,
-      metrics.bodySize,
-    );
-    cy += metrics.bodySize + metrics.pad;
-  }
+  if (showHeaders) cy = drawBoxHeader(fb, layout, metrics);
 
   const bodyX = x + metrics.pad;
   const bodyWidth = width - metrics.pad * 2;

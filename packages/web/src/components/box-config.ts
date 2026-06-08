@@ -32,6 +32,7 @@ import {
   updateSunData,
   updateAQIData,
   updateStocksData,
+  getTempUnit,
 } from '../state';
 import type { CalendarEvent, HabitEntry, StockDuration } from '@infobento/core';
 import { STOCK_DURATIONS, DEFAULT_STOCK_DURATION } from '@infobento/core';
@@ -203,6 +204,63 @@ function textareaEl(value: string, onInput: (v: string) => void): HTMLTextAreaEl
   return el;
 }
 
+/**
+ * A labeled −/＋ integer stepper field (clamped to [min, max]). `onChange` fires
+ * only on user clicks, never on initial build, so it won't trigger a spurious fetch.
+ */
+function makeStepperField(
+  labelText: string,
+  value: number,
+  min: number,
+  max: number,
+  onChange: (v: number) => void,
+): HTMLDivElement {
+  const wrapper = document.createElement('div');
+  wrapper.className = 'field';
+  const label = document.createElement('label');
+  label.textContent = labelText;
+  wrapper.appendChild(label);
+
+  const stepper = document.createElement('div');
+  stepper.className = 'field-stepper';
+
+  let current = Math.min(max, Math.max(min, Math.round(value)));
+
+  const dec = document.createElement('button');
+  dec.type = 'button';
+  dec.className = 'stepper-btn';
+  dec.textContent = '−'; // minus sign
+
+  const display = document.createElement('span');
+  display.className = 'stepper-value';
+
+  const inc = document.createElement('button');
+  inc.type = 'button';
+  inc.className = 'stepper-btn';
+  inc.textContent = '+';
+
+  const sync = (): void => {
+    display.textContent = String(current);
+    dec.disabled = current <= min;
+    inc.disabled = current >= max;
+  };
+  const apply = (next: number): void => {
+    const clamped = Math.min(max, Math.max(min, next));
+    if (clamped === current) return;
+    current = clamped;
+    sync();
+    onChange(current);
+  };
+  sync();
+
+  dec.addEventListener('click', () => apply(current - 1));
+  inc.addEventListener('click', () => apply(current + 1));
+
+  stepper.append(dec, display, inc);
+  wrapper.appendChild(stepper);
+  return wrapper;
+}
+
 // -- Form builders per type -------------------------------------------------
 
 function buildTextForm(box: EditorBox): DocumentFragment {
@@ -254,7 +312,7 @@ function buildWeatherForm(box: EditorBox): DocumentFragment {
     const city = cfg.city;
     if (!city.trim()) return;
     statusEl.textContent = 'Fetching weather\u2026';
-    const data = await fetchWeather(city);
+    const data = await fetchWeather(city, getTempUnit());
     if (data) {
       updateWeatherData(box.id, data);
       statusEl.textContent = `${data.temperature}\u00b0F, ${data.condition} (H: ${data.high}\u00b0 L: ${data.low}\u00b0)`;
@@ -293,8 +351,7 @@ function buildForecastForm(box: EditorBox): DocumentFragment {
 
   const summarize = (
     entries: readonly { time: string; temperature: number; condition: string }[],
-  ): string =>
-    entries.map((e) => `${e.time} ${String(e.temperature)}°F ${e.condition}`).join(' · ');
+  ): string => entries.map((e) => `${e.time} ${String(e.temperature)}° ${e.condition}`).join(' · ');
 
   if (cfg.entries && cfg.entries.length > 0) {
     statusEl.textContent = summarize(cfg.entries);
@@ -304,7 +361,7 @@ function buildForecastForm(box: EditorBox): DocumentFragment {
     const city = cfg.city;
     if (!city.trim()) return;
     statusEl.textContent = 'Fetching forecast…';
-    const entries = await fetchForecast(city);
+    const entries = await fetchForecast(city, cfg.hours ?? 3, getTempUnit());
     if (entries && entries.length > 0) {
       updateForecastEntries(box.id, entries);
       statusEl.textContent = summarize(entries);
@@ -323,6 +380,12 @@ function buildForecastForm(box: EditorBox): DocumentFragment {
     makeLocationField(cityInput, (city) => {
       updateConfig(box.id, 'city', city);
       void doFetch();
+    }),
+  );
+  frag.appendChild(
+    makeStepperField('Hours', cfg.hours ?? 3, 1, 24, (n) => {
+      updateConfig(box.id, 'hours', n);
+      debouncedFetch(box.id, doFetch);
     }),
   );
   frag.appendChild(statusEl);
@@ -344,7 +407,7 @@ function buildForecast3DForm(box: EditorBox): DocumentFragment {
   const summarize = (
     entries: readonly { day: string; high: number; low: number; condition: string }[],
   ): string =>
-    entries.map((e) => `${e.day} ${String(e.high)}/${String(e.low)}°F ${e.condition}`).join(' · ');
+    entries.map((e) => `${e.day} ${String(e.high)}/${String(e.low)}° ${e.condition}`).join(' · ');
 
   if (cfg.entries && cfg.entries.length > 0) {
     statusEl.textContent = summarize(cfg.entries);
@@ -353,8 +416,8 @@ function buildForecast3DForm(box: EditorBox): DocumentFragment {
   const doFetch = async (): Promise<void> => {
     const city = cfg.city;
     if (!city.trim()) return;
-    statusEl.textContent = 'Fetching 3-day forecast\u2026';
-    const entries = await fetchForecast3D(city);
+    statusEl.textContent = 'Fetching daily forecast\u2026';
+    const entries = await fetchForecast3D(city, cfg.days ?? 3, getTempUnit());
     if (entries && entries.length > 0) {
       updateForecast3DEntries(box.id, entries);
       statusEl.textContent = summarize(entries);
@@ -373,6 +436,12 @@ function buildForecast3DForm(box: EditorBox): DocumentFragment {
     makeLocationField(cityInput, (city) => {
       updateConfig(box.id, 'city', city);
       void doFetch();
+    }),
+  );
+  frag.appendChild(
+    makeStepperField('Days', cfg.days ?? 3, 1, 20, (n) => {
+      updateConfig(box.id, 'days', n);
+      debouncedFetch(box.id, doFetch);
     }),
   );
   frag.appendChild(statusEl);

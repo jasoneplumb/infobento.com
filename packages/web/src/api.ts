@@ -81,6 +81,11 @@ function cToF(c: number): number {
   return Math.round((c * 9) / 5 + 32);
 }
 
+/** Convert an Open-Meteo Celsius value to the requested display unit, rounded. */
+function toTemp(celsius: number, unit: 'F' | 'C'): number {
+  return unit === 'C' ? Math.round(celsius) : cToF(celsius);
+}
+
 interface OpenMeteoForecast {
   current: {
     temperature_2m: number;
@@ -96,7 +101,10 @@ interface OpenMeteoForecast {
  * Geocode a location and fetch current weather from Open-Meteo.
  * Returns null if the location cannot be found or the request fails.
  */
-export async function fetchWeather(location: string): Promise<WeatherData | null> {
+export async function fetchWeather(
+  location: string,
+  unit: 'F' | 'C' = 'F',
+): Promise<WeatherData | null> {
   const place = await geocode(location);
   if (!place) return null;
 
@@ -117,17 +125,17 @@ export async function fetchWeather(location: string): Promise<WeatherData | null
     if (highC === undefined || lowC === undefined) return null;
 
     return {
-      temperature: cToF(forecast.current.temperature_2m),
+      temperature: toTemp(forecast.current.temperature_2m, unit),
       condition: weatherCondition(forecast.current.weather_code),
-      high: cToF(highC),
-      low: cToF(lowC),
+      high: toTemp(highC, unit),
+      low: toTemp(lowC, unit),
     };
   } catch {
     return null;
   }
 }
 
-// -- 8-hour forecast (Open-Meteo) -------------------------------------------
+// -- Hourly forecast (Open-Meteo) -------------------------------------------
 
 interface OpenMeteoHourly {
   hourly: {
@@ -138,34 +146,40 @@ interface OpenMeteoHourly {
 }
 
 /**
- * Geocode a location and fetch the next 8 hourly forecast entries
- * from Open-Meteo. Returns null on failure.
+ * Geocode a location and fetch the next `hours` hourly forecast entries
+ * (default 3) from Open-Meteo. Returns null on failure.
  */
-export async function fetchForecast(location: string): Promise<ForecastEntry[] | null> {
+export async function fetchForecast(
+  location: string,
+  hours = 3,
+  unit: 'F' | 'C' = 'F',
+): Promise<ForecastEntry[] | null> {
   const place = await geocode(location);
   if (!place) return null;
 
   try {
+    // Source enough days to cover the current hour offset + requested span.
+    const forecastDays = Math.ceil((hours + 24) / 24);
     const url =
       `https://api.open-meteo.com/v1/forecast` +
       `?latitude=${String(place.latitude)}` +
       `&longitude=${String(place.longitude)}` +
       `&hourly=temperature_2m,weather_code` +
-      `&timezone=auto&forecast_days=2`;
+      `&timezone=auto&forecast_days=${String(forecastDays)}`;
     const res = await fetch(url);
     if (!res.ok) return null;
 
     const data = (await res.json()) as OpenMeteoHourly;
     const { time, temperature_2m, weather_code } = data.hourly;
 
-    // Find the index of the current hour, then take the next 8 entries
+    // Find the index of the current hour, then take the next `hours` entries
     const now = new Date();
     const currentHourIso = `${String(now.getFullYear())}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}T${String(now.getHours()).padStart(2, '0')}:00`;
     let startIdx = time.findIndex((t) => t >= currentHourIso);
     if (startIdx < 0) startIdx = 0;
 
     const entries: ForecastEntry[] = [];
-    for (let offset = 1; offset <= 8; offset++) {
+    for (let offset = 1; offset <= hours; offset++) {
       const i = startIdx + offset;
       const t = time[i];
       const temp = temperature_2m[i];
@@ -175,7 +189,7 @@ export async function fetchForecast(location: string): Promise<ForecastEntry[] |
       const hhmm = t.length >= 16 ? t.slice(11, 16) : t;
       entries.push({
         time: hhmm,
-        temperature: cToF(temp),
+        temperature: toTemp(temp, unit),
         condition: weatherCondition(code),
       });
     }
@@ -186,7 +200,7 @@ export async function fetchForecast(location: string): Promise<ForecastEntry[] |
   }
 }
 
-// -- 8-day daily forecast (Open-Meteo) --------------------------------------
+// -- Daily forecast (Open-Meteo) --------------------------------------------
 
 interface OpenMeteoDaily3D {
   daily: {
@@ -200,29 +214,36 @@ interface OpenMeteoDaily3D {
 const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'] as const;
 
 /**
- * Geocode a location and fetch the next 8 days of daily forecast data
- * from Open-Meteo. Returns null on failure.
+ * Geocode a location and fetch the next `days` of daily forecast data
+ * (default 3) from Open-Meteo. Returns null on failure.
  */
-export async function fetchForecast3D(location: string): Promise<Forecast3DEntry[] | null> {
+export async function fetchForecast3D(
+  location: string,
+  days = 3,
+  unit: 'F' | 'C' = 'F',
+): Promise<Forecast3DEntry[] | null> {
   const place = await geocode(location);
   if (!place) return null;
 
   try {
+    // Source one extra day because index 0 (today) is skipped below; Open-Meteo
+    // caps daily forecasts at 16 days, so longer spans yield up to ~15 entries.
+    const forecastDays = Math.min(16, days + 1);
     const url =
       `https://api.open-meteo.com/v1/forecast` +
       `?latitude=${String(place.latitude)}` +
       `&longitude=${String(place.longitude)}` +
       `&daily=temperature_2m_max,temperature_2m_min,weather_code` +
-      `&timezone=auto&forecast_days=9`;
+      `&timezone=auto&forecast_days=${String(forecastDays)}`;
     const res = await fetch(url);
     if (!res.ok) return null;
 
     const data = (await res.json()) as OpenMeteoDaily3D;
     const { time, temperature_2m_max, temperature_2m_min, weather_code } = data.daily;
 
-    // Skip today (index 0), take next 8 days
+    // Skip today (index 0), take next `days` days
     const entries: Forecast3DEntry[] = [];
-    for (let i = 1; i <= 8; i++) {
+    for (let i = 1; i <= days; i++) {
       const t = time[i];
       const high = temperature_2m_max[i];
       const low = temperature_2m_min[i];
@@ -232,8 +253,8 @@ export async function fetchForecast3D(location: string): Promise<Forecast3DEntry
       const dayOfWeek = DAY_NAMES[new Date(t + 'T00:00').getDay()];
       entries.push({
         day: dayOfWeek ?? t.slice(5, 10),
-        high: cToF(high),
-        low: cToF(low),
+        high: toTemp(high, unit),
+        low: toTemp(low, unit),
         condition: weatherCondition(code),
       });
     }

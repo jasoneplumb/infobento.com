@@ -4,7 +4,13 @@
  * Pattern: Pure functions — all rendering is deterministic with no side effects
  */
 
-import type { BentoConfig, BentoBox, DeviceProfile, LayoutBox } from '@infobento/core';
+import type {
+  BentoConfig,
+  BentoBox,
+  DeviceProfile,
+  LayoutBox,
+  LayoutResult,
+} from '@infobento/core';
 import { DISPLAY_WIDTH, DISPLAY_HEIGHT, calculateLayout, splitLeftFraction } from '@infobento/core';
 import { measureText } from './ttf-font.js';
 import { drawRoundedRect, roundedRectSDF, setPixel, GRAY_WHITE, GRAY_DARK } from './draw.js';
@@ -202,11 +208,13 @@ function computeMinHeight(
     return shell(metrics.heroSize + 2 + metrics.bodySize);
   }
   if (box.type === 'forecast' && box.config?.type === 'forecast') {
-    const n = Math.max(1, Math.min(8, box.config.entries?.length ?? 8));
+    const want = box.config.hours ?? 3;
+    const n = Math.max(1, Math.min(want, box.config.entries?.length ?? want));
     return shell(n * rowH);
   }
   if (box.type === 'forecast3d' && box.config?.type === 'forecast3d') {
-    const n = Math.max(1, Math.min(8, box.config.entries?.length ?? 8));
+    const want = box.config.days ?? 3;
+    const n = Math.max(1, Math.min(want, box.config.entries?.length ?? want));
     return shell(n * rowH);
   }
   if (box.type === 'calendar') {
@@ -262,7 +270,15 @@ function computeHeightHints(
  * method: Calculate layout, then render each box into the frame buffer
  * effect: Returns device-ready binary data sized for the target device
  */
-export function render(config: BentoConfig, device?: DeviceProfile): FrameBuffer {
+/**
+ * intent: Build the content-aware layout for a config (shared by render() and
+ *   renderedBoxIds() so both see the exact same set of laid-out boxes)
+ * method: Compute font metrics, height hints, then calculateLayout
+ */
+function buildRenderLayout(
+  config: BentoConfig,
+  device?: DeviceProfile,
+): { layout: LayoutResult; metrics: FontMetrics; showHeaders: boolean } {
   const metrics = computeFontMetrics(config.fontSize);
   const baseDevice = device ?? {
     widthPx: DISPLAY_WIDTH,
@@ -281,6 +297,11 @@ export function render(config: BentoConfig, device?: DeviceProfile): FrameBuffer
   const showHeaders = config.showHeaders !== false;
   const heightHints = computeHeightHints(config.boxes, metrics, layoutWidth, showHeaders, padPx);
   const layout = calculateLayout(config, effectiveDevice, heightHints);
+  return { layout, metrics, showHeaders };
+}
+
+export function render(config: BentoConfig, device?: DeviceProfile): FrameBuffer {
+  const { layout, metrics, showHeaders } = buildRenderLayout(config, device);
   const fb = createFrameBuffer(layout.device);
 
   // Fill background with light grey when boxes exist
@@ -338,5 +359,30 @@ export function renderBoth(config: BentoConfig): DualRenderResult {
   return {
     landscape: render(base, { widthPx: long, heightPx: short, deviceId: 'infobento' }),
     portrait: render(base, { widthPx: short, heightPx: long, deviceId: 'infobento' }),
+  };
+}
+
+/**
+ * intent: Report which box ids actually render for a config + device, so the
+ *   editor can show which boxes fit and which were dropped (don't fit the panel)
+ * method: Run the same content-aware layout as render(), return the laid-out ids
+ */
+export function renderedBoxIds(config: BentoConfig, device?: DeviceProfile): string[] {
+  return buildRenderLayout(config, device).layout.boxes.map((b) => b.box.id);
+}
+
+/** Rendered box ids for both orientations (mirrors renderBoth's orientation split). */
+export function renderBothBoxIds(config: BentoConfig): {
+  landscape: string[];
+  portrait: string[];
+} {
+  const w = config.width ?? DISPLAY_WIDTH;
+  const h = config.height ?? DISPLAY_HEIGHT;
+  const long = Math.max(w, h);
+  const short = Math.min(w, h);
+  const base: BentoConfig = { ...config, width: undefined, height: undefined };
+  return {
+    landscape: renderedBoxIds(base, { widthPx: long, heightPx: short, deviceId: 'infobento' }),
+    portrait: renderedBoxIds(base, { widthPx: short, heightPx: long, deviceId: 'infobento' }),
   };
 }

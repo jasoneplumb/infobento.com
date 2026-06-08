@@ -8,15 +8,8 @@
 import type { FrameBuffer } from '../index.js';
 import type { LayoutBox, AQIBoxConfig } from '@infobento/core';
 import type { FontMetrics } from '../font-metrics.js';
-import {
-  drawText,
-  drawTextWrapped,
-  drawHeroText,
-  drawIcon,
-  GRAY_DARK,
-  GRAY_LIGHT,
-} from '../draw.js';
-import { BOX_ICONS, ICON_WIDTH } from '../icons.js';
+import { drawText, drawTextWrapped, drawHeroText, GRAY_DARK, GRAY_LIGHT } from '../draw.js';
+import { drawBoxHeader } from './header.js';
 
 /**
  * intent: Render a complete AQI bento box into the frame buffer
@@ -33,23 +26,7 @@ export function renderAQIBox(
   const { x, y, width, height } = layout;
   let cy = y + metrics.pad;
 
-  if (showHeaders) {
-    // Icon + uppercase label (5x7 font)
-    const icon = BOX_ICONS['aqi'];
-    if (icon) drawIcon(fb, x + metrics.pad, cy, icon, GRAY_LIGHT);
-    const labelX = x + metrics.pad + ICON_WIDTH + 3;
-    const headerText = config.city ? `${config.city.toUpperCase()} AQI` : 'AIR QUALITY';
-    drawText(
-      fb,
-      labelX,
-      cy,
-      headerText,
-      width - metrics.pad * 2 - ICON_WIDTH - 3,
-      GRAY_DARK,
-      metrics.bodySize,
-    );
-    cy += metrics.bodySize + metrics.pad;
-  }
+  if (showHeaders) cy = drawBoxHeader(fb, layout, metrics);
 
   const contentWidth = width - metrics.pad * 2;
   const contentEnd = y + height - metrics.pad;
@@ -57,7 +34,7 @@ export function renderAQIBox(
   if (contentWidth <= 0) return;
 
   if (config.data) {
-    cy = renderAQIData(
+    renderAQIData(
       fb,
       x + metrics.pad,
       cy,
@@ -70,7 +47,7 @@ export function renderAQIBox(
       metrics,
     );
   } else {
-    cy = renderPlaceholder(fb, x + metrics.pad, cy, contentWidth, contentEnd, config.city, metrics);
+    renderPlaceholder(fb, x + metrics.pad, cy, contentWidth, contentEnd, config.city, metrics);
   }
 }
 
