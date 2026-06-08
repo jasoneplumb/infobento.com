@@ -8,8 +8,8 @@
 import type { FrameBuffer } from '../index.js';
 import type { LayoutBox, ProgressBoxConfig } from '@infobento/core';
 import type { FontMetrics } from '../font-metrics.js';
-import { drawText, drawHeroText, drawIcon, setPixel, GRAY_DARK, GRAY_LIGHT } from '../draw.js';
-import { BOX_ICONS, ICON_WIDTH } from '../icons.js';
+import { drawText, drawHeroText, setPixel, GRAY_DARK, GRAY_LIGHT } from '../draw.js';
+import { drawBoxHeader } from './header.js';
 
 /**
  * intent: Calculate progress through a date range as a fraction (0.0 to 1.0)
@@ -96,24 +96,7 @@ export function renderProgressBox(
   const { x, y, width, height } = layout;
   let cy = y + metrics.pad;
 
-  if (showHeaders) {
-    const label = config.label ?? 'Year';
-
-    // Icon + label header (5x7 font)
-    const icon = BOX_ICONS['progress'];
-    if (icon) drawIcon(fb, x + metrics.pad, cy, icon, GRAY_LIGHT);
-    const labelX = x + metrics.pad + ICON_WIDTH + 3;
-    drawText(
-      fb,
-      labelX,
-      cy,
-      label.toUpperCase(),
-      width - metrics.pad * 2 - ICON_WIDTH - 3,
-      GRAY_DARK,
-      metrics.bodySize,
-    );
-    cy += metrics.bodySize + metrics.pad;
-  }
+  if (showHeaders) cy = drawBoxHeader(fb, layout, metrics);
 
   const defaultRange = defaultYearRange(now);
   const startDate = config.startDate ?? defaultRange.startDate;

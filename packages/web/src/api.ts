@@ -81,6 +81,11 @@ function cToF(c: number): number {
   return Math.round((c * 9) / 5 + 32);
 }
 
+/** Convert an Open-Meteo Celsius value to the requested display unit, rounded. */
+function toTemp(celsius: number, unit: 'F' | 'C'): number {
+  return unit === 'C' ? Math.round(celsius) : cToF(celsius);
+}
+
 interface OpenMeteoForecast {
   current: {
     temperature_2m: number;
@@ -96,7 +101,10 @@ interface OpenMeteoForecast {
  * Geocode a location and fetch current weather from Open-Meteo.
  * Returns null if the location cannot be found or the request fails.
  */
-export async function fetchWeather(location: string): Promise<WeatherData | null> {
+export async function fetchWeather(
+  location: string,
+  unit: 'F' | 'C' = 'F',
+): Promise<WeatherData | null> {
   const place = await geocode(location);
   if (!place) return null;
 
@@ -117,10 +125,10 @@ export async function fetchWeather(location: string): Promise<WeatherData | null
     if (highC === undefined || lowC === undefined) return null;
 
     return {
-      temperature: cToF(forecast.current.temperature_2m),
+      temperature: toTemp(forecast.current.temperature_2m, unit),
       condition: weatherCondition(forecast.current.weather_code),
-      high: cToF(highC),
-      low: cToF(lowC),
+      high: toTemp(highC, unit),
+      low: toTemp(lowC, unit),
     };
   } catch {
     return null;
@@ -141,7 +149,11 @@ interface OpenMeteoHourly {
  * Geocode a location and fetch the next `hours` hourly forecast entries
  * (default 8) from Open-Meteo. Returns null on failure.
  */
-export async function fetchForecast(location: string, hours = 8): Promise<ForecastEntry[] | null> {
+export async function fetchForecast(
+  location: string,
+  hours = 8,
+  unit: 'F' | 'C' = 'F',
+): Promise<ForecastEntry[] | null> {
   const place = await geocode(location);
   if (!place) return null;
 
@@ -177,7 +189,7 @@ export async function fetchForecast(location: string, hours = 8): Promise<Foreca
       const hhmm = t.length >= 16 ? t.slice(11, 16) : t;
       entries.push({
         time: hhmm,
-        temperature: cToF(temp),
+        temperature: toTemp(temp, unit),
         condition: weatherCondition(code),
       });
     }
@@ -208,6 +220,7 @@ const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'] as const;
 export async function fetchForecast3D(
   location: string,
   days = 8,
+  unit: 'F' | 'C' = 'F',
 ): Promise<Forecast3DEntry[] | null> {
   const place = await geocode(location);
   if (!place) return null;
@@ -239,8 +252,8 @@ export async function fetchForecast3D(
       const dayOfWeek = DAY_NAMES[new Date(t + 'T00:00').getDay()];
       entries.push({
         day: dayOfWeek ?? t.slice(5, 10),
-        high: cToF(high),
-        low: cToF(low),
+        high: toTemp(high, unit),
+        low: toTemp(low, unit),
         condition: weatherCondition(code),
       });
     }

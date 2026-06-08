@@ -67,17 +67,18 @@ function renderBox(
   layoutBox: LayoutBox,
   metrics: FontMetrics,
   showHeaders: boolean,
+  tempUnit: 'F' | 'C',
 ): void {
   const { box } = layoutBox;
 
   if (box.type === 'text' && box.config?.type === 'text') {
     renderTextBox(fb, layoutBox, box.config, metrics, showHeaders);
   } else if (box.type === 'weather' && box.config?.type === 'weather') {
-    renderWeatherBox(fb, layoutBox, box.config, metrics, showHeaders);
+    renderWeatherBox(fb, layoutBox, box.config, metrics, showHeaders, tempUnit);
   } else if (box.type === 'forecast' && box.config?.type === 'forecast') {
-    renderForecastBox(fb, layoutBox, box.config, metrics, showHeaders);
+    renderForecastBox(fb, layoutBox, box.config, metrics, showHeaders, tempUnit);
   } else if (box.type === 'forecast3d' && box.config?.type === 'forecast3d') {
-    renderForecast3DBox(fb, layoutBox, box.config, metrics, showHeaders);
+    renderForecast3DBox(fb, layoutBox, box.config, metrics, showHeaders, tempUnit);
   } else if (box.type === 'countdown' && box.config?.type === 'countdown') {
     renderCountdownBox(fb, layoutBox, box.config, metrics, undefined, showHeaders);
   } else if (box.type === 'qr' && box.config?.type === 'qr') {
@@ -300,6 +301,7 @@ function buildRenderLayout(
 
 export function render(config: BentoConfig, device?: DeviceProfile): FrameBuffer {
   const { layout, metrics, showHeaders } = buildRenderLayout(config, device);
+  const tempUnit = config.tempUnit ?? 'F';
   const fb = createFrameBuffer(layout.device);
 
   // Fill background with light grey when boxes exist
@@ -328,7 +330,7 @@ export function render(config: BentoConfig, device?: DeviceProfile): FrameBuffer
     // Antialiased mid-grey rounded border (handles its own edge antialiasing)
     drawRoundedRect(fb, x, y, width, height, r, borderPx, GRAY_DARK);
 
-    renderBox(fb, layoutBox, metrics, showHeaders);
+    renderBox(fb, layoutBox, metrics, showHeaders, tempUnit);
   }
 
   return fb;

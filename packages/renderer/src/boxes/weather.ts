@@ -8,15 +8,8 @@
 import type { FrameBuffer } from '../index.js';
 import type { LayoutBox, WeatherBoxConfig } from '@infobento/core';
 import type { FontMetrics } from '../font-metrics.js';
-import {
-  drawText,
-  drawTextWrapped,
-  drawHeroText,
-  drawIcon,
-  GRAY_DARK,
-  GRAY_LIGHT,
-} from '../draw.js';
-import { BOX_ICONS, ICON_WIDTH } from '../icons.js';
+import { drawText, drawTextWrapped, drawHeroText, GRAY_DARK, GRAY_LIGHT } from '../draw.js';
+import { drawBoxHeader } from './header.js';
 
 /**
  * intent: Render a complete weather bento box into the frame buffer
@@ -29,27 +22,12 @@ export function renderWeatherBox(
   config: WeatherBoxConfig,
   metrics: FontMetrics,
   showHeaders = true,
+  tempUnit: 'F' | 'C' = 'F',
 ): void {
   const { x, y, width, height } = layout;
   let cy = y + metrics.pad;
 
-  if (showHeaders) {
-    // Icon + uppercase label (5x7 font)
-    const icon = BOX_ICONS['weather'];
-    if (icon) drawIcon(fb, x + metrics.pad, cy, icon, GRAY_LIGHT);
-    const labelX = x + metrics.pad + ICON_WIDTH + 3;
-    const headerText = config.city ? `${config.city.toUpperCase()}` : 'WEATHER';
-    drawText(
-      fb,
-      labelX,
-      cy,
-      headerText,
-      width - metrics.pad * 2 - ICON_WIDTH - 3,
-      GRAY_DARK,
-      metrics.bodySize,
-    );
-    cy += metrics.bodySize + metrics.pad;
-  }
+  if (showHeaders) cy = drawBoxHeader(fb, layout, metrics);
 
   const contentWidth = width - metrics.pad * 2;
   const contentEnd = y + height - metrics.pad;
@@ -57,9 +35,9 @@ export function renderWeatherBox(
   if (contentWidth <= 0) return;
 
   if (config.data) {
-    cy = renderWeatherData(fb, x + metrics.pad, cy, contentWidth, contentEnd, config, metrics);
+    renderWeatherData(fb, x + metrics.pad, cy, contentWidth, contentEnd, config, metrics, tempUnit);
   } else {
-    cy = renderPlaceholder(fb, x + metrics.pad, cy, contentWidth, contentEnd, config.city, metrics);
+    renderPlaceholder(fb, x + metrics.pad, cy, contentWidth, contentEnd, config.city, metrics);
   }
 }
 
@@ -76,13 +54,14 @@ function renderWeatherData(
   maxY: number,
   config: WeatherBoxConfig,
   metrics: FontMetrics,
+  tempUnit: 'F' | 'C',
 ): number {
   const data = config.data;
   if (!data) return y;
   let cy = y;
 
-  // Hero temperature (e.g., "62F")
-  const tempStr = `${Math.round(data.temperature)}F`;
+  // Hero temperature (e.g., "62°F")
+  const tempStr = `${Math.round(data.temperature)}°${tempUnit}`;
   drawHeroText(fb, x, cy, tempStr, maxWidth, GRAY_DARK, metrics.heroSize);
 
   // Condition beside hero text (e.g., "Partly Cloudy")
@@ -90,11 +69,13 @@ function renderWeatherData(
   const condX = x + heroWidth + metrics.pad + 2;
   const condMaxW = maxWidth - heroWidth - metrics.pad - 2;
   if (condMaxW > 0) {
+    // Stack the condition (one word per line) so it nests beside the tall hero
+    // temperature instead of forcing a wide box.
     drawTextWrapped(
       fb,
       condX,
       cy + 2,
-      data.condition,
+      data.condition.replace(/ /g, '\n'),
       condMaxW,
       metrics.heroSize,
       undefined,
@@ -106,7 +87,7 @@ function renderWeatherData(
   if (cy + metrics.bodySize > maxY) return cy;
 
   // High / Low (e.g., "H:68 L:55")
-  const hlStr = `H:${Math.round(data.high)} L:${Math.round(data.low)}`;
+  const hlStr = `H:${Math.round(data.high)}° L:${Math.round(data.low)}°${tempUnit}`;
   drawText(fb, x, cy, hlStr, maxWidth, GRAY_LIGHT, metrics.bodySize);
   cy += metrics.bodySize + metrics.pad;
 

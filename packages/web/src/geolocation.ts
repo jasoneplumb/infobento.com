@@ -7,7 +7,17 @@
  * the user knowing to press anything.
  */
 
-import { setState, getKnownLocation, noteLocation } from './state';
+import { setState, getKnownLocation, noteLocation, setTempUnit } from './state';
+
+/**
+ * Countries that use Fahrenheit (US + a handful of territories); everyone else
+ * defaults to Celsius. Used to pick the temperature unit from the IP locale.
+ */
+const FAHRENHEIT_COUNTRIES = new Set(['US', 'BS', 'BZ', 'KY', 'PW', 'FM', 'MH', 'LR']);
+
+function unitForCountry(code: string | undefined): 'F' | 'C' {
+  return code && FAHRENHEIT_COUNTRIES.has(code.toUpperCase()) ? 'F' : 'C';
+}
 
 /** Fill any location-dependent row that still has an empty city. */
 export function propagateLocationToEmptyBoxes(city: string): void {
@@ -37,8 +47,15 @@ export async function detectLocationByIP(): Promise<string | null> {
   try {
     const res = await fetch('https://ipapi.co/json/');
     if (!res.ok) return null;
-    const data = (await res.json()) as { city?: string; region?: string; error?: boolean };
+    const data = (await res.json()) as {
+      city?: string;
+      region?: string;
+      country_code?: string;
+      error?: boolean;
+    };
     if (data.error || !data.city) return null;
+    // Pick the temperature unit from the detected locale (US → °F, else °C).
+    setTempUnit(unitForCountry(data.country_code));
     return data.region ? `${data.city}, ${data.region}` : data.city;
   } catch {
     return null;

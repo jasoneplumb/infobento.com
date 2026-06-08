@@ -314,6 +314,7 @@ export const BentoConfigSchema = z.object({
   padding: z.number().int().min(0).max(10).optional(),
   width: z.number().int().positive().max(4096).optional(),
   height: z.number().int().positive().max(4096).optional(),
+  tempUnit: z.enum(['F', 'C']).optional(),
 });
 
 // --- Validation function ---

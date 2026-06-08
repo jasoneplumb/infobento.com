@@ -8,8 +8,8 @@
 import type { FrameBuffer } from '../index.js';
 import type { LayoutBox, MoonBoxConfig } from '@infobento/core';
 import type { FontMetrics } from '../font-metrics.js';
-import { drawText, drawIcon, setPixel, GRAY_DARK, GRAY_LIGHT } from '../draw.js';
-import { BOX_ICONS, ICON_WIDTH } from '../icons.js';
+import { drawText, setPixel, GRAY_LIGHT } from '../draw.js';
+import { drawBoxHeader } from './header.js';
 
 /**
  * Reference epoch: 2000-01-06T18:14Z was a known new moon.
@@ -172,22 +172,7 @@ export function renderMoonBox(
   const { x, y, width, height } = layout;
   let cy = y + metrics.pad;
 
-  if (showHeaders) {
-    // Icon + uppercase label (5x7 font)
-    const icon = BOX_ICONS['moon'];
-    if (icon) drawIcon(fb, x + metrics.pad, cy, icon, GRAY_LIGHT);
-    const labelX = x + metrics.pad + ICON_WIDTH + 3;
-    drawText(
-      fb,
-      labelX,
-      cy,
-      'MOON',
-      width - metrics.pad * 2 - ICON_WIDTH - 3,
-      GRAY_DARK,
-      metrics.bodySize,
-    );
-    cy += metrics.bodySize + metrics.pad;
-  }
+  if (showHeaders) cy = drawBoxHeader(fb, layout, metrics);
 
   const phase = moonPhase(now);
   const { index, name, illumination } = moonPhaseName(phase);

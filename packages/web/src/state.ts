@@ -175,6 +175,8 @@ export interface EditorState {
   cornerRadius: number;
   padding: number;
   profileId: string;
+  /** Temperature unit for weather/forecast displays (derived from IP locale). */
+  tempUnit: 'F' | 'C';
 }
 
 // -- UID generator ----------------------------------------------------------
@@ -290,6 +292,7 @@ const state: EditorState = {
   cornerRadius: DEFAULT_CORNER_RADIUS,
   padding: DEFAULT_PADDING,
   profileId: DEFAULT_PROFILE_ID,
+  tempUnit: 'F',
 };
 
 // Location-dependent rows share one location; a new one defaults to it.
@@ -651,6 +654,19 @@ export function setDeviceProfile(id: string): void {
   }
 }
 
+/** The temperature unit (F/C) used by weather & forecast boxes. */
+export function getTempUnit(): 'F' | 'C' {
+  return state.tempUnit;
+}
+
+/** Set the temperature unit (typically from IP-locale detection). */
+export function setTempUnit(unit: 'F' | 'C'): void {
+  if (state.tempUnit === unit) return;
+  state.tempUnit = unit;
+  persistToLocalStorage();
+  renderPreview();
+}
+
 // -- LocalStorage persistence -----------------------------------------------
 
 const STORAGE_KEY = 'infobento-config';
@@ -676,6 +692,7 @@ function persistToLocalStorage(): void {
       cornerRadius: state.cornerRadius,
       padding: state.padding,
       profileId: state.profileId,
+      tempUnit: state.tempUnit,
     };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
   } catch {
@@ -744,6 +761,7 @@ function loadFromLocalStorage(): boolean {
       ) {
         state.profileId = obj.profileId;
       }
+      if (obj.tempUnit === 'F' || obj.tempUnit === 'C') state.tempUnit = obj.tempUnit;
       return true;
     }
 
@@ -859,6 +877,7 @@ export function exportJSON(): void {
     fontSize: state.fontSize,
     cornerRadius: state.cornerRadius,
     padding: state.padding,
+    tempUnit: state.tempUnit,
   };
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
   const url = URL.createObjectURL(blob);

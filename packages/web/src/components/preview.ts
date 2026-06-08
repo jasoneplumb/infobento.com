@@ -31,6 +31,7 @@ import {
   getCornerRadius,
   getPadding,
   getDeviceProfile,
+  getTempUnit,
 } from '../state';
 
 /**
@@ -211,6 +212,7 @@ function toBentoConfig(boxes: readonly EditorBox[]): BentoConfig {
     padding: getPadding(),
     width: profile.widthPx,
     height: profile.heightPx,
+    tempUnit: getTempUnit(),
   };
 }
 

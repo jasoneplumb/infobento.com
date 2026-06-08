@@ -29,7 +29,7 @@ export interface WeatherBoxConfig {
   readonly data?: WeatherData;
 }
 
-/** Single entry in a 3-hour forecast — time label + temperature + condition */
+/** Single entry in an hourly forecast — time label + temperature + condition */
 export interface ForecastEntry {
   readonly time: string; // e.g. '14:00' or '+1h'
   readonly temperature: number;
@@ -107,7 +107,7 @@ export interface ProgressBoxConfig {
   readonly endDate?: string;
 }
 
-/** Single entry in a 3-day daily forecast — day label + high/low + condition */
+/** Single entry in a daily forecast — day label + high/low + condition */
 export interface Forecast3DEntry {
   readonly day: string; // e.g. 'Mon', 'Tue'
   readonly high: number;
@@ -269,13 +269,13 @@ interface WeatherBentoBox extends BentoBoxBase {
   readonly config?: WeatherBoxConfig;
 }
 
-/** Forecast box (3-hour) with typed config */
+/** Hourly forecast box with typed config */
 interface ForecastBentoBox extends BentoBoxBase {
   readonly type: 'forecast';
   readonly config?: ForecastBoxConfig;
 }
 
-/** 3-day forecast box with typed config */
+/** Daily forecast box with typed config */
 interface Forecast3DBentoBox extends BentoBoxBase {
   readonly type: 'forecast3d';
   readonly config?: Forecast3DBoxConfig;
@@ -431,6 +431,8 @@ export interface BentoConfig {
   readonly width?: number;
   /** Override display height in pixels. Defaults to DeviceProfile / DISPLAY_HEIGHT. */
   readonly height?: number;
+  /** Temperature unit for weather/forecast displays (from the user's locale). Defaults to 'F'. */
+  readonly tempUnit?: 'F' | 'C';
 }
 
 /** Physical device profile */

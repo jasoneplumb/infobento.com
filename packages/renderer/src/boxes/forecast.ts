@@ -8,8 +8,8 @@
 import type { FrameBuffer } from '../index.js';
 import type { LayoutBox, ForecastBoxConfig } from '@infobento/core';
 import type { FontMetrics } from '../font-metrics.js';
-import { drawText, drawTextWrapped, drawIcon, GRAY_DARK, GRAY_LIGHT } from '../draw.js';
-import { BOX_ICONS, ICON_WIDTH } from '../icons.js';
+import { drawText, drawTextWrapped, GRAY_LIGHT } from '../draw.js';
+import { drawBoxHeader } from './header.js';
 
 export function renderForecastBox(
   fb: FrameBuffer,
@@ -17,6 +17,7 @@ export function renderForecastBox(
   config: ForecastBoxConfig,
   metrics: FontMetrics,
   showHeaders = true,
+  tempUnit: 'F' | 'C' = 'F',
 ): void {
   const pad = metrics.pad;
   const { x, y, width, height } = layout;
@@ -24,24 +25,7 @@ export function renderForecastBox(
 
   const count = config.hours ?? 8;
 
-  if (showHeaders) {
-    const icon = BOX_ICONS['forecast'];
-    if (icon) drawIcon(fb, x + pad, cy, icon, GRAY_LIGHT);
-    const labelX = x + pad + ICON_WIDTH + 3;
-    const headerText = config.city
-      ? `${config.city.toUpperCase()} ${String(count)}HR`
-      : `${String(count)}HR FCST`;
-    drawText(
-      fb,
-      labelX,
-      cy,
-      headerText,
-      width - pad * 2 - ICON_WIDTH - 3,
-      GRAY_DARK,
-      metrics.bodySize,
-    );
-    cy += metrics.bodySize + pad;
-  }
+  if (showHeaders) cy = drawBoxHeader(fb, layout, metrics);
 
   const contentWidth = width - pad * 2;
   const contentEnd = y + height - pad;
@@ -51,7 +35,7 @@ export function renderForecastBox(
   if (entries.length === 0) {
     renderPlaceholder(fb, x + pad, cy, contentWidth, contentEnd, config.city, metrics);
   } else {
-    renderEntries(fb, x + pad, cy, contentWidth, contentEnd, entries, count, metrics);
+    renderEntries(fb, x + pad, cy, contentWidth, contentEnd, entries, count, metrics, tempUnit);
   }
 }
 
@@ -64,6 +48,7 @@ function renderEntries(
   entries: readonly { time: string; temperature: number; condition: string }[],
   count: number,
   metrics: FontMetrics,
+  tempUnit: 'F' | 'C',
 ): void {
   const rowGap = metrics.rowGap;
   const timeColWidth = 6 * metrics.bodyAdvance;
@@ -76,7 +61,7 @@ function renderEntries(
 
     drawText(fb, x, cy, entry.time, timeColWidth, GRAY_LIGHT, metrics.bodySize);
 
-    const tempStr = `${Math.round(entry.temperature)}F`;
+    const tempStr = `${Math.round(entry.temperature)}°${tempUnit}`;
     drawText(fb, x + timeColWidth, cy, tempStr, tempColWidth, undefined, metrics.bodySize);
 
     const condX = x + timeColWidth + tempColWidth;

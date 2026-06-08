@@ -7,8 +7,8 @@
 import type { FrameBuffer } from '../index.js';
 import type { LayoutBox, SunBoxConfig } from '@infobento/core';
 import type { FontMetrics } from '../font-metrics.js';
-import { drawText, drawTextWrapped, drawIcon, GRAY_DARK, GRAY_LIGHT } from '../draw.js';
-import { BOX_ICONS, ICON_WIDTH } from '../icons.js';
+import { drawText, drawTextWrapped, GRAY_DARK, GRAY_LIGHT } from '../draw.js';
+import { drawBoxHeader } from './header.js';
 
 export function renderSunBox(
   fb: FrameBuffer,
@@ -20,31 +20,16 @@ export function renderSunBox(
   const { x, y, width, height } = layout;
   let cy = y + metrics.pad;
 
-  if (showHeaders) {
-    const icon = BOX_ICONS['sun'];
-    if (icon) drawIcon(fb, x + metrics.pad, cy, icon, GRAY_LIGHT);
-    const labelX = x + metrics.pad + ICON_WIDTH + 3;
-    const headerText = config.city ? `${config.city.toUpperCase()} SUN` : 'SUN';
-    drawText(
-      fb,
-      labelX,
-      cy,
-      headerText,
-      width - metrics.pad * 2 - ICON_WIDTH - 3,
-      GRAY_DARK,
-      metrics.bodySize,
-    );
-    cy += metrics.bodySize + metrics.pad;
-  }
+  if (showHeaders) cy = drawBoxHeader(fb, layout, metrics);
 
   const contentWidth = width - metrics.pad * 2;
   const contentEnd = y + height - metrics.pad;
   if (contentWidth <= 0) return;
 
   if (config.data) {
-    cy = renderSunData(fb, x + metrics.pad, cy, contentWidth, contentEnd, config.data, metrics);
+    renderSunData(fb, x + metrics.pad, cy, contentWidth, contentEnd, config.data, metrics);
   } else {
-    cy = renderPlaceholder(fb, x + metrics.pad, cy, contentWidth, contentEnd, config.city, metrics);
+    renderPlaceholder(fb, x + metrics.pad, cy, contentWidth, contentEnd, config.city, metrics);
   }
 }
 

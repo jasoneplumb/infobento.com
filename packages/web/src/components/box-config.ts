@@ -32,6 +32,7 @@ import {
   updateSunData,
   updateAQIData,
   updateStocksData,
+  getTempUnit,
 } from '../state';
 import type { CalendarEvent, HabitEntry, StockDuration } from '@infobento/core';
 import { STOCK_DURATIONS, DEFAULT_STOCK_DURATION } from '@infobento/core';
@@ -311,7 +312,7 @@ function buildWeatherForm(box: EditorBox): DocumentFragment {
     const city = cfg.city;
     if (!city.trim()) return;
     statusEl.textContent = 'Fetching weather\u2026';
-    const data = await fetchWeather(city);
+    const data = await fetchWeather(city, getTempUnit());
     if (data) {
       updateWeatherData(box.id, data);
       statusEl.textContent = `${data.temperature}\u00b0F, ${data.condition} (H: ${data.high}\u00b0 L: ${data.low}\u00b0)`;
@@ -351,7 +352,9 @@ function buildForecastForm(box: EditorBox): DocumentFragment {
   const summarize = (
     entries: readonly { time: string; temperature: number; condition: string }[],
   ): string =>
-    entries.map((e) => `${e.time} ${String(e.temperature)}°F ${e.condition}`).join(' · ');
+    entries
+      .map((e) => `${e.time} ${String(e.temperature)}°${getTempUnit()} ${e.condition}`)
+      .join(' · ');
 
   if (cfg.entries && cfg.entries.length > 0) {
     statusEl.textContent = summarize(cfg.entries);
@@ -361,7 +364,7 @@ function buildForecastForm(box: EditorBox): DocumentFragment {
     const city = cfg.city;
     if (!city.trim()) return;
     statusEl.textContent = 'Fetching forecast…';
-    const entries = await fetchForecast(city, cfg.hours ?? 8);
+    const entries = await fetchForecast(city, cfg.hours ?? 8, getTempUnit());
     if (entries && entries.length > 0) {
       updateForecastEntries(box.id, entries);
       statusEl.textContent = summarize(entries);
@@ -407,7 +410,9 @@ function buildForecast3DForm(box: EditorBox): DocumentFragment {
   const summarize = (
     entries: readonly { day: string; high: number; low: number; condition: string }[],
   ): string =>
-    entries.map((e) => `${e.day} ${String(e.high)}/${String(e.low)}°F ${e.condition}`).join(' · ');
+    entries
+      .map((e) => `${e.day} ${String(e.high)}/${String(e.low)}°${getTempUnit()} ${e.condition}`)
+      .join(' · ');
 
   if (cfg.entries && cfg.entries.length > 0) {
     statusEl.textContent = summarize(cfg.entries);
@@ -417,7 +422,7 @@ function buildForecast3DForm(box: EditorBox): DocumentFragment {
     const city = cfg.city;
     if (!city.trim()) return;
     statusEl.textContent = 'Fetching daily forecast\u2026';
-    const entries = await fetchForecast3D(city, cfg.days ?? 8);
+    const entries = await fetchForecast3D(city, cfg.days ?? 8, getTempUnit());
     if (entries && entries.length > 0) {
       updateForecast3DEntries(box.id, entries);
       statusEl.textContent = summarize(entries);

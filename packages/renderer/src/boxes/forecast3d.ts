@@ -10,8 +10,8 @@
 import type { FrameBuffer } from '../index.js';
 import type { LayoutBox, Forecast3DBoxConfig } from '@infobento/core';
 import type { FontMetrics } from '../font-metrics.js';
-import { drawText, drawTextWrapped, drawIcon, GRAY_DARK, GRAY_LIGHT } from '../draw.js';
-import { BOX_ICONS, ICON_WIDTH } from '../icons.js';
+import { drawText, drawTextWrapped, GRAY_LIGHT } from '../draw.js';
+import { drawBoxHeader } from './header.js';
 
 export function renderForecast3DBox(
   fb: FrameBuffer,
@@ -19,6 +19,7 @@ export function renderForecast3DBox(
   config: Forecast3DBoxConfig,
   metrics: FontMetrics,
   showHeaders = true,
+  tempUnit: 'F' | 'C' = 'F',
 ): void {
   const pad = metrics.pad;
   const { x, y, width, height } = layout;
@@ -26,24 +27,7 @@ export function renderForecast3DBox(
 
   const count = config.days ?? 8;
 
-  if (showHeaders) {
-    const icon = BOX_ICONS['forecast3d'];
-    if (icon) drawIcon(fb, x + pad, cy, icon, GRAY_LIGHT);
-    const labelX = x + pad + ICON_WIDTH + 3;
-    const headerText = config.city
-      ? `${config.city.toUpperCase()} ${String(count)}D`
-      : `${String(count)}-DAY`;
-    drawText(
-      fb,
-      labelX,
-      cy,
-      headerText,
-      width - pad * 2 - ICON_WIDTH - 3,
-      GRAY_DARK,
-      metrics.bodySize,
-    );
-    cy += metrics.bodySize + pad;
-  }
+  if (showHeaders) cy = drawBoxHeader(fb, layout, metrics);
 
   const contentWidth = width - pad * 2;
   const contentEnd = y + height - pad;
@@ -53,7 +37,7 @@ export function renderForecast3DBox(
   if (entries.length === 0) {
     renderPlaceholder(fb, x + pad, cy, contentWidth, contentEnd, config.city, metrics);
   } else {
-    renderEntries(fb, x + pad, cy, contentWidth, contentEnd, entries, count, metrics);
+    renderEntries(fb, x + pad, cy, contentWidth, contentEnd, entries, count, metrics, tempUnit);
   }
 }
 
@@ -66,10 +50,11 @@ function renderEntries(
   entries: readonly { day: string; high: number; low: number; condition: string }[],
   count: number,
   metrics: FontMetrics,
+  tempUnit: 'F' | 'C',
 ): void {
   const rowGap = metrics.rowGap;
   const dayColWidth = 4 * metrics.bodyAdvance;
-  const tempColWidth = 6 * metrics.bodyAdvance;
+  const tempColWidth = 9 * metrics.bodyAdvance;
   const rowHeight = metrics.bodySize + rowGap;
   let cy = y;
 
@@ -78,7 +63,7 @@ function renderEntries(
 
     drawText(fb, x, cy, entry.day, dayColWidth, GRAY_LIGHT, metrics.bodySize);
 
-    const tempStr = `${Math.round(entry.high)}/${Math.round(entry.low)}`;
+    const tempStr = `${Math.round(entry.high)}°/${Math.round(entry.low)}°${tempUnit}`;
     drawText(fb, x + dayColWidth, cy, tempStr, tempColWidth, undefined, metrics.bodySize);
 
     const condX = x + dayColWidth + tempColWidth;

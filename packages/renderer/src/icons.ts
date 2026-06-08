@@ -351,3 +351,12 @@ function expandIcons(src: Record<string, readonly number[]>): Record<string, rea
 
 /** Native-resolution icon data (28x28 per icon) */
 export const BOX_ICONS: Record<string, readonly number[]> = expandIcons(SRC_ICONS);
+
+/**
+ * Raw source icons (one SRC_ICON_SIZE-bit number per row), for scaling an icon
+ * to an arbitrary on-screen size (e.g. to match the header font height).
+ */
+export const SOURCE_ICONS: Record<string, readonly number[]> = SRC_ICONS;
+
+/** Side length in source pixels of a SOURCE_ICONS bitmap row. */
+export const SRC_ICON_SIZE = SRC_WIDTH;
