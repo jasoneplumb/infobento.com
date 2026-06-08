@@ -423,6 +423,9 @@ export interface BentoConfig {
   readonly showHeaders?: boolean;
   /** Body font size in pixels (8-42). Defaults to 20. */
   readonly fontSize?: number;
+  /** Text edge weight — the anti-aliasing round threshold (0.1–0.9). Higher is
+   *  bolder, lower is thinner/crisper. Defaults to 0.6. */
+  readonly fontWeight?: number;
   /** Corner radius level (0=square, 10=max round). Defaults to 3. */
   readonly cornerRadius?: number;
   /** Display padding level (0=none, 10=max). Defaults to 4. */

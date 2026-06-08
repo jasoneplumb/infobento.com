@@ -160,9 +160,16 @@ export function drawRect(
 /**
  * Round-threshold for the coverage→level mapping. 0.5 is plain rounding; higher
  * values bias edge pixels darker (slightly bolder strokes — thin antialiased
- * stems can render faint on eInk), lower values thinner/crisper. Tune to taste.
+ * stems can render faint on eInk), lower values thinner/crisper. Set once per
+ * render() from config.fontWeight (renders are synchronous, so a module-level
+ * value is safe and avoids threading it through every text call).
  */
-const AA_THRESHOLD = 0.6;
+let aaThreshold = 0.6;
+
+/** Set the text edge-weight threshold for subsequent text blits (0.1–0.9). */
+export function setAaThreshold(t: number): void {
+  aaThreshold = Math.min(0.9, Math.max(0.1, t));
+}
 
 /**
  * Blit a rasterized glyph bitmap into the frame buffer with 4-level grayscale.
@@ -187,7 +194,7 @@ function blitRaster(
       // tonal range (e.g. dark-grey text fades white→light→dark), instead of
       // mapping to absolute black and clamping — which flattened the AA for any
       // non-black text. AA_THRESHOLD biases edge weight (crisp ↔ bold).
-      const gray = Math.min(level, Math.floor(coverage * level + AA_THRESHOLD));
+      const gray = Math.min(level, Math.floor(coverage * level + aaThreshold));
       if (gray > 0) setPixel(fb, x + col, y + row, gray);
     }
   }

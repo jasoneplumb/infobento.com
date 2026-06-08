@@ -13,7 +13,14 @@ import type {
 } from '@infobento/core';
 import { DISPLAY_WIDTH, DISPLAY_HEIGHT, calculateLayout, splitLeftFraction } from '@infobento/core';
 import { measureText } from './ttf-font.js';
-import { drawRoundedRect, roundedRectSDF, setPixel, GRAY_WHITE, GRAY_DARK } from './draw.js';
+import {
+  drawRoundedRect,
+  roundedRectSDF,
+  setPixel,
+  setAaThreshold,
+  GRAY_WHITE,
+  GRAY_DARK,
+} from './draw.js';
 import { renderTextBox, renderPlaceholderBox } from './boxes/text.js';
 import { renderWeatherBox } from './boxes/weather.js';
 import { renderForecastBox } from './boxes/forecast.js';
@@ -301,6 +308,7 @@ function buildRenderLayout(
 }
 
 export function render(config: BentoConfig, device?: DeviceProfile): FrameBuffer {
+  setAaThreshold(config.fontWeight ?? 0.6); // text edge weight for this render
   const { layout, metrics, showHeaders } = buildRenderLayout(config, device);
   const fb = createFrameBuffer(layout.device);
 
