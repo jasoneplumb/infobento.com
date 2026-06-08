@@ -40,14 +40,18 @@ export function measureText(text: string, fontSize: number, bold = false): numbe
   const font = bold ? boldFont : regularFont;
   const scale = fontSize / font.unitsPerEm;
   let width = 0;
+  // Carry each glyph forward to the next iteration so each char is resolved once.
+  let glyph: opentype.Glyph | undefined;
   for (let i = 0; i < text.length; i++) {
-    const glyph = font.charToGlyph(text[i] ?? ' ');
-    width += (glyph.advanceWidth ?? 0) * scale;
+    const current = glyph ?? font.charToGlyph(text[i] ?? ' ');
+    width += (current.advanceWidth ?? 0) * scale;
     // Apply kerning
     if (i < text.length - 1) {
       const nextGlyph = font.charToGlyph(text[i + 1] ?? ' ');
-      const kern = font.getKerningValue(glyph, nextGlyph);
-      width += kern * scale;
+      width += font.getKerningValue(current, nextGlyph) * scale;
+      glyph = nextGlyph;
+    } else {
+      glyph = undefined;
     }
   }
   return Math.round(width);
@@ -113,16 +117,21 @@ function textToPathCommands(
   const scale = fontSize / font.unitsPerEm;
   const commands: opentype.PathCommand[] = [];
   let penX = 0;
+  // Carry each glyph forward to the next iteration so each char is resolved once.
+  let glyph: opentype.Glyph | undefined;
   for (let i = 0; i < text.length; i++) {
-    const glyph = font.charToGlyph(text[i] ?? ' ');
-    for (const cmd of glyph.getPath(penX, baseline, fontSize).commands) {
+    const current = glyph ?? font.charToGlyph(text[i] ?? ' ');
+    for (const cmd of current.getPath(penX, baseline, fontSize).commands) {
       commands.push(cmd);
     }
-    penX += (glyph.advanceWidth ?? 0) * scale;
+    penX += (current.advanceWidth ?? 0) * scale;
     // Apply kerning to the next glyph's pen position
     if (i < text.length - 1) {
       const nextGlyph = font.charToGlyph(text[i + 1] ?? ' ');
-      penX += font.getKerningValue(glyph, nextGlyph) * scale;
+      penX += font.getKerningValue(current, nextGlyph) * scale;
+      glyph = nextGlyph;
+    } else {
+      glyph = undefined;
     }
   }
   return commands;
