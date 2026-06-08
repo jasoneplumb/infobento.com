@@ -38,11 +38,15 @@ export interface WeatherConfig {
 
 export interface ForecastConfig {
   city: string;
+  /** Number of upcoming hours to fetch/render (1–12, default 8). */
+  hours?: number;
   entries?: ForecastEntry[];
 }
 
 export interface Forecast3DConfig {
   city: string;
+  /** Number of upcoming days to fetch/render (1–10, default 8). */
+  days?: number;
   entries?: Forecast3DEntry[];
 }
 
@@ -186,8 +190,8 @@ const DEFAULTS: Record<EditorBoxType, () => EditorBoxConfig> = {
   text: () => ({ content: '' }),
   countdown: () => ({ date: '', countdownLabel: '' }),
   weather: () => ({ city: '' }),
-  forecast: () => ({ city: '' }),
-  forecast3d: () => ({ city: '' }),
+  forecast: () => ({ city: '', hours: 8 }),
+  forecast3d: () => ({ city: '', days: 8 }),
   qr: () => ({ url: '' }),
   quote: () => ({ content: '', author: '' }),
   date: () => ({ _placeholder: '' }),
@@ -207,8 +211,8 @@ export const BOX_TYPE_LABELS: Record<EditorBoxType, string> = {
   text: 'Text',
   countdown: 'Countdown',
   weather: 'Weather',
-  forecast: '8hr Forecast',
-  forecast3d: '8-Day Forecast',
+  forecast: 'Hourly Forecast',
+  forecast3d: 'Daily Forecast',
   qr: 'QR Code',
   quote: 'Quote',
   date: 'Date',
@@ -230,7 +234,7 @@ export const BOX_TYPE_LABELS: Record<EditorBoxType, string> = {
  * First-time-user default layout (Round 12 Q4 decision, 2026-04-25).
  * 5 boxes, zero config required, no wizard:
  *   1. [Date | Weather]  merged top row
- *   2. 8-Day Forecast    full width
+ *   2. Daily Forecast    full width
  *   3. Quote             full width
  *   4. On This Day       full width
  * All input fields empty → forms auto-fetch on first render. IP-based
@@ -255,8 +259,8 @@ function defaultBoxes(): EditorBox[] {
     {
       id: uid(),
       type: 'forecast3d',
-      label: '8-Day Forecast',
-      config: { city: '' } as Forecast3DConfig,
+      label: 'Daily Forecast',
+      config: { city: '', days: 8 } as Forecast3DConfig,
     },
     {
       id: uid(),
@@ -499,12 +503,12 @@ export function setSplitRatio(id: number, ratio: number): void {
   });
 }
 
-export function updateConfig(id: number, key: string, value: string): void {
+export function updateConfig(id: number, key: string, value: string | number): void {
   const box = findBox(id);
   if (!box) return;
-  (box.config as unknown as Record<string, string>)[key] = value;
+  (box.config as unknown as Record<string, string | number>)[key] = value;
   // Remember the latest location so newly-added location rows can default to it.
-  if (key === 'city' && value.trim()) lastKnownLocation = value;
+  if (key === 'city' && typeof value === 'string' && value.trim()) lastKnownLocation = value;
   renderPreview();
 }
 

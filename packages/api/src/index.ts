@@ -8,7 +8,7 @@ import type { BentoConfig } from '@infobento/core';
 import { validateBentoConfig } from '@infobento/core';
 import type { ValidationResult } from '@infobento/core';
 import type { FrameBuffer, DualRenderResult } from '@infobento/renderer';
-import { render, renderBoth, frameToPng } from '@infobento/renderer';
+import { render, renderBoth, renderBothBoxIds, frameToPng } from '@infobento/renderer';
 
 // Re-export frameToPng for API consumers (also available from @infobento/renderer for web)
 export { frameToPng } from '@infobento/renderer';
@@ -37,15 +37,27 @@ export function generateDualFrame(config: BentoConfig): DualRenderResult {
   return renderBoth(config);
 }
 
-/** Both landscape and portrait PNG previews in one call */
+/**
+ * Both landscape and portrait PNG previews in one call, plus the box ids that
+ * actually render in each orientation (the rest were dropped — don't fit), so
+ * the editor can show which boxes made it onto the panel.
+ */
 export function generateDualPreview(
   config: BentoConfig,
   scale = 3,
-): { landscape: Uint8Array; portrait: Uint8Array } {
+): {
+  landscape: Uint8Array;
+  portrait: Uint8Array;
+  landscapeIds: string[];
+  portraitIds: string[];
+} {
   const dual = renderBoth(config);
+  const ids = renderBothBoxIds(config);
   return {
     landscape: frameToPng(dual.landscape, scale),
     portrait: frameToPng(dual.portrait, scale),
+    landscapeIds: ids.landscape,
+    portraitIds: ids.portrait,
   };
 }
 

@@ -113,6 +113,52 @@ function buildCard(
   return card;
 }
 
+// -- Rendered / dropped indicator -------------------------------------------
+
+/** Last set of rendered ids, re-applied whenever the list is rebuilt. */
+let _lastRenderedIds: ReadonlySet<string> | null = null;
+
+/**
+ * Mark which box-cards render on the panel vs. which were dropped (don't fit).
+ * Dropped boxes are always a trailing run (rows drop from the bottom at a row
+ * boundary), so a single divider before the first dropped group reads cleanly.
+ */
+export function decorateBoxList(renderedIds: ReadonlySet<string> | null): void {
+  _lastRenderedIds = renderedIds;
+  const list = document.getElementById('box-list');
+  if (!list) return;
+
+  list.querySelector('.box-fit-divider')?.remove();
+  list.classList.toggle('has-dropped', false);
+
+  let firstDropped: HTMLElement | null = null;
+  for (const child of Array.from(list.children)) {
+    if (!(child instanceof HTMLElement)) continue;
+    const cards = child.matches('.box-card')
+      ? [child]
+      : Array.from(child.querySelectorAll<HTMLElement>('.box-card'));
+    // Non-card rows (e.g. the merge button) carry no decoration.
+    if (cards.length === 0) {
+      child.classList.remove('box-dropped');
+      continue;
+    }
+    const dropped =
+      renderedIds != null &&
+      cards.some((c) => c.dataset.id != null && !renderedIds.has(c.dataset.id));
+    child.classList.toggle('box-dropped', dropped);
+    if (dropped && !firstDropped) firstDropped = child;
+  }
+
+  if (firstDropped && renderedIds != null) {
+    list.classList.add('has-dropped');
+    const divider = document.createElement('div');
+    divider.className = 'box-fit-divider';
+    divider.textContent =
+      "The following boxes won't fit on this display — reduce padding, font size or remove/merge boxes";
+    list.insertBefore(divider, firstDropped);
+  }
+}
+
 // -- Public render function -------------------------------------------------
 
 export function renderBoxList(containerId: string): void {
@@ -230,6 +276,9 @@ export function renderBoxList(containerId: string): void {
     }
   }
   list.appendChild(frag);
+
+  // Apply the rendered/dropped indicator to the freshly-built cards.
+  decorateBoxList(_lastRenderedIds);
 
   // Restore focus heuristic
   if (activeCardId) {

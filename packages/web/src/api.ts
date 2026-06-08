@@ -127,7 +127,7 @@ export async function fetchWeather(location: string): Promise<WeatherData | null
   }
 }
 
-// -- 8-hour forecast (Open-Meteo) -------------------------------------------
+// -- Hourly forecast (Open-Meteo) -------------------------------------------
 
 interface OpenMeteoHourly {
   hourly: {
@@ -138,34 +138,36 @@ interface OpenMeteoHourly {
 }
 
 /**
- * Geocode a location and fetch the next 8 hourly forecast entries
- * from Open-Meteo. Returns null on failure.
+ * Geocode a location and fetch the next `hours` hourly forecast entries
+ * (default 8) from Open-Meteo. Returns null on failure.
  */
-export async function fetchForecast(location: string): Promise<ForecastEntry[] | null> {
+export async function fetchForecast(location: string, hours = 8): Promise<ForecastEntry[] | null> {
   const place = await geocode(location);
   if (!place) return null;
 
   try {
+    // Source enough days to cover the current hour offset + requested span.
+    const forecastDays = Math.ceil((hours + 24) / 24);
     const url =
       `https://api.open-meteo.com/v1/forecast` +
       `?latitude=${String(place.latitude)}` +
       `&longitude=${String(place.longitude)}` +
       `&hourly=temperature_2m,weather_code` +
-      `&timezone=auto&forecast_days=2`;
+      `&timezone=auto&forecast_days=${String(forecastDays)}`;
     const res = await fetch(url);
     if (!res.ok) return null;
 
     const data = (await res.json()) as OpenMeteoHourly;
     const { time, temperature_2m, weather_code } = data.hourly;
 
-    // Find the index of the current hour, then take the next 8 entries
+    // Find the index of the current hour, then take the next `hours` entries
     const now = new Date();
     const currentHourIso = `${String(now.getFullYear())}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}T${String(now.getHours()).padStart(2, '0')}:00`;
     let startIdx = time.findIndex((t) => t >= currentHourIso);
     if (startIdx < 0) startIdx = 0;
 
     const entries: ForecastEntry[] = [];
-    for (let offset = 1; offset <= 8; offset++) {
+    for (let offset = 1; offset <= hours; offset++) {
       const i = startIdx + offset;
       const t = time[i];
       const temp = temperature_2m[i];
@@ -186,7 +188,7 @@ export async function fetchForecast(location: string): Promise<ForecastEntry[] |
   }
 }
 
-// -- 8-day daily forecast (Open-Meteo) --------------------------------------
+// -- Daily forecast (Open-Meteo) --------------------------------------------
 
 interface OpenMeteoDaily3D {
   daily: {
@@ -200,29 +202,34 @@ interface OpenMeteoDaily3D {
 const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'] as const;
 
 /**
- * Geocode a location and fetch the next 8 days of daily forecast data
- * from Open-Meteo. Returns null on failure.
+ * Geocode a location and fetch the next `days` of daily forecast data
+ * (default 8) from Open-Meteo. Returns null on failure.
  */
-export async function fetchForecast3D(location: string): Promise<Forecast3DEntry[] | null> {
+export async function fetchForecast3D(
+  location: string,
+  days = 8,
+): Promise<Forecast3DEntry[] | null> {
   const place = await geocode(location);
   if (!place) return null;
 
   try {
+    // Source one extra day because index 0 (today) is skipped below.
+    const forecastDays = days + 1;
     const url =
       `https://api.open-meteo.com/v1/forecast` +
       `?latitude=${String(place.latitude)}` +
       `&longitude=${String(place.longitude)}` +
       `&daily=temperature_2m_max,temperature_2m_min,weather_code` +
-      `&timezone=auto&forecast_days=9`;
+      `&timezone=auto&forecast_days=${String(forecastDays)}`;
     const res = await fetch(url);
     if (!res.ok) return null;
 
     const data = (await res.json()) as OpenMeteoDaily3D;
     const { time, temperature_2m_max, temperature_2m_min, weather_code } = data.daily;
 
-    // Skip today (index 0), take next 8 days
+    // Skip today (index 0), take next `days` days
     const entries: Forecast3DEntry[] = [];
-    for (let i = 1; i <= 8; i++) {
+    for (let i = 1; i <= days; i++) {
       const t = time[i];
       const high = temperature_2m_max[i];
       const low = temperature_2m_min[i];

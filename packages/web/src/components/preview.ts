@@ -70,7 +70,7 @@ function toBentoBox(editor: EditorBox): BentoBox {
       return {
         ...base,
         type: 'forecast',
-        config: { type: 'forecast', city: c.city, entries: c.entries },
+        config: { type: 'forecast', city: c.city, hours: c.hours, entries: c.entries },
       };
     }
     case 'forecast3d': {
@@ -78,7 +78,7 @@ function toBentoBox(editor: EditorBox): BentoBox {
       return {
         ...base,
         type: 'forecast3d',
-        config: { type: 'forecast3d', city: c.city, entries: c.entries },
+        config: { type: 'forecast3d', city: c.city, days: c.days, entries: c.entries },
       };
     }
     case 'qr': {
@@ -222,6 +222,26 @@ let _debounceTimer: ReturnType<typeof setTimeout> | undefined;
 let _showLandscape = false;
 let _containerId: string | undefined;
 
+// Box ids that actually render in each orientation (the rest were dropped — they
+// don't fit the panel). Drives the editor's "rendered vs. won't-fit" indicator.
+let _renderedIds: { landscape: readonly string[]; portrait: readonly string[] } | null = null;
+let _onRenderedIds: ((ids: ReadonlySet<string> | null) => void) | null = null;
+
+/** Register a callback fired when the set of rendered box ids changes. */
+export function onRenderedBoxIds(cb: (ids: ReadonlySet<string> | null) => void): void {
+  _onRenderedIds = cb;
+}
+
+/** The box ids rendered in the currently-shown orientation (null until first fetch). */
+export function getActiveRenderedIds(): ReadonlySet<string> | null {
+  if (!_renderedIds) return null;
+  return new Set(_showLandscape ? _renderedIds.landscape : _renderedIds.portrait);
+}
+
+function emitRenderedIds(): void {
+  _onRenderedIds?.(getActiveRenderedIds());
+}
+
 export function renderPreview(containerId: string): void {
   _containerId = containerId;
   // Debounce: wait 150ms after last call before fetching
@@ -232,6 +252,8 @@ export function renderPreview(containerId: string): void {
 export function setPreviewOrientation(landscape: boolean): void {
   _showLandscape = landscape;
   if (_containerId) mountActivePreview(_containerId);
+  // The dropped set differs per orientation — refresh the editor indicator.
+  emitRenderedIds();
 }
 
 function ensureImg(existing: HTMLImageElement | undefined, className: string): HTMLImageElement {
@@ -261,6 +283,8 @@ function renderPreviewNow(containerId: string): void {
   if (boxes.length === 0) {
     _imgLandscape = undefined;
     _imgPortrait = undefined;
+    _renderedIds = null;
+    emitRenderedIds();
     display.innerHTML = '<div class="eink-empty">&lt;Add a box...&gt;</div>';
     return;
   }
@@ -285,7 +309,12 @@ function renderPreviewNow(containerId: string): void {
   })
     .then((res) => {
       if (!res.ok) throw new Error(`Preview API returned ${String(res.status)}`);
-      return res.json() as Promise<{ landscape: string; portrait: string }>;
+      return res.json() as Promise<{
+        landscape: string;
+        portrait: string;
+        landscapeIds?: string[];
+        portraitIds?: string[];
+      }>;
     })
     .then((data) => {
       _imgLandscape = ensureImg(_imgLandscape, 'eink-canvas eink-landscape');
@@ -310,6 +339,11 @@ function renderPreviewNow(containerId: string): void {
       display.style.setProperty('--eink-radius', `${String(Math.round(radiusPx * scale))}px`);
 
       mountActivePreview(containerId);
+
+      // Record which boxes rendered per orientation and refresh the editor's
+      // "rendered vs. won't-fit" indicator for the active orientation.
+      _renderedIds = { landscape: data.landscapeIds ?? [], portrait: data.portraitIds ?? [] };
+      emitRenderedIds();
     })
     .catch((err: unknown) => {
       if (err instanceof DOMException && err.name === 'AbortError') return;

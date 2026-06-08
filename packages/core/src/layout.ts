@@ -40,33 +40,52 @@ export function calculateLayout(
   const totalWidth = effDevice.widthPx - pad * 2;
   const totalHeight = effDevice.heightPx - pad * 2;
 
-  // Dynamic box constraints derived from font size:
+  // Dynamic constraints derived from font size:
   //   MIN_BOX_HEIGHT ensures at least one line of body text + padding renders.
-  //   MAX_BOXES caps rows so they don't get too short to be useful.
+  //   MAX_ROWS caps visual rows so they don't get too short to be useful.
   const fontSize = config.fontSize ?? 20;
   const MIN_BOX_HEIGHT = Math.max(24, Math.round(fontSize * 1.6));
-  const MAX_BOXES = Math.min(10, Math.max(4, Math.floor(totalHeight / (fontSize * 3))));
+  const MAX_ROWS = Math.min(10, Math.max(4, Math.floor(totalHeight / (fontSize * 3))));
 
   if (boxes.length === 0) {
     return { boxes: [], device: effDevice };
   }
 
-  if (boxes.length > MAX_BOXES) {
-    // Truncate to MAX_BOXES rather than producing broken layout
-    return calculateLayout({ ...config, boxes: boxes.slice(0, MAX_BOXES) }, effDevice);
-  }
-
-  // Count visual rows: a split left+right pair occupies one row
+  // Walk boxes into visual rows (a split left+right pair is one row) and find
+  // how many rows actually fit. Two caps, BOTH row-aware so a merged pair is
+  // never severed:
+  //   • MAX_ROWS — guards against many tiny rows even when content is short.
+  //   • vertical space — each row needs at least its content height (the hint)
+  //     or MIN_BOX_HEIGHT; rows past the point where that no longer fits are
+  //     dropped WHOLE rather than severed mid-pair or starved to 0px height.
+  // Truncating at a row boundary and re-running keeps the retained rows clean.
+  // (Boxes with no hint — e.g. QR — fall back to MIN_BOX_HEIGHT here and are
+  // sized properly by the height pass below once they're known to fit.)
   let rowCount = 0;
-  for (let i = 0; i < boxes.length; i++) {
+  let usedHeight = 0;
+  let rowCutoff = boxes.length; // exclusive box index where rows stop fitting
+  for (let i = 0; i < boxes.length; ) {
     const box = boxes[i];
     const nextBox = i + 1 < boxes.length ? boxes[i + 1] : undefined;
-    if (box?.split === 'left' && nextBox?.split === 'right') {
-      rowCount++;
-      i++; // skip the right partner
-    } else {
-      rowCount++;
+    const isPair = box?.split === 'left' && nextBox?.split === 'right';
+    const rowMin = isPair
+      ? Math.max(heightHints?.get(i) ?? 0, heightHints?.get(i + 1) ?? 0, MIN_BOX_HEIGHT)
+      : Math.max(heightHints?.get(i) ?? 0, MIN_BOX_HEIGHT);
+    const gapBefore = rowCount > 0 ? gap : 0;
+    // Always keep the first row so something renders, even if it's oversized.
+    if (rowCount >= 1 && (rowCount >= MAX_ROWS || usedHeight + gapBefore + rowMin > totalHeight)) {
+      rowCutoff = i;
+      break;
     }
+    usedHeight += gapBefore + rowMin;
+    rowCount++;
+    i += isPair ? 2 : 1;
+  }
+
+  if (rowCutoff < boxes.length) {
+    // Some rows don't fit — drop them at a row boundary (never mid-pair) and
+    // re-run so the retained rows expand to fill the freed space.
+    return calculateLayout({ ...config, boxes: boxes.slice(0, rowCutoff) }, effDevice);
   }
 
   const dividerCount = Math.max(0, rowCount - 1);

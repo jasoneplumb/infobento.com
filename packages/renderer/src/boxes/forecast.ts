@@ -1,5 +1,6 @@
 /**
- * Intent: Render an 8-hour forecast bento box — time / temp / condition per row
+ * Intent: Render an hourly forecast bento box — time / temp / condition per row
+ *         (hour count from config.hours, default 8)
  * Context: Called by the main render() dispatcher for boxes with type 'forecast'
  * Pattern: Pure function — reads LayoutBox + config, draws into frame buffer
  */
@@ -21,11 +22,15 @@ export function renderForecastBox(
   const { x, y, width, height } = layout;
   let cy = y + pad;
 
+  const count = config.hours ?? 8;
+
   if (showHeaders) {
     const icon = BOX_ICONS['forecast'];
     if (icon) drawIcon(fb, x + pad, cy, icon, GRAY_LIGHT);
     const labelX = x + pad + ICON_WIDTH + 3;
-    const headerText = config.city ? `${config.city.toUpperCase()} 8HR` : '8HR FCST';
+    const headerText = config.city
+      ? `${config.city.toUpperCase()} ${String(count)}HR`
+      : `${String(count)}HR FCST`;
     drawText(
       fb,
       labelX,
@@ -46,7 +51,7 @@ export function renderForecastBox(
   if (entries.length === 0) {
     renderPlaceholder(fb, x + pad, cy, contentWidth, contentEnd, config.city, metrics);
   } else {
-    renderEntries(fb, x + pad, cy, contentWidth, contentEnd, entries, metrics);
+    renderEntries(fb, x + pad, cy, contentWidth, contentEnd, entries, count, metrics);
   }
 }
 
@@ -57,6 +62,7 @@ function renderEntries(
   maxWidth: number,
   maxY: number,
   entries: readonly { time: string; temperature: number; condition: string }[],
+  count: number,
   metrics: FontMetrics,
 ): void {
   const rowGap = metrics.rowGap;
@@ -65,7 +71,7 @@ function renderEntries(
   const rowHeight = metrics.bodySize + rowGap;
   let cy = y;
 
-  for (const entry of entries.slice(0, 8)) {
+  for (const entry of entries.slice(0, count)) {
     if (cy + metrics.bodySize > maxY) return;
 
     drawText(fb, x, cy, entry.time, timeColWidth, GRAY_LIGHT, metrics.bodySize);

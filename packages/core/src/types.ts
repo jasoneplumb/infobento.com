@@ -41,6 +41,8 @@ export interface ForecastBoxConfig {
   readonly city: string;
   readonly lat?: number;
   readonly lon?: number;
+  /** Number of upcoming hours to fetch/render (1–12, default 8). */
+  readonly hours?: number;
   readonly entries?: readonly ForecastEntry[];
 }
 
@@ -118,6 +120,8 @@ export interface Forecast3DBoxConfig {
   readonly city: string;
   readonly lat?: number;
   readonly lon?: number;
+  /** Number of upcoming days to fetch/render (1–10, default 8). */
+  readonly days?: number;
   readonly entries?: readonly Forecast3DEntry[];
 }
 

@@ -40,6 +40,7 @@ const ForecastBoxConfigSchema = z.object({
   city: z.string().min(1, 'Location is required'),
   lat: z.number().optional(),
   lon: z.number().optional(),
+  hours: z.number().int().min(1).max(12).optional(),
   entries: z.array(ForecastEntrySchema).optional(),
 });
 
@@ -55,6 +56,7 @@ const Forecast3DBoxConfigSchema = z.object({
   city: z.string().min(1, 'Location is required'),
   lat: z.number().optional(),
   lon: z.number().optional(),
+  days: z.number().int().min(1).max(10).optional(),
   entries: z.array(Forecast3DEntrySchema).optional(),
 });
 

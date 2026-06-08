@@ -26,8 +26,8 @@ import {
   setDeviceProfile,
 } from './state';
 import { DEVICE_PROFILES } from '@infobento/core';
-import { renderBoxList } from './components/box-list';
-import { renderPreview, setPreviewOrientation } from './components/preview';
+import { renderBoxList, decorateBoxList } from './components/box-list';
+import { renderPreview, setPreviewOrientation, onRenderedBoxIds } from './components/preview';
 import { requireConsent } from './components/consent';
 import { ensureLocationDefault } from './geolocation';
 
@@ -45,6 +45,9 @@ function render(): void {
 
 onRender(render);
 onPreviewRender(renderAllPreviews);
+// When a preview resolves (or the orientation changes), update the editor's
+// indicator showing which boxes rendered vs. were dropped (don't fit the panel).
+onRenderedBoxIds(decorateBoxList);
 
 // -- Add chips (one per box type; hidden once that type is in use) -----------
 
