@@ -1,5 +1,23 @@
 # Changelog
 
+## [0.25.0] - 2026-06-08
+
+### Added
+
+- **Adjustable forecast counts.** Hourly and Daily forecast boxes now have a −/+ stepper for how many hours/days to show — Hourly 1–24, Daily 1–20 (daily capped at Open-Meteo's 16-day limit), default 3. The renderer, fetch, and Zod validation all honor the configured count. (#102)
+- **Grouped, always-available Add-box palette.** Box-type chips are organized into themed groups (Weather & Sky, Time & Dates, Personal, Fun & Discovery, Utility) and stay visible at all times; any box type can now be added more than once. Each chip has a hover × to hide it, and hidden chips collapse into a persisted "Hidden (N)" list that restores on click. (#102)
+- **"Won't fit" editor indicator.** When a layout's content can't fit the panel, the box list de-emphasizes the dropped boxes and shows a divider naming them, updating live per orientation. (#102)
+
+### Changed
+
+- **Box headers show the editor label + a font-scaled icon.** With "Show Box Headers" on, every box renders its editor label verbatim (its own case) beside the box-type icon, which now scales to the font size instead of a fixed 28px. Default labels are durable ("Hourly Forecast" / "Daily Forecast") regardless of count. A shared `drawBoxHeader` helper removes the header code previously duplicated across all box renderers. (#102)
+- **Temperatures show just the degree symbol** ("62°", "H:68° L:55°"), with the value following the IP locale — °F values in the US (and a few territories), °C elsewhere. The weather box is more compact: the condition wraps one word per line beside the hero temperature. (#102)
+
+### Fixed
+
+- **Over-stuffed layouts no longer lose part of a merged row or render invisible boxes** on short panels (e.g. the reTerminal E1001 in landscape). The layout caps visual rows (not raw boxes) and drops overflow rows whole at a row boundary — never severing a merged pair or starving a box to 0px — based on content-aware height. (#102)
+- **The eInk preview no longer clips behind the editor.** A wide landscape preview scales to fit its cell (via `max-width` + `aspect-ratio`) instead of being cut off on the right. (#102)
+
 ## [0.24.0] - 2026-06-07
 
 ### Changed
