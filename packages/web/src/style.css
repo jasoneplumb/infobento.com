@@ -405,11 +405,14 @@ main {
 
 /* -- Rendered / "won't fit" indicator (box list) --------------------------- */
 
-/* Boxes the layout dropped because they don't fit the current panel/font. */
+/* Boxes the layout dropped because they don't fit the current panel/font.
+   Shown at full strength but with a red accent (instead of the usual blue):
+   overriding the accent variables recolors the card border, header rule, and
+   focus/hover states wherever they use var(--accent). */
 .box-card.box-dropped,
 .box-pair-group.box-dropped {
-  opacity: 0.5;
-  filter: grayscale(0.4);
+  --accent: var(--danger);
+  --accent-hover: var(--danger-hover);
 }
 
 /* Boundary between what renders and what was dropped. */
