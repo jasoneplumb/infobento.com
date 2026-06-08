@@ -1,6 +1,6 @@
 /**
  * Intent: Render a daily forecast bento box — single line per day
- *         (day count from config.days, default 8)
+ *         (day count from config.days, default 3)
  * Context: Called by the main render() dispatcher for boxes with type 'forecast3d'
  * Pattern: Pure function — reads LayoutBox + config, draws into frame buffer
  *
@@ -19,13 +19,12 @@ export function renderForecast3DBox(
   config: Forecast3DBoxConfig,
   metrics: FontMetrics,
   showHeaders = true,
-  tempUnit: 'F' | 'C' = 'F',
 ): void {
   const pad = metrics.pad;
   const { x, y, width, height } = layout;
   let cy = y + pad;
 
-  const count = config.days ?? 8;
+  const count = config.days ?? 3;
 
   if (showHeaders) cy = drawBoxHeader(fb, layout, metrics);
 
@@ -37,7 +36,7 @@ export function renderForecast3DBox(
   if (entries.length === 0) {
     renderPlaceholder(fb, x + pad, cy, contentWidth, contentEnd, config.city, metrics);
   } else {
-    renderEntries(fb, x + pad, cy, contentWidth, contentEnd, entries, count, metrics, tempUnit);
+    renderEntries(fb, x + pad, cy, contentWidth, contentEnd, entries, count, metrics);
   }
 }
 
@@ -50,11 +49,10 @@ function renderEntries(
   entries: readonly { day: string; high: number; low: number; condition: string }[],
   count: number,
   metrics: FontMetrics,
-  tempUnit: 'F' | 'C',
 ): void {
   const rowGap = metrics.rowGap;
   const dayColWidth = 4 * metrics.bodyAdvance;
-  const tempColWidth = 9 * metrics.bodyAdvance;
+  const tempColWidth = 7 * metrics.bodyAdvance;
   const rowHeight = metrics.bodySize + rowGap;
   let cy = y;
 
@@ -63,7 +61,7 @@ function renderEntries(
 
     drawText(fb, x, cy, entry.day, dayColWidth, GRAY_LIGHT, metrics.bodySize);
 
-    const tempStr = `${Math.round(entry.high)}°/${Math.round(entry.low)}°${tempUnit}`;
+    const tempStr = `${Math.round(entry.high)}°/${Math.round(entry.low)}°`;
     drawText(fb, x + dayColWidth, cy, tempStr, tempColWidth, undefined, metrics.bodySize);
 
     const condX = x + dayColWidth + tempColWidth;

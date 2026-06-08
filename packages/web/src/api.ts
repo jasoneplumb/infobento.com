@@ -147,11 +147,11 @@ interface OpenMeteoHourly {
 
 /**
  * Geocode a location and fetch the next `hours` hourly forecast entries
- * (default 8) from Open-Meteo. Returns null on failure.
+ * (default 3) from Open-Meteo. Returns null on failure.
  */
 export async function fetchForecast(
   location: string,
-  hours = 8,
+  hours = 3,
   unit: 'F' | 'C' = 'F',
 ): Promise<ForecastEntry[] | null> {
   const place = await geocode(location);
@@ -215,19 +215,20 @@ const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'] as const;
 
 /**
  * Geocode a location and fetch the next `days` of daily forecast data
- * (default 8) from Open-Meteo. Returns null on failure.
+ * (default 3) from Open-Meteo. Returns null on failure.
  */
 export async function fetchForecast3D(
   location: string,
-  days = 8,
+  days = 3,
   unit: 'F' | 'C' = 'F',
 ): Promise<Forecast3DEntry[] | null> {
   const place = await geocode(location);
   if (!place) return null;
 
   try {
-    // Source one extra day because index 0 (today) is skipped below.
-    const forecastDays = days + 1;
+    // Source one extra day because index 0 (today) is skipped below; Open-Meteo
+    // caps daily forecasts at 16 days, so longer spans yield up to ~15 entries.
+    const forecastDays = Math.min(16, days + 1);
     const url =
       `https://api.open-meteo.com/v1/forecast` +
       `?latitude=${String(place.latitude)}` +

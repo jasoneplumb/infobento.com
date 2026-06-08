@@ -41,7 +41,7 @@ export interface ForecastBoxConfig {
   readonly city: string;
   readonly lat?: number;
   readonly lon?: number;
-  /** Number of upcoming hours to fetch/render (1–12, default 8). */
+  /** Number of upcoming hours to fetch/render (1–24, default 3). */
   readonly hours?: number;
   readonly entries?: readonly ForecastEntry[];
 }
@@ -120,7 +120,7 @@ export interface Forecast3DBoxConfig {
   readonly city: string;
   readonly lat?: number;
   readonly lon?: number;
-  /** Number of upcoming days to fetch/render (1–10, default 8). */
+  /** Number of upcoming days to fetch/render (1–20, default 3). */
   readonly days?: number;
   readonly entries?: readonly Forecast3DEntry[];
 }
@@ -431,8 +431,6 @@ export interface BentoConfig {
   readonly width?: number;
   /** Override display height in pixels. Defaults to DeviceProfile / DISPLAY_HEIGHT. */
   readonly height?: number;
-  /** Temperature unit for weather/forecast displays (from the user's locale). Defaults to 'F'. */
-  readonly tempUnit?: 'F' | 'C';
 }
 
 /** Physical device profile */

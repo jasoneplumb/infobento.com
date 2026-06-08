@@ -1,6 +1,6 @@
 /**
  * Intent: Render an hourly forecast bento box — time / temp / condition per row
- *         (hour count from config.hours, default 8)
+ *         (hour count from config.hours, default 3)
  * Context: Called by the main render() dispatcher for boxes with type 'forecast'
  * Pattern: Pure function — reads LayoutBox + config, draws into frame buffer
  */
@@ -17,13 +17,12 @@ export function renderForecastBox(
   config: ForecastBoxConfig,
   metrics: FontMetrics,
   showHeaders = true,
-  tempUnit: 'F' | 'C' = 'F',
 ): void {
   const pad = metrics.pad;
   const { x, y, width, height } = layout;
   let cy = y + pad;
 
-  const count = config.hours ?? 8;
+  const count = config.hours ?? 3;
 
   if (showHeaders) cy = drawBoxHeader(fb, layout, metrics);
 
@@ -35,7 +34,7 @@ export function renderForecastBox(
   if (entries.length === 0) {
     renderPlaceholder(fb, x + pad, cy, contentWidth, contentEnd, config.city, metrics);
   } else {
-    renderEntries(fb, x + pad, cy, contentWidth, contentEnd, entries, count, metrics, tempUnit);
+    renderEntries(fb, x + pad, cy, contentWidth, contentEnd, entries, count, metrics);
   }
 }
 
@@ -48,7 +47,6 @@ function renderEntries(
   entries: readonly { time: string; temperature: number; condition: string }[],
   count: number,
   metrics: FontMetrics,
-  tempUnit: 'F' | 'C',
 ): void {
   const rowGap = metrics.rowGap;
   const timeColWidth = 6 * metrics.bodyAdvance;
@@ -61,7 +59,7 @@ function renderEntries(
 
     drawText(fb, x, cy, entry.time, timeColWidth, GRAY_LIGHT, metrics.bodySize);
 
-    const tempStr = `${Math.round(entry.temperature)}°${tempUnit}`;
+    const tempStr = `${Math.round(entry.temperature)}°`;
     drawText(fb, x + timeColWidth, cy, tempStr, tempColWidth, undefined, metrics.bodySize);
 
     const condX = x + timeColWidth + tempColWidth;

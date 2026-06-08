@@ -351,10 +351,7 @@ function buildForecastForm(box: EditorBox): DocumentFragment {
 
   const summarize = (
     entries: readonly { time: string; temperature: number; condition: string }[],
-  ): string =>
-    entries
-      .map((e) => `${e.time} ${String(e.temperature)}°${getTempUnit()} ${e.condition}`)
-      .join(' · ');
+  ): string => entries.map((e) => `${e.time} ${String(e.temperature)}° ${e.condition}`).join(' · ');
 
   if (cfg.entries && cfg.entries.length > 0) {
     statusEl.textContent = summarize(cfg.entries);
@@ -364,7 +361,7 @@ function buildForecastForm(box: EditorBox): DocumentFragment {
     const city = cfg.city;
     if (!city.trim()) return;
     statusEl.textContent = 'Fetching forecast…';
-    const entries = await fetchForecast(city, cfg.hours ?? 8, getTempUnit());
+    const entries = await fetchForecast(city, cfg.hours ?? 3, getTempUnit());
     if (entries && entries.length > 0) {
       updateForecastEntries(box.id, entries);
       statusEl.textContent = summarize(entries);
@@ -386,7 +383,7 @@ function buildForecastForm(box: EditorBox): DocumentFragment {
     }),
   );
   frag.appendChild(
-    makeStepperField('Hours', cfg.hours ?? 8, 1, 12, (n) => {
+    makeStepperField('Hours', cfg.hours ?? 3, 1, 24, (n) => {
       updateConfig(box.id, 'hours', n);
       debouncedFetch(box.id, doFetch);
     }),
@@ -410,9 +407,7 @@ function buildForecast3DForm(box: EditorBox): DocumentFragment {
   const summarize = (
     entries: readonly { day: string; high: number; low: number; condition: string }[],
   ): string =>
-    entries
-      .map((e) => `${e.day} ${String(e.high)}/${String(e.low)}°${getTempUnit()} ${e.condition}`)
-      .join(' · ');
+    entries.map((e) => `${e.day} ${String(e.high)}/${String(e.low)}° ${e.condition}`).join(' · ');
 
   if (cfg.entries && cfg.entries.length > 0) {
     statusEl.textContent = summarize(cfg.entries);
@@ -422,7 +417,7 @@ function buildForecast3DForm(box: EditorBox): DocumentFragment {
     const city = cfg.city;
     if (!city.trim()) return;
     statusEl.textContent = 'Fetching daily forecast\u2026';
-    const entries = await fetchForecast3D(city, cfg.days ?? 8, getTempUnit());
+    const entries = await fetchForecast3D(city, cfg.days ?? 3, getTempUnit());
     if (entries && entries.length > 0) {
       updateForecast3DEntries(box.id, entries);
       statusEl.textContent = summarize(entries);
@@ -444,7 +439,7 @@ function buildForecast3DForm(box: EditorBox): DocumentFragment {
     }),
   );
   frag.appendChild(
-    makeStepperField('Days', cfg.days ?? 8, 1, 10, (n) => {
+    makeStepperField('Days', cfg.days ?? 3, 1, 20, (n) => {
       updateConfig(box.id, 'days', n);
       debouncedFetch(box.id, doFetch);
     }),

@@ -22,7 +22,6 @@ export function renderWeatherBox(
   config: WeatherBoxConfig,
   metrics: FontMetrics,
   showHeaders = true,
-  tempUnit: 'F' | 'C' = 'F',
 ): void {
   const { x, y, width, height } = layout;
   let cy = y + metrics.pad;
@@ -35,7 +34,7 @@ export function renderWeatherBox(
   if (contentWidth <= 0) return;
 
   if (config.data) {
-    renderWeatherData(fb, x + metrics.pad, cy, contentWidth, contentEnd, config, metrics, tempUnit);
+    renderWeatherData(fb, x + metrics.pad, cy, contentWidth, contentEnd, config, metrics);
   } else {
     renderPlaceholder(fb, x + metrics.pad, cy, contentWidth, contentEnd, config.city, metrics);
   }
@@ -54,14 +53,13 @@ function renderWeatherData(
   maxY: number,
   config: WeatherBoxConfig,
   metrics: FontMetrics,
-  tempUnit: 'F' | 'C',
 ): number {
   const data = config.data;
   if (!data) return y;
   let cy = y;
 
-  // Hero temperature (e.g., "62°F")
-  const tempStr = `${Math.round(data.temperature)}°${tempUnit}`;
+  // Hero temperature (e.g., "62°")
+  const tempStr = `${Math.round(data.temperature)}°`;
   drawHeroText(fb, x, cy, tempStr, maxWidth, GRAY_DARK, metrics.heroSize);
 
   // Condition beside hero text (e.g., "Partly Cloudy")
@@ -87,7 +85,7 @@ function renderWeatherData(
   if (cy + metrics.bodySize > maxY) return cy;
 
   // High / Low (e.g., "H:68 L:55")
-  const hlStr = `H:${Math.round(data.high)}° L:${Math.round(data.low)}°${tempUnit}`;
+  const hlStr = `H:${Math.round(data.high)}° L:${Math.round(data.low)}°`;
   drawText(fb, x, cy, hlStr, maxWidth, GRAY_LIGHT, metrics.bodySize);
   cy += metrics.bodySize + metrics.pad;
 
