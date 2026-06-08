@@ -158,9 +158,17 @@ export function drawRect(
 }
 
 /**
+ * Round-threshold for the coverage→level mapping. 0.5 is plain rounding; higher
+ * values bias edge pixels darker (slightly bolder strokes — thin antialiased
+ * stems can render faint on eInk), lower values thinner/crisper. Tune to taste.
+ */
+const AA_THRESHOLD = 0.6;
+
+/**
  * Blit a rasterized glyph bitmap into the frame buffer with 4-level grayscale.
- * Coverage values (0.0-1.0) map to gray levels: 0→white, ≤0.33→light, ≤0.66→dark, >0.66→black.
- * The `level` parameter scales the maximum darkness (e.g., GRAY_DARK caps at dark gray).
+ * Coverage (0.0-1.0) maps proportionally to the text color's tonal range
+ * (`floor(coverage * level + AA_THRESHOLD)`), so each color gets a real edge ramp.
+ * The `level` parameter is the text's target darkness (e.g. GRAY_DARK = dark gray).
  */
 function blitRaster(
   fb: FrameBuffer,
@@ -178,8 +186,8 @@ function blitRaster(
       // Proportional anti-aliasing: ramp coverage across the text color's own
       // tonal range (e.g. dark-grey text fades white→light→dark), instead of
       // mapping to absolute black and clamping — which flattened the AA for any
-      // non-black text.
-      const gray = Math.round(coverage * level);
+      // non-black text. AA_THRESHOLD biases edge weight (crisp ↔ bold).
+      const gray = Math.min(level, Math.floor(coverage * level + AA_THRESHOLD));
       if (gray > 0) setPixel(fb, x + col, y + row, gray);
     }
   }
