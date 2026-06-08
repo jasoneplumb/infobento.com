@@ -34,23 +34,41 @@ export const BODY_LINE_HEIGHT = Math.round(BODY_FONT_SIZE * 1.3);
 export const HERO_LINE_HEIGHT = Math.round(HERO_FONT_SIZE * 1.15);
 
 /**
+ * Walk a string glyph-by-glyph, invoking `visit` with each glyph at its pen
+ * x-offset (advance and kerning applied). Each character is resolved via
+ * charToGlyph exactly once by carrying the glyph forward to the next iteration.
+ * Returns the total advance width in pixels. Shared by measureText and
+ * textToPathCommands so measurement and rasterization can never drift apart.
+ */
+function walkGlyphs(
+  font: opentype.Font,
+  text: string,
+  fontSize: number,
+  visit?: (glyph: opentype.Glyph, penX: number) => void,
+): number {
+  const scale = fontSize / font.unitsPerEm;
+  let penX = 0;
+  let glyph: opentype.Glyph | undefined;
+  for (let i = 0; i < text.length; i++) {
+    const current = glyph ?? font.charToGlyph(text[i] ?? ' ');
+    visit?.(current, penX);
+    penX += (current.advanceWidth ?? 0) * scale;
+    // Apply kerning to advance the pen toward the next glyph
+    if (i < text.length - 1) {
+      const nextGlyph = font.charToGlyph(text[i + 1] ?? ' ');
+      penX += font.getKerningValue(current, nextGlyph) * scale;
+      glyph = nextGlyph;
+    }
+  }
+  return penX;
+}
+
+/**
  * Measure the width of a string in pixels at the given font size.
  */
 export function measureText(text: string, fontSize: number, bold = false): number {
   const font = bold ? boldFont : regularFont;
-  const scale = fontSize / font.unitsPerEm;
-  let width = 0;
-  for (let i = 0; i < text.length; i++) {
-    const glyph = font.charToGlyph(text[i] ?? ' ');
-    width += (glyph.advanceWidth ?? 0) * scale;
-    // Apply kerning
-    if (i < text.length - 1) {
-      const nextGlyph = font.charToGlyph(text[i + 1] ?? ' ');
-      const kern = font.getKerningValue(glyph, nextGlyph);
-      width += kern * scale;
-    }
-  }
-  return Math.round(width);
+  return Math.round(walkGlyphs(font, text, fontSize));
 }
 
 /**
@@ -84,15 +102,41 @@ export function rasterizeText(
 
   const data = new Float32Array(width * height);
 
-  // Get the path for the text
-  const path = font.getPath(text, 0, ascender, fontSize);
+  // Build path commands per-glyph rather than via Font.getPath. opentype.js 2.x
+  // applies GSUB layout features inside Font.getPath and throws on Inter's
+  // unsupported lookup type 6 / substFormat 2; positioning each glyph ourselves
+  // (mirroring measureText's advance + kerning walk) sidesteps that and matches
+  // opentype.js 1.x getPath output — kerning applied, no ligature substitution.
+  const cmds = textToPathCommands(font, text, fontSize, ascender);
 
   // Rasterize: for each pixel, check if it's inside the path using a scanline approach
   // opentype.js gives us path commands — we'll use a simple coverage-based approach
-  const cmds = path.commands;
   rasterizePath(cmds, data, width, height);
 
   return { data, width, height, baseline: ascender };
+}
+
+/**
+ * Build path commands for a string by positioning each glyph individually.
+ * Drives glyph.getPath directly so we never enter Font.getPath's GSUB
+ * substitution (unsupported for Inter in opentype.js 2.x). Advance and kerning
+ * match measureText so glyph positions stay consistent between measure and raster.
+ */
+function textToPathCommands(
+  font: opentype.Font,
+  text: string,
+  fontSize: number,
+  baseline: number,
+): opentype.PathCommand[] {
+  const commands: opentype.PathCommand[] = [];
+  walkGlyphs(font, text, fontSize, (glyph, penX) => {
+    // Pass `font` so composite/compound glyphs (e.g. some accented chars) can
+    // resolve their component glyphs; without it they silently emit empty paths.
+    for (const cmd of glyph.getPath(penX, baseline, fontSize, {}, font).commands) {
+      commands.push(cmd);
+    }
+  });
+  return commands;
 }
 
 /**
