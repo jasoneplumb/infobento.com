@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.25.1] - 2026-06-08
+
+### Fixed
+
+- Boxes that don't fit the panel (shown below the "won't fit" divider) are now marked with a **red accent** — card border, header rule, and focus/hover — at full strength, instead of being greyed out. They stay fully legible and editable. (#103)
+
 ## [0.25.0] - 2026-06-08
 
 ### Added
