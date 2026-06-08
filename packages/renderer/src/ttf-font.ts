@@ -34,27 +34,41 @@ export const BODY_LINE_HEIGHT = Math.round(BODY_FONT_SIZE * 1.3);
 export const HERO_LINE_HEIGHT = Math.round(HERO_FONT_SIZE * 1.15);
 
 /**
+ * Walk a string glyph-by-glyph, invoking `visit` with each glyph at its pen
+ * x-offset (advance and kerning applied). Each character is resolved via
+ * charToGlyph exactly once by carrying the glyph forward to the next iteration.
+ * Returns the total advance width in pixels. Shared by measureText and
+ * textToPathCommands so measurement and rasterization can never drift apart.
+ */
+function walkGlyphs(
+  font: opentype.Font,
+  text: string,
+  fontSize: number,
+  visit?: (glyph: opentype.Glyph, penX: number) => void,
+): number {
+  const scale = fontSize / font.unitsPerEm;
+  let penX = 0;
+  let glyph: opentype.Glyph | undefined;
+  for (let i = 0; i < text.length; i++) {
+    const current = glyph ?? font.charToGlyph(text[i] ?? ' ');
+    visit?.(current, penX);
+    penX += (current.advanceWidth ?? 0) * scale;
+    // Apply kerning to advance the pen toward the next glyph
+    if (i < text.length - 1) {
+      const nextGlyph = font.charToGlyph(text[i + 1] ?? ' ');
+      penX += font.getKerningValue(current, nextGlyph) * scale;
+      glyph = nextGlyph;
+    }
+  }
+  return penX;
+}
+
+/**
  * Measure the width of a string in pixels at the given font size.
  */
 export function measureText(text: string, fontSize: number, bold = false): number {
   const font = bold ? boldFont : regularFont;
-  const scale = fontSize / font.unitsPerEm;
-  let width = 0;
-  // Carry each glyph forward to the next iteration so each char is resolved once.
-  let glyph: opentype.Glyph | undefined;
-  for (let i = 0; i < text.length; i++) {
-    const current = glyph ?? font.charToGlyph(text[i] ?? ' ');
-    width += (current.advanceWidth ?? 0) * scale;
-    // Apply kerning
-    if (i < text.length - 1) {
-      const nextGlyph = font.charToGlyph(text[i + 1] ?? ' ');
-      width += font.getKerningValue(current, nextGlyph) * scale;
-      glyph = nextGlyph;
-    } else {
-      glyph = undefined;
-    }
-  }
-  return Math.round(width);
+  return Math.round(walkGlyphs(font, text, fontSize));
 }
 
 /**
@@ -114,28 +128,14 @@ function textToPathCommands(
   fontSize: number,
   baseline: number,
 ): opentype.PathCommand[] {
-  const scale = fontSize / font.unitsPerEm;
   const commands: opentype.PathCommand[] = [];
-  let penX = 0;
-  // Carry each glyph forward to the next iteration so each char is resolved once.
-  let glyph: opentype.Glyph | undefined;
-  for (let i = 0; i < text.length; i++) {
-    const current = glyph ?? font.charToGlyph(text[i] ?? ' ');
+  walkGlyphs(font, text, fontSize, (glyph, penX) => {
     // Pass `font` so composite/compound glyphs (e.g. some accented chars) can
     // resolve their component glyphs; without it they silently emit empty paths.
-    for (const cmd of current.getPath(penX, baseline, fontSize, {}, font).commands) {
+    for (const cmd of glyph.getPath(penX, baseline, fontSize, {}, font).commands) {
       commands.push(cmd);
     }
-    penX += (current.advanceWidth ?? 0) * scale;
-    // Apply kerning to the next glyph's pen position
-    if (i < text.length - 1) {
-      const nextGlyph = font.charToGlyph(text[i + 1] ?? ' ');
-      penX += font.getKerningValue(current, nextGlyph) * scale;
-      glyph = nextGlyph;
-    } else {
-      glyph = undefined;
-    }
-  }
+  });
   return commands;
 }
 
