@@ -13,7 +13,7 @@ import type {
 } from '@infobento/core';
 import { DISPLAY_WIDTH, DISPLAY_HEIGHT, calculateLayout, splitLeftFraction } from '@infobento/core';
 import { measureText } from './ttf-font.js';
-import { drawRoundedRect, roundedRectSDF, setPixel, GRAY_WHITE, GRAY_DARK } from './draw.js';
+import { roundedRectSDF, setPixel, GRAY_WHITE, GRAY_LIGHT } from './draw.js';
 import { renderTextBox, renderPlaceholderBox } from './boxes/text.js';
 import { renderWeatherBox } from './boxes/weather.js';
 import { renderForecastBox } from './boxes/forecast.js';
@@ -320,24 +320,31 @@ export function render(config: BentoConfig, device?: DeviceProfile): FrameBuffer
 
   const radiusLevel = config.cornerRadius ?? 3;
   const cornerRadius = radiusLevel * 4; // 0=0px, 3=12px (default), 5=20px
-  const borderPx = 4;
+  const SS = 3; // 3×3 supersampling for smooth rounded-corner coverage
 
   for (const layoutBox of layout.boxes) {
     const { x, y, width, height } = layoutBox;
     const r = Math.min(cornerRadius, Math.floor(width / 2), Math.floor(height / 2));
 
-    // Fill white interior inside the rounded rect (only where dist < 0)
+    // Fill the white rounded interior. Each pixel is 3×3 supersampled against
+    // the rounded-rect SDF: fully-inside stays white, fully-outside stays dark
+    // field, and partially-covered curve pixels become GRAY_LIGHT — a soft band
+    // that antialiases the corners. Straight axis-aligned edges are fully in or
+    // out (no partial samples), so they stay crisp.
     for (let py = 0; py < height; py++) {
       for (let px = 0; px < width; px++) {
-        const dist = roundedRectSDF(px, py, width, height, r);
-        if (dist < 0) {
-          setPixel(fb, x + px, y + py, GRAY_WHITE);
+        let inside = 0;
+        for (let sy = 0; sy < SS; sy++) {
+          for (let sx = 0; sx < SS; sx++) {
+            const subX = px + (sx + 0.5) / SS - 0.5;
+            const subY = py + (sy + 0.5) / SS - 0.5;
+            if (roundedRectSDF(subX, subY, width, height, r) < 0) inside++;
+          }
         }
+        if (inside === 0) continue; // fully outside → leave the dark field
+        setPixel(fb, x + px, y + py, inside === SS * SS ? GRAY_WHITE : GRAY_LIGHT);
       }
     }
-
-    // Antialiased mid-grey rounded border (handles its own edge antialiasing)
-    drawRoundedRect(fb, x, y, width, height, r, borderPx, GRAY_DARK);
 
     renderBox(fb, layoutBox, metrics, showHeaders);
   }
