@@ -207,7 +207,9 @@ main {
 }
 
 .eink-preview-pair {
-  background: #fff;
+  /* Match the eInk dark-grey field (GRAY_DARK = 0x55) so the rounded-corner clip
+     and any object-fit letterboxing blend in instead of flashing white bars. */
+  background: #555;
   border: 2px solid #444;
   border-radius: var(--eink-radius, 6px);
   overflow: hidden;
