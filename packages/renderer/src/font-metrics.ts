@@ -38,7 +38,7 @@ export interface FontMetrics {
  * At DEFAULT_FONT_SIZE (20), all values match the original hardcoded constants:
  *   pad=16, rowGap=8, heroSize=52
  * @param weightCss Inter static weight in CSS units (100–900), NOT the editor's
- *   0.1–0.9 fraction — callers convert (`fraction * 1000`) before passing.
+ *   0.1–0.9 fraction — callers convert (`round(fraction * 10) * 100`) before passing.
  */
 export function computeFontMetrics(
   fontSize?: number,

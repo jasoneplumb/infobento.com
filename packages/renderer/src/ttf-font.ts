@@ -33,7 +33,17 @@ const WEIGHT_FILES: Record<number, string> = {
 const regularFont = loadFont('Inter-Regular.ttf'); // guaranteed fallback weight
 const weightFonts = new Map<number, opentype.Font>();
 for (const [w, file] of Object.entries(WEIGHT_FILES)) {
-  weightFonts.set(Number(w), Number(w) === 400 ? regularFont : loadFont(file));
+  if (Number(w) === 400) {
+    weightFonts.set(400, regularFont);
+    continue;
+  }
+  // Fail fast at import with a clear, file-naming message if an asset is missing
+  // (partial deploy, .gitignore glob, etc.) rather than a raw Node ENOENT.
+  try {
+    weightFonts.set(Number(w), loadFont(file));
+  } catch (err) {
+    throw new Error(`[renderer] Failed to load Inter weight ${w} from ${file}: ${String(err)}`);
+  }
 }
 
 /** Default body weight (Inter Regular) when a caller doesn't specify one. */
@@ -54,7 +64,12 @@ export function headingWeight(bodyWeight: number): number {
 }
 
 function fontFor(weight: number): opentype.Font {
-  return weightFonts.get(snapWeight(weight)) ?? regularFont;
+  // snapWeight always yields a key present in weightFonts; a miss means the
+  // WEIGHT_FILES/weightFonts maps diverged — fail loudly rather than silently
+  // rendering the wrong weight.
+  const font = weightFonts.get(snapWeight(weight));
+  if (!font) throw new Error(`No font loaded for weight ${snapWeight(weight)}`);
+  return font;
 }
 
 /** Body text size in pixels (height) — appropriate for 920x680 at ~130-200 DPI */

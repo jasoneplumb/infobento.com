@@ -285,8 +285,10 @@ function buildRenderLayout(
   config: BentoConfig,
   device?: DeviceProfile,
 ): { layout: LayoutResult; metrics: FontMetrics; showHeaders: boolean } {
-  // Font Weight: 0.1–0.9 → Inter static weight 100–900 (defaults to 0.4, Regular)
-  const metrics = computeFontMetrics(config.fontSize, (config.fontWeight ?? 0.4) * 1000);
+  // Font Weight: 0.1–0.9 → Inter static weight 100–900 (defaults to 0.4, Regular).
+  // round(*10)*100 keeps the conversion integer-clean (0.7*1000 = 700.0000000000001).
+  const weightCss = Math.round((config.fontWeight ?? 0.4) * 10) * 100;
+  const metrics = computeFontMetrics(config.fontSize, weightCss);
   const baseDevice = device ?? {
     widthPx: DISPLAY_WIDTH,
     heightPx: DISPLAY_HEIGHT,

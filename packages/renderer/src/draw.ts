@@ -119,7 +119,9 @@ export function drawRoundedRect(
 
       if (coverage <= 0.01) continue;
 
-      // Map coverage to grey level for antialiasing
+      // Map coverage to grey level for antialiasing. Borders intentionally use
+      // this geometric SDF bucketing, distinct from the proportional typographic
+      // ramp in blitRaster (floor(coverage*level + AA_THRESHOLD)) — don't unify.
       let gray: number;
       if (coverage > 0.66) gray = level;
       else if (coverage > 0.33) gray = Math.max(1, level - 1);
@@ -190,6 +192,8 @@ function blitRaster(
       // tonal range (e.g. dark-grey text fades white→light→dark), instead of
       // mapping to absolute black and clamping — which flattened the AA for any
       // non-black text. AA_THRESHOLD biases edge weight (crisp ↔ bold).
+      // For GRAY_LIGHT text (level=1) this is binary 0/1 with an effective ~40%
+      // coverage threshold — an inherent limit of 4-level depth, not a ramp.
       const gray = Math.min(level, Math.floor(coverage * level + AA_THRESHOLD));
       if (gray > 0) setPixel(fb, x + col, y + row, gray);
     }
