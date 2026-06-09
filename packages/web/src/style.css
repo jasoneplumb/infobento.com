@@ -189,7 +189,7 @@ main {
     width: 50%;
     max-width: 700px;
     /* Scroll (don't clip) when a physical-size preview — e.g. the 7.5" panel
-       in landscape (~617px) — is wider than the cell. */
+       in landscape (~925px) — is wider than the cell. */
     overflow: auto;
     flex-shrink: 0;
   }
@@ -223,15 +223,15 @@ main {
    by the editor on the right. aspect-ratio keeps height in step with the
    capped width. */
 .eink-preview-pair.landscape {
-  width: calc(var(--eink-w, 617) * 1px);
+  width: calc(var(--eink-w, 925) * 1px);
   max-width: 100%;
-  aspect-ratio: var(--eink-w, 617) / var(--eink-h, 370);
+  aspect-ratio: var(--eink-w, 925) / var(--eink-h, 555);
 }
 
 .eink-preview-pair.portrait {
-  width: calc(var(--eink-h, 370) * 1px);
+  width: calc(var(--eink-h, 555) * 1px);
   max-width: 100%;
-  aspect-ratio: var(--eink-h, 370) / var(--eink-w, 617);
+  aspect-ratio: var(--eink-h, 555) / var(--eink-w, 925);
 }
 
 .eink-display img,

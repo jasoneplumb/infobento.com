@@ -326,11 +326,14 @@ function renderPreviewNow(containerId: string): void {
       _imgLandscape.src = `data:image/png;base64,${data.landscape}`;
       _imgPortrait.src = `data:image/png;base64,${data.portrait}`;
 
-      // Size the preview at the panel's TRUE physical size (CSS reference
-      // 96px = 1in) so it matches the real device at 100% zoom — a 7.5" panel
-      // reads larger than a 5.76" one regardless of pixel count.
+      // Size the preview to match the real panel's physical size on screen.
+      // The CSS reference (96px = 1in) under-sizes on typical high-DPI monitors,
+      // so apply a calibration factor measured against the physical reTerminal
+      // E1001 — a 7.5" panel still reads larger than a 5.76" one regardless of
+      // pixel count.
       const profile = getDeviceProfile();
-      const CSS_PX_PER_MM = 96 / 25.4;
+      const PREVIEW_CALIBRATION = 1.5; // on-screen size → matches real hardware
+      const CSS_PX_PER_MM = (96 / 25.4) * PREVIEW_CALIBRATION;
       const wCss = Math.round(profile.widthMm * CSS_PX_PER_MM);
       const hCss = Math.round(profile.heightMm * CSS_PX_PER_MM);
       display.style.setProperty('--eink-w', String(wCss));
