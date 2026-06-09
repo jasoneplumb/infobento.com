@@ -260,7 +260,7 @@ wireStepper(
   getCornerRadius,
   setCornerRadius,
   0,
-  10,
+  7,
   1,
   String,
 );

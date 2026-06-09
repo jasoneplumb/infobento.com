@@ -311,6 +311,9 @@ const DEFAULT_PADDING = 4;
 const clampFontWeight = (v: number): number =>
   Math.round(Math.max(0.1, Math.min(0.9, v)) * 10) / 10;
 
+/** Clamp a corner-radius level to the stepper's [0, 7] range. */
+const clampCornerRadius = (v: number): number => Math.max(0, Math.min(7, v));
+
 const state: EditorState = {
   boxes: defaultBoxes(),
   showHeaders: false,
@@ -661,7 +664,7 @@ export function getCornerRadius(): number {
 }
 
 export function setCornerRadius(value: number): void {
-  state.cornerRadius = Math.max(0, Math.min(10, value));
+  state.cornerRadius = clampCornerRadius(value);
   persistToLocalStorage();
   renderPreview();
 }
@@ -814,7 +817,8 @@ function loadFromLocalStorage(): boolean {
       if (typeof obj.showHeaders === 'boolean') state.showHeaders = obj.showHeaders;
       if (typeof obj.fontSize === 'number') state.fontSize = obj.fontSize;
       if (typeof obj.fontWeight === 'number') state.fontWeight = clampFontWeight(obj.fontWeight);
-      if (typeof obj.cornerRadius === 'number') state.cornerRadius = obj.cornerRadius;
+      if (typeof obj.cornerRadius === 'number')
+        state.cornerRadius = clampCornerRadius(obj.cornerRadius);
       if (typeof obj.padding === 'number') state.padding = obj.padding;
       if (
         typeof obj.profileId === 'string' &&
@@ -894,7 +898,8 @@ export function importJSON(): void {
             if (typeof obj.showHeaders === 'boolean') s.showHeaders = obj.showHeaders;
             if (typeof obj.fontSize === 'number') s.fontSize = obj.fontSize;
             if (typeof obj.fontWeight === 'number') s.fontWeight = clampFontWeight(obj.fontWeight);
-            if (typeof obj.cornerRadius === 'number') s.cornerRadius = obj.cornerRadius;
+            if (typeof obj.cornerRadius === 'number')
+              s.cornerRadius = clampCornerRadius(obj.cornerRadius);
             if (typeof obj.padding === 'number') s.padding = obj.padding;
           });
           return;
