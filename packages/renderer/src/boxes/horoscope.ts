@@ -43,5 +43,6 @@ export function renderHoroscopeBox(
     bodyMaxHeight,
     undefined,
     metrics.bodySize,
+    metrics.weight,
   );
 }

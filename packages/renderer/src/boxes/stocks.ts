@@ -42,14 +42,32 @@ export function renderStocksBox(
   if (showHeaders) cy = drawBoxHeader(fb, layout, metrics);
 
   // Hero symbol (e.g. "AAPL")
-  drawHeroText(fb, x + metrics.pad, cy, config.symbol, undefined, GRAY_DARK, metrics.heroSize);
+  drawHeroText(
+    fb,
+    x + metrics.pad,
+    cy,
+    config.symbol,
+    undefined,
+    GRAY_DARK,
+    metrics.heroSize,
+    metrics.headingWeight,
+  );
   cy += metrics.heroSize + 2;
 
   if (config.data) {
     // Price in hero font
     const priceStr = config.data.price.toFixed(2);
     if (cy + metrics.heroSize <= y + height - metrics.pad) {
-      drawHeroText(fb, x + metrics.pad, cy, priceStr, undefined, GRAY_DARK, metrics.heroSize);
+      drawHeroText(
+        fb,
+        x + metrics.pad,
+        cy,
+        priceStr,
+        undefined,
+        GRAY_DARK,
+        metrics.heroSize,
+        metrics.headingWeight,
+      );
       cy += metrics.heroSize + 4;
     }
 
@@ -64,6 +82,7 @@ export function renderStocksBox(
         width - metrics.pad * 2,
         GRAY_LIGHT,
         metrics.bodySize,
+        metrics.weight,
       );
       cy += metrics.bodySize + metrics.pad;
     }
@@ -78,6 +97,7 @@ export function renderStocksBox(
         width - metrics.pad * 2,
         GRAY_LIGHT,
         metrics.bodySize,
+        metrics.weight,
       );
       cy += metrics.bodySize + metrics.pad;
     }

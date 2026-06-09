@@ -16,6 +16,8 @@ import {
   LOCATION_TYPES,
   getCornerRadius,
   getFontSize,
+  getFontWeight,
+  setFontWeight,
   getPadding,
   getShowHeaders,
   getDeviceProfile,
@@ -191,6 +193,21 @@ if (profileSelect) {
   }
   profileSelect.value = getDeviceProfile().id;
   profileSelect.addEventListener('change', () => setDeviceProfile(profileSelect.value));
+}
+
+// -- Wire up Font Weight slider (1–9 → Inter static weight 100–900) ---------
+
+const weightSlider = document.querySelector<HTMLInputElement>('#font-weight-slider');
+const weightDisplay = document.getElementById('font-weight-display');
+if (weightSlider) {
+  const v = Math.round(getFontWeight() * 10);
+  weightSlider.value = String(v);
+  if (weightDisplay) weightDisplay.textContent = String(v * 100); // show weight (100–900)
+  weightSlider.addEventListener('input', () => {
+    const n = Number(weightSlider.value);
+    if (weightDisplay) weightDisplay.textContent = String(n * 100);
+    setFontWeight(n / 10);
+  });
 }
 
 // -- Wire up Font Size stepper -----------------------------------------------

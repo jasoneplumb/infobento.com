@@ -5,7 +5,13 @@
  * @deprecated Use computeFontMetrics() from font-metrics.ts instead
  */
 
-import { HERO_FONT_SIZE, HERO_LINE_HEIGHT, measureText } from './ttf-font.js';
+import {
+  HERO_FONT_SIZE,
+  HERO_LINE_HEIGHT,
+  measureText,
+  headingWeight,
+  DEFAULT_BODY_WEIGHT,
+} from './ttf-font.js';
 
 /** Height of hero text in pixels */
 export const HERO_FONT_HEIGHT = HERO_FONT_SIZE;
@@ -14,4 +20,8 @@ export const HERO_FONT_HEIGHT = HERO_FONT_SIZE;
 export const HERO_LINE_HEIGHT_PX = HERO_LINE_HEIGHT;
 
 /** Average character advance width for hero text — approximated from 'M' */
-export const HERO_CHAR_ADVANCE = measureText('M', HERO_FONT_SIZE, true);
+export const HERO_CHAR_ADVANCE = measureText(
+  'M',
+  HERO_FONT_SIZE,
+  headingWeight(DEFAULT_BODY_WEIGHT),
+);

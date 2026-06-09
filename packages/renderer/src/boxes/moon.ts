@@ -186,7 +186,7 @@ export function renderMoonBox(
   const textMaxW = width - metrics.pad * 2 - MOON_BITMAP_SIZE - metrics.pad;
   let textBottom = cy;
   if (textMaxW > 0) {
-    drawText(fb, textX, cy, name, textMaxW, undefined, metrics.bodySize);
+    drawText(fb, textX, cy, name, textMaxW, undefined, metrics.bodySize, metrics.weight);
     textBottom = cy + metrics.bodySize;
     cy += metrics.bodySize + 3;
     if (cy + metrics.bodySize <= y + height - metrics.pad) {
@@ -198,6 +198,7 @@ export function renderMoonBox(
         textMaxW,
         GRAY_LIGHT,
         metrics.bodySize,
+        metrics.weight,
       );
       textBottom = cy + metrics.bodySize;
     }

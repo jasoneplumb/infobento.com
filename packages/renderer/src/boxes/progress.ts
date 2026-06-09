@@ -107,7 +107,16 @@ export function renderProgressBox(
   const pctStr = `${String(pct)}%`;
 
   // Hero percentage
-  drawHeroText(fb, x + metrics.pad, cy, pctStr, undefined, GRAY_DARK, metrics.heroSize);
+  drawHeroText(
+    fb,
+    x + metrics.pad,
+    cy,
+    pctStr,
+    undefined,
+    GRAY_DARK,
+    metrics.heroSize,
+    metrics.headingWeight,
+  );
 
   const heroWidth = pctStr.length * metrics.heroAdvance;
   cy += metrics.heroSize + 2;
@@ -131,6 +140,7 @@ export function renderProgressBox(
       width - metrics.pad * 2,
       GRAY_LIGHT,
       metrics.bodySize,
+      metrics.weight,
     );
     cy += metrics.bodySize + metrics.pad;
   }

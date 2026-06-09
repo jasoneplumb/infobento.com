@@ -116,7 +116,12 @@ function renderBox(
  * method: Split on \n first (each newline starts a new line), then word-wrap
  *   each segment using the same metrics as drawTextWrapped.
  */
-function countWrappedLines(text: string, bodyWidth: number, fontSize: number): number {
+function countWrappedLines(
+  text: string,
+  bodyWidth: number,
+  fontSize: number,
+  weight: number,
+): number {
   if (!text) return 1;
   let total = 0;
   for (const segment of text.split('\n')) {
@@ -129,7 +134,7 @@ function countWrappedLines(text: string, bodyWidth: number, fontSize: number): n
     let lines = 1;
     for (const word of words) {
       const testLine = line ? `${line} ${word}` : word;
-      const testWidth = measureText(testLine, fontSize);
+      const testWidth = measureText(testLine, fontSize, weight);
       if (line && testWidth > bodyWidth) {
         lines++;
         line = word;
@@ -158,7 +163,8 @@ function computeMinHeight(
   const padding = 2 * metrics.pad; // top + bottom margins
   const headerH = showHeaders ? metrics.bodySize + metrics.pad : 0;
   const shell = (content: number): number => padding + headerH + content;
-  const wrap = (text: string): number => countWrappedLines(text, bodyWidth, metrics.bodySize);
+  const wrap = (text: string): number =>
+    countWrappedLines(text, bodyWidth, metrics.bodySize, metrics.weight);
 
   if (box.type === 'quote' && box.config?.type === 'quote') {
     const author = box.config.author ? lineH : 0;
@@ -279,7 +285,10 @@ function buildRenderLayout(
   config: BentoConfig,
   device?: DeviceProfile,
 ): { layout: LayoutResult; metrics: FontMetrics; showHeaders: boolean } {
-  const metrics = computeFontMetrics(config.fontSize);
+  // Font Weight: 0.1–0.9 → Inter static weight 100–900 (defaults to 0.4, Regular).
+  // round(*10)*100 keeps the conversion integer-clean (0.7*1000 = 700.0000000000001).
+  const weightCss = Math.round((config.fontWeight ?? 0.4) * 10) * 100;
+  const metrics = computeFontMetrics(config.fontSize, weightCss);
   const baseDevice = device ?? {
     widthPx: DISPLAY_WIDTH,
     heightPx: DISPLAY_HEIGHT,
@@ -304,9 +313,9 @@ export function render(config: BentoConfig, device?: DeviceProfile): FrameBuffer
   const { layout, metrics, showHeaders } = buildRenderLayout(config, device);
   const fb = createFrameBuffer(layout.device);
 
-  // Fill background with light grey when boxes exist
+  // Fill background (gaps + margins) with dark grey when boxes exist
   if (layout.boxes.length > 0) {
-    fb.data.fill(0x55); // 0b01010101 = GRAY_LIGHT (1) for all 4 pixels per byte
+    fb.data.fill(0xaa); // 0b10101010 = GRAY_DARK (2) for all 4 pixels per byte
   }
 
   const radiusLevel = config.cornerRadius ?? 3;

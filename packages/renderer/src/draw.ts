@@ -12,6 +12,8 @@ import {
   BODY_LINE_HEIGHT,
   HERO_FONT_SIZE,
   HERO_LINE_HEIGHT,
+  DEFAULT_BODY_WEIGHT,
+  headingWeight,
 } from './ttf-font.js';
 import { ICON_WIDTH, ICON_HEIGHT } from './icons.js';
 
@@ -117,7 +119,9 @@ export function drawRoundedRect(
 
       if (coverage <= 0.01) continue;
 
-      // Map coverage to grey level for antialiasing
+      // Map coverage to grey level for antialiasing. Borders intentionally use
+      // this geometric SDF bucketing, distinct from the proportional typographic
+      // ramp in blitRaster (floor(coverage*level + AA_THRESHOLD)) — don't unify.
       let gray: number;
       if (coverage > 0.66) gray = level;
       else if (coverage > 0.33) gray = Math.max(1, level - 1);
@@ -158,9 +162,18 @@ export function drawRect(
 }
 
 /**
+ * Round-threshold for the coverage→level mapping. 0.5 is plain rounding; 0.6
+ * biases edge pixels slightly darker so thin antialiased stems don't render
+ * faint on eInk. Stroke weight is handled separately by real Inter static-weight
+ * font selection (the `weight` param on rasterizeText/measureText), so this stays fixed.
+ */
+const AA_THRESHOLD = 0.6;
+
+/**
  * Blit a rasterized glyph bitmap into the frame buffer with 4-level grayscale.
- * Coverage values (0.0-1.0) map to gray levels: 0→white, ≤0.33→light, ≤0.66→dark, >0.66→black.
- * The `level` parameter scales the maximum darkness (e.g., GRAY_DARK caps at dark gray).
+ * Coverage (0.0-1.0) maps proportionally to the text color's tonal range
+ * (`floor(coverage * level + AA_THRESHOLD)`), so each color gets a real edge ramp.
+ * The `level` parameter is the text's target darkness (e.g. GRAY_DARK = dark gray).
  */
 function blitRaster(
   fb: FrameBuffer,
@@ -175,12 +188,13 @@ function blitRaster(
     for (let col = 0; col < width; col++) {
       const coverage = data[row * width + col] ?? 0;
       if (coverage <= 0.01) continue; // skip fully transparent
-      let gray: number;
-      if (coverage > 0.66) gray = GRAY_BLACK;
-      else if (coverage > 0.33) gray = GRAY_DARK;
-      else gray = GRAY_LIGHT;
-      // Cap at the requested level
-      if (gray > level) gray = level;
+      // Proportional anti-aliasing: ramp coverage across the text color's own
+      // tonal range (e.g. dark-grey text fades white→light→dark), instead of
+      // mapping to absolute black and clamping — which flattened the AA for any
+      // non-black text. AA_THRESHOLD biases edge weight (crisp ↔ bold).
+      // For GRAY_LIGHT text (level=1) this is binary 0/1 with an effective ~40%
+      // coverage threshold — an inherent limit of 4-level depth, not a ramp.
+      const gray = Math.min(level, Math.floor(coverage * level + AA_THRESHOLD));
       if (gray > 0) setPixel(fb, x + col, y + row, gray);
     }
   }
@@ -197,8 +211,9 @@ export function drawChar(
   char: string,
   level: number = GRAY_BLACK,
   fontSize: number = BODY_FONT_SIZE,
+  weight: number = DEFAULT_BODY_WEIGHT,
 ): void {
-  const raster = rasterizeText(char, fontSize, false);
+  const raster = rasterizeText(char, fontSize, weight);
   blitRaster(fb, x, y, raster.data, raster.width, raster.height, level);
 }
 
@@ -214,9 +229,10 @@ export function drawText(
   maxWidth?: number,
   level: number = GRAY_BLACK,
   fontSize: number = BODY_FONT_SIZE,
+  weight: number = DEFAULT_BODY_WEIGHT,
 ): { charsDrawn: number; width: number } {
   if (!text) return { charsDrawn: 0, width: 0 };
-  const raster = rasterizeText(text, fontSize, false, maxWidth);
+  const raster = rasterizeText(text, fontSize, weight, maxWidth);
   blitRaster(fb, x, y, raster.data, raster.width, raster.height, level);
   return { charsDrawn: text.length, width: raster.width };
 }
@@ -235,13 +251,14 @@ export function drawTextWrapped(
   maxHeight: number,
   level: number = GRAY_BLACK,
   fontSize: number = BODY_FONT_SIZE,
+  weight: number = DEFAULT_BODY_WEIGHT,
 ): number {
   const lineHeight = Math.round(fontSize * 1.3);
   let cy = y;
 
   const flush = (line: string): boolean => {
     if (line) {
-      const raster = rasterizeText(line, fontSize, false, maxWidth);
+      const raster = rasterizeText(line, fontSize, weight, maxWidth);
       blitRaster(fb, x, cy, raster.data, raster.width, raster.height, level);
     }
     cy += lineHeight;
@@ -260,7 +277,7 @@ export function drawTextWrapped(
     let line = '';
     for (const word of words) {
       const testLine = line ? `${line} ${word}` : word;
-      const testWidth = measureText(testLine, fontSize);
+      const testWidth = measureText(testLine, fontSize, weight);
       if (line && testWidth > maxWidth) {
         if (!flush(line)) return cy - y;
         line = word;
@@ -286,8 +303,9 @@ export function drawHeroChar(
   char: string,
   level: number = GRAY_BLACK,
   fontSize: number = HERO_FONT_SIZE,
+  weight: number = headingWeight(DEFAULT_BODY_WEIGHT),
 ): void {
-  const raster = rasterizeText(char, fontSize, true);
+  const raster = rasterizeText(char, fontSize, weight);
   blitRaster(fb, x, y, raster.data, raster.width, raster.height, level);
 }
 
@@ -303,9 +321,10 @@ export function drawHeroText(
   maxWidth?: number,
   level: number = GRAY_BLACK,
   fontSize: number = HERO_FONT_SIZE,
+  weight: number = headingWeight(DEFAULT_BODY_WEIGHT),
 ): { charsDrawn: number; width: number } {
   if (!text) return { charsDrawn: 0, width: 0 };
-  const raster = rasterizeText(text, fontSize, true, maxWidth);
+  const raster = rasterizeText(text, fontSize, weight, maxWidth);
   blitRaster(fb, x, y, raster.data, raster.width, raster.height, level);
   return { charsDrawn: text.length, width: raster.width };
 }

@@ -172,6 +172,8 @@ export interface EditorState {
   boxes: EditorBox[];
   showHeaders: boolean;
   fontSize: number;
+  /** Body font weight (0.1–0.9 → Inter static weight 100–900). */
+  fontWeight: number;
   cornerRadius: number;
   padding: number;
   profileId: string;
@@ -299,13 +301,21 @@ function defaultBoxes(): EditorBox[] {
 // -- State + render callback ------------------------------------------------
 
 const DEFAULT_FONT_SIZE = 38;
+const DEFAULT_FONT_WEIGHT = 0.4; // Inter Regular (400)
 const DEFAULT_CORNER_RADIUS = 3;
 const DEFAULT_PADDING = 4;
+
+/** Clamp a font weight to the slider's [0.1, 0.9] range AND snap it to the 0.1
+ *  step grid, so externally-edited values stay consistent with the slider, the
+ *  `multipleOf(0.1)` API contract, and the renderer's `snapWeight`. */
+const clampFontWeight = (v: number): number =>
+  Math.round(Math.max(0.1, Math.min(0.9, v)) * 10) / 10;
 
 const state: EditorState = {
   boxes: defaultBoxes(),
   showHeaders: false,
   fontSize: DEFAULT_FONT_SIZE,
+  fontWeight: DEFAULT_FONT_WEIGHT,
   cornerRadius: DEFAULT_CORNER_RADIUS,
   padding: DEFAULT_PADDING,
   profileId: DEFAULT_PROFILE_ID,
@@ -635,6 +645,17 @@ export function setFontSize(value: number): void {
   renderPreview();
 }
 
+/** Body font weight (0.1–0.9 → Inter static weight 100–900). */
+export function getFontWeight(): number {
+  return state.fontWeight;
+}
+
+export function setFontWeight(value: number): void {
+  state.fontWeight = clampFontWeight(value);
+  persistToLocalStorage();
+  renderPreview();
+}
+
 export function getCornerRadius(): number {
   return state.cornerRadius;
 }
@@ -726,6 +747,7 @@ function persistToLocalStorage(): void {
       boxes: serializeBoxes(state.boxes),
       showHeaders: state.showHeaders,
       fontSize: state.fontSize,
+      fontWeight: state.fontWeight,
       cornerRadius: state.cornerRadius,
       padding: state.padding,
       profileId: state.profileId,
@@ -791,6 +813,7 @@ function loadFromLocalStorage(): boolean {
       );
       if (typeof obj.showHeaders === 'boolean') state.showHeaders = obj.showHeaders;
       if (typeof obj.fontSize === 'number') state.fontSize = obj.fontSize;
+      if (typeof obj.fontWeight === 'number') state.fontWeight = clampFontWeight(obj.fontWeight);
       if (typeof obj.cornerRadius === 'number') state.cornerRadius = obj.cornerRadius;
       if (typeof obj.padding === 'number') state.padding = obj.padding;
       if (
@@ -870,6 +893,7 @@ export function importJSON(): void {
             );
             if (typeof obj.showHeaders === 'boolean') s.showHeaders = obj.showHeaders;
             if (typeof obj.fontSize === 'number') s.fontSize = obj.fontSize;
+            if (typeof obj.fontWeight === 'number') s.fontWeight = clampFontWeight(obj.fontWeight);
             if (typeof obj.cornerRadius === 'number') s.cornerRadius = obj.cornerRadius;
             if (typeof obj.padding === 'number') s.padding = obj.padding;
           });
@@ -919,6 +943,7 @@ export function exportJSON(): void {
     boxes: serializeBoxes(state.boxes),
     showHeaders: state.showHeaders,
     fontSize: state.fontSize,
+    fontWeight: state.fontWeight,
     cornerRadius: state.cornerRadius,
     padding: state.padding,
     tempUnit: state.tempUnit,

@@ -60,7 +60,7 @@ function renderWeatherData(
 
   // Hero temperature (e.g., "62°")
   const tempStr = `${Math.round(data.temperature)}°`;
-  drawHeroText(fb, x, cy, tempStr, maxWidth, GRAY_DARK, metrics.heroSize);
+  drawHeroText(fb, x, cy, tempStr, maxWidth, GRAY_DARK, metrics.heroSize, metrics.headingWeight);
 
   // Condition beside hero text (e.g., "Partly Cloudy")
   const heroWidth = tempStr.length * metrics.heroAdvance;
@@ -78,6 +78,7 @@ function renderWeatherData(
       metrics.heroSize,
       undefined,
       metrics.bodySize,
+      metrics.weight,
     );
   }
   cy += metrics.heroSize + 2;
@@ -86,7 +87,7 @@ function renderWeatherData(
 
   // High / Low (e.g., "H:68 L:55")
   const hlStr = `H:${Math.round(data.high)}° L:${Math.round(data.low)}°`;
-  drawText(fb, x, cy, hlStr, maxWidth, GRAY_LIGHT, metrics.bodySize);
+  drawText(fb, x, cy, hlStr, maxWidth, GRAY_LIGHT, metrics.bodySize, metrics.weight);
   cy += metrics.bodySize + metrics.pad;
 
   return cy;
@@ -109,13 +110,23 @@ function renderPlaceholder(
   let cy = y;
 
   // City name
-  drawTextWrapped(fb, x, cy, city, maxWidth, maxY - cy, GRAY_LIGHT, metrics.bodySize);
+  drawTextWrapped(
+    fb,
+    x,
+    cy,
+    city,
+    maxWidth,
+    maxY - cy,
+    GRAY_LIGHT,
+    metrics.bodySize,
+    metrics.weight,
+  );
   cy += metrics.bodySize + 2;
 
   if (cy + metrics.bodySize > maxY) return cy;
 
   // "No data" indicator
-  drawText(fb, x, cy, 'No data', maxWidth, GRAY_LIGHT, metrics.bodySize);
+  drawText(fb, x, cy, 'No data', maxWidth, GRAY_LIGHT, metrics.bodySize, metrics.weight);
   cy += metrics.bodySize + metrics.pad;
 
   return cy;

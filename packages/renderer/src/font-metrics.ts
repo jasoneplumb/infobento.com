@@ -4,7 +4,7 @@
  * Pattern: Pure factory function — compute once per render(), thread to box renderers
  */
 
-import { measureText } from './ttf-font.js';
+import { measureText, snapWeight, headingWeight, DEFAULT_BODY_WEIGHT } from './ttf-font.js';
 
 /** Default body font size in pixels (matches the original hardcoded BODY_FONT_SIZE) */
 export const DEFAULT_FONT_SIZE = 20;
@@ -17,6 +17,10 @@ export interface FontMetrics {
   readonly bodyLineHeight: number;
   /** Body 'M' advance width — used for column calculations */
   readonly bodyAdvance: number;
+  /** Body text weight (snapped Inter static weight 100–900) */
+  readonly weight: number;
+  /** Heading/hero weight — body weight +3 steps, clamped to 900 */
+  readonly headingWeight: number;
   /** Hero/heading text size in pixels (bodySize * 2.6) */
   readonly heroSize: number;
   /** Hero text line height (heroSize * 1.15) */
@@ -30,20 +34,29 @@ export interface FontMetrics {
 }
 
 /**
- * Compute font metrics from a body font size.
+ * Compute font metrics from a body font size and CSS weight.
  * At DEFAULT_FONT_SIZE (20), all values match the original hardcoded constants:
  *   pad=16, rowGap=8, heroSize=52
+ * @param weightCss Inter static weight in CSS units (100–900), NOT the editor's
+ *   0.1–0.9 fraction — callers convert (`round(fraction * 10) * 100`) before passing.
  */
-export function computeFontMetrics(fontSize?: number): FontMetrics {
+export function computeFontMetrics(
+  fontSize?: number,
+  weightCss = DEFAULT_BODY_WEIGHT,
+): FontMetrics {
   const bodySize = Math.max(8, Math.min(42, fontSize ?? DEFAULT_FONT_SIZE));
   const heroSize = Math.round(bodySize * 2.6);
+  const bodyWeight = snapWeight(weightCss);
+  const headWeight = headingWeight(bodyWeight);
   return {
     bodySize,
     bodyLineHeight: Math.round(bodySize * 1.3),
-    bodyAdvance: measureText('M', bodySize),
+    bodyAdvance: measureText('M', bodySize, bodyWeight),
+    weight: bodyWeight,
+    headingWeight: headWeight,
     heroSize,
     heroLineHeight: Math.round(heroSize * 1.15),
-    heroAdvance: measureText('M', heroSize, true),
+    heroAdvance: measureText('M', heroSize, headWeight),
     pad: Math.round(bodySize * 0.8),
     rowGap: Math.round(bodySize * 0.4),
   };

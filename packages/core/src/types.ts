@@ -423,6 +423,9 @@ export interface BentoConfig {
   readonly showHeaders?: boolean;
   /** Body font size in pixels (8-42). Defaults to 20. */
   readonly fontSize?: number;
+  /** Body font weight as a fraction (0.1–0.9 → Inter static weight 100–900).
+   *  Defaults to 0.4 (Regular). Header/hero text renders ~3 steps heavier. */
+  readonly fontWeight?: number;
   /** Corner radius level (0=square, 10=max round). Defaults to 3. */
   readonly cornerRadius?: number;
   /** Display padding level (0=none, 10=max). Defaults to 4. */

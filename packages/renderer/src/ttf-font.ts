@@ -18,8 +18,59 @@ function loadFont(filename: string): opentype.Font {
   return opentype.parse(buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength));
 }
 
-const regularFont = loadFont('Inter-Regular.ttf');
-const boldFont = loadFont('Inter-Bold.ttf');
+/** Inter static weights (100–900) for the Font Weight control. */
+const WEIGHT_FILES: Record<number, string> = {
+  100: 'Inter-Thin.ttf',
+  200: 'Inter-ExtraLight.ttf',
+  300: 'Inter-Light.ttf',
+  400: 'Inter-Regular.ttf',
+  500: 'Inter-Medium.ttf',
+  600: 'Inter-SemiBold.ttf',
+  700: 'Inter-Bold.ttf',
+  800: 'Inter-ExtraBold.ttf',
+  900: 'Inter-Black.ttf',
+};
+const regularFont = loadFont('Inter-Regular.ttf'); // guaranteed fallback weight
+const weightFonts = new Map<number, opentype.Font>();
+for (const [w, file] of Object.entries(WEIGHT_FILES)) {
+  if (Number(w) === 400) {
+    weightFonts.set(400, regularFont);
+    continue;
+  }
+  // Fail fast at import with a clear, file-naming message if an asset is missing
+  // (partial deploy, .gitignore glob, etc.) rather than a raw Node ENOENT.
+  try {
+    weightFonts.set(Number(w), loadFont(file));
+  } catch (err) {
+    throw new Error(`[renderer] Failed to load Inter weight ${w} from ${file}: ${String(err)}`);
+  }
+}
+
+/** Default body weight (Inter Regular) when a caller doesn't specify one. */
+export const DEFAULT_BODY_WEIGHT = 400;
+
+/** Snap an arbitrary weight to the nearest loaded Inter static weight (100–900). */
+export function snapWeight(weight: number): number {
+  return Math.max(100, Math.min(900, Math.round(weight / 100) * 100));
+}
+
+// Heading/hero text renders +3 weight steps heavier than body, preserving the
+// Regular→Bold gap. Above body=600 the +300 saturates at 900, so the gap narrows
+// and collapses at body=900 (both render Black) — acceptable, since very heavy
+// body text is an uncommon, deliberate choice and hierarchy is then carried by size.
+// Snaps its input, so raw and pre-snapped weights are both accepted (idempotent).
+export function headingWeight(bodyWeight: number): number {
+  return Math.min(900, snapWeight(bodyWeight) + 300);
+}
+
+function fontFor(weight: number): opentype.Font {
+  // snapWeight always yields a key present in weightFonts; a miss means the
+  // WEIGHT_FILES/weightFonts maps diverged — fail loudly rather than silently
+  // rendering the wrong weight.
+  const font = weightFonts.get(snapWeight(weight));
+  if (!font) throw new Error(`No font loaded for weight ${snapWeight(weight)}`);
+  return font;
+}
 
 /** Body text size in pixels (height) — appropriate for 920x680 at ~130-200 DPI */
 export const BODY_FONT_SIZE = 20;
@@ -66,8 +117,8 @@ function walkGlyphs(
 /**
  * Measure the width of a string in pixels at the given font size.
  */
-export function measureText(text: string, fontSize: number, bold = false): number {
-  const font = bold ? boldFont : regularFont;
+export function measureText(text: string, fontSize: number, weight = DEFAULT_BODY_WEIGHT): number {
+  const font = fontFor(weight);
   return Math.round(walkGlyphs(font, text, fontSize));
 }
 
@@ -85,15 +136,15 @@ export interface RasterResult {
 export function rasterizeText(
   text: string,
   fontSize: number,
-  bold = false,
+  weight = DEFAULT_BODY_WEIGHT,
   maxWidth?: number,
 ): RasterResult {
-  const font = bold ? boldFont : regularFont;
+  const font = fontFor(weight);
   const scale = fontSize / font.unitsPerEm;
   const ascender = Math.round(font.ascender * scale);
   const descender = Math.round(Math.abs(font.descender * scale));
   const height = ascender + descender;
-  const measuredWidth = measureText(text, fontSize, bold);
+  const measuredWidth = measureText(text, fontSize, weight);
   const width = maxWidth != null ? Math.min(measuredWidth, maxWidth) : measuredWidth;
 
   if (width <= 0 || height <= 0) {
@@ -210,7 +261,7 @@ function flattenPath(cmds: opentype.PathCommand[]): Array<[number, number, numbe
 }
 
 /**
- * Fast scanline rasterizer with 2x supersampling for anti-aliased edges.
+ * Fast scanline rasterizer with 3x supersampling for anti-aliased edges.
  * Pre-flattens beziers, then for each scanline finds edge intersections and fills.
  */
 function rasterizePath(
@@ -220,7 +271,7 @@ function rasterizePath(
   height: number,
 ): void {
   const segments = flattenPath(cmds);
-  const SS = 2; // supersampling factor
+  const SS = 3; // supersampling factor (3x3 sub-samples → 10 coverage levels)
   const subStep = 1 / SS;
   const invSS2 = 1 / (SS * SS);
 
