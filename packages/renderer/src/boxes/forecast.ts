@@ -9,6 +9,7 @@ import type { FrameBuffer } from '../index.js';
 import type { LayoutBox, ForecastBoxConfig } from '@infobento/core';
 import type { FontMetrics } from '../font-metrics.js';
 import { drawText, drawTextWrapped, GRAY_LIGHT } from '../draw.js';
+import { measureText } from '../ttf-font.js';
 import { drawBoxHeader } from './header.js';
 
 export function renderForecastBox(
@@ -50,16 +51,28 @@ function renderEntries(
 ): void {
   const rowGap = metrics.rowGap;
   const timeColWidth = 6 * metrics.bodyAdvance;
-  const tempColWidth = 5 * metrics.bodyAdvance;
   const rowHeight = metrics.bodySize + rowGap;
+
+  // Size the temp column to the widest temp string actually shown so the
+  // condition sits just past the temps (still aligned across rows), instead of
+  // a fixed 5-'M' column far wider than the digits/° it holds.
+  const rows = entries
+    .slice(0, count)
+    .map((e) => ({ entry: e, tempStr: `${Math.round(e.temperature)}°` }));
+  if (rows.length === 0) return;
+
+  const tempColWidth = Math.max(
+    ...rows.map((r) => measureText(r.tempStr, metrics.bodySize, metrics.weight)),
+  );
+  const gap = Math.round(metrics.bodyAdvance * 0.6); // compact space before condition
+  const condX = x + timeColWidth + tempColWidth + gap;
+  const condW = maxWidth - timeColWidth - tempColWidth - gap;
   let cy = y;
 
-  for (const entry of entries.slice(0, count)) {
+  for (const { entry, tempStr } of rows) {
     if (cy + metrics.bodySize > maxY) return;
 
     drawText(fb, x, cy, entry.time, timeColWidth, GRAY_LIGHT, metrics.bodySize, metrics.weight);
-
-    const tempStr = `${Math.round(entry.temperature)}°`;
     drawText(
       fb,
       x + timeColWidth,
@@ -71,8 +84,6 @@ function renderEntries(
       metrics.weight,
     );
 
-    const condX = x + timeColWidth + tempColWidth;
-    const condW = maxWidth - timeColWidth - tempColWidth;
     if (condW > 0) {
       drawText(fb, condX, cy, entry.condition, condW, undefined, metrics.bodySize, metrics.weight);
     }

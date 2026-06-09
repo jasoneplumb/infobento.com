@@ -11,6 +11,7 @@ import type { FrameBuffer } from '../index.js';
 import type { LayoutBox, Forecast3DBoxConfig } from '@infobento/core';
 import type { FontMetrics } from '../font-metrics.js';
 import { drawText, drawTextWrapped, GRAY_LIGHT } from '../draw.js';
+import { measureText } from '../ttf-font.js';
 import { drawBoxHeader } from './header.js';
 
 export function renderForecast3DBox(
@@ -52,16 +53,28 @@ function renderEntries(
 ): void {
   const rowGap = metrics.rowGap;
   const dayColWidth = 4 * metrics.bodyAdvance;
-  const tempColWidth = 7 * metrics.bodyAdvance;
   const rowHeight = metrics.bodySize + rowGap;
+
+  // Size the temp column to the widest temp string actually shown so the
+  // condition sits just past the temps (still aligned across rows), instead of
+  // a fixed 7-'M' column far wider than the digits/°// it holds.
+  const rows = entries
+    .slice(0, count)
+    .map((e) => ({ entry: e, tempStr: `${Math.round(e.high)}°/${Math.round(e.low)}°` }));
+  if (rows.length === 0) return;
+
+  const tempColWidth = Math.max(
+    ...rows.map((r) => measureText(r.tempStr, metrics.bodySize, metrics.weight)),
+  );
+  const gap = Math.round(metrics.bodyAdvance * 0.6); // compact space before condition
+  const condX = x + dayColWidth + tempColWidth + gap;
+  const condW = maxWidth - dayColWidth - tempColWidth - gap;
   let cy = y;
 
-  for (const entry of entries.slice(0, count)) {
+  for (const { entry, tempStr } of rows) {
     if (cy + metrics.bodySize > maxY) return;
 
     drawText(fb, x, cy, entry.day, dayColWidth, GRAY_LIGHT, metrics.bodySize, metrics.weight);
-
-    const tempStr = `${Math.round(entry.high)}°/${Math.round(entry.low)}°`;
     drawText(
       fb,
       x + dayColWidth,
@@ -73,8 +86,6 @@ function renderEntries(
       metrics.weight,
     );
 
-    const condX = x + dayColWidth + tempColWidth;
-    const condW = maxWidth - dayColWidth - tempColWidth;
     if (condW > 0) {
       drawText(fb, condX, cy, entry.condition, condW, undefined, metrics.bodySize, metrics.weight);
     }
