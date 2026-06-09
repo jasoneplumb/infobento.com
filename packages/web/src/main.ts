@@ -195,7 +195,7 @@ if (profileSelect) {
   profileSelect.addEventListener('change', () => setDeviceProfile(profileSelect.value));
 }
 
-// -- Wire up Font Weight slider (1–9 → AA threshold 0.1–0.9) ----------------
+// -- Wire up Font Weight slider (1–9 → Inter static weight 100–900) ---------
 
 const weightSlider = document.querySelector<HTMLInputElement>('#font-weight-slider');
 const weightDisplay = document.getElementById('font-weight-display');

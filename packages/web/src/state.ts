@@ -305,8 +305,11 @@ const DEFAULT_FONT_WEIGHT = 0.4; // Inter Regular (400)
 const DEFAULT_CORNER_RADIUS = 3;
 const DEFAULT_PADDING = 4;
 
-/** Clamp a font weight to the slider's [0.1, 0.9] range (1–9 steps). */
-const clampFontWeight = (v: number): number => Math.max(0.1, Math.min(0.9, v));
+/** Clamp a font weight to the slider's [0.1, 0.9] range AND snap it to the 0.1
+ *  step grid, so externally-edited values stay consistent with the slider, the
+ *  `multipleOf(0.1)` API contract, and the renderer's `snapWeight`. */
+const clampFontWeight = (v: number): number =>
+  Math.round(Math.max(0.1, Math.min(0.9, v)) * 10) / 10;
 
 const state: EditorState = {
   boxes: defaultBoxes(),
