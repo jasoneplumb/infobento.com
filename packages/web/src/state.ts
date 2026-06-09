@@ -305,6 +305,9 @@ const DEFAULT_FONT_WEIGHT = 0.4; // Inter Regular (400)
 const DEFAULT_CORNER_RADIUS = 3;
 const DEFAULT_PADDING = 4;
 
+/** Clamp a font weight to the slider's [0.1, 0.9] range (1–9 steps). */
+const clampFontWeight = (v: number): number => Math.max(0.1, Math.min(0.9, v));
+
 const state: EditorState = {
   boxes: defaultBoxes(),
   showHeaders: false,
@@ -645,7 +648,7 @@ export function getFontWeight(): number {
 }
 
 export function setFontWeight(value: number): void {
-  state.fontWeight = Math.max(0.1, Math.min(0.9, value));
+  state.fontWeight = clampFontWeight(value);
   persistToLocalStorage();
   renderPreview();
 }
@@ -807,7 +810,7 @@ function loadFromLocalStorage(): boolean {
       );
       if (typeof obj.showHeaders === 'boolean') state.showHeaders = obj.showHeaders;
       if (typeof obj.fontSize === 'number') state.fontSize = obj.fontSize;
-      if (typeof obj.fontWeight === 'number') state.fontWeight = obj.fontWeight;
+      if (typeof obj.fontWeight === 'number') state.fontWeight = clampFontWeight(obj.fontWeight);
       if (typeof obj.cornerRadius === 'number') state.cornerRadius = obj.cornerRadius;
       if (typeof obj.padding === 'number') state.padding = obj.padding;
       if (
@@ -887,7 +890,7 @@ export function importJSON(): void {
             );
             if (typeof obj.showHeaders === 'boolean') s.showHeaders = obj.showHeaders;
             if (typeof obj.fontSize === 'number') s.fontSize = obj.fontSize;
-            if (typeof obj.fontWeight === 'number') s.fontWeight = obj.fontWeight;
+            if (typeof obj.fontWeight === 'number') s.fontWeight = clampFontWeight(obj.fontWeight);
             if (typeof obj.cornerRadius === 'number') s.cornerRadius = obj.cornerRadius;
             if (typeof obj.padding === 'number') s.padding = obj.padding;
           });

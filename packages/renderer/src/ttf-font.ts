@@ -48,6 +48,7 @@ export function snapWeight(weight: number): number {
 // Regular→Bold gap. Above body=600 the +300 saturates at 900, so the gap narrows
 // and collapses at body=900 (both render Black) — acceptable, since very heavy
 // body text is an uncommon, deliberate choice and hierarchy is then carried by size.
+// Snaps its input, so raw and pre-snapped weights are both accepted (idempotent).
 export function headingWeight(bodyWeight: number): number {
   return Math.min(900, snapWeight(bodyWeight) + 300);
 }

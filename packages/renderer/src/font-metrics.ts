@@ -34,14 +34,19 @@ export interface FontMetrics {
 }
 
 /**
- * Compute font metrics from a body font size.
+ * Compute font metrics from a body font size and CSS weight.
  * At DEFAULT_FONT_SIZE (20), all values match the original hardcoded constants:
  *   pad=16, rowGap=8, heroSize=52
+ * @param weightCss Inter static weight in CSS units (100–900), NOT the editor's
+ *   0.1–0.9 fraction — callers convert (`fraction * 1000`) before passing.
  */
-export function computeFontMetrics(fontSize?: number, weight = DEFAULT_BODY_WEIGHT): FontMetrics {
+export function computeFontMetrics(
+  fontSize?: number,
+  weightCss = DEFAULT_BODY_WEIGHT,
+): FontMetrics {
   const bodySize = Math.max(8, Math.min(42, fontSize ?? DEFAULT_FONT_SIZE));
   const heroSize = Math.round(bodySize * 2.6);
-  const bodyWeight = snapWeight(weight);
+  const bodyWeight = snapWeight(weightCss);
   const headWeight = headingWeight(bodyWeight);
   return {
     bodySize,

@@ -68,4 +68,16 @@ describe('validateBentoConfig', () => {
       true,
     );
   });
+
+  it('accepts fontWeight at every valid 0.1 step', () => {
+    for (const fontWeight of [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]) {
+      expect(validateBentoConfig({ ...validConfig(), fontWeight }).valid).toBe(true);
+    }
+  });
+
+  it('rejects fontWeight off the 0.1 step grid or out of range', () => {
+    for (const fontWeight of [0.15, 0.27, 0, 1, -0.1]) {
+      expect(validateBentoConfig({ ...validConfig(), fontWeight }).valid).toBe(false);
+    }
+  });
 });
