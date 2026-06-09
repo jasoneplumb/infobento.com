@@ -45,6 +45,10 @@ export function setBodyWeight(weight: number): void {
   bodyWeight = Math.max(100, Math.min(900, Math.round(weight / 100) * 100));
 }
 
+// Bold (headers/hero) renders +3 weight steps heavier than body. Above body=600
+// the +300 saturates at 900, so the bold/body gap narrows and collapses entirely
+// at body=900 (both render Black) — acceptable, since very heavy body text is an
+// intentional, uncommon choice and hierarchy is then carried by size alone.
 function fontFor(bold: boolean): opentype.Font {
   const w = bold ? Math.min(900, bodyWeight + 300) : bodyWeight;
   return weightFonts.get(w) ?? regularFont;

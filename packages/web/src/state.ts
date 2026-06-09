@@ -639,7 +639,7 @@ export function setFontSize(value: number): void {
   renderPreview();
 }
 
-/** Text edge weight (AA threshold, 0.1–0.9). */
+/** Body font weight (0.1–0.9 → Inter static weight 100–900). */
 export function getFontWeight(): number {
   return state.fontWeight;
 }

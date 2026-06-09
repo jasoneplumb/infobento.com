@@ -160,8 +160,8 @@ export function drawRect(
 /**
  * Round-threshold for the coverage→level mapping. 0.5 is plain rounding; 0.6
  * biases edge pixels slightly darker so thin antialiased stems don't render
- * faint on eInk. Stroke weight is handled separately by faux-bold dilation
- * (see ttf-font.setFauxWeight), so this stays fixed.
+ * faint on eInk. Stroke weight is handled separately by real Inter static-weight
+ * font selection (see ttf-font.setBodyWeight), so this stays fixed.
  */
 const AA_THRESHOLD = 0.6;
 
