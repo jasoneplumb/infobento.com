@@ -31,7 +31,16 @@ export function drawBoxHeader(fb: FrameBuffer, layout: LayoutBox, metrics: FontM
     labelX = x + pad + iconSize + gap;
   }
 
-  drawText(fb, labelX, cy, box.label, x + width - pad - labelX, GRAY_DARK, metrics.bodySize);
+  drawText(
+    fb,
+    labelX,
+    cy,
+    box.label,
+    x + width - pad - labelX,
+    GRAY_DARK,
+    metrics.bodySize,
+    metrics.weight,
+  );
 
   return cy + metrics.bodySize + pad;
 }

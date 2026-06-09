@@ -43,5 +43,6 @@ export function renderJokeBox(
     bodyMaxHeight,
     undefined,
     metrics.bodySize,
+    metrics.weight,
   );
 }

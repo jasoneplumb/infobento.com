@@ -75,12 +75,30 @@ export function renderDateBox(
 
   // Line 1: Day-of-week (small font)
   if (cy + metrics.bodySize > contentEnd) return;
-  drawText(fb, x + metrics.pad, cy, dayName, contentWidth, undefined, metrics.bodySize);
+  drawText(
+    fb,
+    x + metrics.pad,
+    cy,
+    dayName,
+    contentWidth,
+    undefined,
+    metrics.bodySize,
+    metrics.weight,
+  );
   cy += metrics.bodySize + 1;
 
   // Line 2: Hero day number
   if (cy + metrics.heroSize > contentEnd) return;
-  drawHeroText(fb, x + metrics.pad, cy, String(dayNum), undefined, GRAY_DARK, metrics.heroSize);
+  drawHeroText(
+    fb,
+    x + metrics.pad,
+    cy,
+    String(dayNum),
+    undefined,
+    GRAY_DARK,
+    metrics.heroSize,
+    metrics.headingWeight,
+  );
   cy += metrics.heroSize + 1;
 
   // Line 3: Month + year (small font)
@@ -93,6 +111,7 @@ export function renderDateBox(
     contentWidth,
     undefined,
     metrics.bodySize,
+    metrics.weight,
   );
   cy += metrics.bodySize + 3;
 
@@ -110,7 +129,16 @@ export function renderDateBox(
   const barX = x + metrics.pad + labelWidth + 4;
   const barWidth = contentWidth - labelWidth - 4;
 
-  drawText(fb, x + metrics.pad, cy, progressLabel, labelWidth, GRAY_LIGHT, metrics.bodySize);
+  drawText(
+    fb,
+    x + metrics.pad,
+    cy,
+    progressLabel,
+    labelWidth,
+    GRAY_LIGHT,
+    metrics.bodySize,
+    metrics.weight,
+  );
   if (barWidth > 10) {
     drawProgressBar(fb, barX, cy + 1, barWidth, barHeight, doy / total);
   }

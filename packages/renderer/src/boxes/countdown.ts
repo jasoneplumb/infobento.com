@@ -47,7 +47,16 @@ export function renderCountdownBox(
   const daysStr = String(days);
 
   // Hero day count
-  drawHeroText(fb, x + metrics.pad, cy, daysStr, undefined, GRAY_DARK, metrics.heroSize);
+  drawHeroText(
+    fb,
+    x + metrics.pad,
+    cy,
+    daysStr,
+    undefined,
+    GRAY_DARK,
+    metrics.heroSize,
+    metrics.headingWeight,
+  );
 
   // "days to [label]" beside the hero text
   const heroWidth = daysStr.length * metrics.heroAdvance;
@@ -55,7 +64,16 @@ export function renderCountdownBox(
   const subtitleMaxW = width - metrics.pad * 2 - heroWidth - metrics.pad;
   if (subtitleMaxW > 0) {
     const subtitle = days === 0 ? 'PAST' : `days to`;
-    drawText(fb, subtitleX, cy + 4, subtitle, subtitleMaxW, GRAY_LIGHT, metrics.bodySize);
+    drawText(
+      fb,
+      subtitleX,
+      cy + 4,
+      subtitle,
+      subtitleMaxW,
+      GRAY_LIGHT,
+      metrics.bodySize,
+      metrics.weight,
+    );
   }
   cy += metrics.heroSize + 2;
 
@@ -69,6 +87,7 @@ export function renderCountdownBox(
       width - metrics.pad * 2,
       undefined,
       metrics.bodySize,
+      metrics.weight,
     );
     cy += metrics.bodySize + metrics.pad;
   }

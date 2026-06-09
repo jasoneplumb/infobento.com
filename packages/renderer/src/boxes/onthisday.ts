@@ -43,5 +43,6 @@ export function renderOnThisDayBox(
     bodyMaxHeight,
     undefined,
     metrics.bodySize,
+    metrics.weight,
   );
 }

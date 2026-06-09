@@ -72,7 +72,7 @@ function renderAQIData(
 
   // Hero AQI number
   const aqiStr = String(aqi);
-  drawHeroText(fb, x, cy, aqiStr, maxWidth, GRAY_DARK, metrics.heroSize);
+  drawHeroText(fb, x, cy, aqiStr, maxWidth, GRAY_DARK, metrics.heroSize, metrics.headingWeight);
 
   // Category beside hero text
   const heroWidth = aqiStr.length * metrics.heroAdvance;
@@ -88,6 +88,7 @@ function renderAQIData(
       metrics.heroSize,
       undefined,
       metrics.bodySize,
+      metrics.weight,
     );
   }
   cy += metrics.heroSize + 2;
@@ -96,7 +97,16 @@ function renderAQIData(
 
   // UV index + dominant pollutant
   const uvStr = uvIndex != null ? `UV:${String(Math.round(uvIndex))} ` : '';
-  drawText(fb, x, cy, `${uvStr}${dominantPollutant}`, maxWidth, GRAY_LIGHT, metrics.bodySize);
+  drawText(
+    fb,
+    x,
+    cy,
+    `${uvStr}${dominantPollutant}`,
+    maxWidth,
+    GRAY_LIGHT,
+    metrics.bodySize,
+    metrics.weight,
+  );
   cy += metrics.bodySize + metrics.pad;
 
   return cy;
@@ -118,12 +128,22 @@ function renderPlaceholder(
 ): number {
   let cy = y;
 
-  drawTextWrapped(fb, x, cy, city, maxWidth, maxY - cy, GRAY_LIGHT, metrics.bodySize);
+  drawTextWrapped(
+    fb,
+    x,
+    cy,
+    city,
+    maxWidth,
+    maxY - cy,
+    GRAY_LIGHT,
+    metrics.bodySize,
+    metrics.weight,
+  );
   cy += metrics.bodySize + 2;
 
   if (cy + metrics.bodySize > maxY) return cy;
 
-  drawText(fb, x, cy, 'No data', maxWidth, GRAY_LIGHT, metrics.bodySize);
+  drawText(fb, x, cy, 'No data', maxWidth, GRAY_LIGHT, metrics.bodySize, metrics.weight);
   cy += metrics.bodySize + metrics.pad;
 
   return cy;

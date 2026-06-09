@@ -69,12 +69,21 @@ export function renderHabitBox(
     // Habit name — leave room for streak on the right
     const nameMaxWidth = bodyWidth - circleSpace - streakWidth - Math.round(metrics.pad * 0.5);
     if (nameMaxWidth > 0) {
-      drawText(fb, textX, cy, habit.name, nameMaxWidth, undefined, metrics.bodySize);
+      drawText(
+        fb,
+        textX,
+        cy,
+        habit.name,
+        nameMaxWidth,
+        undefined,
+        metrics.bodySize,
+        metrics.weight,
+      );
     }
 
     // Streak count right-aligned
     const streakX = x + width - metrics.pad - streakWidth;
-    drawText(fb, streakX, cy, streakStr, streakWidth, GRAY_DARK, metrics.bodySize);
+    drawText(fb, streakX, cy, streakStr, streakWidth, GRAY_DARK, metrics.bodySize, metrics.weight);
 
     cy += metrics.bodyLineHeight;
   }

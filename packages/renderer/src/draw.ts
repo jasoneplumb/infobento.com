@@ -12,6 +12,8 @@ import {
   BODY_LINE_HEIGHT,
   HERO_FONT_SIZE,
   HERO_LINE_HEIGHT,
+  DEFAULT_BODY_WEIGHT,
+  headingWeight,
 } from './ttf-font.js';
 import { ICON_WIDTH, ICON_HEIGHT } from './icons.js';
 
@@ -205,8 +207,9 @@ export function drawChar(
   char: string,
   level: number = GRAY_BLACK,
   fontSize: number = BODY_FONT_SIZE,
+  weight: number = DEFAULT_BODY_WEIGHT,
 ): void {
-  const raster = rasterizeText(char, fontSize, false);
+  const raster = rasterizeText(char, fontSize, weight);
   blitRaster(fb, x, y, raster.data, raster.width, raster.height, level);
 }
 
@@ -222,9 +225,10 @@ export function drawText(
   maxWidth?: number,
   level: number = GRAY_BLACK,
   fontSize: number = BODY_FONT_SIZE,
+  weight: number = DEFAULT_BODY_WEIGHT,
 ): { charsDrawn: number; width: number } {
   if (!text) return { charsDrawn: 0, width: 0 };
-  const raster = rasterizeText(text, fontSize, false, maxWidth);
+  const raster = rasterizeText(text, fontSize, weight, maxWidth);
   blitRaster(fb, x, y, raster.data, raster.width, raster.height, level);
   return { charsDrawn: text.length, width: raster.width };
 }
@@ -243,13 +247,14 @@ export function drawTextWrapped(
   maxHeight: number,
   level: number = GRAY_BLACK,
   fontSize: number = BODY_FONT_SIZE,
+  weight: number = DEFAULT_BODY_WEIGHT,
 ): number {
   const lineHeight = Math.round(fontSize * 1.3);
   let cy = y;
 
   const flush = (line: string): boolean => {
     if (line) {
-      const raster = rasterizeText(line, fontSize, false, maxWidth);
+      const raster = rasterizeText(line, fontSize, weight, maxWidth);
       blitRaster(fb, x, cy, raster.data, raster.width, raster.height, level);
     }
     cy += lineHeight;
@@ -268,7 +273,7 @@ export function drawTextWrapped(
     let line = '';
     for (const word of words) {
       const testLine = line ? `${line} ${word}` : word;
-      const testWidth = measureText(testLine, fontSize);
+      const testWidth = measureText(testLine, fontSize, weight);
       if (line && testWidth > maxWidth) {
         if (!flush(line)) return cy - y;
         line = word;
@@ -294,8 +299,9 @@ export function drawHeroChar(
   char: string,
   level: number = GRAY_BLACK,
   fontSize: number = HERO_FONT_SIZE,
+  weight: number = headingWeight(DEFAULT_BODY_WEIGHT),
 ): void {
-  const raster = rasterizeText(char, fontSize, true);
+  const raster = rasterizeText(char, fontSize, weight);
   blitRaster(fb, x, y, raster.data, raster.width, raster.height, level);
 }
 
@@ -311,9 +317,10 @@ export function drawHeroText(
   maxWidth?: number,
   level: number = GRAY_BLACK,
   fontSize: number = HERO_FONT_SIZE,
+  weight: number = headingWeight(DEFAULT_BODY_WEIGHT),
 ): { charsDrawn: number; width: number } {
   if (!text) return { charsDrawn: 0, width: 0 };
-  const raster = rasterizeText(text, fontSize, true, maxWidth);
+  const raster = rasterizeText(text, fontSize, weight, maxWidth);
   blitRaster(fb, x, y, raster.data, raster.width, raster.height, level);
   return { charsDrawn: text.length, width: raster.width };
 }

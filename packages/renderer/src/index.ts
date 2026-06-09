@@ -12,7 +12,7 @@ import type {
   LayoutResult,
 } from '@infobento/core';
 import { DISPLAY_WIDTH, DISPLAY_HEIGHT, calculateLayout, splitLeftFraction } from '@infobento/core';
-import { measureText, setBodyWeight } from './ttf-font.js';
+import { measureText } from './ttf-font.js';
 import { drawRoundedRect, roundedRectSDF, setPixel, GRAY_WHITE, GRAY_DARK } from './draw.js';
 import { renderTextBox, renderPlaceholderBox } from './boxes/text.js';
 import { renderWeatherBox } from './boxes/weather.js';
@@ -116,7 +116,12 @@ function renderBox(
  * method: Split on \n first (each newline starts a new line), then word-wrap
  *   each segment using the same metrics as drawTextWrapped.
  */
-function countWrappedLines(text: string, bodyWidth: number, fontSize: number): number {
+function countWrappedLines(
+  text: string,
+  bodyWidth: number,
+  fontSize: number,
+  weight: number,
+): number {
   if (!text) return 1;
   let total = 0;
   for (const segment of text.split('\n')) {
@@ -129,7 +134,7 @@ function countWrappedLines(text: string, bodyWidth: number, fontSize: number): n
     let lines = 1;
     for (const word of words) {
       const testLine = line ? `${line} ${word}` : word;
-      const testWidth = measureText(testLine, fontSize);
+      const testWidth = measureText(testLine, fontSize, weight);
       if (line && testWidth > bodyWidth) {
         lines++;
         line = word;
@@ -158,7 +163,8 @@ function computeMinHeight(
   const padding = 2 * metrics.pad; // top + bottom margins
   const headerH = showHeaders ? metrics.bodySize + metrics.pad : 0;
   const shell = (content: number): number => padding + headerH + content;
-  const wrap = (text: string): number => countWrappedLines(text, bodyWidth, metrics.bodySize);
+  const wrap = (text: string): number =>
+    countWrappedLines(text, bodyWidth, metrics.bodySize, metrics.weight);
 
   if (box.type === 'quote' && box.config?.type === 'quote') {
     const author = box.config.author ? lineH : 0;
@@ -279,7 +285,8 @@ function buildRenderLayout(
   config: BentoConfig,
   device?: DeviceProfile,
 ): { layout: LayoutResult; metrics: FontMetrics; showHeaders: boolean } {
-  const metrics = computeFontMetrics(config.fontSize);
+  // Font Weight: 0.1–0.9 → Inter static weight 100–900 (defaults to 0.4, Regular)
+  const metrics = computeFontMetrics(config.fontSize, (config.fontWeight ?? 0.4) * 1000);
   const baseDevice = device ?? {
     widthPx: DISPLAY_WIDTH,
     heightPx: DISPLAY_HEIGHT,
@@ -301,7 +308,6 @@ function buildRenderLayout(
 }
 
 export function render(config: BentoConfig, device?: DeviceProfile): FrameBuffer {
-  setBodyWeight((config.fontWeight ?? 0.4) * 1000); // Font Weight: 0.1–0.9 → 100–900
   const { layout, metrics, showHeaders } = buildRenderLayout(config, device);
   const fb = createFrameBuffer(layout.device);
 

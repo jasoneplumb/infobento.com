@@ -46,11 +46,21 @@ export function renderQuoteBox(
     bodyMaxHeight,
     undefined,
     metrics.bodySize,
+    metrics.weight,
   );
   cy += usedHeight;
 
   // Author attribution in light grey on the next line
   if (config.author && cy + metrics.bodySize <= bodyEnd) {
-    drawText(fb, bodyX, cy, `\u2014 ${config.author}`, bodyWidth, GRAY_LIGHT, metrics.bodySize);
+    drawText(
+      fb,
+      bodyX,
+      cy,
+      `\u2014 ${config.author}`,
+      bodyWidth,
+      GRAY_LIGHT,
+      metrics.bodySize,
+      metrics.weight,
+    );
   }
 }

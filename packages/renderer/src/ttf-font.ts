@@ -36,22 +36,24 @@ for (const [w, file] of Object.entries(WEIGHT_FILES)) {
   weightFonts.set(Number(w), Number(w) === 400 ? regularFont : loadFont(file));
 }
 
-/** Body text weight for this render (snapped to a loaded weight). Bold text
- *  (headers/hero) renders ~3 steps heavier, preserving the Regular→Bold gap. */
-let bodyWeight = 400;
+/** Default body weight (Inter Regular) when a caller doesn't specify one. */
+export const DEFAULT_BODY_WEIGHT = 400;
 
-/** Set the body text weight (100–900), snapped to the nearest loaded weight. */
-export function setBodyWeight(weight: number): void {
-  bodyWeight = Math.max(100, Math.min(900, Math.round(weight / 100) * 100));
+/** Snap an arbitrary weight to the nearest loaded Inter static weight (100–900). */
+export function snapWeight(weight: number): number {
+  return Math.max(100, Math.min(900, Math.round(weight / 100) * 100));
 }
 
-// Bold (headers/hero) renders +3 weight steps heavier than body. Above body=600
-// the +300 saturates at 900, so the bold/body gap narrows and collapses entirely
-// at body=900 (both render Black) — acceptable, since very heavy body text is an
-// intentional, uncommon choice and hierarchy is then carried by size alone.
-function fontFor(bold: boolean): opentype.Font {
-  const w = bold ? Math.min(900, bodyWeight + 300) : bodyWeight;
-  return weightFonts.get(w) ?? regularFont;
+// Heading/hero text renders +3 weight steps heavier than body, preserving the
+// Regular→Bold gap. Above body=600 the +300 saturates at 900, so the gap narrows
+// and collapses at body=900 (both render Black) — acceptable, since very heavy
+// body text is an uncommon, deliberate choice and hierarchy is then carried by size.
+export function headingWeight(bodyWeight: number): number {
+  return Math.min(900, snapWeight(bodyWeight) + 300);
+}
+
+function fontFor(weight: number): opentype.Font {
+  return weightFonts.get(snapWeight(weight)) ?? regularFont;
 }
 
 /** Body text size in pixels (height) — appropriate for 920x680 at ~130-200 DPI */
@@ -99,8 +101,8 @@ function walkGlyphs(
 /**
  * Measure the width of a string in pixels at the given font size.
  */
-export function measureText(text: string, fontSize: number, bold = false): number {
-  const font = fontFor(bold);
+export function measureText(text: string, fontSize: number, weight = DEFAULT_BODY_WEIGHT): number {
+  const font = fontFor(weight);
   return Math.round(walkGlyphs(font, text, fontSize));
 }
 
@@ -118,15 +120,15 @@ export interface RasterResult {
 export function rasterizeText(
   text: string,
   fontSize: number,
-  bold = false,
+  weight = DEFAULT_BODY_WEIGHT,
   maxWidth?: number,
 ): RasterResult {
-  const font = fontFor(bold);
+  const font = fontFor(weight);
   const scale = fontSize / font.unitsPerEm;
   const ascender = Math.round(font.ascender * scale);
   const descender = Math.round(Math.abs(font.descender * scale));
   const height = ascender + descender;
-  const measuredWidth = measureText(text, fontSize, bold);
+  const measuredWidth = measureText(text, fontSize, weight);
   const width = maxWidth != null ? Math.min(measuredWidth, maxWidth) : measuredWidth;
 
   if (width <= 0 || height <= 0) {

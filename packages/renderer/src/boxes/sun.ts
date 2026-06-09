@@ -50,20 +50,38 @@ function renderSunData(
 
   // Sunrise
   if (cy + metrics.bodySize > maxY) return cy;
-  drawText(fb, x, cy, 'RISE', labelCol, GRAY_DARK, metrics.bodySize);
-  drawText(fb, valueX, cy, data.sunrise.slice(0, 5), valueW, undefined, metrics.bodySize);
+  drawText(fb, x, cy, 'RISE', labelCol, GRAY_DARK, metrics.bodySize, metrics.weight);
+  drawText(
+    fb,
+    valueX,
+    cy,
+    data.sunrise.slice(0, 5),
+    valueW,
+    undefined,
+    metrics.bodySize,
+    metrics.weight,
+  );
   cy += rowHeight;
 
   // Sunset
   if (cy + metrics.bodySize > maxY) return cy;
-  drawText(fb, x, cy, 'SET', labelCol, GRAY_DARK, metrics.bodySize);
-  drawText(fb, valueX, cy, data.sunset.slice(0, 5), valueW, undefined, metrics.bodySize);
+  drawText(fb, x, cy, 'SET', labelCol, GRAY_DARK, metrics.bodySize, metrics.weight);
+  drawText(
+    fb,
+    valueX,
+    cy,
+    data.sunset.slice(0, 5),
+    valueW,
+    undefined,
+    metrics.bodySize,
+    metrics.weight,
+  );
   cy += rowHeight;
 
   // Day length
   if (cy + metrics.bodySize > maxY) return cy;
-  drawText(fb, x, cy, 'DAY', labelCol, GRAY_DARK, metrics.bodySize);
-  drawText(fb, valueX, cy, data.dayLength, valueW, undefined, metrics.bodySize);
+  drawText(fb, x, cy, 'DAY', labelCol, GRAY_DARK, metrics.bodySize, metrics.weight);
+  drawText(fb, valueX, cy, data.dayLength, valueW, undefined, metrics.bodySize, metrics.weight);
   cy += metrics.bodySize + metrics.pad;
 
   return cy;
@@ -79,10 +97,20 @@ function renderPlaceholder(
   metrics: FontMetrics,
 ): number {
   let cy = y;
-  drawTextWrapped(fb, x, cy, city, maxWidth, maxY - cy, GRAY_LIGHT, metrics.bodySize);
+  drawTextWrapped(
+    fb,
+    x,
+    cy,
+    city,
+    maxWidth,
+    maxY - cy,
+    GRAY_LIGHT,
+    metrics.bodySize,
+    metrics.weight,
+  );
   cy += metrics.bodySize + 2;
   if (cy + metrics.bodySize > maxY) return cy;
-  drawText(fb, x, cy, 'No data', maxWidth, GRAY_LIGHT, metrics.bodySize);
+  drawText(fb, x, cy, 'No data', maxWidth, GRAY_LIGHT, metrics.bodySize, metrics.weight);
   cy += metrics.bodySize + metrics.pad;
   return cy;
 }
