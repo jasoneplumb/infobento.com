@@ -47,21 +47,27 @@ export interface MintDeviceOptions {
 export function mintDevice(db: DB, options: MintDeviceOptions = {}): Device {
   const { configJson, maxRetries = 10, genCode = generatePairCode } = options;
 
-  for (let attempt = 0; attempt < maxRetries; attempt++) {
-    let device: Device;
-    try {
-      device = createDevice(db, { pairCode: genCode() });
-    } catch (err) {
-      if (err instanceof Error && (err as { code?: string }).code === UNIQUE_VIOLATION) {
-        continue; // collision — try a fresh code
-      }
-      throw err;
-    }
-
+  // createDevice + setConfig must be atomic: a crash between them would leave
+  // an unclaimed, config-less device whose id is lost and whose firmware 404s.
+  const mintOnce = db.transaction((): Device => {
+    const device = createDevice(db, { pairCode: genCode() });
     if (configJson === undefined) return device;
     setConfig(db, device.id, configJson);
     // Re-read so the returned record reflects the seeded config + bumped mtime.
-    return getDevice(db, device.id) ?? device;
+    const seeded = getDevice(db, device.id);
+    if (!seeded) throw new Error(`mintDevice: device ${device.id} vanished after setConfig`);
+    return seeded;
+  });
+
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    try {
+      return mintOnce();
+    } catch (err) {
+      if (err instanceof Error && (err as { code?: string }).code === UNIQUE_VIOLATION) {
+        continue; // pair-code collision — try a fresh code
+      }
+      throw err;
+    }
   }
 
   throw new Error(`mintDevice: no free pair code after ${maxRetries} attempts`);
