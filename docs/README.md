@@ -39,7 +39,8 @@ docs/
 ├── hardware/
 │   ├── DISPLAY.md            eInk display specs, form factor, refresh strategy
 │   ├── POWER.md              Solar power budget for the counter device
-│   └── CONNECTIVITY.md       Wi-Fi direct + captive portal setup; v2 BLE path
+│   ├── CONNECTIVITY.md       Wi-Fi direct + captive portal setup; v2 BLE path
+│   └── FIRMWARE_BRINGUP.md   Dev-first firmware bring-up plan (reTerminal → production)
 │
 └── rfcs/                     Architecture decision records
 ```
