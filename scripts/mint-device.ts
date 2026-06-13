@@ -66,7 +66,9 @@ function loadConfigJson(path: string): string {
     const detail = result.errors.map((e) => `  - ${e.path}: ${e.message}`).join('\n');
     throw new Error(`Invalid config in ${path}:\n${detail}`);
   }
-  // Re-serialize the validated value to normalize whitespace.
+  // Store the raw parsed JSON: validateBentoConfig only reports pass/fail and
+  // does not expose Zod-coerced data, so there are no defaults/transforms to
+  // apply here. Re-serialize to normalize whitespace.
   return JSON.stringify(parsed);
 }
 

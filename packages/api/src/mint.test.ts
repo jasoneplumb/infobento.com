@@ -30,6 +30,8 @@ describe('mintDevice', () => {
   });
 
   it('seeds config when configJson is provided', () => {
+    // Intentionally invalid per BentoConfigSchema — mintDevice treats
+    // configJson as an opaque string and stores it as-is (no validation).
     const configJson = JSON.stringify({ boxes: [] });
     const device = mintDevice(db, { configJson });
     expect(device.config_json).toBe(configJson);
