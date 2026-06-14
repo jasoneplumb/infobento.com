@@ -4,8 +4,8 @@
  *   DELETE /api/device/:id/owner.
  * Context: auth-sensitive. These authenticate via the session cookie and gate on
  *   account ownership — the tests forge sessions with the same signSession helper
- *   the real auth routes use and assert the 401/403/404/400 boundaries plus the
- *   no-config-leak invariant.
+ *   the real auth routes use and assert the 401/404/400 boundaries (404 is opaque
+ *   for non-owner/unclaimed) plus the no-config-leak invariant.
  * Setup: a throwaway Hono app mounts the real handlers over an in-memory DB.
  */
 
@@ -95,14 +95,23 @@ describe('PUT /api/device/:id/config', () => {
     expect(res.status).toBe(404);
   });
 
-  it('returns 403 when the caller does not own the device', async () => {
+  it('returns opaque 404 when the caller does not own the device', async () => {
     const owner = createAccount(db);
     const intruder = createAccount(db);
     const device = createDevice(db, { pairCode: 'OWNED1' });
     claimDevice(db, 'OWNED1', owner.id);
 
+    // Opaque 404 (not 403) so a non-owner can't confirm the device id exists.
     const res = await putConfig(app, device.id, VALID_CONFIG, intruder.id);
-    expect(res.status).toBe(403);
+    expect(res.status).toBe(404);
+    expect(getDevice(db, device.id)?.config_json).toBeNull();
+  });
+
+  it('returns opaque 404 for an existing but unclaimed device', async () => {
+    const account = createAccount(db);
+    const device = createDevice(db, { pairCode: 'UNOWN1' }); // never claimed
+    const res = await putConfig(app, device.id, VALID_CONFIG, account.id);
+    expect(res.status).toBe(404);
     expect(getDevice(db, device.id)?.config_json).toBeNull();
   });
 

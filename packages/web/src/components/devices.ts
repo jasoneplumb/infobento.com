@@ -8,27 +8,7 @@
 
 import { listDevices, selectDevice, unpairDevice, type DeviceSummary } from '../cloud';
 import { getActiveDeviceId } from '../state';
-
-function makeDialog(): { overlay: HTMLDivElement; card: HTMLDivElement; close: () => void } {
-  const overlay = document.createElement('div');
-  overlay.className = 'consent-overlay';
-  const card = document.createElement('div');
-  card.className = 'consent-card';
-  overlay.appendChild(card);
-
-  const close = (): void => overlay.remove();
-  overlay.addEventListener('click', (e) => {
-    if (e.target === overlay) close();
-  });
-  document.addEventListener('keydown', function onKey(e) {
-    if (e.key === 'Escape') {
-      close();
-      document.removeEventListener('keydown', onKey);
-    }
-  });
-
-  return { overlay, card, close };
-}
+import { makeDialog } from './dialog';
 
 /** Build a single device row with Use / Unpair actions. */
 function deviceRow(

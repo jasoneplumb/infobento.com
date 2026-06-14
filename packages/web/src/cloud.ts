@@ -89,7 +89,10 @@ export async function selectDevice(deviceId: string): Promise<boolean> {
   }
 
   if (res.status === 404) {
-    // Newly-paired device with no config — adopt the editor's current content.
+    // `deviceId` came from the ownership-gated /api/me/devices list, so the
+    // device is known to exist and be ours — a 404 from this firmware-facing
+    // GET therefore means "no config stored yet". Adopt the editor's current
+    // content; the first edit creates the config.
     enterCloudMode(deviceId);
     return true;
   }
@@ -126,9 +129,23 @@ async function saveNow(): Promise<void> {
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify(toBentoConfig()),
     });
-    // Session expired out from under the editor — fall back to local mode so the
-    // user keeps editing rather than silently losing writes.
-    if (res.status === 401) exitToLocalMode();
+    if (res.ok) return;
+    // The device can no longer accept this account's writes — session expired
+    // (401), ownership revoked or device deleted (403/404). Fall back to local
+    // mode so the user keeps editing locally instead of silently losing writes.
+    if (res.status === 401 || res.status === 403 || res.status === 404) {
+      exitToLocalMode();
+      return;
+    }
+    // Rate limited (429) — retry the latest config after the server cooldown
+    // rather than dropping this write. The retry re-reads current editor state.
+    if (res.status === 429) {
+      const retry = Number(res.headers.get('Retry-After'));
+      const delayMs = Number.isFinite(retry) && retry > 0 ? retry * 1000 : 60_000;
+      if (_saveTimer) clearTimeout(_saveTimer);
+      _saveTimer = setTimeout(() => void saveNow(), delayMs);
+    }
+    // Other 5xx: transient; the next edit reschedules a save.
   } catch {
     // Network hiccup — the next edit reschedules a save.
   }

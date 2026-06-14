@@ -30,9 +30,9 @@ interface DeviceSummary {
  *
  * Responses:
  *   401 — no valid session.
- *   404 — no such device (also returned when owned by someone else, so we don't
- *         leak the existence of other accounts' devices).
- *   403 — device exists but is owned by a different account.
+ *   404 — no such device the caller owns. Deliberately opaque: a device that is
+ *         missing, unclaimed, or owned by another account all return 404 so the
+ *         endpoint can't be used to probe for other accounts' device ids.
  *   429 — too many writes for this account.
  *   400 — malformed JSON, or a body that fails BentoConfig validation.
  *   200 — persisted.
@@ -52,9 +52,10 @@ export function createPutDeviceConfigHandler(getDb: () => DB) {
     if (!id) return c.json({ error: 'not_found' }, 404);
     const db = getDb();
     const device = getDevice(db, id);
-    if (!device) return c.json({ error: 'not_found' }, 404);
-    if (device.owner_account_id !== session.accountId) {
-      return c.json({ error: 'forbidden' }, 403);
+    // Opaque 404 for missing, unclaimed, and other-owner alike — don't reveal
+    // that a device id exists to a caller who doesn't own it.
+    if (!device || device.owner_account_id !== session.accountId) {
+      return c.json({ error: 'not_found' }, 404);
     }
 
     let body: unknown;

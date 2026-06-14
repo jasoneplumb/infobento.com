@@ -5,28 +5,7 @@
  * in. There is no magic-link/email path: auth shipped as passkey + OAuth (#73).
  */
 
-/** Build a centered dialog over the editor; returns the card and a closer. */
-function makeDialog(): { overlay: HTMLDivElement; card: HTMLDivElement; close: () => void } {
-  const overlay = document.createElement('div');
-  overlay.className = 'consent-overlay';
-  const card = document.createElement('div');
-  card.className = 'consent-card';
-  overlay.appendChild(card);
-
-  const close = (): void => overlay.remove();
-  // Click outside the card or press Escape to dismiss.
-  overlay.addEventListener('click', (e) => {
-    if (e.target === overlay) close();
-  });
-  document.addEventListener('keydown', function onKey(e) {
-    if (e.key === 'Escape') {
-      close();
-      document.removeEventListener('keydown', onKey);
-    }
-  });
-
-  return { overlay, card, close };
-}
+import { makeDialog } from './dialog';
 
 /** The path OAuth should return to (the editor, preserving the current route). */
 function editorNextPath(): string {
