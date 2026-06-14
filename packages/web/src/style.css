@@ -135,6 +135,47 @@ header {
   outline: none;
 }
 
+.menu-item[hidden] {
+  display: none;
+}
+
+.menu-divider {
+  border: none;
+  border-top: 1px solid var(--border, #ddd);
+  margin: 4px 2px;
+}
+
+/* Devices panel (issue #76) */
+.device-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 12px 0;
+}
+
+.device-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.device-code {
+  flex: 1;
+  font-family: var(--mono);
+  font-size: 14px;
+}
+
+.device-active-badge {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--accent, #2563eb);
+}
+
+.device-message {
+  color: var(--muted, #666);
+  font-size: 13px;
+}
+
 header h1 {
   font-family: var(--mono);
   font-size: 15px;

@@ -367,6 +367,91 @@ export function onPreviewRender(fn: () => void): void {
   _previewFn = fn;
 }
 
+// -- Persistence mode (local vs cloud, issue #76) ---------------------------
+//
+// Default is 'local': every state change writes to localStorage, exactly as
+// before. When a signed-in user selects a paired device, the editor switches to
+// 'cloud': changes are pushed to PUT /api/device/<id>/config (debounced by the
+// registered cloud saver) and localStorage is left UNTOUCHED, so the user's
+// local "tinkering" buffer survives intact and is restored on sign-out.
+
+export type PersistenceMode = 'local' | 'cloud';
+
+let _persistenceMode: PersistenceMode = 'local';
+let _activeDeviceId: string | null = null;
+let _cloudPersistFn: (() => void) | null = null;
+// Set while applying a config loaded FROM the cloud, so the load doesn't
+// immediately echo back as a save.
+let _suppressPersist = false;
+
+/** Register the (debounced) cloud-save function used in cloud mode. */
+export function onCloudPersist(fn: () => void): void {
+  _cloudPersistFn = fn;
+}
+
+export function getPersistenceMode(): PersistenceMode {
+  return _persistenceMode;
+}
+
+export function getActiveDeviceId(): string | null {
+  return _activeDeviceId;
+}
+
+/**
+ * Switch to cloud persistence for `deviceId`. Subsequent edits push to the
+ * device's server-side config instead of localStorage. The local buffer is not
+ * written or cleared. Optionally seeds the editor from a config the caller
+ * already fetched (applied without triggering a redundant save-back).
+ */
+export function enterCloudMode(deviceId: string, seed?: unknown): void {
+  _persistenceMode = 'cloud';
+  _activeDeviceId = deviceId;
+  if (seed !== undefined) {
+    _suppressPersist = true;
+    try {
+      loadConfig(seed);
+    } finally {
+      _suppressPersist = false;
+    }
+  }
+}
+
+/**
+ * Leave cloud mode and restore the local-only editor. Reloads the preserved
+ * localStorage buffer into the editor so the user's pre-sign-in work reappears
+ * exactly as they left it (sign-out must not lose the local edits buffer).
+ */
+export function exitToLocalMode(): void {
+  _persistenceMode = 'local';
+  _activeDeviceId = null;
+  // Restore the untouched local buffer; if there was none, keep current boxes.
+  _suppressPersist = true;
+  try {
+    loadFromLocalStorage();
+  } finally {
+    _suppressPersist = false;
+  }
+  _renderFn?.();
+}
+
+/** Test-only: reset persistence mode/hooks between cases. */
+export function _resetPersistenceForTesting(): void {
+  _persistenceMode = 'local';
+  _activeDeviceId = null;
+  _cloudPersistFn = null;
+  _suppressPersist = false;
+}
+
+/** Persist current state via the active mode (localStorage or cloud). */
+function persist(): void {
+  if (_suppressPersist) return;
+  if (_persistenceMode === 'cloud') {
+    _cloudPersistFn?.();
+  } else {
+    persistToLocalStorage();
+  }
+}
+
 /** Read current state (immutable reference — mutate only via setState) */
 export function getState(): EditorState {
   return state;
@@ -380,7 +465,7 @@ export function getBoxes(): EditorBox[] {
 /** Mutate state and trigger a full re-render */
 export function setState(mutate: (s: EditorState) => void): void {
   mutate(state);
-  persistToLocalStorage();
+  persist();
   _renderFn?.();
 }
 
@@ -577,7 +662,7 @@ export function updateWeatherData(id: number, data: WeatherData): void {
   const box = findBox(id);
   if (!box || box.type !== 'weather') return;
   (box.config as WeatherConfig).data = data;
-  persistToLocalStorage();
+  persist();
   renderPreview();
 }
 
@@ -585,7 +670,7 @@ export function updateForecastEntries(id: number, entries: ForecastEntry[]): voi
   const box = findBox(id);
   if (!box || box.type !== 'forecast') return;
   (box.config as ForecastConfig).entries = entries;
-  persistToLocalStorage();
+  persist();
   renderPreview();
 }
 
@@ -593,7 +678,7 @@ export function updateForecast3DEntries(id: number, entries: Forecast3DEntry[]):
   const box = findBox(id);
   if (!box || box.type !== 'forecast3d') return;
   (box.config as Forecast3DConfig).entries = entries;
-  persistToLocalStorage();
+  persist();
   renderPreview();
 }
 
@@ -601,7 +686,7 @@ export function updateSunData(id: number, data: SunData): void {
   const box = findBox(id);
   if (!box || box.type !== 'sun') return;
   (box.config as SunConfig).data = data;
-  persistToLocalStorage();
+  persist();
   renderPreview();
 }
 
@@ -609,7 +694,7 @@ export function updateAQIData(id: number, data: AQIData): void {
   const box = findBox(id);
   if (!box || box.type !== 'aqi') return;
   (box.config as AQIConfig).data = data;
-  persistToLocalStorage();
+  persist();
   renderPreview();
 }
 
@@ -617,7 +702,7 @@ export function updateStocksData(id: number, data: StockData): void {
   const box = findBox(id);
   if (!box || box.type !== 'stocks') return;
   (box.config as StocksConfig).data = data;
-  persistToLocalStorage();
+  persist();
   renderPreview();
 }
 
@@ -634,7 +719,7 @@ export function getShowHeaders(): boolean {
 
 export function setShowHeaders(value: boolean): void {
   state.showHeaders = value;
-  persistToLocalStorage();
+  persist();
   renderPreview();
 }
 
@@ -644,7 +729,7 @@ export function getFontSize(): number {
 
 export function setFontSize(value: number): void {
   state.fontSize = Math.max(8, Math.min(42, value));
-  persistToLocalStorage();
+  persist();
   renderPreview();
 }
 
@@ -655,7 +740,7 @@ export function getFontWeight(): number {
 
 export function setFontWeight(value: number): void {
   state.fontWeight = clampFontWeight(value);
-  persistToLocalStorage();
+  persist();
   renderPreview();
 }
 
@@ -665,7 +750,7 @@ export function getCornerRadius(): number {
 
 export function setCornerRadius(value: number): void {
   state.cornerRadius = clampCornerRadius(value);
-  persistToLocalStorage();
+  persist();
   renderPreview();
 }
 
@@ -675,7 +760,7 @@ export function getPadding(): number {
 
 export function setPadding(value: number): void {
   state.padding = Math.max(0, Math.min(10, value));
-  persistToLocalStorage();
+  persist();
   renderPreview();
 }
 
@@ -691,7 +776,7 @@ export function getDeviceProfile(): DeviceProfilePreset {
 export function setDeviceProfile(id: string): void {
   if (DEVICE_PROFILES.some((p) => p.id === id)) {
     state.profileId = id;
-    persistToLocalStorage();
+    persist();
     renderPreview();
   }
 }
@@ -705,7 +790,7 @@ export function getTempUnit(): 'F' | 'C' {
 export function setTempUnit(unit: 'F' | 'C'): void {
   if (state.tempUnit === unit) return;
   state.tempUnit = unit;
-  persistToLocalStorage();
+  persist();
   renderPreview();
 }
 

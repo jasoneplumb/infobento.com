@@ -37,6 +37,9 @@ import { DEVICE_PROFILES } from '@infobento/core';
 import { renderBoxList, decorateBoxList } from './components/box-list';
 import { renderPreview, setPreviewOrientation, onRenderedBoxIds } from './components/preview';
 import { requireConsent } from './components/consent';
+import { openSignInDialog } from './components/sign-in';
+import { openDevicesDialog } from './components/devices';
+import { getSession, signOut, initCloudSync } from './cloud';
 import { ensureLocationDefault } from './geolocation';
 
 /** Initialize the box editor (the default route). */
@@ -169,6 +172,32 @@ function initEditor(): void {
 
   wireMenuItem('btn-import', importJSON);
   wireMenuItem('btn-export', exportJSON);
+
+  // -- Account / device menu (issue #76) ------------------------------------
+  //
+  // Sign-in routes through OAuth; once signed in, the Devices panel switches the
+  // editor's persistence to a paired device. Visibility reflects session state.
+  initCloudSync();
+
+  function setHidden(id: string, hidden: boolean): void {
+    document.getElementById(id)?.toggleAttribute('hidden', hidden);
+  }
+
+  function refreshAccountMenu(): void {
+    void getSession().then((session) => {
+      setHidden('btn-signin', session.authenticated);
+      setHidden('btn-devices', !session.authenticated);
+      setHidden('btn-signout', !session.authenticated);
+    });
+  }
+
+  wireMenuItem('btn-signin', openSignInDialog);
+  wireMenuItem('btn-devices', openDevicesDialog);
+  wireMenuItem('btn-signout', () => {
+    void signOut().then(refreshAccountMenu);
+  });
+
+  refreshAccountMenu();
 
   // -- Wire up Show Box Headers toggle --------------------------------------
 
