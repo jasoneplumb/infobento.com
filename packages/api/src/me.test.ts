@@ -11,14 +11,7 @@
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { Hono } from 'hono';
-import {
-  createDb,
-  createAccount,
-  createDevice,
-  setConfig,
-  claimDevice,
-  getDevice,
-} from './db.js';
+import { createDb, createAccount, createDevice, setConfig, claimDevice, getDevice } from './db.js';
 import type { DB } from './db.js';
 import { signSession } from './auth/session.js';
 import {
@@ -38,9 +31,18 @@ const VALID_CONFIG = {
 
 function makeApp(db: DB): Hono {
   const app = new Hono();
-  app.put('/api/device/:id/config', createPutDeviceConfigHandler(() => db));
-  app.get('/api/me/devices', createListDevicesHandler(() => db));
-  app.delete('/api/device/:id/owner', createUnpairDeviceHandler(() => db));
+  app.put(
+    '/api/device/:id/config',
+    createPutDeviceConfigHandler(() => db),
+  );
+  app.get(
+    '/api/me/devices',
+    createListDevicesHandler(() => db),
+  );
+  app.delete(
+    '/api/device/:id/owner',
+    createUnpairDeviceHandler(() => db),
+  );
   return app;
 }
 
@@ -206,9 +208,7 @@ describe('GET /api/me/devices', () => {
 
     const res = await app.request('/api/me/devices', { headers: cookie(me.id) });
     const json = (await res.json()) as { devices: Array<{ id: string; hasConfig: boolean }> };
-    expect(json.devices).toEqual([
-      expect.objectContaining({ id: fresh.id, hasConfig: false }),
-    ]);
+    expect(json.devices).toEqual([expect.objectContaining({ id: fresh.id, hasConfig: false })]);
   });
 });
 
