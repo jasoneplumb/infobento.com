@@ -48,6 +48,11 @@ import {
 } from './device.js';
 import { consumeToken } from './rate-limit.js';
 import { createPairHandler } from './pair.js';
+import {
+  createListDevicesHandler,
+  createPutDeviceConfigHandler,
+  createUnpairDeviceHandler,
+} from './me.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -602,6 +607,15 @@ app.get('/api/auth/session', (c) => {
 // A signed-in user claims a device by its printed pair code, binding the
 // device record to their account. Requires a valid session cookie.
 app.post('/api/pair', createPairHandler(getDb));
+
+// --- User-facing device management (issue #76) ---
+//
+// These authenticate via the SESSION COOKIE and verify the signed-in account
+// OWNS the device. Distinct from the firmware-facing pull endpoints below,
+// where the device id itself is the bearer secret and there is no session.
+app.put('/api/device/:id/config', createPutDeviceConfigHandler(getDb));
+app.get('/api/me/devices', createListDevicesHandler(getDb));
+app.delete('/api/device/:id/owner', createUnpairDeviceHandler(getDb));
 
 // --- Device-pull endpoints (issue #75) ---
 //
