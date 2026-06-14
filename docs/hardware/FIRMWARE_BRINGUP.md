@@ -19,7 +19,7 @@ The cloud half of the contract is implemented and stable — firmware can be wri
 
 These are not firmware code but block an end-to-end provisioned device. Tracked / to-track:
 
-1. **Device-minting path** — `createDevice()` exists in `db.ts:166` but nothing exposes it. For bring-up, mint a device row + pair code via a one-off script. For production, an admin/manufacturing path is needed (relates to sticker epic #80, QR generator #78).
+1. **Device-minting path** — ✅ **done** (PR #109). `mintDevice()` (`packages/api/src/mint.ts`) wraps `createDevice` + `setConfig` atomically with pair-code generation + collision retry; the bring-up CLI `scripts/mint-device.ts` mints a device, seeds a config (`--config`), and prints the device id + pair code + `/frame` URL. For production, an admin/manufacturing path is still needed (relates to sticker epic #80, QR generator #78).
 2. **`POST /api/pair` HTTP route + web `/pair/:code` page** — issue **#74**. DB helper `claimDevice` is done; only the HTTP+web wiring remains. Not required for _bring-up_ (mint + hardcode the id), required for _real onboarding_.
 3. **Captive-portal provisioning** — issue **#39** (firmware-side AP mode, Wi-Fi entry, NVS, custom-server-URL field per #80). Not required for bring-up (hardcode Wi-Fi creds); required before shipping.
 4. **`POST /api/device/forget`** (web-side "forget Wi-Fi") — named in #39, not built.
@@ -40,8 +40,8 @@ Each phase is independently verifiable on the bench. Do not advance until the pr
 
 - reTerminal E1001 in hand, USB-C data cable, Arduino IDE / arduino-cli + ESP32-S3 board support + GxEPD2.
 - API reachable from the device's network (run `npm start -w @infobento/api`, note the LAN IP, or use a deployed instance).
-- **Mint a bring-up device:** one-off script calling `createDevice(db, { pairCode })`; record the generated device **id**. Seed it a config via `updateDeviceConfig` so `/frame` returns 200 (it 404s with no `config_json` — `device.ts:74`).
-- **Done when:** `curl http://<api>/api/device/<id>/frame` returns 200 with `X-Frame-Width: 800`.
+- **Mint a bring-up device:** ✅ run `npx tsx scripts/mint-device.ts --config <800x480-config.json>`; it mints a device (`createDevice` + pair code), seeds the config so `/frame` returns 200 (it 404s with no `config_json` — `device.ts:74`), and prints the device **id**.
+- **Done when:** `curl http://<api>/api/device/<id>/frame` returns 200 with `X-Frame-Width: 800` (frame width follows the seeded config's resolution).
 
 ### Phase 1 — Toolchain + blink
 
