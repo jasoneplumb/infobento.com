@@ -112,6 +112,13 @@ async function claim(
     message.textContent = 'This device is already paired to a different account.';
     return;
   }
+  if (res.status === 429) {
+    button.disabled = false;
+    const retry = res.headers.get('Retry-After');
+    const secs = retry && /^\d+$/.test(retry) ? retry : '60';
+    message.textContent = `Too many attempts — wait ${secs} seconds and try again.`;
+    return;
+  }
   if (!res.ok) {
     button.disabled = false;
     message.textContent = 'Something went wrong — please try again.';
@@ -135,7 +142,8 @@ function escapeHtml(s: string): string {
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
 }
 
 /** Entry point: render the pairing UI for `code` into the document body. */
