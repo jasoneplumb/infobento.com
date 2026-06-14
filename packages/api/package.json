@@ -25,8 +25,8 @@
     "@infobento/core": "*",
     "@infobento/renderer": "*",
     "@simplewebauthn/server": "^13.3.0",
-    "better-sqlite3": "^12.9.0",
-    "hono": "^4.7.0",
+    "better-sqlite3": "^12.10.1",
+    "hono": "^4.12.25",
     "jose": "^6.2.2"
   },
   "devDependencies": {
