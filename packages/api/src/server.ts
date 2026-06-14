@@ -47,6 +47,7 @@ import {
   parseOrientation,
 } from './device.js';
 import { consumeToken } from './rate-limit.js';
+import { createPairHandler } from './pair.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -595,6 +596,12 @@ app.get('/api/auth/session', (c) => {
   if (!session) return c.json({ authenticated: false });
   return c.json({ authenticated: true, accountId: session.accountId, exp: session.exp });
 });
+
+// --- Device pairing (issue #74) ---
+//
+// A signed-in user claims a device by its printed pair code, binding the
+// device record to their account. Requires a valid session cookie.
+app.post('/api/pair', createPairHandler(getDb));
 
 // --- Device-pull endpoints (issue #75) ---
 //
