@@ -4,7 +4,7 @@
  *   etc.) are out of scope here — those are verified by manual UI testing.
  */
 
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import {
   addBox,
   changeBoxType,
@@ -14,9 +14,34 @@ import {
   setState,
   updateLabel,
   BOX_TYPE_LABELS,
+  getPersistenceMode,
+  getActiveDeviceId,
+  enterCloudMode,
+  exitToLocalMode,
+  onCloudPersist,
+  _resetPersistenceForTesting,
 } from './state.js';
 
+// The web tests run in a bare Node environment (no DOM). Provide a minimal
+// in-memory localStorage so the local-buffer persistence paths are exercised
+// for real rather than silently no-op'ing.
+if (typeof globalThis.localStorage === 'undefined') {
+  const store = new Map<string, string>();
+  globalThis.localStorage = {
+    getItem: (k: string) => (store.has(k) ? (store.get(k) as string) : null),
+    setItem: (k: string, v: string) => void store.set(k, String(v)),
+    removeItem: (k: string) => void store.delete(k),
+    clear: () => store.clear(),
+    key: (i: number) => Array.from(store.keys())[i] ?? null,
+    get length() {
+      return store.size;
+    },
+  } as Storage;
+}
+
 beforeEach(() => {
+  _resetPersistenceForTesting();
+  localStorage.clear();
   setState((s) => {
     s.boxes = [];
   });
@@ -128,5 +153,73 @@ describe('loadConfig (device pairing / import shared loader)', () => {
     expect(loadConfig({ version: 99 })).toBe(false);
     // State is left untouched when nothing was applied.
     expect(getBoxes()).toHaveLength(before);
+  });
+});
+
+describe('persistence mode (local vs cloud, issue #76)', () => {
+  it('defaults to local mode with no active device', () => {
+    expect(getPersistenceMode()).toBe('local');
+    expect(getActiveDeviceId()).toBeNull();
+  });
+
+  it('routes saves to the cloud hook in cloud mode and leaves localStorage untouched', () => {
+    // Establish a local buffer first.
+    addBox('weather');
+    const localBuffer = localStorage.getItem('infobento-config');
+    expect(localBuffer).not.toBeNull();
+
+    const cloudSave = vi.fn();
+    onCloudPersist(cloudSave);
+    enterCloudMode('device-1');
+    expect(getPersistenceMode()).toBe('cloud');
+    expect(getActiveDeviceId()).toBe('device-1');
+
+    // An edit in cloud mode must hit the cloud hook, NOT localStorage.
+    addBox('quote');
+    expect(cloudSave).toHaveBeenCalled();
+    expect(localStorage.getItem('infobento-config')).toBe(localBuffer);
+  });
+
+  it('seeds the editor from a cloud config without echoing a save back', () => {
+    addBox('weather'); // local buffer
+    const cloudSave = vi.fn();
+    onCloudPersist(cloudSave);
+
+    enterCloudMode('device-1', {
+      version: 2,
+      boxes: [
+        { type: 'text', label: 'A', config: { content: 'one' } },
+        { type: 'text', label: 'B', config: { content: 'two' } },
+      ],
+    });
+
+    // The seed was applied to the editor...
+    expect(getBoxes()).toHaveLength(2);
+    expect(getBoxes()[0]!.type).toBe('text');
+    // ...but applying it must not trigger a save-back.
+    expect(cloudSave).not.toHaveBeenCalled();
+  });
+
+  it('sign-out restores the local edits buffer without loss', () => {
+    // Local buffer: a single weather box.
+    addBox('weather');
+    expect(getBoxes()).toHaveLength(1);
+
+    // Switch to a device whose config differs.
+    enterCloudMode('device-1', {
+      version: 2,
+      boxes: [
+        { type: 'quote', label: 'Q', config: { content: 'hi', author: '' } },
+        { type: 'joke', label: 'J', config: { content: 'ha' } },
+      ],
+    });
+    expect(getBoxes()).toHaveLength(2);
+
+    // Signing out reverts to local mode and the preserved local buffer.
+    exitToLocalMode();
+    expect(getPersistenceMode()).toBe('local');
+    expect(getActiveDeviceId()).toBeNull();
+    expect(getBoxes()).toHaveLength(1);
+    expect(getBoxes()[0]!.type).toBe('weather');
   });
 });

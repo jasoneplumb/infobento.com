@@ -230,6 +230,31 @@ export function getDevicesForAccount(db: DB, accountId: string): readonly Device
     .all(accountId) as Device[];
 }
 
+/**
+ * Release an account's claim on a device (unpair). Clears `owner_account_id`,
+ * `paired_at`, AND `config_json` so the device is pristine for a future re-pair.
+ * Clearing the config is a privacy measure: a device re-paired by a *different*
+ * account must not serve the previous owner's config (which can carry personal
+ * text, calendar events, etc.) to the new owner's firmware. Scoped to
+ * `accountId` so a caller can only unpair a device it owns — returns false if
+ * the device is missing or owned by someone else.
+ */
+export function unclaimDevice(db: DB, deviceId: string, accountId: string): boolean {
+  const now = Date.now();
+  const result = db
+    .prepare(
+      `UPDATE devices
+         SET owner_account_id = NULL,
+             paired_at        = NULL,
+             config_json      = NULL,
+             last_modified    = ?
+       WHERE id = ?
+         AND owner_account_id = ?`,
+    )
+    .run(now, deviceId, accountId);
+  return result.changes > 0;
+}
+
 // -- Passkey credentials ----------------------------------------------------
 
 interface PasskeyRow {

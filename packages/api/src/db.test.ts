@@ -10,6 +10,7 @@ import {
   claimDevice,
   setConfig,
   getDevicesForAccount,
+  unclaimDevice,
 } from './db.js';
 
 describe('db (in-memory)', () => {
@@ -149,6 +150,40 @@ describe('db (in-memory)', () => {
       const list = getDevicesForAccount(db, a.id);
       expect(list).toHaveLength(2);
       expect(list[0]!.pair_code).toBe('B0002');
+    });
+  });
+
+  describe('unclaimDevice', () => {
+    it('releases the owner, clears paired_at, and wipes config for a device the account owns', () => {
+      const a = createAccount(db);
+      const d = createDevice(db, { pairCode: 'UNC001' });
+      claimDevice(db, 'UNC001', a.id);
+      setConfig(db, d.id, '{"boxes":[],"refreshesPerDay":1}');
+      expect(getDevice(db, d.id)?.owner_account_id).toBe(a.id);
+
+      expect(unclaimDevice(db, d.id, a.id)).toBe(true);
+      const fresh = getDevice(db, d.id);
+      expect(fresh?.owner_account_id).toBeNull();
+      expect(fresh?.paired_at).toBeNull();
+      // Config is wiped so a future owner can't read the previous owner's data.
+      expect(fresh?.config_json).toBeNull();
+      // It no longer shows up among the account's devices.
+      expect(getDevicesForAccount(db, a.id)).toEqual([]);
+    });
+
+    it('refuses to unclaim a device owned by another account', () => {
+      const owner = createAccount(db);
+      const other = createAccount(db);
+      const d = createDevice(db, { pairCode: 'UNC002' });
+      claimDevice(db, 'UNC002', owner.id);
+
+      expect(unclaimDevice(db, d.id, other.id)).toBe(false);
+      expect(getDevice(db, d.id)?.owner_account_id).toBe(owner.id);
+    });
+
+    it('returns false for a missing device', () => {
+      const a = createAccount(db);
+      expect(unclaimDevice(db, 'no-such-id', a.id)).toBe(false);
     });
   });
 });
