@@ -9,6 +9,7 @@ import {
   addBox,
   changeBoxType,
   getBoxes,
+  loadConfig,
   serializeBoxes,
   setState,
   updateLabel,
@@ -103,5 +104,29 @@ describe('changeBoxType', () => {
     changeBoxType(id, 'quote');
     const cfg = getBoxes()[0]!.config as { content: string };
     expect(cfg.content).toBe('edited');
+  });
+});
+
+describe('loadConfig (device pairing / import shared loader)', () => {
+  it('applies a version-2 config into state', () => {
+    const ok = loadConfig({
+      version: 2,
+      boxes: [{ type: 'text', label: 'Hi', config: { content: 'yo' } }],
+    });
+    expect(ok).toBe(true);
+    const boxes = getBoxes();
+    expect(boxes).toHaveLength(1);
+    expect(boxes[0]!.type).toBe('text');
+    expect((boxes[0]!.config as { content: string }).content).toBe('yo');
+  });
+
+  it('rejects an object with no recognizable version', () => {
+    addBox('quote');
+    const before = getBoxes().length;
+    expect(loadConfig({ foo: 'bar' })).toBe(false);
+    expect(loadConfig(null)).toBe(false);
+    expect(loadConfig({ version: 99 })).toBe(false);
+    // State is left untouched when nothing was applied.
+    expect(getBoxes()).toHaveLength(before);
   });
 });

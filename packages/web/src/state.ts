@@ -861,6 +861,63 @@ function loadFromLocalStorage(): boolean {
 // Attempt to restore state from localStorage on module load
 loadFromLocalStorage();
 
+// -- Config loading (shared by file import + device pairing) ----------------
+
+/**
+ * Apply a parsed config object (the export/import schema, version 1 or 2) to
+ * state, triggering a full re-render. Returns true if a recognized version was
+ * applied, false otherwise. Used by both file import and the device-pairing
+ * flow (issue #74), which seeds state from the server response rather than a
+ * file or localStorage.
+ */
+export function loadConfig(parsed: unknown): boolean {
+  if (typeof parsed !== 'object' || parsed === null || !('version' in parsed)) return false;
+  const obj = parsed as Record<string, unknown>;
+
+  // Version 2: single boxes array
+  if (obj.version === 2 && Array.isArray(obj.boxes)) {
+    setState((s) => {
+      s.boxes = hydrateBoxes(
+        obj.boxes as Array<{
+          type: string;
+          label: string;
+          config: Record<string, string>;
+          split?: string;
+          splitRatio?: number;
+        }>,
+      );
+      if (typeof obj.showHeaders === 'boolean') s.showHeaders = obj.showHeaders;
+      if (typeof obj.fontSize === 'number') s.fontSize = obj.fontSize;
+      if (typeof obj.fontWeight === 'number') s.fontWeight = clampFontWeight(obj.fontWeight);
+      if (typeof obj.cornerRadius === 'number')
+        s.cornerRadius = clampCornerRadius(obj.cornerRadius);
+      if (typeof obj.padding === 'number') s.padding = obj.padding;
+    });
+    return true;
+  }
+
+  // Version 1 migration: merge D + P into single array
+  if (obj.version === 1) {
+    const v1 = obj as {
+      D:
+        | { boxes: Array<{ type: string; label: string; config: Record<string, string> }> }
+        | Array<{ type: string; label: string; config: Record<string, string> }>;
+      P:
+        | { boxes: Array<{ type: string; label: string; config: Record<string, string> }> }
+        | Array<{ type: string; label: string; config: Record<string, string> }>;
+    };
+    const dBoxes = Array.isArray(v1.D) ? v1.D : v1.D?.boxes;
+    const pBoxes = Array.isArray(v1.P) ? v1.P : v1.P?.boxes;
+    if (!Array.isArray(dBoxes) || !Array.isArray(pBoxes)) return false;
+    setState((s) => {
+      s.boxes = hydrateBoxes([...dBoxes, ...pBoxes]);
+    });
+    return true;
+  }
+
+  return false;
+}
+
 // -- Import -----------------------------------------------------------------
 
 export function importJSON(): void {
@@ -877,57 +934,9 @@ export function importJSON(): void {
     reader.onload = () => {
       try {
         const parsed: unknown = JSON.parse(reader.result as string);
-        if (typeof parsed !== 'object' || parsed === null || !('version' in parsed)) {
-          alert('Invalid InfoBento config file: missing required fields.');
-          return;
+        if (!loadConfig(parsed)) {
+          alert('Invalid InfoBento config file: missing or unsupported version.');
         }
-        const obj = parsed as Record<string, unknown>;
-
-        // Version 2: single boxes array
-        if (obj.version === 2 && Array.isArray(obj.boxes)) {
-          setState((s) => {
-            s.boxes = hydrateBoxes(
-              obj.boxes as Array<{
-                type: string;
-                label: string;
-                config: Record<string, string>;
-                split?: string;
-                splitRatio?: number;
-              }>,
-            );
-            if (typeof obj.showHeaders === 'boolean') s.showHeaders = obj.showHeaders;
-            if (typeof obj.fontSize === 'number') s.fontSize = obj.fontSize;
-            if (typeof obj.fontWeight === 'number') s.fontWeight = clampFontWeight(obj.fontWeight);
-            if (typeof obj.cornerRadius === 'number')
-              s.cornerRadius = clampCornerRadius(obj.cornerRadius);
-            if (typeof obj.padding === 'number') s.padding = obj.padding;
-          });
-          return;
-        }
-
-        // Version 1 migration: merge D + P into single array
-        if (obj.version === 1) {
-          const v1 = obj as {
-            D:
-              | { boxes: Array<{ type: string; label: string; config: Record<string, string> }> }
-              | Array<{ type: string; label: string; config: Record<string, string> }>;
-            P:
-              | { boxes: Array<{ type: string; label: string; config: Record<string, string> }> }
-              | Array<{ type: string; label: string; config: Record<string, string> }>;
-          };
-          const dBoxes = Array.isArray(v1.D) ? v1.D : v1.D?.boxes;
-          const pBoxes = Array.isArray(v1.P) ? v1.P : v1.P?.boxes;
-          if (!Array.isArray(dBoxes) || !Array.isArray(pBoxes)) {
-            alert('Invalid InfoBento config file: could not read boxes.');
-            return;
-          }
-          setState((s) => {
-            s.boxes = hydrateBoxes([...dBoxes, ...pBoxes]);
-          });
-          return;
-        }
-
-        alert('Invalid InfoBento config file: unsupported version.');
       } catch {
         alert('Failed to parse JSON file. Please check the file format.');
       }
