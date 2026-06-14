@@ -154,16 +154,19 @@ describe('db (in-memory)', () => {
   });
 
   describe('unclaimDevice', () => {
-    it('releases the owner and clears paired_at for a device the account owns', () => {
+    it('releases the owner, clears paired_at, and wipes config for a device the account owns', () => {
       const a = createAccount(db);
       const d = createDevice(db, { pairCode: 'UNC001' });
       claimDevice(db, 'UNC001', a.id);
+      setConfig(db, d.id, '{"boxes":[],"refreshesPerDay":1}');
       expect(getDevice(db, d.id)?.owner_account_id).toBe(a.id);
 
       expect(unclaimDevice(db, d.id, a.id)).toBe(true);
       const fresh = getDevice(db, d.id);
       expect(fresh?.owner_account_id).toBeNull();
       expect(fresh?.paired_at).toBeNull();
+      // Config is wiped so a future owner can't read the previous owner's data.
+      expect(fresh?.config_json).toBeNull();
       // It no longer shows up among the account's devices.
       expect(getDevicesForAccount(db, a.id)).toEqual([]);
     });

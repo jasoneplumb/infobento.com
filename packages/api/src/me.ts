@@ -11,7 +11,7 @@
  */
 
 import type { Context } from 'hono';
-import { validateBentoConfig } from '@infobento/core';
+import { validateBentoConfig, BentoConfigSchema } from '@infobento/core';
 import type { DB } from './db.js';
 import { getDevice, getDevicesForAccount, setConfig, unclaimDevice } from './db.js';
 import { readSession } from './auth/session.js';
@@ -48,6 +48,8 @@ export function createPutDeviceConfigHandler(getDb: () => DB) {
       return c.json({ error: 'rate_limited' }, 429, { 'Retry-After': '60' });
     }
 
+    // c.req.param('id') is typed string | undefined here, so this guard is
+    // required for type-safety (Hono provides it at runtime, but TS can't know).
     const id = c.req.param('id');
     if (!id) return c.json({ error: 'not_found' }, 404);
     const db = getDb();
@@ -70,7 +72,10 @@ export function createPutDeviceConfigHandler(getDb: () => DB) {
       return c.json({ error: 'invalid_config', details: validation.errors }, 400);
     }
 
-    setConfig(db, id, JSON.stringify(body));
+    // Store the schema-stripped config, not the raw request body, so unknown
+    // client-supplied fields aren't persisted and later served to firmware.
+    // Safe to parse: validateBentoConfig just succeeded on the same input.
+    setConfig(db, id, JSON.stringify(BentoConfigSchema.parse(body)));
     return c.json({ ok: true });
   };
 }

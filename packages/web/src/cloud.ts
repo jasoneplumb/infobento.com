@@ -131,9 +131,10 @@ async function saveNow(): Promise<void> {
     });
     if (res.ok) return;
     // The device can no longer accept this account's writes — session expired
-    // (401), ownership revoked or device deleted (403/404). Fall back to local
-    // mode so the user keeps editing locally instead of silently losing writes.
-    if (res.status === 401 || res.status === 403 || res.status === 404) {
+    // (401), or the device is gone / no longer ours (opaque 404 from the
+    // ownership check). Fall back to local mode so the user keeps editing
+    // locally instead of silently losing writes.
+    if (res.status === 401 || res.status === 404) {
       exitToLocalMode();
       return;
     }
