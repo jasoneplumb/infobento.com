@@ -12,6 +12,7 @@ import { createDb, createAccount, createDevice, setConfig, getDeviceByPairCode }
 import type { DB } from './db.js';
 import { signSession } from './auth/session.js';
 import { createPairHandler } from './pair.js';
+import { _resetForTesting as resetRateLimit } from './rate-limit.js';
 
 const TEST_SECRET = 'test-secret-sixteen-chars-long';
 
@@ -43,6 +44,7 @@ describe('POST /api/pair', () => {
 
   beforeEach(() => {
     process.env['SESSION_SECRET'] = TEST_SECRET;
+    resetRateLimit(); // isolate the per-account token buckets between tests
     db = createDb(':memory:');
     app = makeApp(db);
   });
@@ -117,5 +119,16 @@ describe('POST /api/pair', () => {
     const res = await postPair(app, { code: 'AGAIN1' }, account.id);
     expect(res.status).toBe(200);
     expect(getDeviceByPairCode(db, 'AGAIN1')?.owner_account_id).toBe(account.id);
+  });
+
+  it('rate-limits an account enumerating pair codes (429 after the burst)', async () => {
+    const account = createAccount(db);
+    // The token bucket allows a burst of 10; the 11th attempt is throttled.
+    for (let i = 0; i < 10; i++) {
+      expect((await postPair(app, { code: 'NOPE99' }, account.id)).status).toBe(404);
+    }
+    const res = await postPair(app, { code: 'NOPE99' }, account.id);
+    expect(res.status).toBe(429);
+    expect(res.headers.get('Retry-After')).toBe('60');
   });
 });

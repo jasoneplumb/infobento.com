@@ -300,7 +300,17 @@ function initEditor(): void {
 
 const pairMatch = /^\/pair\/(.+)$/.exec(window.location.pathname);
 if (pairMatch) {
-  const code = decodeURIComponent(pairMatch[1] ?? '');
+  const raw = pairMatch[1] ?? '';
+  // A corrupt/hand-crafted QR can produce malformed percent-encoding, which
+  // makes decodeURIComponent throw — fall back to the raw segment so the page
+  // still renders (and shows a clean "unknown code" message) rather than
+  // crashing SPA init.
+  let code = raw;
+  try {
+    code = decodeURIComponent(raw);
+  } catch {
+    code = raw;
+  }
   void import('./pair').then((m) => m.renderPairPage(code));
 } else {
   initEditor();
