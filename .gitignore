@@ -48,3 +48,7 @@ clones/
 
 # Claude Code
 .claude/settings.local.json
+
+# Firmware bench secrets (Wi-Fi creds, device id)
+firmware/secrets.h
+firmware/dev/
