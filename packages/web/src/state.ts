@@ -857,20 +857,24 @@ function hydrateBoxes(
     splitRatio?: number;
   }>,
 ): EditorBox[] {
-  const boxes = raw.map((b) => ({
-    id: uid(),
-    type: b.type as EditorBoxType,
-    label: b.label,
-    config: { ...b.config } as EditorBoxConfig,
-    ...(b.split === 'left' || b.split === 'right' ? { split: b.split } : {}),
-    ...(() => {
-      // Migrate legacy enum ratios (1/2/3) → percentages; accept raw % too.
-      const sr = b.splitRatio;
-      const pct = sr === 1 ? 33 : sr === 2 ? 50 : sr === 3 ? 67 : typeof sr === 'number' ? sr : 50;
-      const clamped = Math.min(80, Math.max(20, Math.round(pct)));
-      return clamped !== 50 ? { splitRatio: clamped } : {};
-    })(),
-  }));
+  const boxes: EditorBox[] = raw.map((b) => {
+    // config comes from persisted JSON as a flat string map; the runtime shape
+    // matches one of the EditorBoxConfig union members it was serialized from, so
+    // narrow through `unknown` at this deserialization boundary.
+    const box: EditorBox = {
+      id: uid(),
+      type: b.type as EditorBoxType,
+      label: b.label,
+      config: { ...b.config } as unknown as EditorBoxConfig,
+    };
+    if (b.split === 'left' || b.split === 'right') box.split = b.split;
+    // Migrate legacy enum ratios (1/2/3) → percentages; accept raw % too.
+    const sr = b.splitRatio;
+    const pct = sr === 1 ? 33 : sr === 2 ? 50 : sr === 3 ? 67 : typeof sr === 'number' ? sr : 50;
+    const clamped = Math.min(80, Math.max(20, Math.round(pct)));
+    if (clamped !== 50) box.splitRatio = clamped;
+    return box;
+  });
   // Repair orphaned split markers from older bug where reordering split pairs.
   for (let i = 0; i < boxes.length; i++) {
     const box = boxes[i];
