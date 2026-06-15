@@ -115,6 +115,31 @@ If neither OAuth provider is configured, the app falls back to passkey-only
 auth (still usable on any modern browser/OS). Passkey login does not require
 OAuth credentials at all.
 
+## Manufacturing: device stickers
+
+Each device ships with a sticker carrying a QR code that opens its pairing page
+(`/pair/<pair_code>`) plus the human-readable pair code as a camera-free fallback.
+Generate sticker artwork from a CSV of minted devices:
+
+```bash
+# CSV columns: device_id,pair_code  (header row optional)
+npm run gen-stickers -- scripts/sample-devices.csv stickers/
+
+# Add a tiled, print-ready batch sheet (A4 by default; --page letter for US):
+npm run gen-stickers -- devices.csv stickers/ --sheet --page letter
+
+# Point the QR at a non-production origin (self-host / staging):
+npm run gen-stickers -- devices.csv stickers/ --base-url https://staging.infobento.com
+```
+
+Output is one `<device_id>.svg` per row (designed to print at 25mm × 25mm) and,
+with `--sheet`, a `sheet.svg` you can open in a browser and Print → PDF. Pair
+codes are validated against the minting alphabet, so a typo in the CSV fails
+loudly instead of producing an unscannable sticker. The QR encodes only the pair
+code — never the device id, which is the firmware's bearer secret.
+
+Mint the devices first with [`scripts/mint-device.ts`](scripts/mint-device.ts).
+
 ## Documentation
 
 See [docs/README.md](docs/README.md) for the full documentation index.
@@ -138,4 +163,4 @@ E Plumb and InfoBento contributors.
 
 ## Status
 
-Active development (v0.22.0). Renderer produces framebuffers with 18 box types. Web editor at localhost:5173 for configuration. Passkey + Apple/Google OAuth wired in `@infobento/api`; SaaS pairing flow in progress (epic #77). Hardware validation pending (GDEH0576T81 dev kit on order).
+Active development (v0.29.0). Renderer produces framebuffers with 18 box types. Web editor at localhost:5173 for configuration. Passkey + Apple/Google OAuth and the SaaS device-pairing flow are shipped in `@infobento/api` (epic #77 complete). Firmware bring-up is dev-first on the reTerminal E1001: blink, static-frame, and Wi-Fi device-pull all bench-verified (epic #106, Phases 1–3). Production-panel validation pending the GDEH0576T81 dev kit (#57).
