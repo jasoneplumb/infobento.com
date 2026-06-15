@@ -4,7 +4,7 @@
  * Displays one orientation at a time, toggled by the Landscape checkbox.
  */
 
-import { getBoxes } from '../state';
+import { getBoxes, getDeviceProfile, getCornerRadius } from '../state';
 import { toBentoConfig } from '../config-map';
 
 /** Cached img elements for landscape and portrait, reused across renders */
