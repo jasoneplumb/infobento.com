@@ -18,7 +18,11 @@ import type {
   HabitEntry,
 } from '@infobento/core';
 import { DEFAULT_STOCK_DURATION, DEVICE_PROFILES, DEFAULT_PROFILE_ID } from '@infobento/core';
-import type { DeviceProfilePreset } from '@infobento/core';
+import { validateBentoConfig } from '@infobento/core';
+import type { DeviceProfilePreset, BentoConfig } from '@infobento/core';
+// config-map ↔ state form a runtime-only cycle: these are invoked from
+// exportJSON/loadConfig, never at module init, so the static import is safe.
+import { toBentoConfig, fromBentoConfig } from './config-map';
 
 // -- Editor box model (UI-local, not the core BentoBox type) ---------------
 
@@ -960,8 +964,18 @@ loadFromLocalStorage();
  * file or localStorage.
  */
 export function loadConfig(parsed: unknown): boolean {
-  if (typeof parsed !== 'object' || parsed === null || !('version' in parsed)) return false;
+  if (typeof parsed !== 'object' || parsed === null) return false;
   const obj = parsed as Record<string, unknown>;
+
+  // A drop-in device BentoConfig (what exportJSON emits, and what the device's
+  // config_json stores): no `version` field but a boxes array. Validate it, then
+  // convert to the version-2 editor shape the rest of this function hydrates.
+  if (!('version' in obj) && Array.isArray(obj.boxes)) {
+    if (!validateBentoConfig(obj).valid) return false;
+    return loadConfig(fromBentoConfig(obj as unknown as BentoConfig));
+  }
+
+  if (!('version' in obj)) return false;
 
   // Version 2: single boxes array
   if (obj.version === 2 && Array.isArray(obj.boxes)) {
@@ -1041,16 +1055,10 @@ export function importJSON(): void {
 // -- Export -----------------------------------------------------------------
 
 export function exportJSON(): void {
-  const data = {
-    version: 2,
-    boxes: serializeBoxes(state.boxes),
-    showHeaders: state.showHeaders,
-    fontSize: state.fontSize,
-    fontWeight: state.fontWeight,
-    cornerRadius: state.cornerRadius,
-    padding: state.padding,
-    tempUnit: state.tempUnit,
-  };
+  // Emit a renderer BentoConfig (includes width/height from the active device
+  // profile) so the file drops straight into a device's config_json. importJSON
+  // round-trips it back via loadConfig → fromBentoConfig.
+  const data = toBentoConfig(state.boxes);
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');

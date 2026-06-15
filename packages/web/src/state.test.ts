@@ -145,12 +145,30 @@ describe('loadConfig (device pairing / import shared loader)', () => {
     expect((boxes[0]!.config as { content: string }).content).toBe('yo');
   });
 
+  it('applies a drop-in BentoConfig (no version field) via fromBentoConfig', () => {
+    // This is the shape exportJSON now emits and the device's config_json stores:
+    // versionless, boxes carry id + config.type, dimensions present.
+    const ok = loadConfig({
+      boxes: [{ id: '1', type: 'text', label: 'Hi', config: { type: 'text', text: 'drop-in' } }],
+      refreshesPerDay: 1,
+      width: 800,
+      height: 480,
+    });
+    expect(ok).toBe(true);
+    const boxes = getBoxes();
+    expect(boxes).toHaveLength(1);
+    expect(boxes[0]!.type).toBe('text');
+    expect((boxes[0]!.config as { content: string }).content).toBe('drop-in');
+  });
+
   it('rejects an object with no recognizable version', () => {
     addBox('quote');
     const before = getBoxes().length;
     expect(loadConfig({ foo: 'bar' })).toBe(false);
     expect(loadConfig(null)).toBe(false);
     expect(loadConfig({ version: 99 })).toBe(false);
+    // A versionless object with a boxes array but invalid contents is rejected.
+    expect(loadConfig({ boxes: [{ type: 'nope' }] })).toBe(false);
     // State is left untouched when nothing was applied.
     expect(getBoxes()).toHaveLength(before);
   });

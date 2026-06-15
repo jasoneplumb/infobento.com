@@ -7,8 +7,9 @@
 
 import { describe, it, expect } from 'vitest';
 import type { BentoConfig } from '@infobento/core';
+import { validateBentoConfig } from '@infobento/core';
 import type { EditorBox } from './state';
-import { toBentoBox, fromBentoBox, fromBentoConfig } from './config-map';
+import { toBentoBox, fromBentoBox, fromBentoConfig, toBentoConfig } from './config-map';
 
 /** editor box → core box → editor export box, returning the export config. */
 function roundTrip(box: EditorBox): ReturnType<typeof fromBentoBox> {
@@ -67,6 +68,20 @@ describe('toBentoBox / fromBentoBox round-trip', () => {
     expect(out.split).toBe('left');
     expect(out.splitRatio).toBe(35);
     expect(out.config).toMatchObject({ city: 'Portland' });
+  });
+});
+
+describe('toBentoConfig (export = drop-in device config)', () => {
+  it('emits a valid BentoConfig with width/height from the active device profile', () => {
+    const cfg = toBentoConfig([{ id: 1, type: 'text', label: 'Note', config: { content: 'hi' } }]);
+    // Dimensions must be present — their absence is what garbles the panel
+    // (renderer falls back to the default resolution at a different stride).
+    expect(typeof cfg.width).toBe('number');
+    expect(typeof cfg.height).toBe('number');
+    expect(cfg.width).toBeGreaterThan(0);
+    expect(cfg.height).toBeGreaterThan(0);
+    // And the whole thing must pass the same validation the device applies.
+    expect(validateBentoConfig(cfg).valid).toBe(true);
   });
 });
 
