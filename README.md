@@ -115,6 +115,32 @@ If neither OAuth provider is configured, the app falls back to passkey-only
 auth (still usable on any modern browser/OS). Passkey login does not require
 OAuth credentials at all.
 
+## Manufacturing: device stickers
+
+Each device ships with a sticker carrying a QR code that opens its pairing page
+(`/pair/<pair_code>`) plus the human-readable pair code as a camera-free fallback.
+Generate sticker artwork from a CSV of minted devices:
+
+```bash
+# CSV columns: device_id,pair_code  (header row optional)
+npm run gen-stickers -- scripts/sample-devices.csv stickers/
+
+# Add a tiled, print-ready batch sheet (A4 by default; --page letter for US):
+npm run gen-stickers -- devices.csv stickers/ --sheet --page letter
+
+# Point the QR at a non-production origin (self-host / staging):
+npm run gen-stickers -- devices.csv stickers/ --base-url https://staging.infobento.com
+```
+
+Output is one `<device_id>.svg` per row (designed to print at 25mm × 25mm) and,
+with `--sheet`, page-sized `sheet.svg` (or `sheet-1.svg`, `sheet-2.svg`, … when
+the roster spans multiple pages) you can open in a browser and Print → PDF. Pair
+codes and device ids are validated, so a typo in the CSV fails loudly instead of
+producing an unscannable sticker or escaping the output directory. The QR encodes
+only the pair code — never the device id, which is the firmware's bearer secret.
+
+Mint the devices first with [`scripts/mint-device.ts`](scripts/mint-device.ts).
+
 ## Documentation
 
 See [docs/README.md](docs/README.md) for the full documentation index.
