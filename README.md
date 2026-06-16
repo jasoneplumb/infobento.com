@@ -164,4 +164,4 @@ E Plumb and InfoBento contributors.
 
 ## Status
 
-Active development (v0.22.0). Renderer produces framebuffers with 18 box types. Web editor at localhost:5173 for configuration. Passkey + Apple/Google OAuth wired in `@infobento/api`; SaaS pairing flow in progress (epic #77). Hardware validation pending (GDEH0576T81 dev kit on order).
+Active development (v0.29.0). Renderer produces framebuffers with 18 box types. Web editor at localhost:5173 for configuration. Passkey + Apple/Google OAuth and the SaaS device-pairing flow are shipped in `@infobento/api` (epic #77 complete). Firmware bring-up is dev-first on the reTerminal E1001: blink, static-frame, and Wi-Fi device-pull all bench-verified (epic #106, Phases 1–3). Production-panel validation pending the GDEH0576T81 dev kit (#57).
