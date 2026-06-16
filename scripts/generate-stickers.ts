@@ -82,17 +82,31 @@ function parseArgs(argv: readonly string[]): CliArgs {
   };
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i];
+    if (arg === undefined) continue;
     switch (arg) {
       case '--base-url': {
         const value = argv[++i];
         if (value === undefined) throw new Error(`Missing value for ${arg}`);
+        // Validate as an http(s) URL: the value is interpolated into the QR
+        // payload, so an unchecked `javascript:`/`data:` value would encode a
+        // scannable hostile URL onto a physical sticker.
+        let parsed: URL;
+        try {
+          parsed = new URL(value);
+        } catch {
+          throw new Error(`--base-url must be a valid URL, got: "${value}"`);
+        }
+        if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+          throw new Error(`--base-url must be http(s), got: "${parsed.protocol}"`);
+        }
         args.baseUrl = value.replace(/\/+$/, '');
         break;
       }
       case '--page': {
         const value = argv[++i];
+        if (value === undefined) throw new Error(`Missing value for ${arg}`);
         if (value !== 'a4' && value !== 'letter') {
-          throw new Error(`--page must be 'a4' or 'letter', got: ${String(value)}`);
+          throw new Error(`--page must be 'a4' or 'letter', got: "${value}"`);
         }
         args.page = value;
         break;
@@ -126,15 +140,21 @@ function parseArgs(argv: readonly string[]): CliArgs {
  */
 function parseCsv(text: string): DeviceRow[] {
   const rows: DeviceRow[] = [];
-  const seen = new Set<string>();
+  const seenCodes = new Set<string>();
+  const seenIds = new Set<string>();
   const lines = text.split(/\r?\n/);
   for (let i = 0; i < lines.length; i++) {
-    const line = lines[i].trim();
+    const line = (lines[i] ?? '').trim();
     if (line === '' || line.startsWith('#')) continue;
 
     const cells = line.split(',').map((c) => c.trim());
-    if (cells.length < 2) throw new Error(`Line ${i + 1}: expected 2 columns, got: "${line}"`);
-    const [deviceId, rawCode] = cells;
+    // Index access (not destructuring) so noUncheckedIndexedAccess forces the
+    // undefined check that proves both columns are present.
+    const deviceId = cells[0];
+    const rawCode = cells[1];
+    if (deviceId === undefined || rawCode === undefined) {
+      throw new Error(`Line ${i + 1}: expected 2 columns (device_id,pair_code), got: "${line}"`);
+    }
 
     // Skip a header row if present.
     if (deviceId.toLowerCase() === 'device_id' || rawCode.toLowerCase() === 'pair_code') continue;
@@ -148,9 +168,18 @@ function parseCsv(text: string): DeviceRow[] {
         `Line ${i + 1}: invalid pair code "${rawCode}" — must be ${PAIR_CODE_LENGTH} chars from ${PAIR_CODE_ALPHABET}.`,
       );
     }
-    if (deviceId === '') throw new Error(`Line ${i + 1}: empty device id.`);
-    if (seen.has(pairCode)) throw new Error(`Line ${i + 1}: duplicate pair code "${pairCode}".`);
-    seen.add(pairCode);
+    // deviceId becomes an output filename — constrain it so a crafted row can't
+    // escape outDir (e.g. "../../etc/cron.d/evil") or resolve to a dot-entry.
+    if (!/^[A-Za-z0-9._-]+$/.test(deviceId) || deviceId === '.' || deviceId === '..') {
+      throw new Error(
+        `Line ${i + 1}: invalid device id "${deviceId}" — only letters, digits, '.', '-', '_' allowed.`,
+      );
+    }
+    if (seenCodes.has(pairCode))
+      throw new Error(`Line ${i + 1}: duplicate pair code "${pairCode}".`);
+    if (seenIds.has(deviceId)) throw new Error(`Line ${i + 1}: duplicate device id "${deviceId}".`);
+    seenCodes.add(pairCode);
+    seenIds.add(deviceId);
 
     rows.push({ deviceId, pairCode });
   }
@@ -217,12 +246,23 @@ function stickerSvg(row: DeviceRow, baseUrl: string, embedPhysicalSize: boolean)
 </svg>`;
 }
 
-/** Tile all stickers onto one printable sheet SVG for batch printing. */
-function sheetSvg(rows: DeviceRow[], baseUrl: string, page: PageName): string {
+/** Grid capacity (columns, rows, stickers) for one page of the given size. */
+function pageGrid(page: PageName): { cols: number; rows: number; perPage: number } {
   const { w: pageW, h: pageH } = PAGES[page];
   const pitch = STICKER_MM + SHEET_GAP_MM;
-  const usableW = pageW - SHEET_MARGIN_MM * 2;
-  const cols = Math.max(1, Math.floor((usableW + SHEET_GAP_MM) / pitch));
+  const cols = Math.max(1, Math.floor((pageW - SHEET_MARGIN_MM * 2 + SHEET_GAP_MM) / pitch));
+  const rows = Math.max(1, Math.floor((pageH - SHEET_MARGIN_MM * 2 + SHEET_GAP_MM) / pitch));
+  return { cols, rows, perPage: cols * rows };
+}
+
+/**
+ * Tile up to one page of stickers onto a page-sized SVG. Callers paginate so
+ * every sheet stays exactly page-sized — printing keeps stickers at their true
+ * 25mm rather than scaling a taller-than-page canvas down to fit.
+ */
+function sheetSvg(rows: DeviceRow[], baseUrl: string, page: PageName, cols: number): string {
+  const { w: pageW, h: pageH } = PAGES[page];
+  const pitch = STICKER_MM + SHEET_GAP_MM;
 
   let body = '';
   rows.forEach((row, i) => {
@@ -260,9 +300,18 @@ function main(): void {
 
   let extra = '';
   if (args.sheet) {
-    const sheetFile = join(args.outDir, 'sheet.svg');
-    writeFileSync(sheetFile, sheetSvg(rows, args.baseUrl, args.page) + '\n');
-    extra = `\n  + ${sheetFile} (${args.page.toUpperCase()} batch sheet — open in a browser and Print to PDF)`;
+    const { cols, perPage } = pageGrid(args.page);
+    const pageCount = Math.ceil(rows.length / perPage);
+    // One page → sheet.svg; multiple → sheet-1.svg, sheet-2.svg, … so each file
+    // stays page-sized and prints stickers at their true 25mm.
+    for (let p = 0; p < pageCount; p++) {
+      const slice = rows.slice(p * perPage, (p + 1) * perPage);
+      const name = pageCount === 1 ? 'sheet.svg' : `sheet-${p + 1}.svg`;
+      writeFileSync(join(args.outDir, name), sheetSvg(slice, args.baseUrl, args.page, cols) + '\n');
+    }
+    const label =
+      pageCount === 1 ? 'sheet.svg' : `sheet-1.svg … sheet-${pageCount}.svg (${pageCount} pages)`;
+    extra = `\n  + ${label} (${args.page.toUpperCase()} batch — open in a browser and Print to PDF)`;
   }
 
   process.stdout.write(

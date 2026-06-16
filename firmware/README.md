@@ -57,7 +57,9 @@ waveform-polarity inversion. Pin map: SCK 7, MOSI 9, CS 10, DC 11, RES 12, BUSY 
 
 ## Secrets & dev tooling (gitignored)
 
-`device-pull` needs `firmware/secrets.h` (not committed — see root `.gitignore`):
+`device-pull` needs a `secrets.h` in its sketch dir —
+`firmware/device-pull/secrets.h` (Arduino resolves `#include "secrets.h"`
+relative to the `.ino`). Not committed; `firmware/**/secrets.h` is gitignored:
 
 ```c
 #define WIFI_SSID   "your-ssid"

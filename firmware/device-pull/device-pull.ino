@@ -140,6 +140,11 @@ bool ensureWifi() {
   if (WiFi.status() == WL_CONNECTED) return true;
   Serial.printf("[IB] Wi-Fi connecting to '%s' ...\n", WIFI_SSID);
   WiFi.mode(WIFI_STA);
+  // Clear any stuck/failed association state before re-begin — a radio left
+  // half-connected (esp. after a Phase 4 deep-sleep wake) can otherwise fail to
+  // associate.
+  WiFi.disconnect(true);
+  delay(100);
   WiFi.begin(WIFI_SSID, WIFI_PASS);
   for (int i = 0; i < 40 && WiFi.status() != WL_CONNECTED; i++) { delay(500); Serial.print('.'); }
   Serial.println();
@@ -148,12 +153,16 @@ bool ensureWifi() {
   return false;
 }
 
-// Read exactly len bytes from an active HTTP stream into buf.
+// Read exactly len bytes from an active HTTP stream into buf. Bounded by BOTH a
+// per-chunk idle timeout (resets on each chunk) and a hard total deadline, so a
+// server trickling one byte just under the idle limit can't stall forever.
 bool readExact(WiFiClient* s, uint8_t* buf, int len) {
-  int got = 0; unsigned long t0 = millis();
-  while (got < len && millis() - t0 < 15000) {
+  int got = 0;
+  unsigned long idle = millis();
+  const unsigned long start = millis();
+  while (got < len && millis() - idle < 15000 && millis() - start < 60000) {
     int avail = s->available();
-    if (avail > 0) { int n = s->readBytes(buf + got, min(avail, len - got)); got += n; t0 = millis(); }
+    if (avail > 0) { int n = s->readBytes(buf + got, min(avail, len - got)); got += n; idle = millis(); }
     else delay(1);
   }
   return got == len;
@@ -175,8 +184,15 @@ void pullOnce() {
     int len = http.getSize();
     if (len != (int)IB_FRAME_LEN) { Serial.printf("[IB] WARN size %d != %d\n", len, IB_FRAME_LEN); }
     WiFiClient* stream = http.getStreamPtr();
-    if (readExact(stream, g_fb, IB_FRAME_LEN)) {
-      g_lastModified = http.header("Last-Modified");
+    if (stream == nullptr) {
+      // Connection dropped between GET and read — getStreamPtr returns null;
+      // dereferencing it in readExact would crash.
+      Serial.println("[IB] ERROR: null stream (connection closed)");
+    } else if (readExact(stream, g_fb, IB_FRAME_LEN)) {
+      // Only adopt a non-empty Last-Modified — if the server omits it, keep the
+      // prior token so conditional GETs (304 skip) stay enabled.
+      String lm = http.header("Last-Modified");
+      if (lm.length()) g_lastModified = lm;
       Serial.printf("[IB] frame OK, Last-Modified: %s\n", g_lastModified.c_str());
       drawFrame();
     } else {
