@@ -49,6 +49,8 @@ clones/
 # Claude Code
 .claude/settings.local.json
 
-# Firmware bench secrets (Wi-Fi creds, device id)
+# Firmware bench secrets (Wi-Fi creds, device id). Arduino resolves
+# #include "secrets.h" from the sketch dir, so ignore it anywhere under firmware/.
 firmware/secrets.h
+firmware/**/secrets.h
 firmware/dev/
