@@ -5,7 +5,7 @@
  * Future: Add serveStatic for production, WebSocket for live preview
  */
 
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readFileSync, realpathSync } from 'node:fs';
 import { resolve, relative, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -56,7 +56,7 @@ import {
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
-const app = new Hono();
+export const app = new Hono();
 
 app.use('/*', cors());
 
@@ -544,7 +544,13 @@ app.get('/api/auth/oauth/:provider/start', (c) => {
   }
   const creds = readOAuthCredentials();
   const clientId = provider === 'apple' ? creds.apple.clientId : creds.google.clientId;
-  if (!clientId) return c.redirect('/');
+  if (!clientId) {
+    // Operator misconfiguration (missing client id), not a user error or an
+    // endpoint-existence probe — fail loudly so it's diagnosable. See issue #118.
+    const envVar = provider === 'google' ? 'GOOGLE_CLIENT_ID' : 'APPLE_CLIENT_ID';
+    console.warn(`OAuth start aborted: ${envVar} is not configured for provider "${provider}"`);
+    return c.redirect('/?auth_error=oauth_unconfigured');
+  }
   const next = c.req.query('next');
   const result = buildAuthorizationRequest(provider, {
     clientId,
@@ -691,11 +697,27 @@ if (existsSync(webDist)) {
 
 // --- Start server ---
 
-const port = parseInt(process.env['PORT'] ?? '4000', 10);
-const host = process.env['HOST'] ?? '127.0.0.1';
+// Only bind a port when run as the entry point (`node dist/server.js` /
+// `tsx watch src/server.ts`). Importing this module — e.g. from a test — must
+// not start a listener. Paths are realpath-normalized so a symlinked invocation
+// path (macOS /tmp→/private/tmp, pnpm store, etc.) still compares equal.
+function isEntryPoint(): boolean {
+  const entry = process.argv[1];
+  if (entry === undefined) return false;
+  try {
+    return realpathSync(entry) === realpathSync(fileURLToPath(import.meta.url));
+  } catch {
+    return false;
+  }
+}
 
-serve({ fetch: app.fetch, port, hostname: host }, (info) => {
-  console.log(`InfoBento API listening on http://${info.address}:${info.port}`);
-  console.log(`  Health:    http://${info.address}:${info.port}/api/health`);
-  console.log(`  Display:   ${DISPLAY_WIDTH}x${DISPLAY_HEIGHT} 1-bit`);
-});
+if (isEntryPoint()) {
+  const port = parseInt(process.env['PORT'] ?? '4000', 10);
+  const host = process.env['HOST'] ?? '127.0.0.1';
+
+  serve({ fetch: app.fetch, port, hostname: host }, (info) => {
+    console.log(`InfoBento API listening on http://${info.address}:${info.port}`);
+    console.log(`  Health:    http://${info.address}:${info.port}/api/health`);
+    console.log(`  Display:   ${DISPLAY_WIDTH}x${DISPLAY_HEIGHT} 1-bit`);
+  });
+}

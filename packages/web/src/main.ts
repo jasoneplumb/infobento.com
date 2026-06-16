@@ -41,6 +41,7 @@ import { openSignInDialog } from './components/sign-in';
 import { openDevicesDialog } from './components/devices';
 import { getSession, signOut, initCloudSync } from './cloud';
 import { ensureLocationDefault } from './geolocation';
+import { showAuthErrorBanner } from './auth-error';
 
 /** Initialize the box editor (the default route). */
 function initEditor(): void {
@@ -322,7 +323,13 @@ function initEditor(): void {
   // Render once so the editor is visible behind the dialog (greyed by overlay),
   // then await consent before the user can interact.
   render();
-  void requireConsent().then(() => void ensureLocationDefault());
+  void requireConsent().then(() => {
+    // A failed OAuth start lands back here as /?auth_error=… — surface it once
+    // the consent gate is cleared (the user who clicked "Sign in" has already
+    // consented, so this fires immediately for them). See #118.
+    showAuthErrorBanner();
+    void ensureLocationDefault();
+  });
 }
 
 // -- Route dispatch ---------------------------------------------------------
