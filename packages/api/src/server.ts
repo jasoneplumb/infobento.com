@@ -706,8 +706,12 @@ function isEntryPoint(): boolean {
   if (entry === undefined) return false;
   try {
     return realpathSync(entry) === realpathSync(fileURLToPath(import.meta.url));
-  } catch {
-    return false;
+  } catch (e) {
+    // A missing path just means "doesn't apply" → not the entry point. Any other
+    // error (EACCES, etc.) is unexpected and must stay visible rather than
+    // silently preventing startup — the very failure mode #118 is about.
+    if (e instanceof Error && 'code' in e && e.code === 'ENOENT') return false;
+    throw e;
   }
 }
 
