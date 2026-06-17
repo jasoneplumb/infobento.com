@@ -19,8 +19,12 @@
 // gets a 304 returns straight to sleep without an eInk refresh — that 304-skip is
 // the entire power win, and it depends on the RTC token persisting correctly.
 //
-// UC8179 grayscale driver is vendored verbatim from the Phase 3 device-pull sketch
-// (Seeed_GxEPD2 GxEPD2_reTerminal_E1001_Gray4). It is still duplicated across the
+// UC8179 grayscale driver is vendored from the Phase 3 device-pull sketch
+// (Seeed_GxEPD2 GxEPD2_reTerminal_E1001_Gray4), with ONE deliberate divergence for
+// battery safety: checkBusy() is bounded by a timeout (see below) instead of looping
+// forever — a stuck panel must not drain the cell on an unattended device. The init
+// sequence, LUTs, and waveform polarity are otherwise unchanged. It is still duplicated
+// across the
 // bench sketches; see firmware/README.md "Forward plan" for why the shared-library
 // extraction is deferred (no way to share a header across sibling sketch folders
 // without breaking the documented zero-flag `arduino-cli compile firmware/<sketch>`).
@@ -94,7 +98,18 @@ static const uint8_t CMD_USER_GRAY[] = { 0x17,0x3F,0x3F,0x07,0x06,0x12 };
 
 static uint8_t* g_fb = nullptr;  // 96000-byte frame buffer (RAM; not persisted across sleep)
 
-void checkBusy() { delay(10); while (!digitalRead(EPD_BUSY_PIN)) delay(10); }
+// BUSY high = panel idle. Bounded wait (the vendored driver looped forever): on a
+// deep-sleep battery device a stuck panel — hardware fault, brownout mid-sequence —
+// would otherwise drain the cell with no recovery. 10 s covers the slowest documented
+// full refresh; on timeout we bail and let the next RTC wake retry the cycle.
+void checkBusy(uint16_t timeoutMs = 10000) {
+  delay(10);
+  unsigned long t0 = millis();
+  while (!digitalRead(EPD_BUSY_PIN)) {
+    if (millis() - t0 > timeoutMs) { Serial.println("[IB] WARN: BUSY timeout"); break; }
+    delay(10);
+  }
+}
 void writeCommand(uint8_t c) {
   hspi.beginTransaction(spiSet);
   digitalWrite(EPD_DC_PIN, LOW); digitalWrite(EPD_CS_PIN, LOW);
@@ -216,23 +231,32 @@ void pullOnce() {
   Serial.printf("[IB] GET -> %d\n", code);
   if (code == 200) {
     int len = http.getSize();
-    if (len != (int)IB_FRAME_LEN) { Serial.printf("[IB] WARN size %d != %d\n", len, IB_FRAME_LEN); }
-    WiFiClient* stream = http.getStreamPtr();
-    if (stream == nullptr) {
-      // Connection dropped between GET and read — getStreamPtr returns null;
-      // dereferencing it in readExact would crash.
-      Serial.println("[IB] ERROR: null stream (connection closed)");
-    } else if (readExact(stream, g_fb, IB_FRAME_LEN)) {
-      // Cache the new Last-Modified into RTC BEFORE drawFrame's in-place flip — the
-      // token comes from the response header, not the buffer, so the flip can't
-      // corrupt it. Only adopt a non-empty value; if the server omits the header,
-      // keep the prior token so conditional GETs (304 skip) stay enabled.
-      String lm = http.header("Last-Modified");
-      if (lm.length()) { strncpy(g_lastModified, lm.c_str(), sizeof(g_lastModified) - 1); g_lastModified[sizeof(g_lastModified) - 1] = '\0'; }
-      Serial.printf("[IB] frame OK, Last-Modified: %s\n", g_lastModified);
-      drawFrame();
+    // A KNOWN Content-Length that doesn't match means this isn't our frame (e.g. an
+    // error page served as 200). Skip the draw outright: an oversized body would let
+    // readExact fill g_fb with the first 96 KB of garbage and flash it to the panel,
+    // and an undersized one would burn the full readExact idle timeout in active mode
+    // — both waste the once-or-twice-daily power budget. len == -1 (chunked/unknown)
+    // falls through to the length-checked readExact below.
+    if (len != -1 && len != (int)IB_FRAME_LEN) {
+      Serial.printf("[IB] WARN bad size %d (want %d) -> skip draw\n", len, (int)IB_FRAME_LEN);
     } else {
-      Serial.println("[IB] ERROR: short read");
+      WiFiClient* stream = http.getStreamPtr();
+      if (stream == nullptr) {
+        // Connection dropped between GET and read — getStreamPtr returns null;
+        // dereferencing it in readExact would crash.
+        Serial.println("[IB] ERROR: null stream (connection closed)");
+      } else if (readExact(stream, g_fb, IB_FRAME_LEN)) {
+        // Cache the new Last-Modified into RTC BEFORE drawFrame's in-place flip — the
+        // token comes from the response header, not the buffer, so the flip can't
+        // corrupt it. Only adopt a non-empty value; if the server omits the header,
+        // keep the prior token so conditional GETs (304 skip) stay enabled.
+        String lm = http.header("Last-Modified");
+        if (lm.length()) { strncpy(g_lastModified, lm.c_str(), sizeof(g_lastModified) - 1); g_lastModified[sizeof(g_lastModified) - 1] = '\0'; }
+        Serial.printf("[IB] frame OK, Last-Modified: %s\n", g_lastModified);
+        drawFrame();
+      } else {
+        Serial.println("[IB] ERROR: short read");
+      }
     }
   } else if (code == 304) {
     Serial.println("[IB] 304 not modified -> skip refresh");
