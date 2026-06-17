@@ -114,6 +114,18 @@ echo "Content verification passed!"
 # Fix ownership so www-data service can read the files
 chown -R www-data:www-data "$DEPLOY_DIR"
 
+# Install/refresh the systemd unit from version control so server-side config
+# (notably EnvironmentFile=/etc/infobento/auth.env) can't drift off the box and
+# a rebuilt host reproduces it. Idempotent: only rewrite + daemon-reload when the
+# committed unit differs from what's installed.
+UNIT_SRC="$DEPLOY_DIR/deploy/infobento.service"
+UNIT_DST="/etc/systemd/system/$SERVICE_NAME.service"
+if [ -f "$UNIT_SRC" ] && ! cmp -s "$UNIT_SRC" "$UNIT_DST"; then
+  echo "Updating systemd unit $UNIT_DST..."
+  cp "$UNIT_SRC" "$UNIT_DST"
+  systemctl daemon-reload
+fi
+
 # Restart the service
 echo "Restarting $SERVICE_NAME service..."
 systemctl restart "$SERVICE_NAME"

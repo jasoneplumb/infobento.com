@@ -25,6 +25,8 @@ Most documentation lives **inline with the code** using intent headers (see [INT
 
 ```
 docs/
+├── DEPLOY.md                Production deploy: secrets, systemd unit, OAuth setup
+│
 ├── getting-started/
 │   ├── SETUP.md              5-minute setup guide
 │   ├── ARCHITECTURE.md       System design, data flow, deployment

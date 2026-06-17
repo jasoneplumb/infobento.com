@@ -59,7 +59,8 @@ jobs:
             --exclude='.tux' \
             package.json \
             package-lock.json \
-            packages/
+            packages/ \
+            deploy/
 
       - name: Setup SSH key
         run: |
