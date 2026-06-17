@@ -101,12 +101,16 @@ static uint8_t* g_fb = nullptr;  // 96000-byte frame buffer (RAM; not persisted 
 // BUSY high = panel idle. Bounded wait (the vendored driver looped forever): on a
 // deep-sleep battery device a stuck panel — hardware fault, brownout mid-sequence —
 // would otherwise drain the cell with no recovery. 10 s covers the slowest documented
-// full refresh; on timeout we bail and let the next RTC wake retry the cycle.
+// full refresh; on timeout we warn and CONTINUE the sequence (no clean abort here —
+// that is Phase 5 resilience scope). Continuing is safe across wakes: this cycle may
+// produce a botched refresh, but the next wake's hardware reset (RES toggle in
+// initGrayMode) re-initializes the panel, so no corrupted state persists. The point
+// of the bound is solely to stop the infinite loop from killing the battery.
 void checkBusy(uint16_t timeoutMs = 10000) {
   delay(10);
   unsigned long t0 = millis();
   while (!digitalRead(EPD_BUSY_PIN)) {
-    if (millis() - t0 > timeoutMs) { Serial.println("[IB] WARN: BUSY timeout"); break; }
+    if (millis() - t0 > timeoutMs) { Serial.println("[IB] WARN: BUSY timeout, continuing"); break; }
     delay(10);
   }
 }
@@ -211,7 +215,7 @@ bool readExact(WiFiClient* s, uint8_t* buf, int len) {
   const unsigned long start = millis();
   while (got < len && millis() - idle < 15000 && millis() - start < 60000) {
     int avail = s->available();
-    if (avail > 0) { int n = s->readBytes(buf + got, min(avail, len - got)); got += n; idle = millis(); }
+    if (avail > 0) { int n = (int)s->readBytes(buf + got, (size_t)min(avail, len - got)); got += n; idle = millis(); }
     else delay(1);
   }
   return got == len;
@@ -297,6 +301,7 @@ void setup() {
     // Don't busy-hang (that would drain the battery) — sleep and retry next wake.
     Serial.println(F("[IB] FATAL: alloc 96KB failed -> sleep & retry"));
     goToSleep();
+    return;  // goToSleep() is noreturn in practice; guard against fallthrough to pullOnce(nullptr)
   }
 
   pullOnce();
