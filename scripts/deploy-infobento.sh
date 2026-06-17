@@ -72,6 +72,13 @@ echo "Installing production dependencies..."
 cd "$DEPLOY_DIR"
 npm ci --production --ignore-scripts 2>&1 | tail -5
 
+# better-sqlite3 is a native module. The --ignore-scripts above (kept for supply-
+# chain safety on every other package) also skips better-sqlite3's postinstall,
+# which fetches its prebuilt .node binary — so rebuild just that one package.
+# prebuild-install downloads the prebuilt for this Node ABI (no compiler needed).
+# Without this the API 500s the instant anything opens the DB (auth, pairing).
+npm rebuild better-sqlite3 2>&1 | tail -5
+
 echo "Dependencies installed!"
 
 # Verify deployment
