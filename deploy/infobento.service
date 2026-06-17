@@ -1,0 +1,23 @@
+[Unit]
+Description=InfoBento API (Hono)
+After=network.target
+
+[Service]
+Type=simple
+User=www-data
+WorkingDirectory=/var/www/infobento
+ExecStart=/usr/bin/node packages/api/dist/server.js
+Restart=on-failure
+RestartSec=5
+# Runtime auth secrets — SESSION_SECRET, RP_ID, RP_ORIGIN, OAUTH_REDIRECT_BASE,
+# GOOGLE_CLIENT_ID/SECRET (and APPLE_* when used) — are written to this file by
+# deploy-infobento.sh from GitHub Actions secrets on every deploy. The leading
+# '-' tolerates the file being absent (e.g. first boot before the first deploy).
+# Without this line the secrets are silently ignored and all auth 500s/aborts.
+EnvironmentFile=-/etc/infobento/auth.env
+Environment=NODE_ENV=production
+Environment=PORT=4000
+Environment=HOST=127.0.0.1
+
+[Install]
+WantedBy=multi-user.target
