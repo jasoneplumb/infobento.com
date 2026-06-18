@@ -30,16 +30,16 @@ moves to the native USB port (`/dev/cu.usbmodem*`) and bridge-port prints vanish
 
 ## Phase status
 
-| Phase | Sketch                                           | Proves                                                                                    | Status                          |
-| ----- | ------------------------------------------------ | ----------------------------------------------------------------------------------------- | ------------------------------- |
-| 0     | (server) `scripts/mint-device.ts`                | mint device, `/frame` returns 200                                                         | ✅ done (PR #109)               |
-| 1     | [`blink/`](blink/blink.ino)                      | toolchain + boot + serial, no panel                                                       | ✅ bench-verified               |
-| 2     | [`static-frame/`](static-frame/static-frame.ino) | framebuffer-translation path: native 2bpp → UC8179 two-plane upload (4-band gray ramp)    | ✅ bench-verified               |
-| 3     | [`device-pull/`](device-pull/device-pull.ino)    | Wi-Fi + `GET /api/device/<id>/frame` poll loop with `If-Modified-Since`/304 skip          | ✅ bench-verified               |
-| 4     | [`deep-sleep/`](deep-sleep/deep-sleep.ino)       | deep sleep + RTC wake; RTC-persisted `Last-Modified` so a 304 wake skips the refresh      | ✅ bench-verified               |
-| 5     | [`resilient/`](resilient/resilient.ino)          | resilience: graceful 404/429/5xx/Wi-Fi-fail handling, brownout recovery, clean draw-abort | 🔄 compile-clean; bench-pending |
-| 6     | —                                                | captive-portal provisioning (Wi-Fi creds + custom server URL) → #39                       | ⬜ next                         |
-| 7     | —                                                | port to production GDEH0576T81 + ESP32-C3 → #57                                           | ⬜ (blocked on dev kit)         |
+| Phase | Sketch                                           | Proves                                                                                                                      | Status                          |
+| ----- | ------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------- | ------------------------------- |
+| 0     | (server) `scripts/mint-device.ts`                | mint device, `/frame` returns 200                                                                                           | ✅ done (PR #109)               |
+| 1     | [`blink/`](blink/blink.ino)                      | toolchain + boot + serial, no panel                                                                                         | ✅ bench-verified               |
+| 2     | [`static-frame/`](static-frame/static-frame.ino) | framebuffer-translation path: native 2bpp → UC8179 two-plane upload (4-band gray ramp)                                      | ✅ bench-verified               |
+| 3     | [`device-pull/`](device-pull/device-pull.ino)    | Wi-Fi + `GET /api/device/<id>/frame` poll loop with `If-Modified-Since`/304 skip                                            | ✅ bench-verified               |
+| 4     | [`deep-sleep/`](deep-sleep/deep-sleep.ino)       | deep sleep + RTC wake; RTC-persisted `Last-Modified` so a 304 wake skips the refresh                                        | ✅ bench-verified               |
+| 5     | [`resilient/`](resilient/resilient.ino)          | resilience: graceful 404/429/5xx/Wi-Fi-fail handling, brownout recovery, clean draw-abort                                   | 🔄 compile-clean; bench-pending |
+| 6     | [`provisioning/`](provisioning/provisioning.ino) | captive-portal provisioning: AP-mode first boot, Wi-Fi scan/entry → NVS, OS auto-launch probes, pinhole factory reset → #39 | 🔄 compile-clean; bench-pending |
+| 7     | —                                                | port to production GDEH0576T81 + ESP32-C3 → #57                                                                             | ⬜ (blocked on dev kit)         |
 
 "Bench-verified" = run on real E1001 hardware. Phase 3 evidence lives in the
 (gitignored) `dev/serial.log`: a live run shows `GET → 200`, `drew frame in
@@ -81,6 +81,36 @@ Retry-After, sleep 60 s`.
 - **Normal:** unchanged config still `304 -> skip`; a pushed config still draws once
   then returns to 304 (token committed only after the confirmed draw).
 
+**Phase 6 bench check (operator).** Provisioning needs AP mode + a phone, so it
+can't be CI-verified — flash `provisioning/` and walk the out-of-box flow. The
+sketch has NO `secrets.h` (it has no creds to begin with). Watch serial at
+115200:
+
+- **First boot (no creds):** `no creds -> AP mode, SSID 'InfoBento-XXXX'` then
+  `captive portal up`. A factory device must always land here.
+- **Auto-launch:** join the open `InfoBento-XXXX` network from a phone/laptop —
+  the OS should pop a browser straight onto the setup page (Apple
+  `hotspot-detect.html`, Android `generate_204`, Windows `ncsi.txt` all 302 to
+  the portal). If it doesn't auto-open, browse to `http://192.168.4.1`.
+- **Scan + join:** the network dropdown is populated server-side (no JS). Pick
+  your home Wi-Fi, type the password, **Connect** → `joining '<ssid>' ...` →
+  `joined, IP …` → `provisioned -> creds saved` → the success page shows
+  `infobento.com/onboard?device=<id>` → `rebooting into provisioned mode`.
+- **Wrong password:** the portal must re-render with a retry banner and NOT
+  persist the bad creds (`join FAILED`, no `creds saved`).
+- **Returning boot (creds saved):** after the reboot, `provisioned=1` → it
+  rejoins the saved network silently (`hand off to pull loop`), no AP. Move the
+  device to an unreachable network → it falls back to AP mode for re-setup.
+- **Pinhole reset:** hold the GPIO9 pinhole (ground the pin) for 5 s →
+  `PINHOLE 5s hold -> factory reset (clearing creds)` → reboot → back to AP
+  mode. A momentary tap must NOT reset (the hold timer resets on release).
+- **Page budget:** the setup page is a few KB of inlined HTML/CSS, no JS, no
+  external assets — comfortably inside the <30 KB-gzipped target.
+
+`PINHOLE_GPIO 9` and the AP/NVS specifics are marked MCU-specific in the sketch
+for the Phase 7 ESP32-C3 port (GPIO9 is the C3 strapping pin with a natural
+pull-up — the reason #39 picked it).
+
 ## Framebuffer translation (the key risk Phase 2 retired)
 
 The renderer emits **native** 2bpp, MSB-first, 4px/byte, `0=white … 3=black`. The
@@ -105,6 +135,10 @@ relative to the `.ino`). Not committed; `firmware/**/secrets.h` is gitignored:
 #define IB_DEVICE_ID "<id from mint-device.ts>"
 ```
 
+`provisioning` is the **exception** — it has no `secrets.h` and needs none: the
+whole point of captive-portal setup is that the device starts with no creds and
+obtains them from the user, so it compiles and runs with nothing pre-baked.
+
 `firmware/dev/` (also gitignored) holds bench helpers: `push-config.sh`,
 `serial-boot.sh`, `config-e1001.json`, and captured `serial.log`.
 
@@ -126,9 +160,16 @@ relative to the `.ino`). Not committed; `firmware/**/secrets.h` is gitignored:
    panel, and the cached `Last-Modified` is committed to RTC **only after a
    confirmed draw** (else a failed refresh would 304 the next wake and strand the
    panel on a frame that never rendered).
-3. **Phase 6 — captive portal (#39).** AP mode on first boot, on-device setup page
-   for Wi-Fi creds + an optional custom server URL (self-host hatch), NVS storage,
-   pinhole factory reset. This is the gate to a shippable out-of-box flow.
+3. **Phase 6 — captive portal (#39).** 🔄 implemented (`provisioning/`,
+   compile-clean, bench-pending). AP mode on first boot, on-device no-JS setup
+   page (server-side Wi-Fi scan → creds + optional custom server URL self-host
+   hatch), NVS storage, OS auto-launch probes, and a GPIO9 pinhole factory
+   reset. Creds persist only after a confirmed join, so a wrong password never
+   strands un-joinable creds in NVS; a returning device with un-joinable saved
+   creds falls back to AP for re-provisioning. The web-side "forget Wi-Fi"
+   counterpart (`POST /api/device/:id/forget`, same effect as the pinhole) is
+   the server half, merged separately (#39). This is the gate to a shippable
+   out-of-box flow.
 4. **Phase 7 — production hardware (#57).** Re-point pins/dimensions to GDEH0576T81
    (920×680, 156,400-byte frame) on ESP32-C3 once the dev kit arrives.
 
