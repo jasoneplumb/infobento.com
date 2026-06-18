@@ -30,38 +30,41 @@ moves to the native USB port (`/dev/cu.usbmodem*`) and bridge-port prints vanish
 
 ## Phase status
 
-| Phase | Sketch                                           | Proves                                                                                 | Status                          |
-| ----- | ------------------------------------------------ | -------------------------------------------------------------------------------------- | ------------------------------- |
-| 0     | (server) `scripts/mint-device.ts`                | mint device, `/frame` returns 200                                                      | ✅ done (PR #109)               |
-| 1     | [`blink/`](blink/blink.ino)                      | toolchain + boot + serial, no panel                                                    | ✅ bench-verified               |
-| 2     | [`static-frame/`](static-frame/static-frame.ino) | framebuffer-translation path: native 2bpp → UC8179 two-plane upload (4-band gray ramp) | ✅ bench-verified               |
-| 3     | [`device-pull/`](device-pull/device-pull.ino)    | Wi-Fi + `GET /api/device/<id>/frame` poll loop with `If-Modified-Since`/304 skip       | ✅ bench-verified               |
-| 4     | [`deep-sleep/`](deep-sleep/deep-sleep.ino)       | deep sleep + RTC wake; RTC-persisted `Last-Modified` so a 304 wake skips the refresh   | 🔄 compile-clean; bench-pending |
-| 5     | —                                                | resilience: retry/backoff, brownout, partial-frame guards                              | ⬜ next                         |
-| 6     | —                                                | captive-portal provisioning (Wi-Fi creds + custom server URL) → #39                    | ⬜                              |
-| 7     | —                                                | port to production GDEH0576T81 + ESP32-C3 → #57                                        | ⬜ (blocked on dev kit)         |
+| Phase | Sketch                                           | Proves                                                                                 | Status                  |
+| ----- | ------------------------------------------------ | -------------------------------------------------------------------------------------- | ----------------------- |
+| 0     | (server) `scripts/mint-device.ts`                | mint device, `/frame` returns 200                                                      | ✅ done (PR #109)       |
+| 1     | [`blink/`](blink/blink.ino)                      | toolchain + boot + serial, no panel                                                    | ✅ bench-verified       |
+| 2     | [`static-frame/`](static-frame/static-frame.ino) | framebuffer-translation path: native 2bpp → UC8179 two-plane upload (4-band gray ramp) | ✅ bench-verified       |
+| 3     | [`device-pull/`](device-pull/device-pull.ino)    | Wi-Fi + `GET /api/device/<id>/frame` poll loop with `If-Modified-Since`/304 skip       | ✅ bench-verified       |
+| 4     | [`deep-sleep/`](deep-sleep/deep-sleep.ino)       | deep sleep + RTC wake; RTC-persisted `Last-Modified` so a 304 wake skips the refresh   | ✅ bench-verified       |
+| 5     | —                                                | resilience: retry/backoff, brownout, partial-frame guards                              | ⬜ next                 |
+| 6     | —                                                | captive-portal provisioning (Wi-Fi creds + custom server URL) → #39                    | ⬜                      |
+| 7     | —                                                | port to production GDEH0576T81 + ESP32-C3 → #57                                        | ⬜ (blocked on dev kit) |
 
 "Bench-verified" = run on real E1001 hardware. Phase 3 evidence lives in the
 (gitignored) `dev/serial.log`: a live run shows `GET → 200`, `drew frame in
 4486 ms`, then steady `304 → skip refresh`.
 
-**Phase 4 bench check (operator).** Flash `deep-sleep`, leave it on serial, and
-watch one full cadence (`IB_SLEEP_SECONDS` defaults to 30 s for the bench). A
-healthy cycle prints:
+**Phase 4 bench-verified on the E1001** (`IB_SLEEP_SECONDS` = 30 s bench cadence).
+A live run captured the full state machine on serial:
 
-- cold boot: `boot #1 ... (cold boot)`, `GET -> 200`, `drew frame in ~4500 ms`,
-  `deep sleep for 30 s`;
-- next wake (no server change): `boot #2 ... (RTC timer)`, `GET -> 304 ... skip
-refresh`, then straight back to `deep sleep` — **no `drew frame` line, panel
-  does not flash**;
-- edit the config server-side, then a later wake: `GET -> 200` + a fresh
-  `drew frame` + the new `Last-Modified`.
+- each wake boots from deep sleep (`rst:0x5 (DSLEEP)`, `wake cause 4 (RTC timer)`)
+  and the `boot #N` counter increments across sleeps — proving the RTC-persisted
+  state (`RTC_DATA_ATTR`: boot counter + cached `Last-Modified`) survives;
+- steady state (no server change): `GET -> 304 ... skip refresh` then straight
+  back to `deep sleep` — **no `drew frame`, panel does not flash**;
+- push a new config server-side → the next wake logs `GET -> 200`, the new
+  `Last-Modified`, and `drew frame in 4486 ms`; the wake _after_ that returns to
+  `304 -> skip`, confirming the new token was cached to RTC and the panel redraws
+  exactly once per change.
 
-The boot counter incrementing across wakes proves the RTC token survived sleep
-(a reset would restart it at #1 and force a needless 200-draw). On the bench unit
-confirm the supply current drops to the deep-sleep floor between wakes; the
-single-digit-µA figure is a production-MCU (ESP32-C3) measurement and is verified
-for real in Phase 7, not on the dev board.
+To reproduce the 200-draw: `firmware/dev/push-config.sh <config> <device-id>`
+(point `INFOBENTO_DB_PATH` at the DB the running API opened — `lsof` it if unsure).
+
+Still open: the deep-sleep **floor current** between wakes is unmeasured. Meter
+the battery/supply line (not USB) — the reTerminal dev board reads higher than the
+~10 µA production target because of its always-on peripherals + USB-UART bridge, so
+the real single-digit-µA figure is an ESP32-C3 measurement deferred to Phase 7.
 
 ## Framebuffer translation (the key risk Phase 2 retired)
 
@@ -92,8 +95,8 @@ relative to the `.ino`). Not committed; `firmware/**/secrets.h` is gitignored:
 
 ## Forward plan
 
-1. **Phase 4 — deep sleep + RTC.** ✅ implemented (`deep-sleep/`, compile-clean,
-   bench-pending). The `loop()` `delay(IB_POLL_MS)` busy-wait is gone: the whole
+1. **Phase 4 — deep sleep + RTC.** ✅ bench-verified (`deep-sleep/`). The
+   `loop()` `delay(IB_POLL_MS)` busy-wait is gone: the whole
    cycle runs in `setup()` and ends in `esp_deep_sleep_start()` for the
    `IB_SLEEP_SECONDS` build constant. `Last-Modified` persists across sleeps in
    RTC slow memory (`RTC_DATA_ATTR`), so a 304 wake returns to sleep without
