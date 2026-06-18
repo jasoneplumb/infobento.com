@@ -30,16 +30,16 @@ moves to the native USB port (`/dev/cu.usbmodem*`) and bridge-port prints vanish
 
 ## Phase status
 
-| Phase | Sketch                                           | Proves                                                                                 | Status                  |
-| ----- | ------------------------------------------------ | -------------------------------------------------------------------------------------- | ----------------------- |
-| 0     | (server) `scripts/mint-device.ts`                | mint device, `/frame` returns 200                                                      | ✅ done (PR #109)       |
-| 1     | [`blink/`](blink/blink.ino)                      | toolchain + boot + serial, no panel                                                    | ✅ bench-verified       |
-| 2     | [`static-frame/`](static-frame/static-frame.ino) | framebuffer-translation path: native 2bpp → UC8179 two-plane upload (4-band gray ramp) | ✅ bench-verified       |
-| 3     | [`device-pull/`](device-pull/device-pull.ino)    | Wi-Fi + `GET /api/device/<id>/frame` poll loop with `If-Modified-Since`/304 skip       | ✅ bench-verified       |
-| 4     | [`deep-sleep/`](deep-sleep/deep-sleep.ino)       | deep sleep + RTC wake; RTC-persisted `Last-Modified` so a 304 wake skips the refresh   | ✅ bench-verified       |
-| 5     | —                                                | resilience: retry/backoff, brownout, partial-frame guards                              | ⬜ next                 |
-| 6     | —                                                | captive-portal provisioning (Wi-Fi creds + custom server URL) → #39                    | ⬜                      |
-| 7     | —                                                | port to production GDEH0576T81 + ESP32-C3 → #57                                        | ⬜ (blocked on dev kit) |
+| Phase | Sketch                                           | Proves                                                                                    | Status                          |
+| ----- | ------------------------------------------------ | ----------------------------------------------------------------------------------------- | ------------------------------- |
+| 0     | (server) `scripts/mint-device.ts`                | mint device, `/frame` returns 200                                                         | ✅ done (PR #109)               |
+| 1     | [`blink/`](blink/blink.ino)                      | toolchain + boot + serial, no panel                                                       | ✅ bench-verified               |
+| 2     | [`static-frame/`](static-frame/static-frame.ino) | framebuffer-translation path: native 2bpp → UC8179 two-plane upload (4-band gray ramp)    | ✅ bench-verified               |
+| 3     | [`device-pull/`](device-pull/device-pull.ino)    | Wi-Fi + `GET /api/device/<id>/frame` poll loop with `If-Modified-Since`/304 skip          | ✅ bench-verified               |
+| 4     | [`deep-sleep/`](deep-sleep/deep-sleep.ino)       | deep sleep + RTC wake; RTC-persisted `Last-Modified` so a 304 wake skips the refresh      | ✅ bench-verified               |
+| 5     | [`resilient/`](resilient/resilient.ino)          | resilience: graceful 404/429/5xx/Wi-Fi-fail handling, brownout recovery, clean draw-abort | 🔄 compile-clean; bench-pending |
+| 6     | —                                                | captive-portal provisioning (Wi-Fi creds + custom server URL) → #39                       | ⬜ next                         |
+| 7     | —                                                | port to production GDEH0576T81 + ESP32-C3 → #57                                           | ⬜ (blocked on dev kit)         |
 
 "Bench-verified" = run on real E1001 hardware. Phase 3 evidence lives in the
 (gitignored) `dev/serial.log`: a live run shows `GET → 200`, `drew frame in
@@ -65,6 +65,21 @@ Still open: the deep-sleep **floor current** between wakes is unmeasured. Meter
 the battery/supply line (not USB) — the reTerminal dev board reads higher than the
 ~10 µA production target because of its always-on peripherals + USB-UART bridge, so
 the real single-digit-µA figure is an ESP32-C3 measurement deferred to Phase 7.
+
+**Phase 5 bench check (operator).** Flash `resilient/` and force each failure — in
+every case the panel must keep its last good frame (never blank/garble) and the
+device must sleep and recover on its own:
+
+- **API down:** stop the Hono server → `GET -> <negative>` → `keep last frame,
+retry next wake` → `deep sleep`. Restart the server → a later wake draws normally.
+- **Unprovisioned id:** point `secrets.h` at a device with no config (or clear it)
+  → `GET -> 404 ... unprovisioned` → sleep, no draw.
+- **Wrong creds:** break `WIFI_PASS` → `Wi-Fi FAILED` → `keep last frame` → sleep
+  (no hang, no crash).
+- **Rate limit:** hammer the device id past 10/min → `GET -> 429 ... honor
+Retry-After, sleep 60 s`.
+- **Normal:** unchanged config still `304 -> skip`; a pushed config still draws once
+  then returns to 304 (token committed only after the confirmed draw).
 
 ## Framebuffer translation (the key risk Phase 2 retired)
 
@@ -101,9 +116,16 @@ relative to the `.ino`). Not committed; `firmware/**/secrets.h` is gitignored:
    `IB_SLEEP_SECONDS` build constant. `Last-Modified` persists across sleeps in
    RTC slow memory (`RTC_DATA_ATTR`), so a 304 wake returns to sleep without
    touching the panel. This is what makes the solar/battery budget real.
-2. **Phase 5 — resilience.** Wi-Fi retry/backoff, HTTP timeout handling beyond the
-   current `readExact` guard, brownout detection, and refusing to push a
-   short/garbled frame to the panel.
+2. **Phase 5 — resilience.** 🔄 implemented (`resilient/`, compile-clean,
+   bench-pending). Every failure mode degrades gracefully: Wi-Fi down / wrong
+   creds / 404 (unprovisioned) / 5xx / transport error → don't draw, sleep the
+   normal cadence, retry next wake (eInk holds the last good frame for free, so no
+   flash framebuffer cache is needed); 429 → honor `Retry-After`; brownout reset →
+   skip the fetch and sleep a longer recovery interval. Two correctness fixes over
+   Phase 4: `checkBusy` records a timeout so `drawFrame()` aborts cleanly on a stuck
+   panel, and the cached `Last-Modified` is committed to RTC **only after a
+   confirmed draw** (else a failed refresh would 304 the next wake and strand the
+   panel on a frame that never rendered).
 3. **Phase 6 — captive portal (#39).** AP mode on first boot, on-device setup page
    for Wi-Fi creds + an optional custom server URL (self-host hatch), NVS storage,
    pinhole factory reset. This is the gate to a shippable out-of-box flow.
@@ -113,9 +135,10 @@ relative to the `.ino`). Not committed; `firmware/**/secrets.h` is gitignored:
 ### Shared UC8179 driver — extraction deferred (decision)
 
 The UC8179 driver (pins, 5 gray LUTs, `initGrayMode`/`uploadFrame`/`refresh`/
-`sleep`) is still copy-pasted across `static-frame`, `device-pull`, and now
-`deep-sleep`. Phase 4 was the nominal time to extract it, but **it stays vendored
-per-sketch on purpose**: Arduino's build model can't share a header across sibling
+`sleep`) is still copy-pasted across `static-frame`, `device-pull`, `deep-sleep`,
+and now `resilient` (5 copies). Phase 4 was the nominal time to extract it, but
+**it stays vendored per-sketch on purpose**: Arduino's build model can't share a
+header across sibling
 sketch folders without breaking the documented zero-flag build. `arduino-cli
 compile firmware/<sketch>` only sees the sketch dir (and its `src/` subfolder) plus
 _installed_ libraries — a real shared header needs either a library + a
