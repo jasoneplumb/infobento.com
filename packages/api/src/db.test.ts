@@ -11,6 +11,8 @@ import {
   setConfig,
   getDevicesForAccount,
   unclaimDevice,
+  requestForget,
+  consumeForget,
 } from './db.js';
 
 describe('db (in-memory)', () => {
@@ -184,6 +186,54 @@ describe('db (in-memory)', () => {
     it('returns false for a missing device', () => {
       const a = createAccount(db);
       expect(unclaimDevice(db, 'no-such-id', a.id)).toBe(false);
+    });
+  });
+
+  describe('requestForget / consumeForget', () => {
+    it('a fresh device has no pending forget', () => {
+      const d = createDevice(db, { pairCode: 'FGT000' });
+      expect(getDevice(db, d.id)?.forget_pending).toBe(0);
+      // Nothing pending → consume reports false and clears nothing.
+      expect(consumeForget(db, d.id)).toBe(false);
+    });
+
+    it('the owner can queue a forget; consume delivers it exactly once', () => {
+      const a = createAccount(db);
+      const d = createDevice(db, { pairCode: 'FGT001' });
+      claimDevice(db, 'FGT001', a.id);
+
+      expect(requestForget(db, d.id, a.id)).toBe(true);
+      expect(getDevice(db, d.id)?.forget_pending).toBe(1);
+
+      // First pull consumes it; the flag clears so a second pull sees nothing.
+      expect(consumeForget(db, d.id)).toBe(true);
+      expect(getDevice(db, d.id)?.forget_pending).toBe(0);
+      expect(consumeForget(db, d.id)).toBe(false);
+    });
+
+    it('refuses to queue a forget for a device owned by another account', () => {
+      const owner = createAccount(db);
+      const other = createAccount(db);
+      const d = createDevice(db, { pairCode: 'FGT002' });
+      claimDevice(db, 'FGT002', owner.id);
+
+      expect(requestForget(db, d.id, other.id)).toBe(false);
+      expect(getDevice(db, d.id)?.forget_pending).toBe(0);
+    });
+
+    it('does not bump last_modified (a forget must not force a panel redraw)', () => {
+      const a = createAccount(db);
+      const d = createDevice(db, { pairCode: 'FGT003' });
+      claimDevice(db, 'FGT003', a.id);
+      const before = getDevice(db, d.id)?.last_modified;
+
+      expect(requestForget(db, d.id, a.id)).toBe(true);
+      expect(getDevice(db, d.id)?.last_modified).toBe(before);
+    });
+
+    it('returns false for a missing device', () => {
+      const a = createAccount(db);
+      expect(requestForget(db, 'no-such-id', a.id)).toBe(false);
     });
   });
 });

@@ -7,6 +7,16 @@
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { app } from './server.js';
+import {
+  _resetSingletonForTesting,
+  getDb,
+  createAccount,
+  createDevice,
+  setConfig,
+  claimDevice,
+  requestForget,
+} from './db.js';
+import { _resetForTesting as resetRateLimit } from './rate-limit.js';
 
 const OAUTH_ENV = [
   'GOOGLE_CLIENT_ID',
@@ -70,5 +80,74 @@ describe('GET /api/auth/oauth/:provider/start', () => {
     const location = res.headers.get('location') ?? '';
     expect(location.startsWith('https://accounts.google.com/')).toBe(true);
     expect(location).not.toContain('auth_error');
+  });
+});
+
+/**
+ * "Forget Wi-Fi" delivery (issue #39): a queued forget must ride out to the
+ * device on its next firmware pull as an `X-Device-Forget: 1` header, exactly
+ * once. Driven through the live route table over an in-memory singleton DB so
+ * the inline pull handlers (not factory-exported) are exercised end-to-end.
+ */
+describe('X-Device-Forget delivery on device-pull', () => {
+  // A minimal config that renders, so /frame returns a 200 (not 404/500).
+  const VALID_CONFIG = JSON.stringify({
+    boxes: [{ id: '1', label: 'Hi', type: 'text', config: { type: 'text', text: 'yo' } }],
+    refreshesPerDay: 1,
+  });
+
+  beforeEach(() => {
+    process.env['SESSION_SECRET'] = 'test-secret-at-least-16-chars';
+    process.env['INFOBENTO_DB_PATH'] = ':memory:';
+    _resetSingletonForTesting();
+    resetRateLimit();
+  });
+
+  afterEach(() => {
+    Reflect.deleteProperty(process.env, 'SESSION_SECRET');
+    Reflect.deleteProperty(process.env, 'INFOBENTO_DB_PATH');
+    _resetSingletonForTesting();
+  });
+
+  function seedForgottenDevice(): string {
+    const db = getDb();
+    const owner = createAccount(db);
+    const device = createDevice(db, { pairCode: 'PULLFGT' });
+    claimDevice(db, 'PULLFGT', owner.id);
+    setConfig(db, device.id, VALID_CONFIG);
+    requestForget(db, device.id, owner.id);
+    return device.id;
+  }
+
+  it('delivers X-Device-Forget on the next /frame pull, then clears it', async () => {
+    const id = seedForgottenDevice();
+
+    const first = await app.request(`/api/device/${id}/frame`);
+    expect(first.status).toBe(200);
+    expect(first.headers.get('X-Device-Forget')).toBe('1');
+
+    // Delivered exactly once: the second pull no longer carries the command.
+    const second = await app.request(`/api/device/${id}/frame`);
+    expect(second.status).toBe(200);
+    expect(second.headers.get('X-Device-Forget')).toBeNull();
+  });
+
+  it('delivers X-Device-Forget on a /config pull too', async () => {
+    const id = seedForgottenDevice();
+    const res = await app.request(`/api/device/${id}/config`);
+    expect(res.status).toBe(200);
+    expect(res.headers.get('X-Device-Forget')).toBe('1');
+  });
+
+  it('omits X-Device-Forget when nothing is pending', async () => {
+    const db = getDb();
+    const owner = createAccount(db);
+    const device = createDevice(db, { pairCode: 'PULLNONE' });
+    claimDevice(db, 'PULLNONE', owner.id);
+    setConfig(db, device.id, VALID_CONFIG);
+
+    const res = await app.request(`/api/device/${device.id}/frame`);
+    expect(res.status).toBe(200);
+    expect(res.headers.get('X-Device-Forget')).toBeNull();
   });
 });

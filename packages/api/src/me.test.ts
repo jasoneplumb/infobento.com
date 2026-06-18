@@ -15,6 +15,7 @@ import { createDb, createAccount, createDevice, setConfig, claimDevice, getDevic
 import type { DB } from './db.js';
 import { signSession } from './auth/session.js';
 import {
+  createForgetWifiHandler,
   createListDevicesHandler,
   createPutDeviceConfigHandler,
   createUnpairDeviceHandler,
@@ -42,6 +43,10 @@ function makeApp(db: DB): Hono {
   app.delete(
     '/api/device/:id/owner',
     createUnpairDeviceHandler(() => db),
+  );
+  app.post(
+    '/api/device/:id/forget',
+    createForgetWifiHandler(() => db),
   );
   return app;
 }
@@ -273,5 +278,57 @@ describe('DELETE /api/device/:id/owner', () => {
     expect(res.status).toBe(404);
     // Ownership is unchanged — the intruder could not unbind it.
     expect(getDevice(db, device.id)?.owner_account_id).toBe(owner.id);
+  });
+});
+
+describe('POST /api/device/:id/forget', () => {
+  let db: DB;
+  let app: Hono;
+
+  beforeEach(() => {
+    process.env['SESSION_SECRET'] = TEST_SECRET;
+    resetRateLimit();
+    db = createDb(':memory:');
+    app = makeApp(db);
+  });
+
+  afterEach(() => {
+    delete process.env['SESSION_SECRET'];
+    db.close();
+  });
+
+  it('returns 401 when unauthenticated', async () => {
+    const device = createDevice(db, { pairCode: 'FGT401' });
+    const res = await app.request(`/api/device/${device.id}/forget`, { method: 'POST' });
+    expect(res.status).toBe(401);
+    expect(getDevice(db, device.id)?.forget_pending).toBe(0);
+  });
+
+  it('queues a forget for a device the caller owns (200)', async () => {
+    const me = createAccount(db);
+    const device = createDevice(db, { pairCode: 'FGT200' });
+    claimDevice(db, 'FGT200', me.id);
+
+    const res = await app.request(`/api/device/${device.id}/forget`, {
+      method: 'POST',
+      headers: cookie(me.id),
+    });
+    expect(res.status).toBe(200);
+    expect(getDevice(db, device.id)?.forget_pending).toBe(1);
+  });
+
+  it('returns opaque 404 for a device owned by someone else', async () => {
+    const owner = createAccount(db);
+    const intruder = createAccount(db);
+    const device = createDevice(db, { pairCode: 'FGT404' });
+    claimDevice(db, 'FGT404', owner.id);
+
+    const res = await app.request(`/api/device/${device.id}/forget`, {
+      method: 'POST',
+      headers: cookie(intruder.id),
+    });
+    expect(res.status).toBe(404);
+    // The intruder could not flag a device they don't own.
+    expect(getDevice(db, device.id)?.forget_pending).toBe(0);
   });
 });

@@ -25,7 +25,7 @@ import {
 } from './index.js';
 import { DISPLAY_WIDTH, DISPLAY_HEIGHT } from '@infobento/core';
 import { pickFallbackQuote, pickFallbackJoke, pickFallbackHoroscope } from './fallback/index.js';
-import { createAccount, getDb, type OAuthProvider } from './db.js';
+import { createAccount, consumeForget, getDb, type OAuthProvider } from './db.js';
 import { clearSessionCookie, issueSessionCookie, readSession } from './auth/session.js';
 import {
   createAuthenticationOptions,
@@ -49,6 +49,7 @@ import {
 import { consumeToken } from './rate-limit.js';
 import { createPairHandler } from './pair.js';
 import {
+  createForgetWifiHandler,
   createListDevicesHandler,
   createPutDeviceConfigHandler,
   createUnpairDeviceHandler,
@@ -622,6 +623,10 @@ app.post('/api/pair', createPairHandler(getDb));
 app.put('/api/device/:id/config', createPutDeviceConfigHandler(getDb));
 app.get('/api/me/devices', createListDevicesHandler(getDb));
 app.delete('/api/device/:id/owner', createUnpairDeviceHandler(getDb));
+// "Forget Wi-Fi" (issue #39) — owner queues a credential reset that the device
+// picks up on its next pull (X-Device-Forget header below). Web-side equivalent
+// of the physical pinhole reset.
+app.post('/api/device/:id/forget', createForgetWifiHandler(getDb));
 
 // --- Device-pull endpoints (issue #75) ---
 //
@@ -638,19 +643,18 @@ app.get('/api/device/:id/config', (c) => {
   }
   const result = getDeviceConfigForPull(getDb(), id, c.req.header('if-modified-since') ?? null);
   if (result.status === 404) return c.json({ error: 'not_found' }, 404);
+  // Deliver a pending "forget Wi-Fi" (issue #39) on this contact — read-and-clear
+  // so it's sent exactly once. Only consumed on a 200/304 (device exists), never
+  // on the 404 above where there's nothing to deliver to.
+  const headers: Record<string, string> = {
+    'Last-Modified': formatHttpDate(result.lastModifiedMs),
+  };
+  if (consumeForget(getDb(), id)) headers['X-Device-Forget'] = '1';
   if (result.status === 304) {
-    return new Response(null, {
-      status: 304,
-      headers: { 'Last-Modified': formatHttpDate(result.lastModifiedMs) },
-    });
+    return new Response(null, { status: 304, headers });
   }
-  return new Response(result.configJson, {
-    status: 200,
-    headers: {
-      'Content-Type': 'application/json',
-      'Last-Modified': formatHttpDate(result.lastModifiedMs),
-    },
-  });
+  headers['Content-Type'] = 'application/json';
+  return new Response(result.configJson, { status: 200, headers });
 });
 
 app.get('/api/device/:id/frame', (c) => {
@@ -667,22 +671,21 @@ app.get('/api/device/:id/frame', (c) => {
   );
   if (result.status === 404) return c.json({ error: 'not_found' }, 404);
   if (result.status === 500) return c.json({ error: result.error }, 500);
+  // Deliver a pending "forget Wi-Fi" (issue #39) on this contact, read-and-clear.
+  // Only on 200/304 — never on the 404/500 above, where there's no frame poll to
+  // ride along with (and a 500 means we never reached a clean delivery point).
+  const headers: Record<string, string> = {
+    'Last-Modified': formatHttpDate(result.lastModifiedMs),
+  };
+  if (consumeForget(getDb(), id)) headers['X-Device-Forget'] = '1';
   if (result.status === 304) {
-    return new Response(null, {
-      status: 304,
-      headers: { 'Last-Modified': formatHttpDate(result.lastModifiedMs) },
-    });
+    return new Response(null, { status: 304, headers });
   }
-  return new Response(result.data as unknown as BodyInit, {
-    status: 200,
-    headers: {
-      'Content-Type': 'application/octet-stream',
-      'Content-Length': String(result.data.byteLength),
-      'Last-Modified': formatHttpDate(result.lastModifiedMs),
-      'X-Frame-Width': String(result.width),
-      'X-Frame-Height': String(result.height),
-    },
-  });
+  headers['Content-Type'] = 'application/octet-stream';
+  headers['Content-Length'] = String(result.data.byteLength);
+  headers['X-Frame-Width'] = String(result.width);
+  headers['X-Frame-Height'] = String(result.height);
+  return new Response(result.data as unknown as BodyInit, { status: 200, headers });
 });
 
 // --- Static file serving (production) ---
