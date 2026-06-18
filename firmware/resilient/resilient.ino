@@ -113,6 +113,7 @@ static uint8_t* g_fb = nullptr;  // 96000-byte frame buffer (RAM; not persisted)
 // we set g_busyTimedOut and continue (so we never hang); drawFrame() then treats the
 // refresh as failed and the next wake retries. 10 s covers the slowest full refresh.
 void checkBusy(uint16_t timeoutMs = 10000) {
+  if (g_busyTimedOut) return;  // panel already known stuck this draw — don't burn another full timeout
   delay(10);
   unsigned long t0 = millis();
   while (!digitalRead(EPD_BUSY_PIN)) {
@@ -220,8 +221,8 @@ bool ensureWifi() {
 // server trickling one byte just under the idle limit can't stall forever.
 bool readExact(WiFiClient* s, uint8_t* buf, int len) {
   int got = 0;
-  unsigned long idle = millis();
   const unsigned long start = millis();
+  unsigned long idle = start;
   while (got < len && millis() - idle < 15000 && millis() - start < 60000) {
     int avail = s->available();
     if (avail > 0) { int n = (int)s->readBytes(buf + got, (size_t)min(avail, len - got)); got += n; idle = millis(); }
