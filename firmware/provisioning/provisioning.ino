@@ -73,8 +73,9 @@ WebServer server(HTTP_PORT);
 const IPAddress AP_IP(192, 168, 4, 1);
 const IPAddress AP_MASK(255, 255, 255, 0);
 
-static bool g_apMode = false;            // true while the captive portal is up
-static unsigned long g_pressStart = 0;   // millis() the pinhole went down; 0 = up
+static bool g_apMode = false;          // true while the captive portal is up
+static bool g_pinholeDown = false;     // true while the pinhole is held
+static unsigned long g_pressStart = 0; // millis() the pinhole went down
 
 // ----- Identity -------------------------------------------------------------
 
@@ -103,11 +104,11 @@ String deviceId() {
 
 // ----- NVS helpers ----------------------------------------------------------
 
+// Wipe the ENTIRE "infobento" namespace, not just today's known keys, so a
+// factory reset stays correct as Phase 7 adds state (device token, counters…) —
+// the device must boot truly pristine afterward.
 void clearCreds() {
-  prefs.remove("ssid");
-  prefs.remove("pass");
-  prefs.remove("server");
-  prefs.putBool("provisioned", false);
+  prefs.clear();
 }
 
 // Persist creds and mark the device provisioned. Called ONLY after a confirmed
@@ -162,7 +163,15 @@ String htmlEscape(const String& in) {
 // Build the setup form. `error` (optional) renders a retry banner after a failed
 // join. Scans synchronously so the dropdown is populated without any client JS.
 String setupPage(const String& error) {
-  int n = WiFi.scanNetworks();
+  // Read the ASYNC scan kicked off in startAP(); never scan synchronously here.
+  // A blocking WiFi.scanNetworks() stalls the event loop 2-4 s, during which DNS
+  // and HTTP go unanswered — captive-portal probes time out and the OS may never
+  // pop the setup browser. -1 = running, -2 = never started / cleared.
+  int n = WiFi.scanComplete();
+  if (n < 0) {
+    if (n == WIFI_SCAN_FAILED) WiFi.scanNetworks(true);  // (re)start; nothing yet
+    n = 0;
+  }
 
   String html = "<!doctype html><html><head><meta charset='utf-8'>"
                 "<meta name='viewport' content='width=device-width,initial-scale=1'>"
@@ -177,7 +186,7 @@ String setupPage(const String& error) {
 
   html += "<label for='ssid'>Network</label><select id='ssid' name='ssid'>";
   if (n <= 0) {
-    html += "<option value=''>(no networks found — use manual entry)</option>";
+    html += "<option value=''>(scanning… refresh, or use manual entry)</option>";
   } else {
     for (int i = 0; i < n; i++) {
       String s = htmlEscape(WiFi.SSID(i));
@@ -185,7 +194,8 @@ String setupPage(const String& error) {
     }
   }
   html += "</select>";
-  WiFi.scanDelete();
+  // Keep the results cached (no scanDelete): the retry path and a quick refresh
+  // reuse them instantly instead of stalling on a fresh scan.
 
   html += "<label for='manual'>…or hidden network name</label>";
   html += "<input id='manual' name='manual' autocomplete='off' placeholder='leave blank to use the list'>";
@@ -210,9 +220,11 @@ String successPage() {
   html += "</head><body><h1>Connected</h1>";
   html += "<p>Your InfoBento joined the network. You can disconnect from the "
           "<b>" + htmlEscape(apSsid()) + "</b> Wi-Fi now.</p>";
+  // Escape the id even though it's hex today: Phase 7 swaps in the opaque minted
+  // token, whose format we don't control — escaping now keeps this XSS-safe then.
   html += "<p>Finish setup in your browser:</p>";
-  html += "<p><b>infobento.com/onboard?device=" + id + "</b></p>";
-  html += "<div class='hint'>Device id: " + id + "</div>";
+  html += "<p><b>infobento.com/onboard?device=" + htmlEscape(id) + "</b></p>";
+  html += "<div class='hint'>Device id: " + htmlEscape(id) + "</div>";
   html += "</body></html>";
   return html;
 }
@@ -268,6 +280,18 @@ void handleSave() {
     server.send(200, "text/html", setupPage("Pick a network or type a name."));
     return;
   }
+  // Reject out-of-spec values up front: an 802.11 SSID is <=32 bytes and a WPA2
+  // passphrase is 8-63 (empty = open network). Storing an over-long value would
+  // just fail WiFi.begin() on every cold boot before falling back to AP — a
+  // confusing, self-inflicted delay. Bounds-check before we ever persist.
+  if (ssid.length() > 32) {
+    server.send(200, "text/html", setupPage("Network name is too long (max 32 characters)."));
+    return;
+  }
+  if (pass.length() && (pass.length() < 8 || pass.length() > 63)) {
+    server.send(200, "text/html", setupPage("Password must be 8-63 characters."));
+    return;
+  }
 
   if (tryJoin(ssid, pass)) {
     // Persist only after the join is confirmed (see saveCreds note).
@@ -312,6 +336,10 @@ void startAP() {
   server.onNotFound(redirectToPortal);  // anything else -> portal (captive catch-all)
   server.begin();
 
+  // Kick an async scan now so the dropdown is ready by the time the user loads
+  // the page, without ever blocking the DNS/HTTP loop (see setupPage).
+  WiFi.scanNetworks(true);
+
   g_apMode = true;
   Serial.println("[IB] captive portal up");
 }
@@ -332,15 +360,19 @@ void factoryReset() {
 void checkPinhole() {
   bool pressed = (digitalRead(PINHOLE_GPIO) == LOW);
   if (pressed) {
-    if (g_pressStart == 0) {
+    if (!g_pinholeDown) {
+      // Separate "down" flag rather than a g_pressStart==0 sentinel: millis()
+      // wraps to 0 every ~49.7 days, and a press captured at that instant would
+      // otherwise read as "not pressed" and reset the hold timer.
+      g_pinholeDown = true;
       g_pressStart = millis();
       Serial.println("[IB] pinhole down — hold 5s for factory reset");
     } else if (millis() - g_pressStart >= PINHOLE_HOLD_MS) {
       factoryReset();  // does not return
     }
   } else {
-    if (g_pressStart != 0) Serial.println("[IB] pinhole released");
-    g_pressStart = 0;
+    if (g_pinholeDown) Serial.println("[IB] pinhole released");
+    g_pinholeDown = false;
   }
 }
 
