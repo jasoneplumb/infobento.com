@@ -76,8 +76,10 @@ SPIClass hspi(HSPI);
 SPISettings spiSet(2000000, MSBFIRST, SPI_MODE0);
 
 // Set by checkBusy() when the panel never asserts ready within the timeout; read by
-// drawFrame() to decide whether the refresh actually completed.
-static volatile bool g_busyTimedOut = false;
+// drawFrame() to decide whether the refresh actually completed. Not volatile: it is
+// only ever touched synchronously on the main task (checkBusy writes, drawFrame
+// reads/resets) — no ISR or second core involved.
+static bool g_busyTimedOut = false;
 
 static const uint8_t LUT_VCOM_GRAY[] = {
   0x00,0x00,0x06,0x08,0x07,0x01, 0x00,0x06,0x0A,0x0B,0x0A,0x01,
@@ -253,12 +255,16 @@ uint32_t pullOnce() {
 
   if (code == 200) {
     int len = http.getSize();
-    // A known Content-Length that doesn't match means this isn't our frame (e.g. an
-    // error page served as 200). Skip the draw: an oversized body would flash garbage,
-    // an undersized one would burn the readExact idle timeout. len == -1 (unknown)
-    // falls through to the length-checked readExact.
-    if (len != -1 && len != (int)IB_FRAME_LEN) {
-      Serial.printf("[IB] WARN bad size %d (want %d) -> skip draw\n", len, (int)IB_FRAME_LEN);
+    // Require an EXACT Content-Length match before drawing. A mismatch means this
+    // isn't our frame (e.g. an error page served as 200): an oversized body would
+    // flash garbage, an undersized one would burn the readExact idle timeout. We
+    // also reject len == -1 (unknown / chunked): getStreamPtr() hands back the raw
+    // WiFiClient, which does NOT decode chunked transfer-encoding, so reading 96000
+    // bytes off a chunked body would splice HTTP framing bytes into the frame. The
+    // server always sends `Content-Length: 96000`, so this only rejects a
+    // misconfigured / proxy-stripped response — exactly when we'd rather not draw.
+    if (len != (int)IB_FRAME_LEN) {
+      Serial.printf("[IB] WARN bad/unknown size %d (want %d) -> skip draw\n", len, (int)IB_FRAME_LEN);
     } else {
       WiFiClient* stream = http.getStreamPtr();
       if (stream == nullptr) {
