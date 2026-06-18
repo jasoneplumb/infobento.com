@@ -13,7 +13,7 @@
 import type { Context } from 'hono';
 import { validateBentoConfig, BentoConfigSchema } from '@infobento/core';
 import type { DB } from './db.js';
-import { getDevice, getDevicesForAccount, setConfig, unclaimDevice } from './db.js';
+import { getDevice, getDevicesForAccount, requestForget, setConfig, unclaimDevice } from './db.js';
 import { readSession } from './auth/session.js';
 import { consumeToken } from './rate-limit.js';
 
@@ -124,6 +124,32 @@ export function createUnpairDeviceHandler(getDb: () => DB) {
     const id = c.req.param('id');
     if (!id) return c.json({ error: 'not_found' }, 404);
     const ok = unclaimDevice(getDb(), id, session.accountId);
+    if (!ok) return c.json({ error: 'not_found' }, 404);
+    return c.json({ ok: true });
+  };
+}
+
+/**
+ * Build the `POST /api/device/:id/forget` handler — the editor's "forget Wi-Fi"
+ * button (issue #39). Flags the device so its next firmware pull is told to
+ * clear NVS Wi-Fi credentials and re-enter captive-portal AP mode (the same
+ * effect as the physical pinhole reset). Owner-gated like the unpair handler;
+ * not throttled, matching its sibling and because the write is idempotent
+ * (re-setting an already-set flag is a no-op).
+ *
+ * Responses:
+ *   401 — no valid session.
+ *   404 — no such device owned by the caller (opaque, as elsewhere in this file).
+ *   200 — forget queued.
+ */
+export function createForgetWifiHandler(getDb: () => DB) {
+  return (c: Context): Response => {
+    const session = readSession(c);
+    if (!session) return c.json({ error: 'unauthenticated' }, 401);
+
+    const id = c.req.param('id');
+    if (!id) return c.json({ error: 'not_found' }, 404);
+    const ok = requestForget(getDb(), id, session.accountId);
     if (!ok) return c.json({ error: 'not_found' }, 404);
     return c.json({ ok: true });
   };

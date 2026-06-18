@@ -26,6 +26,13 @@ export interface Device {
   readonly config_json: string | null;
   readonly paired_at: number | null;
   readonly last_modified: number;
+  /**
+   * Web-side "forget Wi-Fi" command (issue #39). 1 = the owner asked the device
+   * to clear its Wi-Fi credentials and re-enter captive-portal AP mode. The
+   * server can't push to the device, so this is a pending flag the firmware
+   * picks up on its next pull (X-Device-Forget header) and clears on delivery.
+   */
+  readonly forget_pending: number;
 }
 
 export interface PasskeyCredential {
@@ -64,7 +71,8 @@ const SCHEMA = `
     owner_account_id TEXT REFERENCES accounts(id),
     config_json      TEXT,
     paired_at        INTEGER,
-    last_modified    INTEGER NOT NULL
+    last_modified    INTEGER NOT NULL,
+    forget_pending   INTEGER NOT NULL DEFAULT 0
   );
 
   CREATE TABLE IF NOT EXISTS passkey_credentials (
@@ -100,7 +108,31 @@ export function createDb(path: string): DB {
   db.pragma('journal_mode = WAL');
   db.pragma('foreign_keys = ON');
   db.exec(SCHEMA);
+  runMigrations(db);
   return db;
+}
+
+/**
+ * Additive, idempotent migrations for databases created before a column existed.
+ * `CREATE TABLE IF NOT EXISTS` only seeds the schema for a *fresh* file, so a
+ * pre-existing `devices` table won't gain new columns without an explicit
+ * `ALTER TABLE`. SQLite's `ADD COLUMN ... DEFAULT` backfills existing rows.
+ */
+function runMigrations(db: DB): void {
+  ensureColumn(db, 'devices', 'forget_pending', 'INTEGER NOT NULL DEFAULT 0');
+}
+
+/**
+ * Add `column` to `table` only if it isn't already present (safe to re-run).
+ * All arguments MUST be static, trusted strings — they are interpolated directly
+ * into SQL because SQLite's PRAGMA / DDL statements don't accept bound parameters.
+ * Never pass user- or request-derived values here.
+ */
+function ensureColumn(db: DB, table: string, column: string, ddl: string): void {
+  const cols = db.prepare(`PRAGMA table_info(${table})`).all() as { name: string }[];
+  if (!cols.some((c) => c.name === column)) {
+    db.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${ddl}`);
+  }
 }
 
 let _singleton: DB | null = null;
@@ -178,6 +210,7 @@ export function createDevice(db: DB, input: { pairCode: string; id?: string }): 
     config_json: null,
     paired_at: null,
     last_modified: now,
+    forget_pending: 0,
   };
 }
 
@@ -252,6 +285,38 @@ export function unclaimDevice(db: DB, deviceId: string, accountId: string): bool
          AND owner_account_id = ?`,
     )
     .run(now, deviceId, accountId);
+  return result.changes > 0;
+}
+
+/**
+ * Web-side "forget Wi-Fi" (issue #39): the owner asks a device they own to clear
+ * its Wi-Fi credentials and re-enter captive-portal AP mode — the same effect as
+ * the physical pinhole reset. The server can't reach the device, so this just
+ * sets a pending flag; the firmware picks it up on its next pull (see
+ * `consumeForget`). Scoped to `accountId`, so it returns false for a missing
+ * device or one owned by someone else. Deliberately does NOT bump
+ * `last_modified`: the command isn't config/frame content, and bumping it would
+ * force a needless panel redraw on the device's next poll.
+ */
+export function requestForget(db: DB, deviceId: string, accountId: string): boolean {
+  const result = db
+    .prepare(`UPDATE devices SET forget_pending = 1 WHERE id = ? AND owner_account_id = ?`)
+    .run(deviceId, accountId);
+  return result.changes > 0;
+}
+
+/**
+ * Atomically read-and-clear a device's pending "forget" flag, returning whether
+ * one was set. Called on the firmware-facing pull path to deliver the command
+ * exactly once (the device can't ACK after it forgets Wi-Fi, so deliver-and-clear
+ * in a single UPDATE is the only workable handshake). Not owner-scoped: the
+ * device id is the bearer secret on the pull endpoints, same as the rest of that
+ * path.
+ */
+export function consumeForget(db: DB, deviceId: string): boolean {
+  const result = db
+    .prepare(`UPDATE devices SET forget_pending = 0 WHERE id = ? AND forget_pending = 1`)
+    .run(deviceId);
   return result.changes > 0;
 }
 
