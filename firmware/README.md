@@ -61,10 +61,27 @@ A live run captured the full state machine on serial:
 To reproduce the 200-draw: `firmware/dev/push-config.sh <config> <device-id>`
 (point `INFOBENTO_DB_PATH` at the DB the running API opened — `lsof` it if unsure).
 
-Still open: the deep-sleep **floor current** between wakes is unmeasured. Meter
-the battery/supply line (not USB) — the reTerminal dev board reads higher than the
-~10 µA production target because of its always-on peripherals + USB-UART bridge, so
-the real single-digit-µA figure is an ESP32-C3 measurement deferred to Phase 7.
+Bench power snapshot (USB inline meter, 10 mA resolution — DROK VB26VA), board
+level over USB:
+
+- **304 wake** (no redraw): **≈ 80 mA for ~2 s** — the Wi-Fi blip — then sleep.
+  ≈ 0.04 mAh per wake.
+- **200 wake** (panel refresh): the Wi-Fi blip **plus** a **4.5 s draw at ≈ 60 mA
+  sustained, peaking ≈ 150 mA** in the final ~1 s (last waveform phase / booster).
+  ≈ 0.15 mAh per wake.
+- **Deep sleep:** reads `0.00 A`, i.e. **< 10 mA** at the board level.
+
+So the active side is cheap — even at a worst-case "redraw every wake," 1–2 wakes/
+day is well under 1 mAh/day — and the daily budget is dominated entirely by the
+sleep floor.
+
+Still open: that floor is **below this meter's 10 mA resolution**, so the real
+**single-digit-µA** figure remains unmeasured — the gap is decisive (≈50 µA →
+~1 mAh/day vs a hidden ~10 mA → ~240 mAh/day). Capturing it needs a µA-grade
+instrument on the **battery/supply line** (not USB): the reTerminal dev board
+reads higher than the ~10 µA production target because of its always-on
+peripherals + USB-UART bridge, so the definitive number is an ESP32-C3
+measurement deferred to Phase 7.
 
 **Phase 5 bench check (operator).** Flash `resilient/` and force each failure — in
 every case the panel must keep its last good frame (never blank/garble) and the
