@@ -161,7 +161,8 @@ String htmlEscape(const String& in) {
 }
 
 // Build the setup form. `error` (optional) renders a retry banner after a failed
-// join. Scans synchronously so the dropdown is populated without any client JS.
+// join. Reads the async scan results (kicked off in startAP) — no blocking scan
+// here — and renders them server-side so the dropdown needs no client JS.
 String setupPage(const String& error) {
   // Read the ASYNC scan kicked off in startAP(); never scan synchronously here.
   // A blocking WiFi.scanNetworks() stalls the event loop 2-4 s, during which DNS
@@ -238,7 +239,13 @@ bool tryJoin(const String& ssid, const String& pass) {
   WiFi.begin(ssid.c_str(), pass.c_str());
   unsigned long start = millis();
   while (WiFi.status() != WL_CONNECTED && millis() - start < JOIN_TIMEOUT_MS) {
-    delay(250);
+    // Keep DNS answering during the up-to-15 s join so the phone's OS doesn't
+    // declare the captive network dead and dismiss the in-app browser before our
+    // result page lands. We intentionally do NOT pump server.handleClient() here:
+    // this runs *inside* an active handler, and re-entering the WebServer would
+    // clobber the in-flight client/response. DNS has no such reentrancy hazard.
+    dns.processNextRequest();
+    delay(50);
     Serial.print('.');
   }
   Serial.println();
@@ -292,6 +299,12 @@ void handleSave() {
     server.send(200, "text/html", setupPage("Password must be 8-63 characters."));
     return;
   }
+  // The custom server URL is the rare self-host case; a typo'd scheme (or none)
+  // would silently persist and break every later pull with no user feedback.
+  if (serverUrl.length() && !serverUrl.startsWith("http://") && !serverUrl.startsWith("https://")) {
+    server.send(200, "text/html", setupPage("Server URL must start with http:// or https://."));
+    return;
+  }
 
   if (tryJoin(ssid, pass)) {
     // Persist only after the join is confirmed (see saveCreds note).
@@ -302,6 +315,7 @@ void handleSave() {
     // normal provisioned firmware path.
     delay(1500);
     Serial.println("[IB] rebooting into provisioned mode");
+    prefs.end();  // close the NVS handle cleanly before the reboot
     ESP.restart();
   } else {
     server.send(200, "text/html",
@@ -352,6 +366,7 @@ void factoryReset() {
   Serial.println("[IB] PINHOLE 5s hold -> factory reset (clearing creds)");
   clearCreds();
   delay(200);
+  prefs.end();  // close the NVS handle cleanly before the reboot
   ESP.restart();
 }
 
