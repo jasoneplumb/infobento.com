@@ -122,7 +122,12 @@ function runMigrations(db: DB): void {
   ensureColumn(db, 'devices', 'forget_pending', 'INTEGER NOT NULL DEFAULT 0');
 }
 
-/** Add `column` to `table` only if it isn't already present (safe to re-run). */
+/**
+ * Add `column` to `table` only if it isn't already present (safe to re-run).
+ * All arguments MUST be static, trusted strings — they are interpolated directly
+ * into SQL because SQLite's PRAGMA / DDL statements don't accept bound parameters.
+ * Never pass user- or request-derived values here.
+ */
 function ensureColumn(db: DB, table: string, column: string, ddl: string): void {
   const cols = db.prepare(`PRAGMA table_info(${table})`).all() as { name: string }[];
   if (!cols.some((c) => c.name === column)) {

@@ -109,18 +109,18 @@ describe('X-Device-Forget delivery on device-pull', () => {
     _resetSingletonForTesting();
   });
 
-  function seedForgottenDevice(): string {
+  function seedForgottenDevice(pairCode = 'PULLFGT'): { id: string; ownerId: string } {
     const db = getDb();
     const owner = createAccount(db);
-    const device = createDevice(db, { pairCode: 'PULLFGT' });
-    claimDevice(db, 'PULLFGT', owner.id);
+    const device = createDevice(db, { pairCode });
+    claimDevice(db, pairCode, owner.id);
     setConfig(db, device.id, VALID_CONFIG);
     requestForget(db, device.id, owner.id);
-    return device.id;
+    return { id: device.id, ownerId: owner.id };
   }
 
   it('delivers X-Device-Forget on the next /frame pull, then clears it', async () => {
-    const id = seedForgottenDevice();
+    const { id } = seedForgottenDevice();
 
     const first = await app.request(`/api/device/${id}/frame`);
     expect(first.status).toBe(200);
@@ -133,10 +133,42 @@ describe('X-Device-Forget delivery on device-pull', () => {
   });
 
   it('delivers X-Device-Forget on a /config pull too', async () => {
-    const id = seedForgottenDevice();
+    const { id } = seedForgottenDevice();
     const res = await app.request(`/api/device/${id}/config`);
     expect(res.status).toBe(200);
     expect(res.headers.get('X-Device-Forget')).toBe('1');
+  });
+
+  // The steady-state firmware path: the device already cached Last-Modified on a
+  // prior wake, so it sends If-Modified-Since and gets a 304. A queued forget must
+  // still ride along on that 304 — `consumeForget` runs before the 304 branch.
+  it('delivers X-Device-Forget on a 304 /frame pull (device already cached)', async () => {
+    const { id, ownerId } = seedForgottenDevice('PULLFGT304F');
+    const first = await app.request(`/api/device/${id}/frame`);
+    expect(first.status).toBe(200);
+    const lastModified = first.headers.get('Last-Modified') ?? '';
+
+    // First pull consumed the forget; re-queue it for the cached-device pull.
+    requestForget(getDb(), id, ownerId);
+    const second = await app.request(`/api/device/${id}/frame`, {
+      headers: { 'If-Modified-Since': lastModified },
+    });
+    expect(second.status).toBe(304);
+    expect(second.headers.get('X-Device-Forget')).toBe('1');
+  });
+
+  it('delivers X-Device-Forget on a 304 /config pull (device already cached)', async () => {
+    const { id, ownerId } = seedForgottenDevice('PULLFGT304C');
+    const first = await app.request(`/api/device/${id}/config`);
+    expect(first.status).toBe(200);
+    const lastModified = first.headers.get('Last-Modified') ?? '';
+
+    requestForget(getDb(), id, ownerId);
+    const second = await app.request(`/api/device/${id}/config`, {
+      headers: { 'If-Modified-Since': lastModified },
+    });
+    expect(second.status).toBe(304);
+    expect(second.headers.get('X-Device-Forget')).toBe('1');
   });
 
   it('omits X-Device-Forget when nothing is pending', async () => {
