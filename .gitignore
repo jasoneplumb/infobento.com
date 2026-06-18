@@ -54,3 +54,8 @@ clones/
 firmware/secrets.h
 firmware/**/secrets.h
 firmware/dev/
+
+# Local dev SQLite databases (bench/testing) — match in any directory
+dev.db
+dev.db-shm
+dev.db-wal
