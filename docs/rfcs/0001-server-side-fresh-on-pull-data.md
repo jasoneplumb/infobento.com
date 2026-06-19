@@ -27,7 +27,7 @@ Today data is resolved **client-side** and baked into `config_json` as a snapsho
 - On save, `PUT /api/device/:id/config` stores the resolved values. The box configs
   literally carry the data — `WeatherBoxConfig.data?`, `ForecastBoxConfig.entries?`
   (`packages/core/src/types.ts:24,49`).
-- `getDeviceFrameForPull` (`packages/api/src/device.ts:88`) just `JSON.parse`s the
+- `getDeviceFrameForPull` (`packages/api/src/device.ts:67`) just `JSON.parse`s the
   config and calls `renderBoth(config)` — it draws whatever was baked in.
 - `Last-Modified` = `devices.last_modified`, bumped **only** by `setConfig`
   (`packages/api/src/db.ts:252`). So a polling device gets `304 → skip` forever
@@ -99,17 +99,25 @@ Extract the 10 fetchers from `web/src/api.ts` into a new pure package
 
 ### 2. Hydration at `GET /frame`
 
-Add a `hydrateConfig(config, deps)` step in `getDeviceFrameForPull`, before
-`renderBoth`:
+Add a `hydrateConfig(config, deps): Promise<BentoConfig>` step in
+`getDeviceFrameForPull`, before `renderBoth`:
 
 ```
-getDevice → parse config_json → hydrateConfig(config) → renderBoth(config) → frame
+getDevice → parse config_json → hydratedConfig = await hydrateConfig(config) → renderBoth(hydratedConfig) → frame
 ```
 
 `hydrateConfig` walks the boxes; for each live box it resolves data from
-`@infobento/data` (via the cache, §4) and fills `data`/`entries`. Pure-ish: it
-takes an injected resolver so it stays unit-testable. Static boxes (text,
-countdown, qr, date, moon, sun — clock-derived) need no network.
+`@infobento/data` (via the cache, §4) and produces a box that carries the fresh
+`data`/`entries`. **Box config fields are `readonly` (`core/src/types.ts`)**, so
+this is an immutable transform — `hydrateConfig` returns a **new** `BentoConfig`,
+spreading/reconstructing each box that gains data, rather than mutating in place.
+It takes an injected resolver so it stays unit-testable.
+
+Which boxes need the network: live boxes are weather, forecast, forecast3d,
+**sun** (sunrise/sunset via `fetchSunTimes` → Nominatim + Open-Meteo), aqi, stocks,
+quote, joke, horoscope, on-this-day. Genuinely static/computed — no network —
+are text, countdown, qr, date, and **moon** (phase is computed from the UTC date
+alone).
 
 Persisted `config_json` should hold **params only**; any baked `data`/`entries` is
 treated as a discardable seed and overwritten on hydrate. (Open question: strip
@@ -124,10 +132,20 @@ city cause one upstream call per window. Per-provider TTLs (weather ~30–60 min
 on-this-day/horoscope ~24 h, stocks ~15 min). Stale-while-revalidate so a slow
 upstream never blocks a frame.
 
+**Single-flight (thundering herd).** Devices on the same cadence wake nearly
+simultaneously, so at a bucket boundary every concurrent request for the same key
+sees an expired entry and fires its own upstream call before any refresh lands.
+Stale-while-revalidate alone doesn't fix this. The `Cache` interface must do
+**promise deduplication**: if a refresh is already in-flight for a key, later
+callers await the same `Promise`. This is critical for Nominatim, which enforces
+1 req/sec (`web/src/api.ts:35`) and is hit by `fetchWeather`, `fetchForecast`,
+`fetchForecast3D`, `fetchSunTimes`, and `fetchAirQuality`.
+
 **Edge concern:** the API is designed stateless/edge-deployable (Cloudflare/Deno/
 Bun). In-process Map cache works for a single Node host now; a durable shared cache
 (Workers KV / Deno KV / Redis) is needed if/when horizontally scaled. Phase the
-durable cache; ship in-process first behind a small `Cache` interface.
+durable cache; ship in-process first behind a small `Cache` interface (single-flight
+included from day one).
 
 ### 4. Freshness / `Last-Modified` (the subtle half)
 
@@ -147,6 +165,20 @@ the token only after a confirmed draw, so a failed wake retries next window.
 Bucket source of truth: derive from the config's `refreshesPerDay` (already a
 top-level config field) so the freshness window matches what the device is told to
 do.
+
+**Cost note — don't regress the cheap 304 path.** Today `getDeviceFrameForPull`
+(`device.ts:67`) calls `isNotModified` _before_ `JSON.parse(config_json)` — a cheap
+early exit so 304 wakes never parse. But `dataBucketBoundary` needs
+`refreshesPerDay`, which lives inside the JSON, so the naive formula forces a parse
+on every request including 304s. Two options:
+
+1. **Denormalize** `refreshes_per_day` into the `devices` table (set on `PUT`), so
+   the effective timestamp is computable pre-parse and the early exit survives.
+2. **Parse-always** and document it — likely fine given typical config sizes, but
+   must be a deliberate, stated tradeoff, not a silent regression.
+
+Lean toward (1) — it keeps the 304 path allocation-free, which matters for the
+high-frequency steady state.
 
 ### 5. Secrets / keys
 
