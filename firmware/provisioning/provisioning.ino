@@ -68,7 +68,11 @@
 // bridge J2 pin 4 to J2 pin 2 for 5s. It is a plain GPIO/ADC pin, not a strapping
 // pin (GPIO0/3/45/46) and not a native-USB pin (GPIO19/20), so grounding it is safe
 // at boot and does not disturb the USB-UART serial bridge.
-#define IB_DEV_E1001 1  // 0 => production ESP32-C3 pin (GPIO9)
+// TODO(#57 Phase 7): delete this whole block — the production ESP32-C3 uses
+// GPIO9 natively. Until then this is hardcoded to 1 (E1001 dev board); building
+// for the C3 before Phase 7 means setting it to 0 by hand (the #else picks GPIO9,
+// which is the panel MOSI line on the E1001 and would re-trigger the reset loop).
+#define IB_DEV_E1001 1
 #if IB_DEV_E1001
 #define PINHOLE_GPIO 2  // E1001 expansion header J2 pin 4; ground to J2 pin 2 (GND) for 5s
 #else
