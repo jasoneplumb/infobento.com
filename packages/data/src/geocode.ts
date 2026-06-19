@@ -51,7 +51,15 @@ async function requestGeocode(query: string): Promise<GeocodeResult | null> {
       `https://nominatim.openstreetmap.org/search` +
       `?q=${encodeURIComponent(query)}` +
       `&format=json&limit=1`;
-    const res = await fetch(url, { headers: { 'Accept-Language': 'en' } });
+    // Nominatim's usage policy requires an identifying User-Agent. It's a
+    // forbidden request header in browser `fetch` (silently dropped there), but
+    // it's sent server-side, where geocode runs at pull-time hydration.
+    const res = await fetch(url, {
+      headers: {
+        'Accept-Language': 'en',
+        'User-Agent': 'InfoBento/1.0 (https://github.com/jasoneplumb/infobento.com)',
+      },
+    });
     if (!res.ok) return null;
 
     const data = (await res.json()) as NominatimResult[];

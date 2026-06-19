@@ -40,7 +40,7 @@ function dominantPollutant(current: OpenMeteoAirQuality['current']): string {
     ['SO2', current.sulphur_dioxide],
   ];
 
-  let maxName = 'PM2.5';
+  let maxName: string | undefined;
   let maxValue = -1;
   for (const [name, value] of candidates) {
     if (value != null && value > maxValue) {
@@ -48,7 +48,8 @@ function dominantPollutant(current: OpenMeteoAirQuality['current']): string {
       maxName = name;
     }
   }
-  return maxName;
+  // Genuine default only when no pollutant data is present at all.
+  return maxName ?? 'PM2.5';
 }
 
 /**

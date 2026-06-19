@@ -81,6 +81,8 @@ export async function fetchWeather(
 }
 
 interface OpenMeteoHourly {
+  /** Location's offset from UTC, in seconds (present when timezone=auto). */
+  utc_offset_seconds?: number;
   hourly: {
     time: string[];
     temperature_2m: number[];
@@ -115,9 +117,18 @@ export async function fetchForecast(
     const data = (await res.json()) as OpenMeteoHourly;
     const { time, temperature_2m, weather_code } = data.hourly;
 
-    // Find the index of the current hour, then take the next `hours` entries
-    const now = new Date();
-    const currentHourIso = `${String(now.getFullYear())}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}T${String(now.getHours()).padStart(2, '0')}:00`;
+    // Open-Meteo returns hourly timestamps in the *location's* timezone
+    // (timezone=auto). Anchor "now" to that same timezone via the response's UTC
+    // offset and read UTC fields off the shifted instant, so a server in any
+    // timezone (e.g. a UTC host at pull-time hydration) still picks the correct
+    // current hour rather than one offset by the server↔location difference.
+    const offsetMs = (data.utc_offset_seconds ?? 0) * 1000;
+    const nowAtLocation = new Date(Date.now() + offsetMs);
+    const currentHourIso =
+      `${String(nowAtLocation.getUTCFullYear())}-` +
+      `${String(nowAtLocation.getUTCMonth() + 1).padStart(2, '0')}-` +
+      `${String(nowAtLocation.getUTCDate()).padStart(2, '0')}T` +
+      `${String(nowAtLocation.getUTCHours()).padStart(2, '0')}:00`;
     let startIdx = time.findIndex((t) => t >= currentHourIso);
     if (startIdx < 0) startIdx = 0;
 

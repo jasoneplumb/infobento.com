@@ -22,6 +22,7 @@ beforeEach(() => {
 });
 afterEach(() => {
   vi.unstubAllGlobals();
+  vi.useRealTimers();
 });
 
 describe('fetchWeather', () => {
@@ -76,6 +77,30 @@ describe('fetchForecast', () => {
       { time: '02:00', temperature: 22, condition: 'Partly Cloudy' },
       { time: '03:00', temperature: 23, condition: 'Thunderstorm' },
     ]);
+  });
+
+  it('anchors the current hour to the location timezone, not the server clock', async () => {
+    vi.useFakeTimers();
+    // Server clock at 2026-06-21T00:30Z; a UTC−7 location is then at 17:30 local,
+    // so the next two hourly entries should be 18:00 and 19:00 local — not the
+    // 01:00/02:00 a naive UTC-server anchor would pick.
+    vi.setSystemTime(new Date('2026-06-21T00:30:00Z'));
+    mockByUrl({
+      utc_offset_seconds: -7 * 3600,
+      hourly: {
+        time: [
+          '2026-06-20T16:00',
+          '2026-06-20T17:00',
+          '2026-06-20T18:00',
+          '2026-06-20T19:00',
+          '2026-06-20T20:00',
+        ],
+        temperature_2m: [10, 11, 12, 13, 14],
+        weather_code: [0, 0, 0, 0, 0],
+      },
+    });
+    const entries = await fetchForecast('Portland', 2, 'C');
+    expect(entries?.map((e) => e.time)).toEqual(['18:00', '19:00']);
   });
 });
 
