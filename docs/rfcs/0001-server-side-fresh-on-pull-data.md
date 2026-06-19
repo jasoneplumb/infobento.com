@@ -21,9 +21,13 @@ handler, a cache, and a freshness rule that still respects the deep-sleep budget
 
 Today data is resolved **client-side** and baked into `config_json` as a snapshot:
 
-- `packages/web/src/api.ts` fetches Open-Meteo (weather/forecast/AQI), Nominatim
-  (geocoding), Wikipedia (on-this-day), JokeAPI, etc. in the browser; quotes proxy
-  through the Hono API.
+- `packages/web/src/api.ts` resolves data two ways: **5 boxes call external
+  providers directly from the browser** — weather/forecast/forecast3d/sun/aqi via
+  Open-Meteo + Nominatim — and **5 call the Hono API's own proxy routes** —
+  joke/horoscope/onthisday/quote/stocks hit `/api/{joke,horoscope,onthisday,quote,
+stocks}` (`server.ts:186,235,285,320,375`), whose real provider logic + bundled
+  quota fallbacks already live server-side in `api/src/server.ts` and
+  `api/src/fallback/`.
 - On save, `PUT /api/device/:id/config` stores the resolved values. The box configs
   literally carry the data — `WeatherBoxConfig.data?`, `ForecastBoxConfig.entries?`
   (`packages/core/src/types.ts:24,49`).
@@ -82,17 +86,35 @@ from params. Minimal schema churn — mostly making the optionality the contract
 
 ### 1. `@infobento/data` — shared provider package
 
-Extract the 10 fetchers from `web/src/api.ts` into a new pure package
-(`fetchWeather`, `fetchForecast`, `fetchForecast3D`, `fetchSunTimes`,
-`fetchAirQuality`, `fetchStocks`, `fetchOnThisDay`, `fetchJoke`, `fetchHoroscope`,
-`fetchQuote`). Requirements:
+Consolidate provider logic into a new pure package. **The extraction is
+asymmetric** — the 10 fetchers split by where their real logic lives today:
+
+- **5 direct fetchers** (`fetchWeather`, `fetchForecast`, `fetchForecast3D`,
+  `fetchSunTimes`, `fetchAirQuality`) call Open-Meteo/Nominatim straight from the
+  browser. These move from `web/src/api.ts` into `@infobento/data` as a near-pure
+  lift.
+- **5 proxy fetchers** (`fetchJoke`, `fetchHoroscope`, `fetchOnThisDay`,
+  `fetchQuote`, `fetchStocks`) are thin `fetch('/api/…')` wrappers; their provider
+  logic is in `server.ts` handlers + `api/src/fallback/`. The `api` package **cannot
+  call its own HTTP routes** for hydration, so the underlying logic must be pulled
+  out of those handlers into `@infobento/data`. The `server.ts` routes then become
+  thin wrappers over `@infobento/data` (exactly what the web editor calls), and
+  `hydrateConfig` calls `@infobento/data` directly. The `fallback/` quota-fallback
+  data follows the logic into `@infobento/data` (or stays in `api` as an explicit
+  fallback layer above it — decide during Step 1).
+
+So Step 1 is **not** a uniform "pure move": only the 5 direct fetchers are
+behavior-neutral; the 5 proxy ones require restructuring `server.ts` (logic out,
+routes become wrappers) to avoid a second copy of the provider code.
+
+Requirements:
 
 - No DOM/`window`; `fetch` only (Node 18+, edge runtimes, and the browser all
   provide global `fetch`).
 - Keep the existing **return-`null`-on-failure** contract — it's already the
   resilience primitive we need.
-- `web` imports it for editor previews (no behavior change there); `api` imports it
-  for pull-time hydration.
+- `web` imports it for editor previews; `api` imports it for pull-time hydration
+  **and** for its (now thin) proxy routes.
 
 **Module boundary update** (CLAUDE.md): `data` imports nothing from siblings;
 `api` and `web` may import `data`. `core` stays leaf.
@@ -119,10 +141,14 @@ quote, joke, horoscope, on-this-day. Genuinely static/computed — no network �
 are text, countdown, qr, date, and **moon** (phase is computed from the UTC date
 alone).
 
-Persisted `config_json` should hold **params only**; any baked `data`/`entries` is
-treated as a discardable seed and overwritten on hydrate. (Open question: strip
-`data` on `PUT` to keep rows small, vs. ignore-on-read. Lean: ignore-on-read,
-strip opportunistically.)
+**Invariant — always replace, never fill-absent.** For every live box,
+`hydrateConfig` unconditionally reconstructs the box with fresh `data`/`entries`
+from the cache/fetcher, regardless of whether a seed is already present. A
+`if (!box.data) …` fill-absent-only implementation would silently keep stale baked
+data when a seed exists in `config_json` — the exact bug this RFC exists to kill.
+Persisted `config_json` holds **params only**; baked `data`/`entries` is a
+discardable seed. (Open question: strip `data` on `PUT` to keep rows small, vs.
+ignore-and-overwrite on read. Lean: overwrite on read, strip opportunistically.)
 
 ### 3. Caching
 
@@ -137,9 +163,16 @@ simultaneously, so at a bucket boundary every concurrent request for the same ke
 sees an expired entry and fires its own upstream call before any refresh lands.
 Stale-while-revalidate alone doesn't fix this. The `Cache` interface must do
 **promise deduplication**: if a refresh is already in-flight for a key, later
-callers await the same `Promise`. This is critical for Nominatim, which enforces
-1 req/sec (`web/src/api.ts:35`) and is hit by `fetchWeather`, `fetchForecast`,
-`fetchForecast3D`, `fetchSunTimes`, and `fetchAirQuality`.
+callers await the same `Promise`.
+
+Per-key dedup is necessary but **not sufficient** for Nominatim, which enforces
+1 req/sec (`web/src/api.ts:35`) and backs five fetchers. Devices in N different
+cities produce N distinct geocode keys that all cache-miss at a boundary — dedup
+doesn't apply across keys, so the herd still exceeds 1 req/sec. `@infobento/data`
+needs a **Nominatim-global serial queue / rate limiter** in addition to per-key
+dedup: per-key for the same-city case, global throttle for the cross-key case.
+(Caching resolved coordinates aggressively — geocodes rarely change — also shrinks
+the problem.)
 
 **Edge concern:** the API is designed stateless/edge-deployable (Cloudflare/Deno/
 Bun). In-process Map cache works for a single Node host now; a durable shared cache
@@ -154,17 +187,21 @@ timestamp. Replace `device.last_modified` with an **effective** value:
 
 ```
 effectiveLastModified = max(config.last_modified, dataBucketBoundary)
-dataBucketBoundary    = floor(now / bucket) * bucket   // bucket = device refresh cadence or min data TTL
+dataBucketBoundary    = floor(now / bucket) * bucket   // bucket = device cadence from refreshesPerDay
 ```
 
-So within a refresh window the device gets `304 → skip` (battery saved); at the
-window boundary it gets a new `Last-Modified` → exactly one redraw with fresh data.
-This composes with the Phase 4 RTC-cached `Last-Modified`: the device still commits
-the token only after a confirmed draw, so a failed wake retries next window.
+The bucket is the **device cadence** (`refreshesPerDay`), full stop — _not_ the min
+data TTL. With cadence (`refreshesPerDay=2` → 12 h bucket) the device gets `304`
+within each window and `200` at the two daily boundaries — intended. Bucketing on a
+provider TTL (stocks ~15 min → 96 boundaries/day) would advance `Last-Modified`
+constantly between device wakes, leaking the server's cache rhythm into HTTP
+semantics for no benefit. Per-provider TTLs govern how stale the _cache data_ may
+be, independently of when `Last-Modified` changes.
 
-Bucket source of truth: derive from the config's `refreshesPerDay` (already a
-top-level config field) so the freshness window matches what the device is told to
-do.
+So within a window the device gets `304 → skip` (battery saved); at the boundary it
+gets a new `Last-Modified` → exactly one redraw with fresh data. This composes with
+the Phase 4 RTC-cached `Last-Modified`: the device commits the token only after a
+confirmed draw, so a failed wake retries next window.
 
 **Cost note — don't regress the cheap 304 path.** Today `getDeviceFrameForPull`
 (`device.ts:67`) calls `isNotModified` _before_ `JSON.parse(config_json)` — a cheap
@@ -178,7 +215,15 @@ on every request including 304s. Two options:
    must be a deliberate, stated tradeoff, not a silent regression.
 
 Lean toward (1) — it keeps the 304 path allocation-free, which matters for the
-high-frequency steady state.
+high-frequency steady state. Two correctness requirements for the denormalized
+column:
+
+- **Atomicity:** write `config_json` and `refreshes_per_day` in the **same SQL
+  transaction** on `PUT`, and ship a migration that backfills existing rows with a
+  default (`refreshes_per_day = 2`) — otherwise `dataBucketBoundary` computes
+  against `NULL`/stale cadence until the next `PUT`.
+- **Consistency:** derive the column **only** from the parsed config, never accept
+  it as a separate `PUT` field, so it can't drift from `config_json`.
 
 ### 5. Secrets / keys
 
@@ -195,6 +240,20 @@ whatever the providers require.
   with a drawable frame whenever possible.
 - Bound every upstream call with a timeout well under the device's HTTP timeout.
 
+**Renderer requirement (lands before Step 2).** "Graceful empty state" pushes a
+requirement onto the renderer: with `noUncheckedIndexedAccess`, a live box whose
+`data` is `undefined` is a type/runtime hazard, and today the renderer expects a
+fully-populated config. Pick one and build it before hydrating any box at
+`GET /frame`:
+
+- the renderer gains a defined no-data path per live box type (e.g. weather shows
+  `--°` + unknown-condition icon), **or**
+- `hydrateConfig` guarantees a non-null synthetic data object on failure, so the
+  renderer never sees `undefined`.
+
+Leaning toward the hydration-guarantees-non-null option keeps the renderer purely
+data-in/pixels-out, but the empty-state _visuals_ still need design either way.
+
 ### Renderer purity preserved
 
 `@infobento/renderer` still receives a fully-populated `BentoConfig` and draws it.
@@ -202,13 +261,17 @@ All fetching/caching lives in `api` + `data`. `renderBoth` is untouched.
 
 ## Rollout / phasing
 
-1. **Extract `@infobento/data`** from `web/src/api.ts` — pure move, no behavior
-   change, web keeps using it. (Standalone PR; lowest risk.)
-2. **Hydrate one box type (weather)** at `GET /frame` behind the existing flow;
-   prove end-to-end on the bench (device shows updated temp with no edit).
-3. **Freshness bucketing** + `effectiveLastModified`.
-4. **Remaining box types.**
-5. **Durable cache** for edge/horizontal scale.
+1. **Extract `@infobento/data`.** The 5 direct fetchers lift from `web/src/api.ts`
+   (behavior-neutral); the 5 proxy fetchers' logic moves out of `server.ts` handlers
+   - `api/src/fallback/`, with those routes becoming thin wrappers. Includes the
+     `Cache` interface (TTL + single-flight + Nominatim global queue). (Standalone PR.)
+2. **Renderer no-data path** — pick the empty-state strategy (§6) and land it, so
+   provider-down hydration has somewhere to draw to.
+3. **Hydrate one box type (weather)** at `GET /frame`; prove end-to-end on the bench
+   (device shows an updated temp with no edit).
+4. **Freshness** — denormalize `refreshes_per_day`, `effectiveLastModified` bucketing.
+5. **Remaining box types.**
+6. **Durable cache** for edge/horizontal scale.
 
 ## Alternatives considered
 
