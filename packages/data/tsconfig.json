@@ -5,5 +5,5 @@
     "outDir": "dist"
   },
   "include": ["src"],
-  "references": [{ "path": "../core" }, { "path": "../data" }, { "path": "../renderer" }]
+  "references": [{ "path": "../core" }]
 }

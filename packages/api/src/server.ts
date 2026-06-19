@@ -25,6 +25,15 @@ import {
 } from './index.js';
 import { DISPLAY_WIDTH, DISPLAY_HEIGHT } from '@infobento/core';
 import { pickFallbackQuote, pickFallbackJoke, pickFallbackHoroscope } from './fallback/index.js';
+import {
+  fetchJoke,
+  fetchQuote,
+  fetchHoroscope,
+  fetchStocks,
+  fetchOnThisDay,
+  isValidStockSymbol,
+  VALID_ZODIAC_SIGNS,
+} from '@infobento/data';
 import { createAccount, consumeForget, getDb, type OAuthProvider } from './db.js';
 import { clearSessionCookie, issueSessionCookie, readSession } from './auth/session.js';
 import {
@@ -153,112 +162,26 @@ app.post('/api/render-dual', async (c) => {
   });
 });
 
-// JokeAPI v2 categories per its live error response (Knock-Knock is NOT one
-// of them — the URL path treats hyphens as separators, so it's unreachable).
-const VALID_JOKE_CATEGORIES = new Set([
-  'Programming',
-  'Misc',
-  'Pun',
-  'Dark',
-  'Spooky',
-  'Christmas',
-]);
-
-/** Title-case the user's category input so it matches JokeAPI casing. */
-function normalizeJokeCategory(input: string): string {
-  const lower = input.toLowerCase();
-  return lower.charAt(0).toUpperCase() + lower.slice(1);
-}
-
-const VALID_ONTHISDAY_CATEGORIES = new Set(['events', 'births', 'deaths', 'holidays', 'all']);
-
-interface WikiOnThisDayEntry {
-  text?: string;
-  year?: number;
-}
-interface WikiOnThisDayResponse {
-  events?: WikiOnThisDayEntry[];
-  births?: WikiOnThisDayEntry[];
-  deaths?: WikiOnThisDayEntry[];
-  holidays?: WikiOnThisDayEntry[];
-}
+// On-this-day / joke / horoscope / stocks / quote are thin wrappers over
+// @infobento/data (RFC 0001 Phase 1). The data layer performs the upstream call
+// and returns null on failure; the route applies the bundled fallback
+// (quote/joke/horoscope) or maps null to an error (onthisday/stocks). Request
+// validation (400s) stays here using the validators exported from the data
+// package, so the data fetchers can be reused at pull-time hydration.
 
 app.get('/api/onthisday', async (c) => {
-  const requested = (c.req.query('category') ?? 'events').trim().toLowerCase();
-  const category = VALID_ONTHISDAY_CATEGORIES.has(requested) ? requested : 'events';
-  try {
-    const now = new Date();
-    const mm = String(now.getUTCMonth() + 1).padStart(2, '0');
-    const dd = String(now.getUTCDate()).padStart(2, '0');
-    // Wikipedia's /all endpoint returns the union of categories; we then sample
-    // from the requested subset (or across all four for category='all').
-    const url = `https://api.wikimedia.org/feed/v1/wikipedia/en/onthisday/all/${mm}/${dd}`;
-    const res = await fetch(url);
-    if (!res.ok) {
-      return c.json({ error: 'Wikipedia API returned an error' }, 502);
-    }
-    const data = (await res.json()) as WikiOnThisDayResponse;
-    let pool: WikiOnThisDayEntry[] = [];
-    if (category === 'all') {
-      pool = [
-        ...(data.events ?? []),
-        ...(data.births ?? []),
-        ...(data.deaths ?? []),
-        ...(data.holidays ?? []),
-      ];
-    } else if (category === 'events') {
-      pool = data.events ?? [];
-    } else if (category === 'births') {
-      pool = data.births ?? [];
-    } else if (category === 'deaths') {
-      pool = data.deaths ?? [];
-    } else if (category === 'holidays') {
-      pool = data.holidays ?? [];
-    }
-    if (pool.length === 0) {
-      return c.json({ error: 'No entries found for this date and category' }, 404);
-    }
-    const pick = pool[Math.floor(Math.random() * pool.length)];
-    if (!pick?.text) {
-      return c.json({ error: 'Selected entry had no text' }, 502);
-    }
-    return c.json({
-      text: pick.text,
-      year: pick.year != null ? String(pick.year) : '',
-      category,
-    });
-  } catch {
+  const result = await fetchOnThisDay(c.req.query('category') ?? 'events');
+  if (!result) {
     return c.json({ error: 'Failed to fetch On This Day entry' }, 502);
   }
+  return c.json({ text: result.text, year: result.year, category: result.category });
 });
 
 app.get('/api/joke', async (c) => {
   const raw = (c.req.query('categories') ?? '').trim();
-  let categoriesPath = 'Any';
-  if (raw) {
-    const valid = raw
-      .split(',')
-      .map((s) => s.trim())
-      .filter((s) => s.length > 0)
-      .map(normalizeJokeCategory)
-      .filter((s) => VALID_JOKE_CATEGORIES.has(s));
-    if (valid.length > 0) categoriesPath = valid.join(',');
-  }
-  const url =
-    `https://v2.jokeapi.dev/joke/${categoriesPath}` +
-    `?safe-mode&type=single` +
-    `&blacklistFlags=nsfw,religious,political,racist,sexist,explicit`;
-  try {
-    const res = await fetch(url);
-    if (res.ok) {
-      const data = (await res.json()) as { error?: boolean; joke?: string; category?: string };
-      if (!data.error && data.joke) {
-        const text = data.joke.replace(/\s+/g, ' ').trim();
-        return c.json({ text, category: data.category ?? '' });
-      }
-    }
-  } catch {
-    // fall through to bundled fallback
+  const joke = await fetchJoke(raw);
+  if (joke) {
+    return c.json({ text: joke.text, category: joke.category });
   }
   const fb = pickFallbackJoke(raw);
   if (fb) {
@@ -267,37 +190,14 @@ app.get('/api/joke', async (c) => {
   return c.json({ error: 'No joke found matching the criteria' }, 502);
 });
 
-const VALID_ZODIAC_SIGNS = new Set([
-  'aries',
-  'taurus',
-  'gemini',
-  'cancer',
-  'leo',
-  'virgo',
-  'libra',
-  'scorpio',
-  'sagittarius',
-  'capricorn',
-  'aquarius',
-  'pisces',
-]);
-
 app.get('/api/horoscope', async (c) => {
   const sign = (c.req.query('sign') ?? '').trim().toLowerCase();
   if (!sign || !VALID_ZODIAC_SIGNS.has(sign)) {
     return c.json({ error: 'Invalid or missing zodiac sign' }, 400);
   }
-  try {
-    const url = `https://api.api-ninjas.com/v1/horoscope?zodiac=${sign}`;
-    const res = await fetch(url);
-    if (res.ok) {
-      const data = (await res.json()) as { sign?: string; date?: string; horoscope?: string };
-      if (data.horoscope) {
-        return c.json({ sign, text: data.horoscope, date: data.date ?? '' });
-      }
-    }
-  } catch {
-    // fall through to bundled fallback
+  const reading = await fetchHoroscope(sign);
+  if (reading) {
+    return c.json({ sign: reading.sign, text: reading.text, date: reading.date });
   }
   const fb = pickFallbackHoroscope(sign);
   if (fb) {
@@ -306,115 +206,26 @@ app.get('/api/horoscope', async (c) => {
   return c.json({ error: 'Failed to fetch horoscope' }, 502);
 });
 
-/** Map a duration preset to a Yahoo Finance chart range + interval pair */
-const STOCK_RANGE_MAP: Record<string, { range: string; interval: string }> = {
-  '1d': { range: '2d', interval: '1d' },
-  '5d': { range: '5d', interval: '1d' },
-  '1mo': { range: '1mo', interval: '1d' },
-  '3mo': { range: '3mo', interval: '1d' },
-  '6mo': { range: '6mo', interval: '1d' },
-  '1y': { range: '1y', interval: '1wk' },
-  '5y': { range: '5y', interval: '1mo' },
-};
-
 app.get('/api/stocks', async (c) => {
-  const raw = (c.req.query('symbol') ?? '').trim().toUpperCase();
-  // Allow letters/digits/dots/hyphens — covers AAPL, BRK.A, BTC-USD, etc.
-  if (!raw || !/^[A-Z][A-Z0-9.-]{0,9}$/.test(raw)) {
+  const symbol = (c.req.query('symbol') ?? '').trim().toUpperCase();
+  if (!isValidStockSymbol(symbol)) {
     return c.json({ error: 'Invalid or missing symbol' }, 400);
   }
-  const durationParam = (c.req.query('duration') ?? '1d').trim();
-  const ri = STOCK_RANGE_MAP[durationParam] ?? STOCK_RANGE_MAP['1d'];
-  if (!ri) {
-    return c.json({ error: 'Invalid duration' }, 400);
-  }
-  try {
-    const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(raw)}?interval=${ri.interval}&range=${ri.range}`;
-    const res = await fetch(url, {
-      headers: { 'User-Agent': 'Mozilla/5.0 (compatible; InfoBento/1.0)' },
-    });
-    if (!res.ok) {
-      return c.json({ error: 'Stocks API returned an error' }, 502);
-    }
-    const data = (await res.json()) as {
-      chart?: {
-        result?: {
-          meta?: { regularMarketPrice?: number; chartPreviousClose?: number };
-          indicators?: { quote?: { close?: (number | null)[] }[] };
-        }[];
-      };
-    };
-    const result = data.chart?.result?.[0];
-    const meta = result?.meta;
-    const price = meta?.regularMarketPrice;
-    if (price == null) {
-      return c.json({ error: 'No quote data available' }, 404);
-    }
-
-    // Baseline (start-of-range) price:
-    //   1d → previous close from meta (today vs. yesterday).
-    //   longer → first non-null close in the returned series.
-    let baseline: number | undefined;
-    if (durationParam === '1d') {
-      baseline = meta?.chartPreviousClose;
-    } else {
-      const closes = result?.indicators?.quote?.[0]?.close ?? [];
-      baseline = closes.find((v): v is number => typeof v === 'number' && Number.isFinite(v));
-    }
-    if (baseline == null) {
-      return c.json({ error: 'No baseline price for duration' }, 404);
-    }
-    const change = price - baseline;
-    const changePercent = baseline !== 0 ? (change / baseline) * 100 : 0;
-    return c.json({ price, change, changePercent });
-  } catch {
+  const duration = (c.req.query('duration') ?? '1d').trim();
+  const quote = await fetchStocks(symbol, duration);
+  if (!quote) {
     return c.json({ error: 'Failed to fetch stock quote' }, 502);
   }
+  return c.json({ price: quote.price, change: quote.change, changePercent: quote.changePercent });
 });
 
 app.get('/api/quote', async (c) => {
   const tagsParam = c.req.query('tags')?.trim() ?? '';
   const maxLengthParam = c.req.query('maxLength')?.trim() ?? '';
-
-  const url = new URL('https://api.quotable.kurokeita.dev/api/quotes/random');
-  if (tagsParam) {
-    // Quotable API expects title-cased tag names (e.g. "Wisdom", "Famous Quotes").
-    // Normalize each comma-separated tag, title-casing every space-separated word.
-    const tags = tagsParam
-      .split(',')
-      .map((t) => t.trim())
-      .filter((t) => t.length > 0)
-      .map((t) =>
-        t
-          .split(/\s+/)
-          .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
-          .join(' '),
-      )
-      .join(',');
-    if (tags) url.searchParams.set('tags', tags);
-  }
-  if (maxLengthParam && /^\d+$/.test(maxLengthParam)) {
-    url.searchParams.set('maxLength', maxLengthParam);
-  }
-  try {
-    const res = await fetch(url.toString());
-    if (res.ok) {
-      const data: unknown = await res.json();
-      if (
-        data &&
-        typeof data === 'object' &&
-        'quote' in data &&
-        (data as { quote: unknown }).quote != null &&
-        typeof (data as { quote: unknown }).quote === 'object'
-      ) {
-        const quote = (data as { quote: { content?: string; author?: { name?: string } } }).quote;
-        if (quote.content) {
-          return c.json({ q: quote.content, a: quote.author?.name ?? '' });
-        }
-      }
-    }
-  } catch {
-    // fall through to bundled fallback
+  const maxLength = /^\d+$/.test(maxLengthParam) ? Number(maxLengthParam) : undefined;
+  const quote = await fetchQuote({ tags: tagsParam, maxLength });
+  if (quote) {
+    return c.json({ q: quote.text, a: quote.author });
   }
   const fb = pickFallbackQuote(tagsParam);
   if (fb) {

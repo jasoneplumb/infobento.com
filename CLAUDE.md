@@ -22,6 +22,7 @@ npm run build && npm test && npm run lint && npm run format:check
 ```
 infobento.com/
 ├── packages/core/      @infobento/core: types, bento box definitions, layout engine
+├── packages/data/      @infobento/data: pure box-data providers (weather, quote, …) + cache
 ├── packages/renderer/  @infobento/renderer: eInk frame buffer generation
 ├── packages/api/       @infobento/api: Hono server — stateless API + static file serving
 └── packages/web/       @infobento/web: Vite + React configuration interface (private)
@@ -48,18 +49,20 @@ npm start -w @infobento/api      # Hono serves everything on :4000
 
 ```
 core (types, layout)  <──  renderer (eInk framebuffer)  <──  api (stateless endpoints)
-  ^
-  └── web (config UI)
+  ^                                                            ^
+  ├──  data (box-data providers + cache)  ─────────────────────┘
+  └──  web (config UI)  ───────────────  data
 ```
 
 - `core` imports nothing from other packages
+- `data` imports only from `core` (pure `fetch`, no DOM/`window`, browser- and edge-safe)
 - `renderer` imports only from `core`
-- `api` imports from `core` and `renderer`
-- `web` imports from `core` only (calls API via HTTP, not direct import)
+- `api` imports from `core`, `data`, and `renderer`
+- `web` imports from `core` and `data` (calls API via HTTP, not direct import)
 
 ## Critical: .js Extensions Required
 
-All TypeScript imports in `core`, `renderer`, and `api` MUST include `.js` extensions.
+All TypeScript imports in `core`, `data`, `renderer`, and `api` MUST include `.js` extensions.
 The project uses `module: "Node16"` with no bundler — extensionless imports fail at runtime.
 
 ```typescript
