@@ -51,10 +51,33 @@
 // ----- MCU-specific (mark for the Phase 7 ESP32-C3 port) -------------------
 // Pinhole factory-reset button. Production target is the ESP32-C3, where GPIO9
 // is the strapping/boot pin and carries a natural pull-up — that is why #39
-// suggests it. On the ESP32-S3 dev board GPIO9 is a normal GPIO; INPUT_PULLUP
-// works either way. Phase 7 / SCAD #50 confirm this lands on the recessed
-// back-panel pinhole. Pressed reads LOW (button shorts the pin to ground).
-#define PINHOLE_GPIO 9
+// suggests it. Phase 7 / SCAD #50 confirm this lands on the recessed back-panel
+// pinhole. Pressed reads LOW (button shorts the pin to ground).
+//
+// NOTE: GPIO9 is NOT free on the E1001 dev board — it is the panel SPI MOSI line
+// (pin map: SCK 7, MOSI 9, CS 10, DC 11, RES 12, BUSY 13). It is driven low there,
+// defeating INPUT_PULLUP, so the firmware reads a permanent "held" pinhole and
+// factory-resets in a loop. GPIO0 (BOOT) is no good either: it is wired to the
+// USB-serial auto-reset (DTR) circuit, so it reads LOW whenever a serial monitor
+// is attached — which is always during bench bring-up. So for the E1001 we use a
+// free, non-strapping GPIO that idles HIGH on its internal pull-up; short it to
+// ground for 5s to trigger the factory reset. Phase 7 drops this branch for the C3.
+//
+// GPIO2 is exposed on the E1001 8-pin expansion header J2 (pin 4), one pin away
+// from GND (pin 2) — so the factory reset is testable without opening the case:
+// bridge J2 pin 4 to J2 pin 2 for 5s. It is a plain GPIO/ADC pin, not a strapping
+// pin (GPIO0/3/45/46) and not a native-USB pin (GPIO19/20), so grounding it is safe
+// at boot and does not disturb the USB-UART serial bridge.
+// TODO(#57 Phase 7): delete this whole block — the production ESP32-C3 uses
+// GPIO9 natively. Until then this is hardcoded to 1 (E1001 dev board); building
+// for the C3 before Phase 7 means setting it to 0 by hand (the #else picks GPIO9,
+// which is the panel MOSI line on the E1001 and would re-trigger the reset loop).
+#define IB_DEV_E1001 1
+#if IB_DEV_E1001
+#define PINHOLE_GPIO 2  // E1001 expansion header J2 pin 4; ground to J2 pin 2 (GND) for 5s
+#else
+#define PINHOLE_GPIO 9  // ESP32-C3 strapping pin behind the back-panel pinhole
+#endif
 #define PINHOLE_HOLD_MS 5000  // full-press hold that triggers a factory reset
 
 // ----- Captive-portal network ----------------------------------------------

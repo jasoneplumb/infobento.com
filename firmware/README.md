@@ -38,7 +38,7 @@ moves to the native USB port (`/dev/cu.usbmodem*`) and bridge-port prints vanish
 | 3     | [`device-pull/`](device-pull/device-pull.ino)    | Wi-Fi + `GET /api/device/<id>/frame` poll loop with `If-Modified-Since`/304 skip                                            | ✅ bench-verified               |
 | 4     | [`deep-sleep/`](deep-sleep/deep-sleep.ino)       | deep sleep + RTC wake; RTC-persisted `Last-Modified` so a 304 wake skips the refresh                                        | ✅ bench-verified               |
 | 5     | [`resilient/`](resilient/resilient.ino)          | resilience: graceful 404/429/5xx/Wi-Fi-fail handling, brownout recovery, clean draw-abort                                   | 🔄 compile-clean; bench-pending |
-| 6     | [`provisioning/`](provisioning/provisioning.ino) | captive-portal provisioning: AP-mode first boot, Wi-Fi scan/entry → NVS, OS auto-launch probes, pinhole factory reset → #39 | 🔄 compile-clean; bench-pending |
+| 6     | [`provisioning/`](provisioning/provisioning.ino) | captive-portal provisioning: AP-mode first boot, Wi-Fi scan/entry → NVS, OS auto-launch probes, pinhole factory reset → #39 | ✅ bench-verified               |
 | 7     | —                                                | port to production GDEH0576T81 + ESP32-C3 → #57                                                                             | ⬜ (blocked on dev kit)         |
 
 "Bench-verified" = run on real E1001 hardware. Phase 3 evidence lives in the
@@ -61,10 +61,27 @@ A live run captured the full state machine on serial:
 To reproduce the 200-draw: `firmware/dev/push-config.sh <config> <device-id>`
 (point `INFOBENTO_DB_PATH` at the DB the running API opened — `lsof` it if unsure).
 
-Still open: the deep-sleep **floor current** between wakes is unmeasured. Meter
-the battery/supply line (not USB) — the reTerminal dev board reads higher than the
-~10 µA production target because of its always-on peripherals + USB-UART bridge, so
-the real single-digit-µA figure is an ESP32-C3 measurement deferred to Phase 7.
+Bench power snapshot (USB inline meter, 10 mA resolution — DROK VB26VA), board
+level over USB:
+
+- **304 wake** (no redraw): **≈ 80 mA for ~2 s** — the Wi-Fi blip — then sleep.
+  ≈ 0.04 mAh per wake.
+- **200 wake** (panel refresh): the Wi-Fi blip **plus** a **4.5 s draw at ≈ 60 mA
+  sustained, peaking ≈ 150 mA** in the final ~1 s (last waveform phase / booster).
+  ≈ 0.15 mAh per wake.
+- **Deep sleep:** reads `0.00 A`, i.e. **< 10 mA** at the board level.
+
+So the active side is cheap — even at a worst-case "redraw every wake," 1–2 wakes/
+day is well under 1 mAh/day — and the daily budget is dominated entirely by the
+sleep floor.
+
+Still open: that floor is **below this meter's 10 mA resolution**, so the real
+**single-digit-µA** figure remains unmeasured — the gap is decisive (≈50 µA →
+~1 mAh/day vs a hidden ~10 mA → ~240 mAh/day). Capturing it needs a µA-grade
+instrument on the **battery/supply line** (not USB): the reTerminal dev board
+reads higher than the ~10 µA production target because of its always-on
+peripherals + USB-UART bridge, so the definitive number is an ESP32-C3
+measurement deferred to Phase 7.
 
 **Phase 5 bench check (operator).** Flash `resilient/` and force each failure — in
 every case the panel must keep its last good frame (never blank/garble) and the
@@ -80,6 +97,19 @@ retry next wake` → `deep sleep`. Restart the server → a later wake draws nor
 Retry-After, sleep 60 s`.
 - **Normal:** unchanged config still `304 -> skip`; a pushed config still draws once
   then returns to 304 (token committed only after the confirmed draw).
+
+**Phase 6 bench-verified on the E1001.** A live run walked the full out-of-box
+flow on serial: first boot → `no creds -> AP mode, SSID 'InfoBento-C93F'` →
+`captive portal up`; an iPhone auto-launched the setup page; scan + join saved
+creds and rebooted into `provisioned=1`, which then rejoined silently
+(`provisioned + online -> hand off to pull loop`). The pinhole factory reset,
+wrong-password rejection, and unreachable-network AP fallback all behaved as
+specified (see the checklist below). Two bench notes: the wrong-password path is
+only meaningful against a **WPA2** network — an open AP (no auth) associates with
+any password string, so test it with a password-protected 2.4 GHz hotspot (the
+ESP32-S3 has no 5 GHz radio; on iPhone enable Personal Hotspot → Maximize
+Compatibility to force 2.4 GHz). Use a separate device as the portal client — a
+phone serving the hotspot can't simultaneously join the `InfoBento-XXXX` AP.
 
 **Phase 6 bench check (operator).** Provisioning needs AP mode + a phone, so it
 can't be CI-verified — flash `provisioning/` and walk the out-of-box flow. The
@@ -101,15 +131,21 @@ sketch has NO `secrets.h` (it has no creds to begin with). Watch serial at
 - **Returning boot (creds saved):** after the reboot, `provisioned=1` → it
   rejoins the saved network silently (`hand off to pull loop`), no AP. Move the
   device to an unreachable network → it falls back to AP mode for re-setup.
-- **Pinhole reset:** hold the GPIO9 pinhole (ground the pin) for 5 s →
+- **Pinhole reset:** ground the pinhole pin for 5 s →
   `PINHOLE 5s hold -> factory reset (clearing creds)` → reboot → back to AP
-  mode. A momentary tap must NOT reset (the hold timer resets on release).
+  mode. A momentary tap must NOT reset (the hold timer resets on release). On the
+  E1001 the pinhole maps to **GPIO2** (expansion header J2 pin 4, one pin from
+  GND on pin 2 — note the header is numbered in reverse of the silk/spec table);
+  GPIO9 is the production-C3 pin but on the E1001 it is the panel SPI MOSI line.
 - **Page budget:** the setup page is a few KB of inlined HTML/CSS, no JS, no
   external assets — comfortably inside the <30 KB-gzipped target.
 
-`PINHOLE_GPIO 9` and the AP/NVS specifics are marked MCU-specific in the sketch
-for the Phase 7 ESP32-C3 port (GPIO9 is the C3 strapping pin with a natural
-pull-up — the reason #39 picked it).
+`PINHOLE_GPIO` and the AP/NVS specifics are marked MCU-specific in the sketch for
+the Phase 7 ESP32-C3 port. Production uses **GPIO9** (the C3 strapping pin with a
+natural pull-up — the reason #39 picked it); the `IB_DEV_E1001` branch swaps in
+**GPIO2** for bench bring-up because on the E1001 dev board GPIO9 is the panel SPI
+MOSI line (and GPIO0/BOOT is tied to the USB-serial auto-reset), so neither can
+serve as the pinhole there.
 
 ## Framebuffer translation (the key risk Phase 2 retired)
 
@@ -160,8 +196,8 @@ obtains them from the user, so it compiles and runs with nothing pre-baked.
    panel, and the cached `Last-Modified` is committed to RTC **only after a
    confirmed draw** (else a failed refresh would 304 the next wake and strand the
    panel on a frame that never rendered).
-3. **Phase 6 — captive portal (#39).** 🔄 implemented (`provisioning/`,
-   compile-clean, bench-pending). AP mode on first boot, on-device no-JS setup
+3. **Phase 6 — captive portal (#39).** ✅ bench-verified (`provisioning/`).
+   AP mode on first boot, on-device no-JS setup
    page (server-side Wi-Fi scan → creds + optional custom server URL self-host
    hatch), NVS storage, OS auto-launch probes, and a GPIO9 pinhole factory
    reset. Creds persist only after a confirmed join, so a wrong password never
