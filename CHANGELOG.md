@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.31.0] - 2026-06-20
+
+### Added
+
+- **Pull-time data hydration + freshness (RFC 0001 Phases 3–4).** The API re-resolves live weather server-side on each device pull — through an in-process TTL cache with single-flight and an upstream timeout — and advances `Last-Modified` at each cadence window (`effectiveLastModified`, bucketed on the denormalized `refreshes_per_day`). A device now shows **current** data on every scheduled refresh without anyone re-opening the editor, instead of a frozen snapshot of the last edit. `INFOBENTO_DATA_BUCKET_SECONDS` overrides the bucket for bench testing.
+- **Firmware HTTPS for the deep-sleep pull.** A compile-time `IB_API_TLS` toggle (default on) switches the deep-sleep sketch to `WiFiClientSecure` + `https://`, so a flashed device can reach the production server (`www.infobento.com`) and not just a LAN dev API.
+
 ## [0.30.0] - 2026-06-20
 
 ### Added
