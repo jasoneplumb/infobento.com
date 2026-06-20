@@ -62,6 +62,9 @@
 // Transport — HTTPS (production, default) vs plain HTTP (LAN dev server).
 // Production (www.infobento.com) is HTTPS-only; a LAN dev API on
 // http://<mac-ip>:4000 needs IB_API_TLS 0. Override in secrets.h.
+// Note: deep sleep clears RAM, so every wake does a full TLS handshake (~1-3 s
+// of active draw, no session reuse). Negligible at 1-2 wakes/day; if cadence
+// ever rises, persist the TLS session ticket in RTC memory to resume.
 #ifndef IB_API_TLS
 #define IB_API_TLS 1  // 1 = https + WiFiClientSecure; 0 = http + WiFiClient
 #endif

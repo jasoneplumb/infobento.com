@@ -173,10 +173,13 @@ relative to the `.ino`). Not committed; `firmware/**/secrets.h` is gitignored:
 #define IB_API_TLS  0               // deep-sleep only: 0 = http (LAN dev)
 ```
 
-For the **production** server (`deep-sleep` sketch), point it at `www.infobento.com`
-over HTTPS and mint the device id on the host (see `docs/DEPLOY.md`):
+For the **production** server (`deep-sleep` sketch), keep the same `WIFI_SSID` /
+`WIFI_PASS` as above and change the API fields to point at `www.infobento.com`
+over HTTPS (mint the device id on the host — see `docs/DEPLOY.md`):
 
 ```c
+#define WIFI_SSID   "your-ssid"     // same Wi-Fi creds as above — still required
+#define WIFI_PASS   "your-pass"
 #define IB_API_HOST "www.infobento.com"
 #define IB_API_PORT "443"
 #define IB_DEVICE_ID "<id minted on the prod host>"
