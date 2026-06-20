@@ -164,12 +164,30 @@ waveform-polarity inversion. Pin map: SCK 7, MOSI 9, CS 10, DC 11, RES 12, BUSY 
 relative to the `.ino`). Not committed; `firmware/**/secrets.h` is gitignored:
 
 ```c
+// LAN dev server (plain HTTP):
 #define WIFI_SSID   "your-ssid"
 #define WIFI_PASS   "your-pass"
 #define IB_API_HOST "192.168.x.x"   // dev machine running the Hono API
 #define IB_API_PORT "4000"
-#define IB_DEVICE_ID "<id from mint-device.ts>"
+#define IB_DEVICE_ID "<id from `npm run mint -w @infobento/api`>"
+#define IB_API_TLS  0               // deep-sleep only: 0 = http (LAN dev)
 ```
+
+For the **production** server (`deep-sleep` sketch), point it at `www.infobento.com`
+over HTTPS and mint the device id on the host (see `docs/DEPLOY.md`):
+
+```c
+#define IB_API_HOST "www.infobento.com"
+#define IB_API_PORT "443"
+#define IB_DEVICE_ID "<id minted on the prod host>"
+// IB_API_TLS defaults to 1 (https) — omit, or set explicitly:
+#define IB_API_TLS  1
+```
+
+`IB_API_TLS` is honored by the `deep-sleep` sketch only; the earlier `device-pull`
+/ `resilient` bench sketches are HTTP-only (LAN by design). HTTPS uses
+`client.setInsecure()` (no cert check) — fine on a trusted network; CA-pinning is
+a hardening follow-up (#143).
 
 `provisioning` is the **exception** — it has no `secrets.h` and needs none: the
 whole point of captive-portal setup is that the device starts with no creds and

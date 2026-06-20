@@ -35,6 +35,7 @@
 
 #include <WiFi.h>
 #include <HTTPClient.h>
+#include <WiFiClientSecure.h>
 #include <SPI.h>
 #include <esp_sleep.h>
 #include "secrets.h"
@@ -56,6 +57,13 @@
 // acceptable for a mains-powered dev unit. Stored in seconds; converted to µs below.
 #ifndef IB_SLEEP_SECONDS
 #define IB_SLEEP_SECONDS 30  // bench default. Production: 43200 (12h).
+#endif
+
+// Transport — HTTPS (production, default) vs plain HTTP (LAN dev server).
+// Production (www.infobento.com) is HTTPS-only; a LAN dev API on
+// http://<mac-ip>:4000 needs IB_API_TLS 0. Override in secrets.h.
+#ifndef IB_API_TLS
+#define IB_API_TLS 1  // 1 = https + WiFiClientSecure; 0 = http + WiFiClient
 #endif
 
 // ----- persisted across deep sleep (RTC slow memory, retained while RAM is cleared) -----
@@ -223,9 +231,20 @@ bool readExact(WiFiClient* s, uint8_t* buf, int len) {
 
 void pullOnce() {
   if (!ensureWifi()) return;
+#if IB_API_TLS
+  String url = String("https://") + IB_API_HOST + ":" + IB_API_PORT +
+               "/api/device/" + IB_DEVICE_ID + "/frame?orientation=landscape";
+  WiFiClientSecure client;
+  // Skip TLS cert validation — acceptable for a single device on a trusted
+  // network. The device id is the bearer secret in the URL, so an on-path
+  // attacker on the device's Wi-Fi could capture it without verification;
+  // pin the ISRG Root X1 CA via client.setCACert(...) to harden (see #143).
+  client.setInsecure();
+#else
   String url = String("http://") + IB_API_HOST + ":" + IB_API_PORT +
                "/api/device/" + IB_DEVICE_ID + "/frame?orientation=landscape";
   WiFiClient client;
+#endif
   HTTPClient http;
   http.begin(client, url);
   const char* collect[] = { "Last-Modified" };
