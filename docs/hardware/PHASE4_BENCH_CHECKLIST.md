@@ -25,13 +25,15 @@ Those are the items only you can sign off.
 
 ## B. Functional checks (serial-observable)
 
-- [ ] Builds + flashes clean; cold boot prints `boot #1 … (cold boot)`.
+- [ ] Builds + flashes clean; cold boot prints `boot #1, wake cause 0 (cold boot)`
+      (the `wake cause N` number helps diagnose unexpected wakes).
 - [ ] **Cold cycle:** Wi-Fi connect → `GET -> 200` → `drew frame in ~4500 ms` →
       `deep sleep for 30 s` → goes quiet.
 - [ ] **Timer wake:** ~30 s later it wakes on its own and prints
       `boot #2 … (RTC timer)` — confirms real deep sleep + timer wake, not a `delay()`.
 - [ ] **304 skip (the important one):** with nothing changed server-side, the wake
-      logs `GET -> 304 … skip refresh` and returns straight to `deep sleep` —
+      logs `GET -> 304` then `304 not modified -> skip refresh` (two separate lines)
+      and returns straight to `deep sleep` —
       **no `drew frame` line, and the panel does not flash.**
 - [ ] **Boot counter climbs** (`#1`, `#2`, `#3`, …) across wakes → proves the
       `RTC_DATA_ATTR` state (including the cached `Last-Modified`) survived deep
