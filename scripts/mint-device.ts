@@ -1,102 +1,16 @@
 /**
- * Mint a new InfoBento device: create a device row with a unique pair code,
- * optionally seeding a starter config so `/api/device/:id/frame` renders a
- * frame instead of 404ing on the firmware's first fetch.
+ * Local-dev shim for minting a device — runs the CLI from @infobento/api
+ * against source via tsx, so you don't need a build during development:
  *
- * Prints the device id (the bearer secret the firmware authenticates with)
- * and the pair code (printed on the device sticker for web pairing).
+ *   npx tsx scripts/mint-device.ts [--config ./my-config.json] [--db ./dev.db]
  *
- * Run:
- *   npx tsx scripts/mint-device.ts
- *   npx tsx scripts/mint-device.ts --config ./my-config.json
- *   npx tsx scripts/mint-device.ts --db ./dev.db --config ./my-config.json
+ * The real implementation lives in `packages/api/src/mint-cli.ts` so it also
+ * compiles into the deployed build. On the production host (no scripts/, no
+ * tsx) mint with:
+ *
+ *   INFOBENTO_DB_PATH=/var/lib/infobento/data.db npm run mint -w @infobento/api
  */
 
-import { readFileSync } from 'node:fs';
-import { getDb } from '../packages/api/src/db.js';
-import { mintDevice } from '../packages/api/src/mint.js';
-import { validateBentoConfig } from '../packages/core/src/validation.js';
+import { runCli } from '../packages/api/src/mint-cli.js';
 
-interface CliArgs {
-  configPath?: string;
-  dbPath?: string;
-  help: boolean;
-}
-
-const HELP = `Mint a new InfoBento device.
-
-Usage: npx tsx scripts/mint-device.ts [options]
-
-Options:
-  --config <file>  Seed a starter config (JSON) so the device renders a frame
-                   instead of 404ing on first fetch. Validated before saving.
-  --db <file>      SQLite path to write to (default: $INFOBENTO_DB_PATH or
-                   /var/lib/infobento/data.db).
-  -h, --help       Show this help.
-`;
-
-function parseArgs(argv: readonly string[]): CliArgs {
-  const args: CliArgs = { help: false };
-  for (let i = 0; i < argv.length; i++) {
-    const arg = argv[i];
-    switch (arg) {
-      case '--config':
-      case '--db': {
-        const value = argv[++i];
-        if (value === undefined) throw new Error(`Missing value for ${arg}`);
-        if (arg === '--config') args.configPath = value;
-        else args.dbPath = value;
-        break;
-      }
-      case '-h':
-      case '--help':
-        args.help = true;
-        break;
-      default:
-        throw new Error(`Unknown argument: ${arg}`);
-    }
-  }
-  return args;
-}
-
-function loadConfigJson(path: string): string {
-  const parsed: unknown = JSON.parse(readFileSync(path, 'utf8'));
-  const result = validateBentoConfig(parsed);
-  if (!result.valid) {
-    const detail = result.errors.map((e) => `  - ${e.path}: ${e.message}`).join('\n');
-    throw new Error(`Invalid config in ${path}:\n${detail}`);
-  }
-  // Store the raw parsed JSON: validateBentoConfig only reports pass/fail and
-  // does not expose Zod-coerced data, so there are no defaults/transforms to
-  // apply here. Re-serialize to normalize whitespace.
-  return JSON.stringify(parsed);
-}
-
-function main(): void {
-  const args = parseArgs(process.argv.slice(2));
-  if (args.help) {
-    process.stdout.write(HELP);
-    return;
-  }
-
-  // getDb() reads INFOBENTO_DB_PATH lazily, so set it before the first call.
-  if (args.dbPath) process.env['INFOBENTO_DB_PATH'] = args.dbPath;
-
-  const configJson = args.configPath ? loadConfigJson(args.configPath) : undefined;
-  const device = mintDevice(getDb(), { configJson });
-
-  process.stdout.write(
-    [
-      'Minted device:',
-      `  id (bearer secret): ${device.id}`,
-      `  pair code:          ${device.pair_code}`,
-      `  config seeded:      ${configJson ? 'yes' : 'no'}`,
-      '',
-      'Firmware fetches its frame at:',
-      `  GET /api/device/${device.id}/frame`,
-      '',
-    ].join('\n'),
-  );
-}
-
-main();
+runCli(process.argv.slice(2));
