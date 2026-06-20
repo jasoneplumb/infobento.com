@@ -1,5 +1,5 @@
 import { describe, it, expect, afterEach, vi } from 'vitest';
-import { fetchStocks, isValidStockSymbol } from './stocks.js';
+import { fetchStocks, isValidStockSymbol, STOCK_RANGE_MAP } from './stocks.js';
 
 function mockFetch(ok: boolean, body: unknown): ReturnType<typeof vi.fn> {
   const fn = vi.fn(async () => ({ ok, json: async () => body }) as unknown as Response);
@@ -9,6 +9,12 @@ function mockFetch(ok: boolean, body: unknown): ReturnType<typeof vi.fn> {
 
 afterEach(() => {
   vi.unstubAllGlobals();
+});
+
+describe('STOCK_RANGE_MAP', () => {
+  it('is frozen so importers cannot mutate the shared map', () => {
+    expect(Object.isFrozen(STOCK_RANGE_MAP)).toBe(true);
+  });
 });
 
 describe('isValidStockSymbol', () => {

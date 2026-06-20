@@ -103,8 +103,9 @@ export async function fetchForecast(
   if (!place) return null;
 
   try {
-    // Source enough days to cover the current hour offset + requested span.
-    const forecastDays = Math.ceil((hours + 24) / 24);
+    // Source enough days to cover the current hour offset + requested span,
+    // capped at Open-Meteo's 16-day max (matches fetchForecast3D).
+    const forecastDays = Math.min(16, Math.ceil((hours + 24) / 24));
     const url =
       `https://api.open-meteo.com/v1/forecast` +
       `?latitude=${String(place.latitude)}` +
