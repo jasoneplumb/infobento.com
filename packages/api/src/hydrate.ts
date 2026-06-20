@@ -61,7 +61,13 @@ async function resolveWeather(city: string, deps: HydrateDeps): Promise<WeatherD
       },
       { ttlMs: WEATHER_TTL_MS },
     )
-    .catch(() => undefined);
+    .catch((err: unknown) => {
+      // Degrade to the renderer placeholder, but leave a trace — a provider
+      // outage and a bug in the fetcher both land here, and silent undefined
+      // would make them indistinguishable in production.
+      console.warn(`hydrate: weather fetch failed for "${city}":`, err);
+      return undefined;
+    });
 }
 
 let sharedCache: Cache | undefined;

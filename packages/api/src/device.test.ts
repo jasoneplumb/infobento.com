@@ -248,4 +248,13 @@ describe('effectiveLastModified', () => {
       1000 * 60_000,
     );
   });
+
+  it('ignores a sub-1s override (no NaN bucket) and falls back to the cadence', () => {
+    process.env['INFOBENTO_DATA_BUCKET_SECONDS'] = '0.0001';
+    const bucket = 12 * HOUR_MS; // refreshesPerDay=2 default
+    const now = 4 * bucket + 5;
+    const result = effectiveLastModified({ last_modified: 0, refreshes_per_day: 2 }, now);
+    expect(Number.isNaN(result)).toBe(false);
+    expect(result).toBe(4 * bucket);
+  });
 });

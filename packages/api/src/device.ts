@@ -59,7 +59,9 @@ function dataBucketMs(refreshesPerDay: number): number {
   const override = process.env['INFOBENTO_DATA_BUCKET_SECONDS'];
   if (override !== undefined) {
     const secs = Number(override);
-    if (Number.isFinite(secs) && secs > 0) return Math.floor(secs * 1000);
+    // Require ≥1s so a fractional/typo value can't floor to a 0ms bucket, which
+    // would make the boundary `Math.floor(now / 0) * 0` → NaN.
+    if (Number.isFinite(secs) && secs >= 1) return Math.floor(secs * 1000);
   }
   return Math.floor(DAY_MS / (refreshesPerDay === 1 ? 1 : 2));
 }
