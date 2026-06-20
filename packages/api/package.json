@@ -18,7 +18,8 @@
     "build": "tsc -b",
     "typecheck": "tsc --noEmit",
     "dev": "tsx watch src/server.ts",
-    "start": "node dist/server.js"
+    "start": "node dist/server.js",
+    "mint": "node dist/mint-cli.js"
   },
   "dependencies": {
     "@hono/node-server": "^1.14.0",

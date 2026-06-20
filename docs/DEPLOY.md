@@ -59,6 +59,25 @@ https://www.infobento.com/api/auth/oauth/google/callback
 A mismatch (wrong host, scheme, or trailing slash) yields `Error 400:
 redirect_uri_mismatch`.
 
+## Minting a device
+
+Devices don't self-register — a row must exist (with a pair code) before the
+firmware can pull or a user can claim it under **Devices**. Mint on the host so
+the row lands in the DB the live server reads:
+
+```bash
+# On the production host, as the DB owner (www-data writes /var/lib/infobento/data.db):
+cd /var/www/infobento
+sudo -u www-data env INFOBENTO_DB_PATH=/var/lib/infobento/data.db \
+  npm run mint -w @infobento/api -- --config ./starter.json   # --config optional
+# equivalently: node packages/api/dist/mint-cli.js
+```
+
+Prints the **device id** (the firmware's bearer secret) and the **pair code**.
+Flash the firmware with that id, then claim it at
+`https://www.infobento.com/pair/<pair-code>` while signed in. (Local dev:
+`npx tsx scripts/mint-device.ts --db ./dev.db`.)
+
 ## Verifying a deploy
 
 ```bash
