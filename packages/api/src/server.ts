@@ -56,6 +56,7 @@ import {
   getDeviceFrameForPull,
   parseOrientation,
 } from './device.js';
+import { defaultHydrateDeps } from './hydrate.js';
 import { consumeToken } from './rate-limit.js';
 import { createPairHandler } from './pair.js';
 import {
@@ -474,17 +475,18 @@ app.get('/api/device/:id/config', (c) => {
   return new Response(result.configJson, { status: 200, headers });
 });
 
-app.get('/api/device/:id/frame', (c) => {
+app.get('/api/device/:id/frame', async (c) => {
   const id = c.req.param('id');
   if (!consumeToken(id)) {
     return c.json({ error: 'rate_limited' }, 429, { 'Retry-After': '60' });
   }
   const orientation = parseOrientation(c.req.query('orientation'));
-  const result = getDeviceFrameForPull(
+  const result = await getDeviceFrameForPull(
     getDb(),
     id,
     orientation,
     c.req.header('if-modified-since') ?? null,
+    defaultHydrateDeps(),
   );
   if (result.status === 404) return c.json({ error: 'not_found' }, 404);
   if (result.status === 500) return c.json({ error: result.error }, 500);
