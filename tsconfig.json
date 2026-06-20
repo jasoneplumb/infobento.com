@@ -3,6 +3,7 @@
   "references": [
     { "path": "packages/core" },
     { "path": "packages/renderer" },
+    { "path": "packages/data" },
     { "path": "packages/api" }
   ]
 }

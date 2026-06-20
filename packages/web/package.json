@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@infobento/core": "*",
+    "@infobento/data": "*",
     "@infobento/renderer": "*"
   },
   "devDependencies": {
