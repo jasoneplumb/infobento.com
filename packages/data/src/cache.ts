@@ -24,6 +24,11 @@ export interface Cache {
    * Concurrent callers for the same key share one in-flight fetch
    * (single-flight); a herd thus makes one upstream call per key, not per
    * caller.
+   *
+   * Caller contract: a given `key` must always be used with the same value
+   * type `T`. Entries are stored type-erased and cast back to `T` on read, so
+   * mixing types under one key is unchecked by the compiler — namespace keys by
+   * provider (e.g. `weather:…`, `geocode:…`) to keep them disjoint.
    */
   get<T>(key: string, fetcher: () => Promise<T>, opts: CacheGetOptions): Promise<T>;
 }

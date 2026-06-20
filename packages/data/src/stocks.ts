@@ -13,8 +13,14 @@ export interface StocksResult {
   readonly changePercent: number;
 }
 
-/** Map a duration preset to a Yahoo Finance chart range + interval pair. */
-export const STOCK_RANGE_MAP: Record<string, { range: string; interval: string }> = {
+/** Map a duration preset to a Yahoo Finance chart range + interval pair.
+ *  Frozen and typed `readonly` so an importer can't mutate the shared map and
+ *  corrupt every subsequent call in the process. The `Record<string, …>` index
+ *  signature is kept (not `as const`) so callers can index it with a runtime
+ *  duration string. */
+export const STOCK_RANGE_MAP: Readonly<
+  Record<string, { readonly range: string; readonly interval: string }>
+> = Object.freeze({
   '1d': { range: '2d', interval: '1d' },
   '5d': { range: '5d', interval: '1d' },
   '1mo': { range: '1mo', interval: '1d' },
@@ -22,7 +28,7 @@ export const STOCK_RANGE_MAP: Record<string, { range: string; interval: string }
   '6mo': { range: '6mo', interval: '1d' },
   '1y': { range: '1y', interval: '1wk' },
   '5y': { range: '5y', interval: '1mo' },
-};
+});
 
 // Allow letters/digits/dots/hyphens — covers AAPL, BRK.A, BTC-USD, etc.
 const STOCK_SYMBOL_RE = /^[A-Z][A-Z0-9.-]{0,9}$/;

@@ -102,6 +102,22 @@ describe('fetchForecast', () => {
     const entries = await fetchForecast('Portland', 2, 'C');
     expect(entries?.map((e) => e.time)).toEqual(['18:00', '19:00']);
   });
+
+  it("caps forecast_days at Open-Meteo's 16-day max for large spans", async () => {
+    mockByUrl({
+      hourly: {
+        time: ['9999-01-01T00:00', '9999-01-01T01:00'],
+        temperature_2m: [20, 21],
+        weather_code: [0, 0],
+      },
+    });
+    await fetchForecast('Portland', 400, 'C');
+    const forecastUrl = vi
+      .mocked(fetch)
+      .mock.calls.map((c) => String(c[0]))
+      .find((u) => u.includes('api.open-meteo.com'));
+    expect(forecastUrl).toContain('forecast_days=16');
+  });
 });
 
 describe('fetchForecast3D', () => {
