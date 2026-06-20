@@ -1,5 +1,31 @@
 # Changelog
 
+## [0.30.0] - 2026-06-20
+
+### Added
+
+- **`@infobento/data` shared provider package (RFC 0001 Phase 1).** Consolidated the 10 box-data providers (weather/forecast/sun/AQI + quote/joke/horoscope/on-this-day/stocks) into a new pure, browser-/edge-safe package with a `Cache` interface (TTL + stale-while-revalidate + per-key single-flight) and a global Nominatim 1 req/sec queue. `server.ts`'s proxy routes are now thin wrappers, so the web editor and (future) pull-time hydration share one implementation.
+- **Operator device-mint CLI.** `npm run mint -w @infobento/api` (compiled into the deployed build) registers a device row + pair code on the production host, so a provisioned device can be claimed under **Devices** — closing the gap where minting was only possible via an undeployed script.
+- **Web-side "forget Wi-Fi."** `POST /api/device/:id/forget` lets an owner remotely queue a credential reset that the device picks up on its next pull (`X-Device-Forget` header) — the web equivalent of the physical pinhole reset.
+- **Per-device QR sticker generator.** `scripts/generate-stickers.ts` produces SVG/PDF pairing artwork from a CSV of device IDs and pair codes.
+- **Firmware deep-sleep pull loop (Phases 4–6).** RTC-timer wake with `Last-Modified`/`304`-skip to protect the solar/battery budget, resilience handling for provider/network failures, and a captive-portal provisioning sketch for first-boot Wi-Fi setup.
+
+### Fixed
+
+- **`@infobento/data` provider hardening.** An unrecognized stocks `duration` now returns `null` → `400` instead of silently degrading to `1d`; `STOCK_RANGE_MAP` is frozen; `fetchForecast` caps the span at Open-Meteo's 16-day max; and the hourly forecast anchors to the location's timezone so a UTC server selects the correct hour.
+- **OAuth start misconfiguration is now visible.** A missing client id logs a warning and redirects with `?auth_error=oauth_unconfigured` instead of failing silently.
+- **`better-sqlite3` native binary rebuilt after `npm ci`.** The deploy now runs `npm rebuild better-sqlite3`, so opening the DB no longer 500s with a missing-bindings error.
+- **E1001 pinhole reset pin corrected** to GPIO2 (J2 header pin 4); Phase 6 marked bench-verified.
+
+### Changed
+
+- **Deploy contract hardened.** The systemd unit is version-controlled (`deploy/infobento.service`) and refreshed on deploy; local dev SQLite files (`dev.db*`) are gitignored.
+
+### Documentation
+
+- **RFC 0001 — server-side fresh-on-pull data resolution.** The multi-phase design for moving live box-data fetching from edit-time to device-pull time (Phase 1 ships in this release).
+- **Firmware bench bring-up.** Phase 1–3 sketches + README, a Phase 4 operator bench-verification checklist, and Phase 4 marked bench-verified.
+
 ## [0.29.0] - 2026-06-15
 
 ### Added
