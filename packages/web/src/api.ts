@@ -9,6 +9,16 @@
  */
 
 import type { StockDuration } from '@infobento/core';
+// Proxy-fetcher result shapes are single-sourced in @infobento/data (the API's
+// proxy routes return exactly these). Imported for the local annotations below
+// and re-exported, so the two packages never drift apart.
+import type {
+  QuoteResult,
+  JokeResult,
+  HoroscopeResult,
+  OnThisDayResult,
+  StocksResult,
+} from '@infobento/data';
 
 // Location-based fetchers — re-exported from the shared data package. Geocoding
 // (Nominatim) + weather/AQI (Open-Meteo) are keyless and browser-safe.
@@ -20,29 +30,14 @@ export {
   fetchAirQuality,
 } from '@infobento/data';
 
-// -- Quote (via Hono API proxy) ---------------------------------------------
+export type { QuoteResult, JokeResult, HoroscopeResult, OnThisDayResult, StocksResult };
 
-export interface QuoteResult {
-  text: string;
-  author: string;
-}
+// -- Quote (via Hono API proxy) ---------------------------------------------
 
 /** Max quote length that fits in the box without truncation.
  *  ~3 lines × ~37 chars/line at any scale factor (both scale
  *  proportionally, so the character budget is roughly constant). */
 const MAX_QUOTE_LENGTH = 120;
-
-export interface HoroscopeResult {
-  sign: string;
-  text: string;
-  date: string;
-}
-
-export interface StocksResult {
-  price: number;
-  change: number;
-  changePercent: number;
-}
 
 /**
  * Fetch a stock quote via the /api/stocks proxy. Symbol is uppercased
@@ -75,12 +70,6 @@ export async function fetchStocks(
   }
 }
 
-export interface OnThisDayResult {
-  text: string;
-  year: string;
-  category: string;
-}
-
 /**
  * Fetch a random "On This Day" entry for today's UTC date via the
  * /api/onthisday proxy. `category` is one of events/births/deaths/holidays/all.
@@ -99,11 +88,6 @@ export async function fetchOnThisDay(category?: string): Promise<OnThisDayResult
   } catch {
     return null;
   }
-}
-
-export interface JokeResult {
-  text: string;
-  category: string;
 }
 
 /**

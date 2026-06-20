@@ -56,6 +56,12 @@ export class InMemoryCache implements Cache {
     if (entry && opts.staleMs !== undefined && ageMs < opts.staleMs) {
       // Serve stale now; revalidate in the background. Swallow refresh errors
       // so a transient upstream failure keeps the last-good value.
+      //
+      // Note: under *sustained* upstream failure each sequential read in the
+      // stale window re-kicks a background refresh (single-flight only dedups
+      // concurrent ones). Benign at this project's 1–2 pulls/day cadence; a
+      // durable cache phase with hour-scale `staleMs` should gate on last
+      // *attempt* time, not last successful store.
       void this.refresh(key, fetcher).catch(() => undefined);
       return entry.value;
     }

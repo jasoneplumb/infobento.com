@@ -66,6 +66,10 @@ export async function fetchOnThisDay(categoryInput = 'events'): Promise<OnThisDa
     }
     if (pool.length === 0) return null;
 
+    // Random pick is per-call today. Once wired behind the TTL cache (RFC §3),
+    // the first selection is frozen for the window, so all devices show the same
+    // "fact of the day" until expiry — a deliberate UX choice for the hydration
+    // phase, called out here so it isn't a surprise.
     const pick = pool[Math.floor(Math.random() * pool.length)];
     if (!pick?.text) return null;
     return {

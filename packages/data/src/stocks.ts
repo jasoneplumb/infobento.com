@@ -49,7 +49,10 @@ export async function fetchStocks(
   if (!isValidStockSymbol(symbol)) return null;
 
   const duration = durationInput.trim();
-  const ri = STOCK_RANGE_MAP[duration] ?? STOCK_RANGE_MAP['1d'];
+  // An unrecognized duration returns null (the route maps that to a 502) rather
+  // than silently degrading to 1d data — the stricter contract that pull-time
+  // hydration callers can rely on.
+  const ri = STOCK_RANGE_MAP[duration];
   if (!ri) return null;
 
   try {

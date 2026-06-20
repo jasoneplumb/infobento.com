@@ -61,6 +61,13 @@ describe('fetchStocks', () => {
     expect(fetchSpy).not.toHaveBeenCalled();
   });
 
+  it('returns null for an unrecognized duration without fetching', async () => {
+    const fetchSpy = vi.fn();
+    vi.stubGlobal('fetch', fetchSpy);
+    expect(await fetchStocks('AAPL', 'bogus')).toBeNull();
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
+
   it('returns null when no price is available', async () => {
     mockFetch(true, { chart: { result: [{ meta: {} }] } });
     expect(await fetchStocks('AAPL', '1d')).toBeNull();
