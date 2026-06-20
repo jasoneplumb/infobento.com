@@ -70,8 +70,12 @@ the row lands in the DB the live server reads:
 cd /var/www/infobento
 sudo -u www-data env INFOBENTO_DB_PATH=/var/lib/infobento/data.db \
   npm run mint -w @infobento/api -- --config ./starter.json   # --config optional
-# equivalently: node packages/api/dist/mint-cli.js
 ```
+
+`npm run mint` just runs `node packages/api/dist/mint-cli.js` — invoke that
+directly the same way (as `www-data`, with `INFOBENTO_DB_PATH` set) if you
+prefer. Running as root instead would leave root-owned `-wal`/`-shm` files that
+break the service's next write.
 
 Prints the **device id** (the firmware's bearer secret) and the **pair code**.
 Flash the firmware with that id, then claim it at
