@@ -166,6 +166,10 @@ describe('getDeviceFrameForPull', () => {
       lastModifiedMs,
     );
     expect(r.status).toBe(304);
+    if (r.status !== 304) throw new Error('unreachable');
+    // The firmware caches this as its next If-Modified-Since, so it must equal
+    // the effective timestamp (here == the config edit time within the window).
+    expect(r.lastModifiedMs).toBe(lastModifiedMs);
   });
 
   it('redraws (200) at the next data-bucket boundary even when the config is unchanged', async () => {
@@ -181,6 +185,10 @@ describe('getDeviceFrameForPull', () => {
       nextBoundary + 1000, // a wake just past the boundary
     );
     expect(r.status).toBe(200);
+    if (r.status !== 200) throw new Error('unreachable');
+    // Last-Modified advances to the bucket boundary → the device caches the new
+    // token and gets 304 again until the *next* boundary.
+    expect(r.lastModifiedMs).toBe(nextBoundary);
   });
 
   it('hydrates a weather box via the injected fetcher', async () => {
