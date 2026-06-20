@@ -32,6 +32,7 @@ import {
   fetchStocks,
   fetchOnThisDay,
   isValidStockSymbol,
+  STOCK_RANGE_MAP,
   VALID_ZODIAC_SIGNS,
 } from '@infobento/data';
 import { createAccount, consumeForget, getDb, type OAuthProvider } from './db.js';
@@ -212,6 +213,11 @@ app.get('/api/stocks', async (c) => {
     return c.json({ error: 'Invalid or missing symbol' }, 400);
   }
   const duration = (c.req.query('duration') ?? '1d').trim();
+  // A bad duration is a caller error → 400, distinct from upstream failure
+  // (502 below). fetchStocks also guards null for the same input defensively.
+  if (!STOCK_RANGE_MAP[duration]) {
+    return c.json({ error: 'Invalid duration' }, 400);
+  }
   const quote = await fetchStocks(symbol, duration);
   if (!quote) {
     return c.json({ error: 'Failed to fetch stock quote' }, 502);

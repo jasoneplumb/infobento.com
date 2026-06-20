@@ -97,6 +97,14 @@ describe('GET /api/stocks', () => {
     expect(fetchSpy).not.toHaveBeenCalled();
   });
 
+  it('rejects an unrecognized duration with 400, not 502', async () => {
+    const fetchSpy = vi.fn();
+    vi.stubGlobal('fetch', fetchSpy);
+    const res = await app.request('/api/stocks?symbol=AAPL&duration=bogus');
+    expect(res.status).toBe(400);
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
+
   it('returns a quote on success', async () => {
     mockFetch(() => ({
       ok: true,
