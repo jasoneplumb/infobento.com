@@ -1,12 +1,22 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { createDb, createDevice, setConfig, type DB } from './db.js';
 import {
+  effectiveLastModified,
   formatHttpDate,
   getDeviceConfigForPull,
   getDeviceFrameForPull,
   isNotModified,
   parseOrientation,
 } from './device.js';
+import { InMemoryCache } from '@infobento/data';
+import type { HydrateDeps } from './hydrate.js';
+
+/** Hydration deps with a never-succeeds weather fetcher (configs here are text). */
+function makeDeps(): HydrateDeps {
+  return { cache: new InMemoryCache(), fetchWeather: async () => null };
+}
+
+const HOUR_MS = 3_600_000;
 
 const SAMPLE_CONFIG = {
   boxes: [{ id: '1', type: 'text', label: 'Hello', config: { type: 'text', text: 'World' } }],
@@ -107,20 +117,25 @@ describe('getDeviceFrameForPull', () => {
   let db: DB;
   beforeEach(() => {
     db = createDb(':memory:');
+    delete process.env['INFOBENTO_DATA_BUCKET_SECONDS'];
   });
 
-  it('returns 404 for unknown device id', () => {
-    expect(getDeviceFrameForPull(db, 'nope', 'landscape', null)).toEqual({ status: 404 });
+  it('returns 404 for unknown device id', async () => {
+    expect(await getDeviceFrameForPull(db, 'nope', 'landscape', null, makeDeps())).toEqual({
+      status: 404,
+    });
   });
 
-  it('returns 404 for a device that has no config', () => {
+  it('returns 404 for a device that has no config', async () => {
     const d = createDevice(db, { pairCode: 'NOCONFIG2' });
-    expect(getDeviceFrameForPull(db, d.id, 'landscape', null)).toEqual({ status: 404 });
+    expect(await getDeviceFrameForPull(db, d.id, 'landscape', null, makeDeps())).toEqual({
+      status: 404,
+    });
   });
 
-  it('renders the landscape frame and returns 200 with bytes', () => {
+  it('renders the landscape frame and returns 200 with bytes', async () => {
     const { id } = seedDeviceWithConfig(db);
-    const r = getDeviceFrameForPull(db, id, 'landscape', null);
+    const r = await getDeviceFrameForPull(db, id, 'landscape', null, makeDeps());
     expect(r.status).toBe(200);
     if (r.status !== 200) throw new Error('unreachable');
     expect(r.width).toBeGreaterThan(0);
@@ -131,24 +146,115 @@ describe('getDeviceFrameForPull', () => {
     expect(r.width).toBeGreaterThanOrEqual(r.height);
   });
 
-  it('returns a portrait frame with swapped width/height', () => {
+  it('returns a portrait frame with swapped width/height', async () => {
     const { id } = seedDeviceWithConfig(db);
-    const r = getDeviceFrameForPull(db, id, 'portrait', null);
+    const r = await getDeviceFrameForPull(db, id, 'portrait', null, makeDeps());
     expect(r.status).toBe(200);
     if (r.status !== 200) throw new Error('unreachable');
     expect(r.height).toBeGreaterThanOrEqual(r.width);
   });
 
-  it('returns 304 when If-Modified-Since matches', () => {
+  it('returns 304 within the window when If-Modified-Since matches', async () => {
     const { id, lastModifiedMs } = seedDeviceWithConfig(db);
-    const r = getDeviceFrameForPull(db, id, 'landscape', formatHttpDate(lastModifiedMs));
+    // Pin now to the edit time so effectiveLastModified == lastModifiedMs.
+    const r = await getDeviceFrameForPull(
+      db,
+      id,
+      'landscape',
+      formatHttpDate(lastModifiedMs),
+      makeDeps(),
+      lastModifiedMs,
+    );
     expect(r.status).toBe(304);
+    if (r.status !== 304) throw new Error('unreachable');
+    // The firmware caches this as its next If-Modified-Since, so it must equal
+    // the effective timestamp (here == the config edit time within the window).
+    expect(r.lastModifiedMs).toBe(lastModifiedMs);
   });
 
-  it('returns 500 when stored config is corrupt JSON', () => {
+  it('redraws (200) at the next data-bucket boundary even when the config is unchanged', async () => {
+    const { id, lastModifiedMs } = seedDeviceWithConfig(db); // refreshesPerDay=2 → 12h bucket
+    const nextBoundary =
+      Math.floor(lastModifiedMs / (12 * HOUR_MS)) * (12 * HOUR_MS) + 12 * HOUR_MS;
+    const r = await getDeviceFrameForPull(
+      db,
+      id,
+      'landscape',
+      formatHttpDate(lastModifiedMs), // device's cached token (from the last draw)
+      makeDeps(),
+      nextBoundary + 1000, // a wake just past the boundary
+    );
+    expect(r.status).toBe(200);
+    if (r.status !== 200) throw new Error('unreachable');
+    // Last-Modified advances to the bucket boundary → the device caches the new
+    // token and gets 304 again until the *next* boundary.
+    expect(r.lastModifiedMs).toBe(nextBoundary);
+  });
+
+  it('hydrates a weather box via the injected fetcher', async () => {
+    const cfg = {
+      boxes: [{ id: 'w', type: 'weather', config: { type: 'weather', city: 'Portland' } }],
+      refreshesPerDay: 2,
+    };
+    const d = createDevice(db, { pairCode: 'WX' });
+    setConfig(db, d.id, JSON.stringify(cfg));
+    let requested = '';
+    const deps: HydrateDeps = {
+      cache: new InMemoryCache(),
+      fetchWeather: async (loc) => {
+        requested = loc;
+        return { temperature: 70, condition: 'Clear', high: 75, low: 60 };
+      },
+    };
+    const r = await getDeviceFrameForPull(db, d.id, 'landscape', null, deps);
+    expect(r.status).toBe(200);
+    expect(requested).toBe('Portland');
+  });
+
+  it('returns 500 when stored config is corrupt JSON', async () => {
     const d = createDevice(db, { pairCode: 'BADJSON' });
     setConfig(db, d.id, '{ this is not json');
-    const r = getDeviceFrameForPull(db, d.id, 'landscape', null);
+    const r = await getDeviceFrameForPull(db, d.id, 'landscape', null, makeDeps());
     expect(r.status).toBe(500);
+  });
+});
+
+describe('effectiveLastModified', () => {
+  beforeEach(() => {
+    delete process.env['INFOBENTO_DATA_BUCKET_SECONDS'];
+  });
+
+  it('uses the config edit time when it is newer than the bucket boundary', () => {
+    const now = 1_700_000_000_000;
+    expect(effectiveLastModified({ last_modified: now, refreshes_per_day: 2 }, now)).toBe(now);
+  });
+
+  it('advances to the 12h boundary for an old config (refreshesPerDay=2)', () => {
+    const bucket = 12 * HOUR_MS;
+    const now = 5 * bucket + 123_456;
+    expect(effectiveLastModified({ last_modified: 0, refreshes_per_day: 2 }, now)).toBe(5 * bucket);
+  });
+
+  it('uses a 24h bucket for refreshesPerDay=1', () => {
+    const bucket = 24 * HOUR_MS;
+    const now = 3 * bucket + 999;
+    expect(effectiveLastModified({ last_modified: 0, refreshes_per_day: 1 }, now)).toBe(3 * bucket);
+  });
+
+  it('honors the INFOBENTO_DATA_BUCKET_SECONDS bench override', () => {
+    process.env['INFOBENTO_DATA_BUCKET_SECONDS'] = '60';
+    const now = 1000 * 60_000 + 30_000; // 30s into a 60s bucket
+    expect(effectiveLastModified({ last_modified: 0, refreshes_per_day: 2 }, now)).toBe(
+      1000 * 60_000,
+    );
+  });
+
+  it('ignores a sub-1s override (no NaN bucket) and falls back to the cadence', () => {
+    process.env['INFOBENTO_DATA_BUCKET_SECONDS'] = '0.0001';
+    const bucket = 12 * HOUR_MS; // refreshesPerDay=2 default
+    const now = 4 * bucket + 5;
+    const result = effectiveLastModified({ last_modified: 0, refreshes_per_day: 2 }, now);
+    expect(Number.isNaN(result)).toBe(false);
+    expect(result).toBe(4 * bucket);
   });
 });

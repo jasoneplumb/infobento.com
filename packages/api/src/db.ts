@@ -33,6 +33,13 @@ export interface Device {
    * picks up on its next pull (X-Device-Forget header) and clears on delivery.
    */
   readonly forget_pending: number;
+  /**
+   * Device refresh cadence (1 or 2 per day), denormalized from the config's
+   * `refreshesPerDay` on every `setConfig`. Kept on the row so the pull-time
+   * `effectiveLastModified` bucket (RFC 0001 §4) is computable before parsing
+   * `config_json`, preserving the cheap pre-parse 304 path.
+   */
+  readonly refreshes_per_day: number;
 }
 
 export interface PasskeyCredential {
@@ -72,7 +79,8 @@ const SCHEMA = `
     config_json      TEXT,
     paired_at        INTEGER,
     last_modified    INTEGER NOT NULL,
-    forget_pending   INTEGER NOT NULL DEFAULT 0
+    forget_pending   INTEGER NOT NULL DEFAULT 0,
+    refreshes_per_day INTEGER NOT NULL DEFAULT 2
   );
 
   CREATE TABLE IF NOT EXISTS passkey_credentials (
@@ -120,6 +128,7 @@ export function createDb(path: string): DB {
  */
 function runMigrations(db: DB): void {
   ensureColumn(db, 'devices', 'forget_pending', 'INTEGER NOT NULL DEFAULT 0');
+  ensureColumn(db, 'devices', 'refreshes_per_day', 'INTEGER NOT NULL DEFAULT 2');
 }
 
 /**
@@ -211,6 +220,7 @@ export function createDevice(db: DB, input: { pairCode: string; id?: string }): 
     paired_at: null,
     last_modified: now,
     forget_pending: 0,
+    refreshes_per_day: 2,
   };
 }
 
@@ -247,13 +257,27 @@ export function claimDevice(db: DB, pairCode: string, accountId: string): Device
   return getDeviceByPairCode(db, pairCode);
 }
 
+/**
+ * Derive the denormalized refresh cadence from a config JSON string. Only 1 or 2
+ * are valid (`refreshesPerDay: 1 | 2`); anything else — including unparseable
+ * JSON — defaults to 2, so the column never drifts to NULL/garbage.
+ */
+function deriveRefreshesPerDay(configJson: string): number {
+  try {
+    const parsed = JSON.parse(configJson) as { refreshesPerDay?: unknown };
+    return parsed.refreshesPerDay === 1 ? 1 : 2;
+  } catch {
+    return 2;
+  }
+}
+
 export function setConfig(db: DB, deviceId: string, configJson: string): void {
   const now = Date.now();
-  db.prepare('UPDATE devices SET config_json = ?, last_modified = ? WHERE id = ?').run(
-    configJson,
-    now,
-    deviceId,
-  );
+  // config_json + last_modified + refreshes_per_day in one statement so the
+  // denormalized cadence can't drift from the stored config (RFC 0001 §4).
+  db.prepare(
+    'UPDATE devices SET config_json = ?, last_modified = ?, refreshes_per_day = ? WHERE id = ?',
+  ).run(configJson, now, deriveRefreshesPerDay(configJson), deviceId);
 }
 
 export function getDevicesForAccount(db: DB, accountId: string): readonly Device[] {
@@ -277,10 +301,11 @@ export function unclaimDevice(db: DB, deviceId: string, accountId: string): bool
   const result = db
     .prepare(
       `UPDATE devices
-         SET owner_account_id = NULL,
-             paired_at        = NULL,
-             config_json      = NULL,
-             last_modified    = ?
+         SET owner_account_id  = NULL,
+             paired_at         = NULL,
+             config_json       = NULL,
+             refreshes_per_day = 2,
+             last_modified     = ?
        WHERE id = ?
          AND owner_account_id = ?`,
     )
