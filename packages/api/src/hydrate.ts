@@ -21,6 +21,19 @@ export interface HydrateDeps {
 // per window is plenty (RFC 0001 §3). Independent of the device's 304 cadence.
 const WEATHER_TTL_MS = 30 * 60 * 1000;
 
+// Bound the upstream call well under the firmware's HTTP timeout, so a hung
+// provider yields a placeholder frame instead of hanging the pull (RFC §6).
+const WEATHER_TIMEOUT_MS = 8000;
+
+/** Reject `work` if it doesn't settle within `ms`. Clears the timer either way. */
+function withTimeout<T>(work: Promise<T>, ms: number, label: string): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => reject(new Error(`${label} timed out after ${String(ms)}ms`)), ms);
+  });
+  return Promise.race([work, timeout]).finally(() => clearTimeout(timer));
+}
+
 /**
  * Walk the config's boxes and replace each live box's data with a freshly
  * resolved value. **Always replace, never fill-absent** — persisted config_json
@@ -53,21 +66,27 @@ async function resolveWeather(city: string, deps: HydrateDeps): Promise<WeatherD
     .get(
       key,
       async () => {
-        const data = await deps.fetchWeather(city, 'F');
-        // Throw so a failed fetch isn't stored as a value — the next pull retries
-        // rather than serving null for the whole TTL window.
-        if (data === null) throw new Error(`weather fetch failed for "${city}"`);
-        return data;
+        try {
+          const data = await withTimeout(
+            deps.fetchWeather(city, 'F'),
+            WEATHER_TIMEOUT_MS,
+            `weather "${city}"`,
+          );
+          // Throw so a failed fetch isn't stored as a value — the next pull
+          // retries rather than serving null for the whole TTL window.
+          if (data === null) throw new Error(`weather fetch returned no data for "${city}"`);
+          return data;
+        } catch (err) {
+          // Logged here (the single-flight fetcher runs once per key), so a
+          // provider outage vs. a fetcher bug stays distinguishable without one
+          // line per concurrent waiter. Waiters degrade via the catch below.
+          console.warn(`hydrate: weather fetch failed for "${city}":`, err);
+          throw err;
+        }
       },
       { ttlMs: WEATHER_TTL_MS },
     )
-    .catch((err: unknown) => {
-      // Degrade to the renderer placeholder, but leave a trace — a provider
-      // outage and a bug in the fetcher both land here, and silent undefined
-      // would make them indistinguishable in production.
-      console.warn(`hydrate: weather fetch failed for "${city}":`, err);
-      return undefined;
-    });
+    .catch(() => undefined);
 }
 
 let sharedCache: Cache | undefined;

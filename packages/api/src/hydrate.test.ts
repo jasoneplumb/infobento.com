@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { InMemoryCache } from '@infobento/data';
 import type { BentoConfig } from '@infobento/core';
 import { hydrateConfig, type HydrateDeps } from './hydrate.js';
@@ -78,6 +78,23 @@ describe('hydrateConfig', () => {
       }),
     );
     expect(calls).toBe(1);
+  });
+
+  it('times out a hung weather fetch and degrades to placeholder (RFC §6)', async () => {
+    vi.useFakeTimers();
+    try {
+      const hung = hydrateConfig(
+        weatherConfig('Portland'),
+        deps(() => new Promise(() => undefined)), // never settles
+      );
+      await vi.advanceTimersByTimeAsync(9000); // past the 8s upstream timeout
+      const out = await hung;
+      const box = out.boxes[0];
+      if (box?.type !== 'weather') throw new Error('unreachable');
+      expect(box.config?.data).toBeUndefined();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('passes non-weather boxes through unchanged', async () => {

@@ -301,10 +301,11 @@ export function unclaimDevice(db: DB, deviceId: string, accountId: string): bool
   const result = db
     .prepare(
       `UPDATE devices
-         SET owner_account_id = NULL,
-             paired_at        = NULL,
-             config_json      = NULL,
-             last_modified    = ?
+         SET owner_account_id  = NULL,
+             paired_at         = NULL,
+             config_json       = NULL,
+             refreshes_per_day = 2,
+             last_modified     = ?
        WHERE id = ?
          AND owner_account_id = ?`,
     )
