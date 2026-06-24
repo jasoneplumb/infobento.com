@@ -56,6 +56,30 @@ describe('toBentoBox / fromBentoBox round-trip', () => {
     expect(out.config).toEqual({ content: 'Be excellent', author: 'Bill' });
   });
 
+  it('quote: persists the tag filter so pull-time refresh keeps the steer', () => {
+    const out = roundTrip({
+      id: 41,
+      type: 'quote',
+      label: 'Quote',
+      config: { content: 'Be excellent', author: 'Bill', tags: 'wisdom, life' },
+    });
+    expect(out.config).toMatchObject({ tags: 'wisdom, life' });
+  });
+
+  it('joke: persists the categories filter (distinct from the returned category)', () => {
+    const out = roundTrip({
+      id: 42,
+      type: 'joke',
+      label: 'Joke',
+      config: {
+        content: 'A byte walks into a bar',
+        category: 'Programming',
+        categories: 'Programming, Pun',
+      },
+    });
+    expect(out.config).toMatchObject({ categories: 'Programming, Pun' });
+  });
+
   it('preserves split layout markers (side + non-default ratio)', () => {
     const out = roundTrip({
       id: 5,

@@ -32,6 +32,8 @@ function deps(overrides: Partial<HydrateDeps> = {}): HydrateDeps {
     fetchStocks: async () => null,
     fetchHoroscope: async () => null,
     fetchOnThisDay: async () => null,
+    fetchQuote: async () => null,
+    fetchJoke: async () => null,
     ...overrides,
   };
 }
@@ -257,5 +259,61 @@ describe('hydrateConfig — text-bearing providers (keep baked text on failure)'
     expect(box.config?.text).toBe('NEW');
     expect(box.config?.year).toBe('1990');
     expect(box.config?.category).toBe('births'); // request param preserved, not overwritten
+  });
+
+  it('re-fetches a random quote with the persisted tag filter, replacing the seed', async () => {
+    let seenTags: string | undefined;
+    const out = await hydrateConfig(
+      oneBox({
+        id: 'q',
+        type: 'quote',
+        config: { type: 'quote', text: 'SEED', author: 'Old', tags: 'wisdom' },
+      }),
+      deps({
+        fetchQuote: async (tags) => {
+          seenTags = tags;
+          return { text: 'FRESH', author: 'Sage' };
+        },
+      }),
+    );
+    const box = out.boxes[0];
+    if (box?.type !== 'quote') throw new Error('unreachable');
+    expect(seenTags).toBe('wisdom');
+    expect(box.config?.text).toBe('FRESH');
+    expect(box.config?.author).toBe('Sage');
+    expect(box.config?.tags).toBe('wisdom'); // filter preserved for the next pull
+  });
+
+  it('keeps the baked quote on fetch failure (no blank box)', async () => {
+    const out = await hydrateConfig(
+      oneBox({ id: 'q', type: 'quote', config: { type: 'quote', text: 'SEED', author: 'Old' } }),
+      deps({ fetchQuote: async () => null }),
+    );
+    const box = out.boxes[0];
+    if (box?.type !== 'quote') throw new Error('unreachable');
+    expect(box.config?.text).toBe('SEED');
+  });
+
+  it('re-fetches a random joke with the persisted categories filter', async () => {
+    let seenCategories: string | undefined;
+    const out = await hydrateConfig(
+      oneBox({
+        id: 'j',
+        type: 'joke',
+        config: { type: 'joke', text: 'SEED', categories: 'Programming' },
+      }),
+      deps({
+        fetchJoke: async (categories) => {
+          seenCategories = categories;
+          return { text: 'FRESH', category: 'Programming' };
+        },
+      }),
+    );
+    const box = out.boxes[0];
+    if (box?.type !== 'joke') throw new Error('unreachable');
+    expect(seenCategories).toBe('Programming');
+    expect(box.config?.text).toBe('FRESH');
+    expect(box.config?.category).toBe('Programming');
+    expect(box.config?.categories).toBe('Programming'); // request filter preserved
   });
 });

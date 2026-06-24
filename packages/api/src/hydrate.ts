@@ -32,9 +32,13 @@ import {
   fetchStocks as dataFetchStocks,
   fetchHoroscope as dataFetchHoroscope,
   fetchOnThisDay as dataFetchOnThisDay,
+  fetchQuote as dataFetchQuote,
+  fetchJoke as dataFetchJoke,
   type Cache,
   type HoroscopeResult,
   type OnThisDayResult,
+  type QuoteResult,
+  type JokeResult,
 } from '@infobento/data';
 
 export interface HydrateDeps {
@@ -53,6 +57,8 @@ export interface HydrateDeps {
   readonly fetchStocks: (symbol: string, duration: StockDuration) => Promise<StockData | null>;
   readonly fetchHoroscope: (sign: string) => Promise<HoroscopeResult | null>;
   readonly fetchOnThisDay: (category: string) => Promise<OnThisDayResult | null>;
+  readonly fetchQuote: (tags: string) => Promise<QuoteResult | null>;
+  readonly fetchJoke: (categories: string) => Promise<JokeResult | null>;
 }
 
 // Per-provider freshness — independent of the device's 304 cadence (RFC 0001 §3).
@@ -67,6 +73,8 @@ const AQI_TTL_MS = 30 * 60 * 1000;
 const STOCKS_TTL_MS = 15 * 60 * 1000;
 const HOROSCOPE_TTL_MS = 6 * 60 * 60 * 1000;
 const ONTHISDAY_TTL_MS = 6 * 60 * 60 * 1000;
+const QUOTE_TTL_MS = 6 * 60 * 60 * 1000;
+const JOKE_TTL_MS = 6 * 60 * 60 * 1000;
 
 // Bound each upstream call well under the firmware's HTTP timeout, so a hung
 // provider yields a placeholder frame instead of hanging the pull (RFC §6).
@@ -247,9 +255,39 @@ async function hydrateBox(box: BentoBox, deps: HydrateDeps): Promise<BentoBox> {
       if (!res) return box;
       return { ...box, config: { ...box.config, text: res.text, year: res.year } };
     }
+    case 'quote': {
+      if (!box.config) return box;
+      // Always-random (per product decision): the baked text is a discardable
+      // seed re-fetched with the persisted tag filter on every pull. Key by tags
+      // so the wake-herd collapses to one upstream call per filter per window.
+      const tags = box.config.tags ?? '';
+      const res = await resolveCached<QuoteResult>(
+        deps,
+        `quote:${tags.toLowerCase()}`,
+        QUOTE_TTL_MS,
+        `quote "${tags || 'any'}"`,
+        () => deps.fetchQuote(tags),
+      );
+      // Keep the baked quote on failure — `text` is required by the renderer.
+      if (!res) return box;
+      return { ...box, config: { ...box.config, text: res.text, author: res.author } };
+    }
+    case 'joke': {
+      if (!box.config) return box;
+      const categories = box.config.categories ?? '';
+      const res = await resolveCached<JokeResult>(
+        deps,
+        `joke:${categories.toLowerCase()}`,
+        JOKE_TTL_MS,
+        `joke "${categories || 'any'}"`,
+        () => deps.fetchJoke(categories),
+      );
+      if (!res) return box;
+      return { ...box, config: { ...box.config, text: res.text, category: res.category } };
+    }
     default:
-      // Non-live boxes (and live types not yet hydrated — quote/joke await a
-      // schema change to persist their request params, RFC 0001 §3) pass through.
+      // Non-live boxes (text/qr/date/moon/countdown/progress/calendar/habit)
+      // hold user-authored or clock-derived content — nothing to re-fetch.
       return box;
   }
 }
@@ -274,5 +312,7 @@ export function defaultHydrateDeps(): HydrateDeps {
     fetchStocks: dataFetchStocks,
     fetchHoroscope: dataFetchHoroscope,
     fetchOnThisDay: dataFetchOnThisDay,
+    fetchQuote: (tags) => dataFetchQuote({ tags }),
+    fetchJoke: dataFetchJoke,
   };
 }

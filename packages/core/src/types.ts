@@ -61,6 +61,12 @@ export interface QuoteBoxConfig {
   readonly type: 'quote';
   readonly text: string;
   readonly author?: string;
+  /**
+   * Comma-separated tag steer (e.g. "wisdom, happiness") persisted so pull-time
+   * hydration can re-fetch a fresh random quote with the same filter. The `text`
+   * above is a discardable seed — it's replaced on every pull (RFC 0001 §2).
+   */
+  readonly tags?: string;
 }
 
 export interface DateBoxConfig {
@@ -190,6 +196,12 @@ export interface JokeBoxConfig {
   readonly type: 'joke';
   readonly text: string; // the joke body (single-line; multi-line jokes normalized server-side)
   readonly category?: string; // the API-returned category (e.g. 'Programming', 'Pun')
+  /**
+   * Comma-separated category request filter (e.g. "Programming, Pun") persisted
+   * so pull-time hydration can re-fetch a fresh random joke with the same filter.
+   * Distinct from `category`, which is the API-*returned* category for display.
+   */
+  readonly categories?: string;
 }
 
 /** Pre-fetched horoscope reading for a single zodiac sign */

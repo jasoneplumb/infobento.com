@@ -75,6 +75,7 @@ const QuoteBoxConfigSchema = z.object({
   type: z.literal('quote'),
   text: z.string().min(1, 'Text is required'),
   author: z.string().optional(),
+  tags: z.string().optional(),
 });
 
 const DateBoxConfigSchema = z.object({
@@ -168,6 +169,7 @@ const JokeBoxConfigSchema = z.object({
   type: z.literal('joke'),
   text: z.string().min(1, 'Text is required'),
   category: z.string().optional(),
+  categories: z.string().optional(),
 });
 
 const OnThisDayBoxConfigSchema = z.object({

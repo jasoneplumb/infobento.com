@@ -20,6 +20,8 @@ const NULL_PROVIDERS = {
   fetchStocks: async () => null,
   fetchHoroscope: async () => null,
   fetchOnThisDay: async () => null,
+  fetchQuote: async () => null,
+  fetchJoke: async () => null,
 } satisfies Omit<HydrateDeps, 'cache' | 'fetchWeather'>;
 
 /** Hydration deps with a never-succeeds weather fetcher (configs here are text). */
