@@ -32,6 +32,8 @@ import {
   setPadding,
   setShowHeaders,
   setDeviceProfile,
+  getRefreshesPerDay,
+  setRefreshesPerDay,
 } from './state';
 import { DEVICE_PROFILES } from '@infobento/core';
 import { renderBoxList, decorateBoxList } from './components/box-list';
@@ -230,6 +232,43 @@ function initEditor(): void {
     }
     profileSelect.value = getDeviceProfile().id;
     profileSelect.addEventListener('change', () => setDeviceProfile(profileSelect.value));
+  }
+
+  // -- Wire up Refresh interval selector (#152) -----------------------------
+  // Preset ladder: friendly intervals → refreshesPerDay counts (86400 / count).
+  // 0 = off; 5760 ≈ a 15s interval, the bench-testing low end.
+  const refreshSelect = document.querySelector<HTMLSelectElement>('#refresh-interval-select');
+  if (refreshSelect) {
+    const REFRESH_PRESETS: ReadonlyArray<[label: string, perDay: number]> = [
+      ['Off', 0],
+      ['Every 24 hours', 1],
+      ['Every 12 hours', 2],
+      ['Every 8 hours', 3],
+      ['Every 6 hours', 4],
+      ['Every 4 hours', 6],
+      ['Every 2 hours', 12],
+      ['Every hour', 24],
+      ['Every 30 min', 48],
+      ['Every 15 min', 96],
+      ['Every 5 min', 288],
+      ['Every minute', 1440],
+      ['Every 15 sec (testing)', 5760],
+    ];
+    for (const [label, perDay] of REFRESH_PRESETS) {
+      const opt = document.createElement('option');
+      opt.value = String(perDay);
+      opt.textContent = label;
+      refreshSelect.appendChild(opt);
+    }
+    // Snap the stored value to the nearest preset so a custom/legacy count still
+    // shows a sensible selection.
+    const current = getRefreshesPerDay();
+    const nearest = REFRESH_PRESETS.reduce(
+      (best, [, perDay]) => (Math.abs(perDay - current) < Math.abs(best - current) ? perDay : best),
+      REFRESH_PRESETS[0][1],
+    );
+    refreshSelect.value = String(nearest);
+    refreshSelect.addEventListener('change', () => setRefreshesPerDay(Number(refreshSelect.value)));
   }
 
   // -- Wire up Font Weight slider (1–9 → Inter static weight 100–900) -------

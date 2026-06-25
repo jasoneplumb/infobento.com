@@ -26,8 +26,14 @@ export type DeviceFrameResult =
       readonly width: number;
       readonly height: number;
       readonly lastModifiedMs: number;
+      /** Seconds until the next pull (`X-Refresh-Interval`); null = disabled. */
+      readonly refreshIntervalSec: number | null;
     }
-  | { readonly status: 304; readonly lastModifiedMs: number }
+  | {
+      readonly status: 304;
+      readonly lastModifiedMs: number;
+      readonly refreshIntervalSec: number | null;
+    }
   | { readonly status: 404 }
   | { readonly status: 500; readonly error: string };
 
@@ -51,11 +57,13 @@ export function formatHttpDate(ms: number): string {
 const DAY_MS = 86_400_000;
 
 /**
- * Width of the data-freshness bucket, in ms. Normally the device cadence
- * (refreshesPerDay → 12h or 24h). `INFOBENTO_DATA_BUCKET_SECONDS` overrides it
- * for bench testing (e.g. 60 → a fresh frame every minute instead of every 12h).
+ * Width of the data-freshness bucket, in ms — the device cadence
+ * `86400 / refreshesPerDay` (RFC 0001 §4). Returns `null` when scheduled refresh
+ * is disabled (`refreshesPerDay` 0/invalid), so the frame changes only on a
+ * config edit. `INFOBENTO_DATA_BUCKET_SECONDS` overrides it for bench testing
+ * (e.g. 15 → a fresh frame every 15s) and wins even when refresh is disabled.
  */
-function dataBucketMs(refreshesPerDay: number): number {
+function dataBucketMs(refreshesPerDay: number): number | null {
   const override = process.env['INFOBENTO_DATA_BUCKET_SECONDS'];
   if (override !== undefined) {
     const secs = Number(override);
@@ -63,7 +71,9 @@ function dataBucketMs(refreshesPerDay: number): number {
     // would make the boundary `Math.floor(now / 0) * 0` → NaN.
     if (Number.isFinite(secs) && secs >= 1) return Math.floor(secs * 1000);
   }
-  return Math.floor(DAY_MS / (refreshesPerDay === 1 ? 1 : 2));
+  // 0 (or anything < 1) disables the scheduled bucket.
+  if (!Number.isFinite(refreshesPerDay) || refreshesPerDay < 1) return null;
+  return Math.floor(DAY_MS / refreshesPerDay);
 }
 
 /**
@@ -72,14 +82,28 @@ function dataBucketMs(refreshesPerDay: number): number {
  * device gets 304 (battery saved); at the boundary this advances → 200 → exactly
  * one redraw with freshly hydrated data (RFC 0001 §4). Computed from the
  * denormalized `refreshes_per_day`, so the cheap pre-parse 304 path survives.
+ * When refresh is disabled, only a config edit (`last_modified`) advances it.
  */
 export function effectiveLastModified(
   device: Pick<Device, 'last_modified' | 'refreshes_per_day'>,
   nowMs: number,
 ): number {
   const bucket = dataBucketMs(device.refreshes_per_day);
+  if (bucket === null) return device.last_modified;
   const boundary = Math.floor(nowMs / bucket) * bucket;
   return Math.max(device.last_modified, boundary);
+}
+
+/**
+ * The cadence (in whole seconds) the device should sleep before its next pull,
+ * sent as the `X-Refresh-Interval` header so the editor's refresh setting drives
+ * a real device end-to-end. Mirrors `dataBucketMs` precedence (env override →
+ * config), and is `null` when scheduled refresh is disabled — the firmware then
+ * keeps its build-time default.
+ */
+export function refreshIntervalSeconds(refreshesPerDay: number): number | null {
+  const bucket = dataBucketMs(refreshesPerDay);
+  return bucket === null ? null : Math.floor(bucket / 1000);
 }
 
 export function getDeviceConfigForPull(
@@ -109,11 +133,14 @@ export async function getDeviceFrameForPull(
 ): Promise<DeviceFrameResult> {
   const device = getDevice(db, deviceId);
   if (!device || !device.config_json) return { status: 404 };
+  // Wake-cadence hint, sent on both 304 and 200 so the device's sleep tracks the
+  // configured interval even on a battery-saving 304 skip.
+  const refreshIntervalSec = refreshIntervalSeconds(device.refreshes_per_day);
   // Gate on the effective timestamp (config edit OR data-bucket boundary). This
   // runs before JSON.parse / hydrate, so a 304 wake stays allocation-free.
   const effectiveMs = effectiveLastModified(device, nowMs);
   if (isNotModified(ifModifiedSince, effectiveMs)) {
-    return { status: 304, lastModifiedMs: effectiveMs };
+    return { status: 304, lastModifiedMs: effectiveMs, refreshIntervalSec };
   }
   let config: BentoConfig;
   try {
@@ -146,6 +173,7 @@ export async function getDeviceFrameForPull(
     width: fb.width,
     height: fb.height,
     lastModifiedMs: effectiveMs,
+    refreshIntervalSec,
   };
 }
 

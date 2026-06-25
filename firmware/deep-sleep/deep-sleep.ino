@@ -50,13 +50,15 @@
 #define EPD_H 480
 #define IB_FRAME_LEN (EPD_W * EPD_H / 4)  // 96000
 
-// Wake cadence — a BUILD CONSTANT, not hardcoded into the sleep call, so the
-// production unit can dial it back without touching the loop logic. Bench: short,
-// to watch the sleep -> wake -> 304-skip / 200-draw cycle live on serial.
-// Production: 1–2 refreshes/day (POWER.md) -> 43200 (12h). 21600 (6h, 4×/day) is
-// acceptable for a mains-powered dev unit. Stored in seconds; converted to µs below.
+// Wake cadence FALLBACK — used only until the server tells us otherwise. The
+// frame response's X-Refresh-Interval header (driven by the editor's Refresh
+// setting, issue #152) overrides this at runtime via g_sleepSeconds, so a unit's
+// cadence can change with no reflash. This build constant applies on cold boot
+// before the first pull, and whenever the server omits the header (refresh
+// disabled / pre-#152 server). Bench: short, to watch the cycle live on serial.
+// Production default: 28800 (8h, 3×/day). Stored in seconds; → µs below.
 #ifndef IB_SLEEP_SECONDS
-#define IB_SLEEP_SECONDS 30  // bench default. Production: 43200 (12h).
+#define IB_SLEEP_SECONDS 30  // bench default. Production: 28800 (8h).
 #endif
 
 // Transport — HTTPS (production, default) vs plain HTTP (LAN dev server).
@@ -76,6 +78,11 @@
 // -> first wake always 200-draws); retained verbatim across timer wakes.
 RTC_DATA_ATTR char g_lastModified[48] = {0};
 RTC_DATA_ATTR uint32_t g_bootCount = 0;
+// Server-driven wake cadence (X-Refresh-Interval, seconds), adopted from the
+// frame response so the editor's Refresh setting controls this device without a
+// reflash. 0 = not yet learned -> fall back to the IB_SLEEP_SECONDS build
+// default. Retained across deep sleep; clamped to [15s, 24h] on adoption.
+RTC_DATA_ATTR uint32_t g_sleepSeconds = 0;
 
 SPIClass hspi(HSPI);
 SPISettings spiSet(2000000, MSBFIRST, SPI_MODE0);
@@ -232,6 +239,21 @@ bool readExact(WiFiClient* s, uint8_t* buf, int len) {
   return got == len;
 }
 
+// Adopt the server's wake cadence from the X-Refresh-Interval header (seconds),
+// if present and sane. Clamped to [15s, 24h] (matching the editor's range);
+// absent/garbage leaves the prior cadence untouched, so a one-off missing header
+// can't reset a configured device to the build default.
+void adoptRefreshInterval(HTTPClient& http) {
+  String ri = http.header("X-Refresh-Interval");
+  if (!ri.length()) return;
+  long secs = ri.toInt();
+  if (secs <= 0) return;
+  if (secs < 15) secs = 15;
+  if (secs > 86400) secs = 86400;
+  g_sleepSeconds = (uint32_t)secs;
+  Serial.printf("[IB] refresh interval -> %lu s\n", (unsigned long)secs);
+}
+
 void pullOnce() {
   if (!ensureWifi()) return;
 #if IB_API_TLS
@@ -250,11 +272,14 @@ void pullOnce() {
 #endif
   HTTPClient http;
   http.begin(client, url);
-  const char* collect[] = { "Last-Modified" };
-  http.collectHeaders(collect, 1);
+  const char* collect[] = { "Last-Modified", "X-Refresh-Interval" };
+  http.collectHeaders(collect, 2);
   if (g_lastModified[0]) http.addHeader("If-Modified-Since", g_lastModified);
   int code = http.GET();
   Serial.printf("[IB] GET -> %d\n", code);
+  // Adopt the server's wake cadence regardless of 200/304 — the device should
+  // re-time its sleep even when the frame itself is unchanged.
+  adoptRefreshInterval(http);
   if (code == 200) {
     int len = http.getSize();
     // A KNOWN Content-Length that doesn't match means this isn't our frame (e.g. an
@@ -297,8 +322,10 @@ void goToSleep() {
   // but an explicit disconnect avoids a dirty association lingering in NVS).
   WiFi.disconnect(true);
   WiFi.mode(WIFI_OFF);
-  esp_sleep_enable_timer_wakeup((uint64_t)IB_SLEEP_SECONDS * 1000000ULL);
-  Serial.printf("[IB] deep sleep for %u s\n", (unsigned)IB_SLEEP_SECONDS);
+  // Server-driven cadence (X-Refresh-Interval) once learned; else the build default.
+  uint32_t secs = g_sleepSeconds ? g_sleepSeconds : (uint32_t)IB_SLEEP_SECONDS;
+  esp_sleep_enable_timer_wakeup((uint64_t)secs * 1000000ULL);
+  Serial.printf("[IB] deep sleep for %u s\n", (unsigned)secs);
   Serial.flush();  // drain UART before the core powers down
   esp_deep_sleep_start();  // does not return; chip reboots into setup() on wake
 }

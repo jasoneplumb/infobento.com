@@ -107,13 +107,18 @@ describe('toBentoConfig (export = drop-in device config)', () => {
     // And the whole thing must pass the same validation the device applies.
     expect(validateBentoConfig(cfg).valid).toBe(true);
   });
+
+  it('emits refreshesPerDay from editor state (default 3 = every 8h)', () => {
+    const cfg = toBentoConfig([{ id: 1, type: 'text', label: 'Note', config: { content: 'hi' } }]);
+    expect(cfg.refreshesPerDay).toBe(3);
+  });
 });
 
 describe('fromBentoConfig', () => {
   it('emits the version-2 export shape with style fields carried over', () => {
     const core: BentoConfig = {
       boxes: [{ id: '1', label: 'Note', type: 'text', config: { type: 'text', text: 'hi' } }],
-      refreshesPerDay: 1,
+      refreshesPerDay: 96,
       showHeaders: true,
       fontSize: 30,
       fontWeight: 0.5,
@@ -130,6 +135,7 @@ describe('fromBentoConfig', () => {
       fontWeight: 0.5,
       cornerRadius: 2,
       padding: 6,
+      refreshesPerDay: 96,
     });
   });
 });

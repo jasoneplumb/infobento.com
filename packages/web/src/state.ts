@@ -18,6 +18,7 @@ import type {
   HabitEntry,
 } from '@infobento/core';
 import { DEFAULT_STOCK_DURATION, DEVICE_PROFILES, DEFAULT_PROFILE_ID } from '@infobento/core';
+import { DEFAULT_REFRESHES_PER_DAY, MAX_REFRESHES_PER_DAY } from '@infobento/core';
 import { validateBentoConfig } from '@infobento/core';
 import type { DeviceProfilePreset, BentoConfig } from '@infobento/core';
 // config-map ↔ state form a runtime-only cycle: these are invoked from
@@ -180,6 +181,8 @@ export interface EditorState {
   fontWeight: number;
   cornerRadius: number;
   padding: number;
+  /** Scheduled data refreshes per day (0=off … MAX_REFRESHES_PER_DAY≈15s). */
+  refreshesPerDay: number;
   profileId: string;
   /** Temperature unit for weather/forecast displays (derived from IP locale). */
   tempUnit: 'F' | 'C';
@@ -318,6 +321,10 @@ const clampFontWeight = (v: number): number =>
 /** Clamp a corner-radius level to the stepper's [0, 7] range. */
 const clampCornerRadius = (v: number): number => Math.max(0, Math.min(7, v));
 
+/** Clamp refreshes-per-day to an integer in [0, MAX_REFRESHES_PER_DAY]. */
+const clampRefreshesPerDay = (v: number): number =>
+  Math.max(0, Math.min(MAX_REFRESHES_PER_DAY, Math.floor(v)));
+
 const state: EditorState = {
   boxes: defaultBoxes(),
   showHeaders: false,
@@ -325,6 +332,7 @@ const state: EditorState = {
   fontWeight: DEFAULT_FONT_WEIGHT,
   cornerRadius: DEFAULT_CORNER_RADIUS,
   padding: DEFAULT_PADDING,
+  refreshesPerDay: DEFAULT_REFRESHES_PER_DAY,
   profileId: DEFAULT_PROFILE_ID,
   tempUnit: 'F',
   hiddenChips: [],
@@ -768,6 +776,17 @@ export function setPadding(value: number): void {
   renderPreview();
 }
 
+/** Scheduled data refreshes per day (0 = off). Interval = 86400 / value. */
+export function getRefreshesPerDay(): number {
+  return state.refreshesPerDay;
+}
+
+export function setRefreshesPerDay(value: number): void {
+  state.refreshesPerDay = clampRefreshesPerDay(value);
+  persist();
+  renderPreview();
+}
+
 /** The selected display profile (resolution the simulator renders at). */
 export function getDeviceProfile(): DeviceProfilePreset {
   return (
@@ -842,6 +861,7 @@ function persistToLocalStorage(): void {
       fontWeight: state.fontWeight,
       cornerRadius: state.cornerRadius,
       padding: state.padding,
+      refreshesPerDay: state.refreshesPerDay,
       profileId: state.profileId,
       tempUnit: state.tempUnit,
       hiddenChips: state.hiddenChips,
@@ -913,6 +933,8 @@ function loadFromLocalStorage(): boolean {
       if (typeof obj.cornerRadius === 'number')
         state.cornerRadius = clampCornerRadius(obj.cornerRadius);
       if (typeof obj.padding === 'number') state.padding = obj.padding;
+      if (typeof obj.refreshesPerDay === 'number')
+        state.refreshesPerDay = clampRefreshesPerDay(obj.refreshesPerDay);
       if (
         typeof obj.profileId === 'string' &&
         DEVICE_PROFILES.some((p) => p.id === obj.profileId)
@@ -995,6 +1017,8 @@ export function loadConfig(parsed: unknown): boolean {
       if (typeof obj.cornerRadius === 'number')
         s.cornerRadius = clampCornerRadius(obj.cornerRadius);
       if (typeof obj.padding === 'number') s.padding = obj.padding;
+      if (typeof obj.refreshesPerDay === 'number')
+        s.refreshesPerDay = clampRefreshesPerDay(obj.refreshesPerDay);
     });
     return true;
   }

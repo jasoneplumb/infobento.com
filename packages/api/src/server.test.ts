@@ -182,4 +182,31 @@ describe('X-Device-Forget delivery on device-pull', () => {
     expect(res.status).toBe(200);
     expect(res.headers.get('X-Device-Forget')).toBeNull();
   });
+
+  it('sends X-Refresh-Interval (seconds) on the frame pull so the device sleeps to cadence', async () => {
+    const db = getDb();
+    const device = createDevice(db, { pairCode: 'PULLRPD' });
+    setConfig(db, device.id, VALID_CONFIG); // refreshesPerDay: 1 → 86400s
+
+    const res = await app.request(`/api/device/${device.id}/frame`);
+    expect(res.status).toBe(200);
+    expect(res.headers.get('X-Refresh-Interval')).toBe('86400');
+  });
+
+  it('omits X-Refresh-Interval when scheduled refresh is disabled (refreshesPerDay: 0)', async () => {
+    const db = getDb();
+    const device = createDevice(db, { pairCode: 'PULLOFF' });
+    setConfig(
+      db,
+      device.id,
+      JSON.stringify({
+        boxes: [{ id: '1', label: 'Hi', type: 'text', config: { type: 'text', text: 'yo' } }],
+        refreshesPerDay: 0,
+      }),
+    );
+
+    const res = await app.request(`/api/device/${device.id}/frame`);
+    expect(res.status).toBe(200);
+    expect(res.headers.get('X-Refresh-Interval')).toBeNull();
+  });
 });

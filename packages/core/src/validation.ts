@@ -5,6 +5,7 @@
  */
 
 import { z } from 'zod';
+import { MAX_REFRESHES_PER_DAY } from './types.js';
 
 // --- Box config schemas ---
 
@@ -309,7 +310,7 @@ export const BentoConfigSchema = z.object({
     .array(BentoBoxSchema)
     .min(1, 'Config must have at least one bento box')
     .max(10, 'Config cannot exceed 10 bento boxes'),
-  refreshesPerDay: z.union([z.literal(1), z.literal(2)]),
+  refreshesPerDay: z.number().int().min(0).max(MAX_REFRESHES_PER_DAY),
   showHeaders: z.boolean().optional(),
   fontSize: z.number().int().min(8).max(42).optional(),
   fontWeight: z.number().min(0.1).max(0.9).multipleOf(0.1).optional(),

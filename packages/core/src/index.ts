@@ -59,6 +59,9 @@ export type { DeviceProfilePreset } from './constants.js';
 // Re-export stock duration presets
 export { STOCK_DURATIONS, DEFAULT_STOCK_DURATION } from './types.js';
 
+// Re-export refresh-interval bounds
+export { DEFAULT_REFRESHES_PER_DAY, MAX_REFRESHES_PER_DAY } from './types.js';
+
 // Re-export layout engine
 export { calculateLayout } from './layout.js';
 
