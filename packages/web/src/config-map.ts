@@ -101,7 +101,12 @@ export function toBentoBox(editor: EditorBox): BentoBox {
       return {
         ...base,
         type: 'quote',
-        config: { type: 'quote', text: c.content, author: c.author || undefined },
+        config: {
+          type: 'quote',
+          text: c.content,
+          author: c.author || undefined,
+          tags: c.tags || undefined,
+        },
       };
     }
     case 'date': {
@@ -161,6 +166,7 @@ export function toBentoBox(editor: EditorBox): BentoBox {
           type: 'joke',
           text: c.content,
           category: c.category || undefined,
+          categories: c.categories || undefined,
         },
       };
     }
@@ -300,6 +306,7 @@ export function fromBentoBox(box: BentoBox): ExportBox {
       config = {
         content: str(cfg?.['text']),
         author: str(cfg?.['author']),
+        tags: cfg?.['tags'] as string | undefined,
       } as QuoteConfig;
       break;
     case 'date':
@@ -332,6 +339,7 @@ export function fromBentoBox(box: BentoBox): ExportBox {
       config = {
         content: str(cfg?.['text']),
         category: cfg?.['category'] as string | undefined,
+        categories: cfg?.['categories'] as string | undefined,
       } as JokeConfig;
       break;
     case 'onthisday':

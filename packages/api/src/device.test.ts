@@ -11,9 +11,22 @@ import {
 import { InMemoryCache } from '@infobento/data';
 import type { HydrateDeps } from './hydrate.js';
 
+/** Non-weather provider stubs — these tests exercise text/weather boxes only. */
+const NULL_PROVIDERS = {
+  fetchForecast: async () => null,
+  fetchForecast3D: async () => null,
+  fetchSunTimes: async () => null,
+  fetchAirQuality: async () => null,
+  fetchStocks: async () => null,
+  fetchHoroscope: async () => null,
+  fetchOnThisDay: async () => null,
+  fetchQuote: async () => null,
+  fetchJoke: async () => null,
+} satisfies Omit<HydrateDeps, 'cache' | 'fetchWeather'>;
+
 /** Hydration deps with a never-succeeds weather fetcher (configs here are text). */
 function makeDeps(): HydrateDeps {
-  return { cache: new InMemoryCache(), fetchWeather: async () => null };
+  return { cache: new InMemoryCache(), fetchWeather: async () => null, ...NULL_PROVIDERS };
 }
 
 const HOUR_MS = 3_600_000;
@@ -205,6 +218,7 @@ describe('getDeviceFrameForPull', () => {
         requested = loc;
         return { temperature: 70, condition: 'Clear', high: 75, low: 60 };
       },
+      ...NULL_PROVIDERS,
     };
     const r = await getDeviceFrameForPull(db, d.id, 'landscape', null, deps);
     expect(r.status).toBe(200);
