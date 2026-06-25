@@ -15,6 +15,21 @@ describe('validateBentoConfig', () => {
     expect(result.errors).toHaveLength(0);
   });
 
+  it('accepts the full refreshesPerDay range (0, default 3, max 5760)', () => {
+    for (const n of [0, 3, 5760]) {
+      const result = validateBentoConfig({ ...validConfig(), refreshesPerDay: n });
+      expect(result.valid).toBe(true);
+    }
+  });
+
+  it('rejects out-of-range or non-integer refreshesPerDay', () => {
+    for (const n of [-1, 5761, 2.5]) {
+      const result = validateBentoConfig({ ...validConfig(), refreshesPerDay: n });
+      expect(result.valid).toBe(false);
+      expect(result.errors.some((e) => e.path === 'refreshesPerDay')).toBe(true);
+    }
+  });
+
   it('rejects empty boxes array', () => {
     const result = validateBentoConfig({ ...validConfig(), boxes: [] });
     expect(result.valid).toBe(false);

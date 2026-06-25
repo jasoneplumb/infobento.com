@@ -428,10 +428,30 @@ export type BentoBox =
   | OnThisDayBentoBox
   | UnconfiguredBentoBox;
 
+/**
+ * Default scheduled data refreshes per day (every 8h). Applied when a config
+ * omits `refreshesPerDay`.
+ */
+export const DEFAULT_REFRESHES_PER_DAY = 3;
+
+/**
+ * Upper bound on `refreshesPerDay`. 5760/day = one refresh every ~15s
+ * (86400 / 5760), the bench-testing low end of the interval. The per-device
+ * pull rate limit (10/min) stays comfortably above this.
+ */
+export const MAX_REFRESHES_PER_DAY = 5760;
+
 /** Full device configuration */
 export interface BentoConfig {
   readonly boxes: readonly BentoBox[];
-  readonly refreshesPerDay: 1 | 2;
+  /**
+   * Times per day the display is refreshed with newly-sourced data. The
+   * pull-time data-freshness bucket is `86400 / refreshesPerDay` seconds
+   * (RFC 0001 §4): `1` → daily, `3` → every 8h (default), up to
+   * `MAX_REFRESHES_PER_DAY` (~15s) for bench testing. `0` disables scheduled
+   * refresh — the frame then changes only when the config is edited.
+   */
+  readonly refreshesPerDay: number;
   readonly showHeaders?: boolean;
   /** Body font size in pixels (8-42). Defaults to 20. */
   readonly fontSize?: number;
