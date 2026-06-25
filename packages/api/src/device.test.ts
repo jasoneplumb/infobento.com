@@ -7,6 +7,7 @@ import {
   getDeviceFrameForPull,
   isNotModified,
   parseOrientation,
+  refreshIntervalSeconds,
 } from './device.js';
 import { InMemoryCache } from '@infobento/data';
 import type { HydrateDeps } from './hydrate.js';
@@ -157,6 +158,8 @@ describe('getDeviceFrameForPull', () => {
     expect(r.data.byteLength).toBe(156_400);
     // Landscape is wider than tall.
     expect(r.width).toBeGreaterThanOrEqual(r.height);
+    // refreshesPerDay=2 → a 12h (43200s) wake hint for the X-Refresh-Interval header.
+    expect(r.refreshIntervalSec).toBe(43_200);
   });
 
   it('returns a portrait frame with swapped width/height', async () => {
@@ -255,6 +258,18 @@ describe('effectiveLastModified', () => {
     expect(effectiveLastModified({ last_modified: 0, refreshes_per_day: 1 }, now)).toBe(3 * bucket);
   });
 
+  it('uses an 8h bucket for the default refreshesPerDay=3', () => {
+    const bucket = 8 * HOUR_MS;
+    const now = 2 * bucket + 42;
+    expect(effectiveLastModified({ last_modified: 0, refreshes_per_day: 3 }, now)).toBe(2 * bucket);
+  });
+
+  it('disables the scheduled bucket for refreshesPerDay=0 (only config edits advance)', () => {
+    const now = 5 * 8 * HOUR_MS + 123;
+    // Old config, refresh off → stays pinned to last_modified, never advances.
+    expect(effectiveLastModified({ last_modified: 1000, refreshes_per_day: 0 }, now)).toBe(1000);
+  });
+
   it('honors the INFOBENTO_DATA_BUCKET_SECONDS bench override', () => {
     process.env['INFOBENTO_DATA_BUCKET_SECONDS'] = '60';
     const now = 1000 * 60_000 + 30_000; // 30s into a 60s bucket
@@ -270,5 +285,28 @@ describe('effectiveLastModified', () => {
     const result = effectiveLastModified({ last_modified: 0, refreshes_per_day: 2 }, now);
     expect(Number.isNaN(result)).toBe(false);
     expect(result).toBe(4 * bucket);
+  });
+});
+
+describe('refreshIntervalSeconds', () => {
+  beforeEach(() => {
+    delete process.env['INFOBENTO_DATA_BUCKET_SECONDS'];
+  });
+
+  it('maps the cadence to whole seconds (interval = 86400 / n)', () => {
+    expect(refreshIntervalSeconds(1)).toBe(86_400); // 24h
+    expect(refreshIntervalSeconds(3)).toBe(28_800); // 8h (default)
+    expect(refreshIntervalSeconds(5760)).toBe(15); // ~15s testing low end
+  });
+
+  it('returns null when scheduled refresh is disabled (0)', () => {
+    expect(refreshIntervalSeconds(0)).toBeNull();
+  });
+
+  it('honors the bench override', () => {
+    process.env['INFOBENTO_DATA_BUCKET_SECONDS'] = '15';
+    expect(refreshIntervalSeconds(1)).toBe(15);
+    // Override wins even when refresh is otherwise disabled.
+    expect(refreshIntervalSeconds(0)).toBe(15);
   });
 });

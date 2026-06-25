@@ -9,6 +9,7 @@
 
 import Database from 'better-sqlite3';
 import { randomUUID } from 'node:crypto';
+import { DEFAULT_REFRESHES_PER_DAY, MAX_REFRESHES_PER_DAY } from '@infobento/core';
 
 export type DB = Database.Database;
 
@@ -34,9 +35,10 @@ export interface Device {
    */
   readonly forget_pending: number;
   /**
-   * Device refresh cadence (1 or 2 per day), denormalized from the config's
-   * `refreshesPerDay` on every `setConfig`. Kept on the row so the pull-time
-   * `effectiveLastModified` bucket (RFC 0001 §4) is computable before parsing
+   * Device refresh cadence (scheduled data refreshes per day, `0..5760`),
+   * denormalized from the config's `refreshesPerDay` on every `setConfig`. Kept
+   * on the row so the pull-time `effectiveLastModified` bucket (RFC 0001 §4) and
+   * the `X-Refresh-Interval` wake hint are computable before parsing
    * `config_json`, preserving the cheap pre-parse 304 path.
    */
   readonly refreshes_per_day: number;
@@ -80,7 +82,7 @@ const SCHEMA = `
     paired_at        INTEGER,
     last_modified    INTEGER NOT NULL,
     forget_pending   INTEGER NOT NULL DEFAULT 0,
-    refreshes_per_day INTEGER NOT NULL DEFAULT 2
+    refreshes_per_day INTEGER NOT NULL DEFAULT 3
   );
 
   CREATE TABLE IF NOT EXISTS passkey_credentials (
@@ -128,7 +130,7 @@ export function createDb(path: string): DB {
  */
 function runMigrations(db: DB): void {
   ensureColumn(db, 'devices', 'forget_pending', 'INTEGER NOT NULL DEFAULT 0');
-  ensureColumn(db, 'devices', 'refreshes_per_day', 'INTEGER NOT NULL DEFAULT 2');
+  ensureColumn(db, 'devices', 'refreshes_per_day', 'INTEGER NOT NULL DEFAULT 3');
 }
 
 /**
@@ -220,7 +222,7 @@ export function createDevice(db: DB, input: { pairCode: string; id?: string }): 
     paired_at: null,
     last_modified: now,
     forget_pending: 0,
-    refreshes_per_day: 2,
+    refreshes_per_day: DEFAULT_REFRESHES_PER_DAY,
   };
 }
 
@@ -258,16 +260,21 @@ export function claimDevice(db: DB, pairCode: string, accountId: string): Device
 }
 
 /**
- * Derive the denormalized refresh cadence from a config JSON string. Only 1 or 2
- * are valid (`refreshesPerDay: 1 | 2`); anything else — including unparseable
- * JSON — defaults to 2, so the column never drifts to NULL/garbage.
+ * Derive the denormalized refresh cadence from a config JSON string. A valid
+ * value is an integer in `[0, MAX_REFRESHES_PER_DAY]`; anything else — including
+ * unparseable JSON — falls back to the default, so the column never drifts to
+ * NULL/garbage.
  */
 function deriveRefreshesPerDay(configJson: string): number {
   try {
     const parsed = JSON.parse(configJson) as { refreshesPerDay?: unknown };
-    return parsed.refreshesPerDay === 1 ? 1 : 2;
+    const n = parsed.refreshesPerDay;
+    if (typeof n === 'number' && Number.isInteger(n) && n >= 0 && n <= MAX_REFRESHES_PER_DAY) {
+      return n;
+    }
+    return DEFAULT_REFRESHES_PER_DAY;
   } catch {
-    return 2;
+    return DEFAULT_REFRESHES_PER_DAY;
   }
 }
 
@@ -304,7 +311,7 @@ export function unclaimDevice(db: DB, deviceId: string, accountId: string): bool
          SET owner_account_id  = NULL,
              paired_at         = NULL,
              config_json       = NULL,
-             refreshes_per_day = 2,
+             refreshes_per_day = 3,
              last_modified     = ?
        WHERE id = ?
          AND owner_account_id = ?`,

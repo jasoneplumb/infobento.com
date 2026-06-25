@@ -496,6 +496,12 @@ app.get('/api/device/:id/frame', async (c) => {
   const headers: Record<string, string> = {
     'Last-Modified': formatHttpDate(result.lastModifiedMs),
   };
+  // Wake-cadence hint so the device's deep-sleep tracks the configured interval
+  // (issue #152). Omitted when scheduled refresh is disabled — the firmware then
+  // keeps its build-time default.
+  if (result.refreshIntervalSec !== null) {
+    headers['X-Refresh-Interval'] = String(result.refreshIntervalSec);
+  }
   if (consumeForget(getDb(), id)) headers['X-Device-Forget'] = '1';
   if (result.status === 304) {
     return new Response(null, { status: 304, headers });
