@@ -41,6 +41,7 @@ import {
   getFontWeight,
   getCornerRadius,
   getPadding,
+  getRefreshesPerDay,
   getDeviceProfile,
 } from './state';
 
@@ -222,7 +223,7 @@ export function toBentoConfig(boxes: readonly EditorBox[] = getBoxes()): BentoCo
   const profile = getDeviceProfile();
   return {
     boxes: boxes.map(toBentoBox),
-    refreshesPerDay: 1,
+    refreshesPerDay: getRefreshesPerDay(),
     showHeaders: getShowHeaders(),
     fontSize: getFontSize(),
     fontWeight: getFontWeight(),
@@ -253,6 +254,7 @@ export interface ExportConfig {
   fontWeight?: number;
   cornerRadius?: number;
   padding?: number;
+  refreshesPerDay?: number;
 }
 
 /** A core box config is a discriminated union; index it loosely for the inverse. */
@@ -391,5 +393,8 @@ export function fromBentoConfig(config: BentoConfig): ExportConfig {
     ...(typeof config.fontWeight === 'number' ? { fontWeight: config.fontWeight } : {}),
     ...(typeof config.cornerRadius === 'number' ? { cornerRadius: config.cornerRadius } : {}),
     ...(typeof config.padding === 'number' ? { padding: config.padding } : {}),
+    ...(typeof config.refreshesPerDay === 'number'
+      ? { refreshesPerDay: config.refreshesPerDay }
+      : {}),
   };
 }
