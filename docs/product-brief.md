@@ -25,26 +25,26 @@ Tidbyt and TRMNL are the ambient-display references. InfoBento differs by combin
 
 ## Hardware Specifications
 
-| Spec               | Value                                                                                         |
-| ------------------ | --------------------------------------------------------------------------------------------- |
-| **Display**        | Good Display GDEH0576T81 panel, ~$30                                                          |
-| **Size**           | 5.76" diagonal                                                                                |
-| **Resolution**     | 920 × 680 pixels                                                                              |
-| **DPI**            | 198                                                                                           |
-| **Display tech**   | eInk (electrophoretic)                                                                        |
-| **Driver IC**      | SSD2677                                                                                       |
-| **Active area**    | 117.7 × 87.0 mm                                                                               |
-| **Module size**    | 125.4 × 99.5 × 0.9 mm                                                                         |
-| **Refresh time**   | 0.75s full / 0.3s partial; ~1–2 refreshes/day                                                 |
-| **MCU**            | ESP32-C3, ~$2.50, Wi-Fi + BLE (BLE reserved for a possible v2 bridge)                         |
-| **Battery**        | ~100 mAh LiPo (~$2); covers display + Wi-Fi only (no always-on sensors)                       |
-| **Solar**          | ~70×100 mm amorphous-Si (~$3) + AEM10941 harvester (~$3, upper back)                          |
-| **Charging**       | USB-C, ~$2                                                                                    |
-| **PCB + passives** | ~$3                                                                                           |
-| **Enclosure**      | ~14 × 11 cm white monolithic housing (~$5) sized to fit GDEH0576T81 closely; thin bezel ≤4 mm |
-| **Orientation**    | 2× ball-in-tube tilt switches (~$0.20 total) drive orientation auto-rotate                    |
-| **Stand**          | Body-as-stand; fold-out kickstand angles it ~12–15° if needed                                 |
-| **Connectivity**   | Wi-Fi direct, captive portal setup                                                            |
+| Spec               | Value                                                                                           |
+| ------------------ | ----------------------------------------------------------------------------------------------- |
+| **Display**        | Good Display GDEH0576T81 panel, ~$30                                                            |
+| **Size**           | 5.76" diagonal                                                                                  |
+| **Resolution**     | 920 × 680 pixels                                                                                |
+| **DPI**            | 198                                                                                             |
+| **Display tech**   | eInk (electrophoretic)                                                                          |
+| **Driver IC**      | SSD2677                                                                                         |
+| **Active area**    | 117.7 × 87.0 mm                                                                                 |
+| **Module size**    | 125.4 × 99.5 × 0.9 mm                                                                           |
+| **Refresh time**   | 0.75s full / 0.3s partial; ~1–2 refreshes/day                                                   |
+| **MCU**            | ESP32-C3, ~$2.50, Wi-Fi + BLE (BLE reserved for a possible v2 bridge)                           |
+| **Battery**        | ~~100 mAh LiPo (~~$2); covers display + Wi-Fi only (no always-on sensors)                       |
+| **Solar**          | ~~70×100 mm amorphous-Si (~~$3) + AEM10941 harvester (~$3, upper back)                          |
+| **Charging**       | USB-C, ~$2                                                                                      |
+| **PCB + passives** | ~$3                                                                                             |
+| **Enclosure**      | ~~14 × 11 cm white monolithic housing (~~$5) sized to fit GDEH0576T81 closely; thin bezel ≤4 mm |
+| **Orientation**    | 2× ball-in-tube tilt switches (~$0.20 total) drive orientation auto-rotate                      |
+| **Stand**          | Body-as-stand; fold-out kickstand angles it ~12–15° if needed                                   |
+| **Connectivity**   | Wi-Fi direct, captive portal setup                                                              |
 
 **Total device BOM ≈ $45–50 at Kickstarter volume (qty ~1k):** GDEH0576T81 panel ~$30 (dominates), ESP32-C3 ~$2.50, ~100 mAh LiPo ~$2, solar panel ~$3, AEM10941 harvester ~$3, USB-C charge ~$2, PCB + passives ~$3, housing ~$5, 2× tilt switches ~$0.20. Figures are estimates pending manufacturer quotes.
 

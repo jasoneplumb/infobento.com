@@ -64,7 +64,7 @@ export function calculateLayout(
   let rowCount = 0;
   let usedHeight = 0;
   let rowCutoff = boxes.length; // exclusive box index where rows stop fitting
-  for (let i = 0; i < boxes.length; ) {
+  for (let i = 0; i < boxes.length;) {
     const box = boxes[i];
     const nextBox = i + 1 < boxes.length ? boxes[i + 1] : undefined;
     const isPair = box?.split === 'left' && nextBox?.split === 'right';
