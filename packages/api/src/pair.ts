@@ -67,9 +67,7 @@ export function createPairHandler(getDb: () => DB) {
     // in a transaction so a concurrent claim can't slip between them and turn a
     // would-be 404/200 into a misreported status.
     type Outcome =
-      | { status: 404 }
-      | { status: 409 }
-      | { status: 200; deviceId: string; config: unknown };
+      { status: 404 } | { status: 409 } | { status: 200; deviceId: string; config: unknown };
     const outcome = db.transaction((): Outcome => {
       const existing = getDeviceByPairCode(db, code);
       if (!existing) return { status: 404 };

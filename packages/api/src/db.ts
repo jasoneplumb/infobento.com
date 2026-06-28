@@ -194,8 +194,7 @@ export function getAccount(db: DB, id: string): Account | null {
 
 export function getAccountByEmail(db: DB, email: string): Account | null {
   const row = db.prepare('SELECT * FROM accounts WHERE email = ?').get(email) as
-    | Account
-    | undefined;
+    Account | undefined;
   return row ?? null;
 }
 
@@ -233,8 +232,7 @@ export function getDevice(db: DB, id: string): Device | null {
 
 export function getDeviceByPairCode(db: DB, code: string): Device | null {
   const row = db.prepare('SELECT * FROM devices WHERE pair_code = ?').get(code) as
-    | Device
-    | undefined;
+    Device | undefined;
   return row ?? null;
 }
 

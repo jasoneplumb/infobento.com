@@ -94,13 +94,11 @@ export function createListDevicesHandler(getDb: () => DB) {
     const session = readSession(c);
     if (!session) return c.json({ error: 'unauthenticated' }, 401);
 
-    const devices = getDevicesForAccount(getDb(), session.accountId).map(
-      (d): DeviceSummary => ({
-        id: d.id,
-        pairCode: d.pair_code,
-        hasConfig: d.config_json != null,
-      }),
-    );
+    const devices = getDevicesForAccount(getDb(), session.accountId).map((d): DeviceSummary => ({
+      id: d.id,
+      pairCode: d.pair_code,
+      hasConfig: d.config_json != null,
+    }));
     return c.json({ devices });
   };
 }
