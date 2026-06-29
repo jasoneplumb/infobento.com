@@ -29,6 +29,18 @@
    holds **DTR/RTS asserted**, which on the ESP32-S3 auto-reset circuit can pin
    GPIO0 low and trap the chip in the ROM bootloader (no app output). Use
    `arduino-cli monitor` — it manages DTR/RTS so the app actually runs.
+4. **The dev API binds loopback by default.** `npm run dev -w @infobento/api`
+   listens on **`127.0.0.1:4000`**, so the device (on Wi-Fi) can't reach it and a
+   LAN `curl http://<mac-ip>:4000/…` returns `000`. Start it with **`HOST=0.0.0.0`**
+   to bind all interfaces: `HOST=0.0.0.0 npm run dev -w @infobento/api`. macOS may
+   prompt to allow incoming connections for `node` — allow it. (The device must also
+   be on the **same 2.4 GHz** SSID — the ESP32-S3 has no 5 GHz radio.)
+5. **Point the API at the right DB.** The server opens
+   `/var/lib/infobento/data.db` by default, but a bench device is usually minted into
+   a local `dev.db`. If `/frame` returns `404` for a known-good device id, the API is
+   on the wrong DB — start it with **`INFOBENTO_DB_PATH=…/dev.db`**. To confirm which
+   device ids exist: `sqlite3 dev.db "SELECT id, CASE WHEN config_json IS NULL THEN
+'no-config' ELSE 'ok' END FROM devices;"`.
 
 ## Phase 0 — prerequisites (host side) ✅
 

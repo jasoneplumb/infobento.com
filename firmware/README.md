@@ -30,16 +30,16 @@ moves to the native USB port (`/dev/cu.usbmodem*`) and bridge-port prints vanish
 
 ## Phase status
 
-| Phase | Sketch                                           | Proves                                                                                                                      | Status                          |
-| ----- | ------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------- | ------------------------------- |
-| 0     | (server) `scripts/mint-device.ts`                | mint device, `/frame` returns 200                                                                                           | ✅ done (PR #109)               |
-| 1     | [`blink/`](blink/blink.ino)                      | toolchain + boot + serial, no panel                                                                                         | ✅ bench-verified               |
-| 2     | [`static-frame/`](static-frame/static-frame.ino) | framebuffer-translation path: native 2bpp → UC8179 two-plane upload (4-band gray ramp)                                      | ✅ bench-verified               |
-| 3     | [`device-pull/`](device-pull/device-pull.ino)    | Wi-Fi + `GET /api/device/<id>/frame` poll loop with `If-Modified-Since`/304 skip                                            | ✅ bench-verified               |
-| 4     | [`deep-sleep/`](deep-sleep/deep-sleep.ino)       | deep sleep + RTC wake; RTC-persisted `Last-Modified` so a 304 wake skips the refresh                                        | ✅ bench-verified               |
-| 5     | [`resilient/`](resilient/resilient.ino)          | resilience: graceful 404/429/5xx/Wi-Fi-fail handling, brownout recovery, clean draw-abort                                   | 🔄 compile-clean; bench-pending |
-| 6     | [`provisioning/`](provisioning/provisioning.ino) | captive-portal provisioning: AP-mode first boot, Wi-Fi scan/entry → NVS, OS auto-launch probes, pinhole factory reset → #39 | ✅ bench-verified               |
-| 7     | —                                                | port to production GDEH0576T81 + ESP32-C3 → #57                                                                             | ⬜ (blocked on dev kit)         |
+| Phase | Sketch                                           | Proves                                                                                                                      | Status                  |
+| ----- | ------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------- | ----------------------- |
+| 0     | (server) `scripts/mint-device.ts`                | mint device, `/frame` returns 200                                                                                           | ✅ done (PR #109)       |
+| 1     | [`blink/`](blink/blink.ino)                      | toolchain + boot + serial, no panel                                                                                         | ✅ bench-verified       |
+| 2     | [`static-frame/`](static-frame/static-frame.ino) | framebuffer-translation path: native 2bpp → UC8179 two-plane upload (4-band gray ramp)                                      | ✅ bench-verified       |
+| 3     | [`device-pull/`](device-pull/device-pull.ino)    | Wi-Fi + `GET /api/device/<id>/frame` poll loop with `If-Modified-Since`/304 skip                                            | ✅ bench-verified       |
+| 4     | [`deep-sleep/`](deep-sleep/deep-sleep.ino)       | deep sleep + RTC wake; RTC-persisted `Last-Modified` so a 304 wake skips the refresh                                        | ✅ bench-verified       |
+| 5     | [`resilient/`](resilient/resilient.ino)          | resilience: graceful 404/429/5xx/Wi-Fi-fail handling, brownout recovery, clean draw-abort                                   | ✅ bench-verified       |
+| 6     | [`provisioning/`](provisioning/provisioning.ino) | captive-portal provisioning: AP-mode first boot, Wi-Fi scan/entry → NVS, OS auto-launch probes, pinhole factory reset → #39 | ✅ bench-verified       |
+| 7     | —                                                | port to production GDEH0576T81 + ESP32-C3 → #57                                                                             | ⬜ (blocked on dev kit) |
 
 "Bench-verified" = run on real E1001 hardware. Phase 3 evidence lives in the
 (gitignored) `dev/serial.log`: a live run shows `GET → 200`, `drew frame in
@@ -83,20 +83,42 @@ reads higher than the ~10 µA production target because of its always-on
 peripherals + USB-UART bridge, so the definitive number is an ESP32-C3
 measurement deferred to Phase 7.
 
+**Phase 5 bench-verified on the E1001** (`IB_SLEEP_SECONDS` = 30 s bench cadence). A
+live run walked all five cases on serial; in every failure case the panel kept its
+last good frame and the device slept and recovered on its own:
+
+- **API down** → `GET -> -1` → `keep last frame, retry next wake` → `deep sleep 30 s`;
+  restarting the server → a later wake reconnects (`304 -> skip`).
+- **Unprovisioned id** (config cleared in the DB) → `GET -> 404 ... unprovisioned ->
+keep last frame`, no draw.
+- **Wi-Fi failure** (bogus SSID) → `Wi-Fi FAILED -> keep last frame, retry next wake`,
+  sleeps without hanging.
+- **Rate limit** (device id hammered past 10/min) → `GET -> 429 -> honor Retry-After,
+sleep 60 s` — note the **60 s** back-off, distinct from the normal 30 s.
+- **Normal** (bumped `last_modified`) → exactly one `GET -> 200 ... drew frame`, then
+  `304 -> skip` on the next wake (token committed to RTC only after the confirmed draw).
+
 **Phase 5 bench check (operator).** Flash `resilient/` and force each failure — in
 every case the panel must keep its last good frame (never blank/garble) and the
 device must sleep and recover on its own:
 
 - **API down:** stop the Hono server → `GET -> <negative>` → `keep last frame,
 retry next wake` → `deep sleep`. Restart the server → a later wake draws normally.
-- **Unprovisioned id:** point `secrets.h` at a device with no config (or clear it)
-  → `GET -> 404 ... unprovisioned` → sleep, no draw.
-- **Wrong creds:** break `WIFI_PASS` → `Wi-Fi FAILED` → `keep last frame` → sleep
-  (no hang, no crash).
-- **Rate limit:** hammer the device id past 10/min → `GET -> 429 ... honor
-Retry-After, sleep 60 s`.
-- **Normal:** unchanged config still `304 -> skip`; a pushed config still draws once
-  then returns to 304 (token committed only after the confirmed draw).
+- **Unprovisioned id:** point `secrets.h` at a device with no config (or clear it in
+  the DB: `UPDATE devices SET config_json=NULL WHERE id=…`) → `GET -> 404 ...
+unprovisioned` → sleep, no draw.
+- **Wi-Fi failure:** break the **SSID** (point at a non-existent network) → `Wi-Fi
+FAILED` → `keep last frame` → sleep (no hang, no crash). Note: breaking `WIFI_PASS`
+  does **not** work on an **open** network — an open AP associates with any password
+  string, so it would falsely "pass". Break the SSID (works on any network), or break
+  the password only against a **WPA2** AP.
+- **Rate limit:** hammer the device id past 10/min (e.g. burst `curl …/config` for it)
+  → `GET -> 429 ... honor Retry-After, sleep 60 s`. The bucket is per-device-id and
+  shared across `/config` + `/frame`, and refills 1 token/6 s, so sustain the burst
+  across a wake.
+- **Normal:** unchanged config still `304 -> skip`; a pushed config (or a bumped
+  `last_modified`) still draws once then returns to 304 (token committed only after
+  the confirmed draw).
 
 **Phase 6 bench-verified on the E1001.** A live run walked the full out-of-box
 flow on serial: first boot → `no creds -> AP mode, SSID 'InfoBento-C93F'` →
@@ -207,8 +229,8 @@ obtains them from the user, so it compiles and runs with nothing pre-baked.
    `IB_SLEEP_SECONDS` build constant. `Last-Modified` persists across sleeps in
    RTC slow memory (`RTC_DATA_ATTR`), so a 304 wake returns to sleep without
    touching the panel. This is what makes the solar/battery budget real.
-2. **Phase 5 — resilience.** 🔄 implemented (`resilient/`, compile-clean,
-   bench-pending). Every failure mode degrades gracefully: Wi-Fi down / wrong
+2. **Phase 5 — resilience.** ✅ bench-verified (`resilient/`). Every failure mode
+   degrades gracefully: Wi-Fi down / wrong
    creds / 404 (unprovisioned) / 5xx / transport error → don't draw, sleep the
    normal cadence, retry next wake (eInk holds the last good frame for free, so no
    flash framebuffer cache is needed); 429 → honor `Retry-After`; brownout reset →
