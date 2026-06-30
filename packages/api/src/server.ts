@@ -54,6 +54,7 @@ import {
   formatHttpDate,
   getDeviceConfigForPull,
   getDeviceFrameForPull,
+  getDeviceFramesForPull,
   parseOrientation,
 } from './device.js';
 import { defaultHydrateDeps } from './hydrate.js';
@@ -511,6 +512,51 @@ app.get('/api/device/:id/frame', async (c) => {
   headers['X-Frame-Width'] = String(result.width);
   headers['X-Frame-Height'] = String(result.height);
   return new Response(result.data as unknown as BodyInit, { status: 200, headers });
+});
+
+// Combined raw pull: BOTH orientations in one response so the device can flip
+// orientation locally with no network round trip (issue #160, RFC 0002). Shares
+// the /frame trust boundary, rate token, 304 gate, and forget ride-along.
+app.get('/api/device/:id/frames', async (c) => {
+  const id = c.req.param('id');
+  if (!consumeToken(id)) {
+    return c.json({ error: 'rate_limited' }, 429, { 'Retry-After': '60' });
+  }
+  const result = await getDeviceFramesForPull(
+    getDb(),
+    id,
+    c.req.header('if-modified-since') ?? null,
+    defaultHydrateDeps(),
+  );
+  if (result.status === 404) return c.json({ error: 'not_found' }, 404);
+  if (result.status === 500) return c.json({ error: result.error }, 500);
+  const headers: Record<string, string> = {
+    'Last-Modified': formatHttpDate(result.lastModifiedMs),
+  };
+  if (result.refreshIntervalSec !== null) {
+    headers['X-Refresh-Interval'] = String(result.refreshIntervalSec);
+  }
+  if (consumeForget(getDb(), id)) headers['X-Device-Forget'] = '1';
+  if (result.status === 304) {
+    return new Response(null, { status: 304, headers });
+  }
+  // 200: landscape then portrait, concatenated into one octet stream. Per-orientation
+  // byte lengths are declared in headers so the device splits the body without
+  // assuming the two halves are equal — they are for these panels, but the contract
+  // must not bake that in (RFC 0002 §Q1).
+  const { landscape, portrait } = result;
+  const body = new Uint8Array(landscape.data.byteLength + portrait.data.byteLength);
+  body.set(landscape.data, 0);
+  body.set(portrait.data, landscape.data.byteLength);
+  headers['Content-Type'] = 'application/octet-stream';
+  headers['Content-Length'] = String(body.byteLength);
+  headers['X-Frame-Landscape-Width'] = String(landscape.width);
+  headers['X-Frame-Landscape-Height'] = String(landscape.height);
+  headers['X-Frame-Landscape-Bytes'] = String(landscape.data.byteLength);
+  headers['X-Frame-Portrait-Width'] = String(portrait.width);
+  headers['X-Frame-Portrait-Height'] = String(portrait.height);
+  headers['X-Frame-Portrait-Bytes'] = String(portrait.data.byteLength);
+  return new Response(body as unknown as BodyInit, { status: 200, headers });
 });
 
 // --- Static file serving (production) ---

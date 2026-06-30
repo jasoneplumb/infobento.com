@@ -5,6 +5,7 @@ import {
   formatHttpDate,
   getDeviceConfigForPull,
   getDeviceFrameForPull,
+  getDeviceFramesForPull,
   isNotModified,
   parseOrientation,
   refreshIntervalSeconds,
@@ -232,6 +233,78 @@ describe('getDeviceFrameForPull', () => {
     const d = createDevice(db, { pairCode: 'BADJSON' });
     setConfig(db, d.id, '{ this is not json');
     const r = await getDeviceFrameForPull(db, d.id, 'landscape', null, makeDeps());
+    expect(r.status).toBe(500);
+  });
+});
+
+describe('getDeviceFramesForPull', () => {
+  let db: DB;
+  beforeEach(() => {
+    db = createDb(':memory:');
+    delete process.env['INFOBENTO_DATA_BUCKET_SECONDS'];
+  });
+
+  it('returns 404 for unknown device id', async () => {
+    expect(await getDeviceFramesForPull(db, 'nope', null, makeDeps())).toEqual({ status: 404 });
+  });
+
+  it('returns 404 for a device that has no config', async () => {
+    const d = createDevice(db, { pairCode: 'NOCONFIG3' });
+    expect(await getDeviceFramesForPull(db, d.id, null, makeDeps())).toEqual({ status: 404 });
+  });
+
+  it('returns 200 with BOTH orientations and correct per-orientation byte lengths', async () => {
+    const { id } = seedDeviceWithConfig(db);
+    const r = await getDeviceFramesForPull(db, id, null, makeDeps());
+    expect(r.status).toBe(200);
+    if (r.status !== 200) throw new Error('unreachable');
+    // 920 x 680 at 2bpp packs to 156,400 bytes per orientation.
+    expect(r.landscape.data.byteLength).toBe(156_400);
+    expect(r.portrait.data.byteLength).toBe(156_400);
+    // Landscape is wider than tall; portrait is the swap.
+    expect(r.landscape.width).toBeGreaterThanOrEqual(r.landscape.height);
+    expect(r.portrait.height).toBeGreaterThanOrEqual(r.portrait.width);
+    expect(r.landscape.width).toBe(r.portrait.height);
+    expect(r.landscape.height).toBe(r.portrait.width);
+    // refreshesPerDay=2 → a 12h (43200s) wake hint, same as /frame.
+    expect(r.refreshIntervalSec).toBe(43_200);
+  });
+
+  it('returns 304 within the window when If-Modified-Since matches (same gate as /frame)', async () => {
+    const { id, lastModifiedMs } = seedDeviceWithConfig(db);
+    const r = await getDeviceFramesForPull(
+      db,
+      id,
+      formatHttpDate(lastModifiedMs),
+      makeDeps(),
+      lastModifiedMs,
+    );
+    expect(r.status).toBe(304);
+    if (r.status !== 304) throw new Error('unreachable');
+    expect(r.lastModifiedMs).toBe(lastModifiedMs);
+    expect(r.refreshIntervalSec).toBe(43_200);
+  });
+
+  it('redraws (200) at the next data-bucket boundary even when the config is unchanged', async () => {
+    const { id, lastModifiedMs } = seedDeviceWithConfig(db); // refreshesPerDay=2 → 12h bucket
+    const nextBoundary =
+      Math.floor(lastModifiedMs / (12 * HOUR_MS)) * (12 * HOUR_MS) + 12 * HOUR_MS;
+    const r = await getDeviceFramesForPull(
+      db,
+      id,
+      formatHttpDate(lastModifiedMs),
+      makeDeps(),
+      nextBoundary + 1000,
+    );
+    expect(r.status).toBe(200);
+    if (r.status !== 200) throw new Error('unreachable');
+    expect(r.lastModifiedMs).toBe(nextBoundary);
+  });
+
+  it('returns 500 when stored config is corrupt JSON', async () => {
+    const d = createDevice(db, { pairCode: 'BADJSON2' });
+    setConfig(db, d.id, '{ this is not json');
+    const r = await getDeviceFramesForPull(db, d.id, null, makeDeps());
     expect(r.status).toBe(500);
   });
 });
