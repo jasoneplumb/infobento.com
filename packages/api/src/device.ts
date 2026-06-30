@@ -37,6 +37,36 @@ export type DeviceFrameResult =
   | { readonly status: 404 }
   | { readonly status: 500; readonly error: string };
 
+/** One rendered orientation's payload — the raw 2bpp buffer and its dimensions. */
+export interface FramePayload {
+  readonly data: Uint8Array;
+  readonly width: number;
+  readonly height: number;
+}
+
+/**
+ * Result of the combined `GET /api/device/:id/frames` pull: BOTH orientations in
+ * one response so the device can flip locally (issue #160, RFC 0002). Shares the
+ * 304/404/500 shapes with `DeviceFrameResult` so the two endpoints' freshness
+ * semantics stay identical.
+ */
+export type DeviceFramesResult =
+  | {
+      readonly status: 200;
+      readonly landscape: FramePayload;
+      readonly portrait: FramePayload;
+      readonly lastModifiedMs: number;
+      /** Seconds until the next pull (`X-Refresh-Interval`); null = disabled. */
+      readonly refreshIntervalSec: number | null;
+    }
+  | {
+      readonly status: 304;
+      readonly lastModifiedMs: number;
+      readonly refreshIntervalSec: number | null;
+    }
+  | { readonly status: 404 }
+  | { readonly status: 500; readonly error: string };
+
 /**
  * Compare an `If-Modified-Since` header value to a stored ms timestamp.
  * HTTP dates are second-precision, so we floor both sides to seconds before
@@ -123,14 +153,35 @@ export function getDeviceConfigForPull(
   };
 }
 
-export async function getDeviceFrameForPull(
+/**
+ * Shared pull pipeline for the frame endpoints: device lookup → 304 gate →
+ * parse → hydrate → `renderBoth`. Both `getDeviceFrameForPull` (one orientation)
+ * and `getDeviceFramesForPull` (both) thin-wrap this, so their 304/404/500 paths
+ * and freshness semantics are identical by construction — not by copy-paste.
+ * On 200 it hands back the full dual render; the caller projects what it needs.
+ */
+type FramePullResult =
+  | {
+      readonly status: 200;
+      readonly dual: ReturnType<typeof renderBoth>;
+      readonly lastModifiedMs: number;
+      readonly refreshIntervalSec: number | null;
+    }
+  | {
+      readonly status: 304;
+      readonly lastModifiedMs: number;
+      readonly refreshIntervalSec: number | null;
+    }
+  | { readonly status: 404 }
+  | { readonly status: 500; readonly error: string };
+
+async function pullDeviceFrames(
   db: DB,
   deviceId: string,
-  orientation: Orientation,
   ifModifiedSince: string | null,
   deps: HydrateDeps,
-  nowMs: number = Date.now(),
-): Promise<DeviceFrameResult> {
+  nowMs: number,
+): Promise<FramePullResult> {
   const device = getDevice(db, deviceId);
   if (!device || !device.config_json) return { status: 404 };
   // Wake-cadence hint, sent on both 304 and 200 so the device's sleep tracks the
@@ -157,23 +208,60 @@ export async function getDeviceFrameForPull(
   } catch (e) {
     return { status: 500, error: e instanceof Error ? e.message : 'hydration failed' };
   }
-  let dual;
   try {
-    dual = renderBoth(hydrated);
+    const dual = renderBoth(hydrated);
+    return { status: 200, dual, lastModifiedMs: effectiveMs, refreshIntervalSec };
   } catch (e) {
-    return {
-      status: 500,
-      error: e instanceof Error ? e.message : 'render failed',
-    };
+    return { status: 500, error: e instanceof Error ? e.message : 'render failed' };
   }
-  const fb = orientation === 'portrait' ? dual.portrait : dual.landscape;
+}
+
+export async function getDeviceFrameForPull(
+  db: DB,
+  deviceId: string,
+  orientation: Orientation,
+  ifModifiedSince: string | null,
+  deps: HydrateDeps,
+  nowMs: number = Date.now(),
+): Promise<DeviceFrameResult> {
+  const r = await pullDeviceFrames(db, deviceId, ifModifiedSince, deps, nowMs);
+  if (r.status !== 200) return r;
+  const fb = orientation === 'portrait' ? r.dual.portrait : r.dual.landscape;
   return {
     status: 200,
     data: fb.data,
     width: fb.width,
     height: fb.height,
-    lastModifiedMs: effectiveMs,
-    refreshIntervalSec,
+    lastModifiedMs: r.lastModifiedMs,
+    refreshIntervalSec: r.refreshIntervalSec,
+  };
+}
+
+/**
+ * Combined pull: render once, return BOTH orientations (issue #160, RFC 0002).
+ * Identical 304/404/500 gating to `getDeviceFrameForPull` — the device caches
+ * both frames so a manual orientation flip needs no network round trip.
+ */
+export async function getDeviceFramesForPull(
+  db: DB,
+  deviceId: string,
+  ifModifiedSince: string | null,
+  deps: HydrateDeps,
+  nowMs: number = Date.now(),
+): Promise<DeviceFramesResult> {
+  const r = await pullDeviceFrames(db, deviceId, ifModifiedSince, deps, nowMs);
+  if (r.status !== 200) return r;
+  const toPayload = (fb: ReturnType<typeof renderBoth>['landscape']): FramePayload => ({
+    data: fb.data,
+    width: fb.width,
+    height: fb.height,
+  });
+  return {
+    status: 200,
+    landscape: toPayload(r.dual.landscape),
+    portrait: toPayload(r.dual.portrait),
+    lastModifiedMs: r.lastModifiedMs,
+    refreshIntervalSec: r.refreshIntervalSec,
   };
 }
 

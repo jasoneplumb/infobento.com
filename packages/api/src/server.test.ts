@@ -210,3 +210,80 @@ describe('X-Device-Forget delivery on device-pull', () => {
     expect(res.headers.get('X-Refresh-Interval')).toBeNull();
   });
 });
+
+/**
+ * Combined dual-orientation pull (issue #160, RFC 0002): `GET /frames` returns
+ * both framebuffers concatenated so the device can flip orientation locally. It
+ * shares the /frame trust boundary, 304 gate, and ride-along headers.
+ */
+describe('GET /api/device/:id/frames', () => {
+  const VALID_CONFIG = JSON.stringify({
+    boxes: [{ id: '1', label: 'Hi', type: 'text', config: { type: 'text', text: 'yo' } }],
+    refreshesPerDay: 1,
+  });
+
+  beforeEach(() => {
+    process.env['SESSION_SECRET'] = 'test-secret-at-least-16-chars';
+    process.env['INFOBENTO_DB_PATH'] = ':memory:';
+    _resetSingletonForTesting();
+    resetRateLimit();
+  });
+
+  afterEach(() => {
+    Reflect.deleteProperty(process.env, 'SESSION_SECRET');
+    Reflect.deleteProperty(process.env, 'INFOBENTO_DB_PATH');
+    _resetSingletonForTesting();
+  });
+
+  function seedDevice(pairCode: string): string {
+    const db = getDb();
+    const device = createDevice(db, { pairCode });
+    setConfig(db, device.id, VALID_CONFIG);
+    return device.id;
+  }
+
+  it('200 returns both frames concatenated with per-orientation byte-length headers', async () => {
+    const id = seedDevice('FRAMES1');
+    const res = await app.request(`/api/device/${id}/frames`);
+    expect(res.status).toBe(200);
+    expect(res.headers.get('Content-Type')).toBe('application/octet-stream');
+
+    const landBytes = Number(res.headers.get('X-Frame-Landscape-Bytes'));
+    const portBytes = Number(res.headers.get('X-Frame-Portrait-Bytes'));
+    // 920 x 680 at 2bpp packs to 156,400 bytes per orientation.
+    expect(landBytes).toBe(156_400);
+    expect(portBytes).toBe(156_400);
+
+    // Declared dims: landscape wide, portrait tall.
+    expect(Number(res.headers.get('X-Frame-Landscape-Width'))).toBeGreaterThanOrEqual(
+      Number(res.headers.get('X-Frame-Landscape-Height')),
+    );
+    expect(Number(res.headers.get('X-Frame-Portrait-Height'))).toBeGreaterThanOrEqual(
+      Number(res.headers.get('X-Frame-Portrait-Width')),
+    );
+
+    // Body is exactly the two halves concatenated; Content-Length agrees.
+    const body = new Uint8Array(await res.arrayBuffer());
+    expect(body.byteLength).toBe(landBytes + portBytes);
+    expect(Number(res.headers.get('Content-Length'))).toBe(body.byteLength);
+  });
+
+  it('304 (If-Modified-Since) returns no body — same gate as /frame', async () => {
+    const id = seedDevice('FRAMES2');
+    const first = await app.request(`/api/device/${id}/frames`);
+    expect(first.status).toBe(200);
+    const lastModified = first.headers.get('Last-Modified') ?? '';
+    expect(lastModified).not.toBe('');
+
+    const second = await app.request(`/api/device/${id}/frames`, {
+      headers: { 'If-Modified-Since': lastModified },
+    });
+    expect(second.status).toBe(304);
+    expect((await second.arrayBuffer()).byteLength).toBe(0);
+  });
+
+  it('404 for an unknown device id', async () => {
+    const res = await app.request('/api/device/does-not-exist/frames');
+    expect(res.status).toBe(404);
+  });
+});
