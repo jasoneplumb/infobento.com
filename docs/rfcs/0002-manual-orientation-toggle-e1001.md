@@ -16,22 +16,24 @@ trip**. Each scheduled (network) wake fetches **both** orientation framebuffers
 and persists them to flash; a manual trigger then wakes the device, reads the
 _other_ orientation from flash, and refreshes the panel. The cloud render
 pipeline is essentially unchanged; the work is one new combined raw endpoint, a
-flash-backed frame store on the device, a button wake source, and a
-redraw-from-flash path. The "cache both frames + redraw locally" machinery is a
+flash-backed frame store on the device, a dedicated **green-button** wake source,
+and a redraw-from-flash path. The "cache both frames + redraw locally" machinery is a
 deliberate **shared enabler** for the tilt-driven auto-rotate in #49.
 
 ## Decisions
 
-| #   | Question             | Recommendation                                                                                                                                                                                                                                      |
-| --- | -------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 1   | Both-frames delivery | **New combined `GET /api/device/:id/frames`** returning both raw buffers in one response. The frame handler already renders both orientations; two `/frame` calls double the render, hydration, TLS, and rate-token cost for nothing.               |
-| 2   | Storage across sleep | Persist both raw frames in a **LittleFS data partition** (`/orient/frames.bin`, 2× the panel frame). Written **only on a network wake** (1–2×/day) → wear is decades; read on a button wake.                                                        |
-| 3   | Manual trigger input | For the E1001 prototype, **reuse the recessed pinhole (GPIO2) with press-duration discrimination** — short tap = orientation toggle, ≥5 s hold = existing factory reset. A dedicated button is the production path, deferred to SCAD #50 / Phase 7. |
-| 4   | Wake source          | **ext1 deep-sleep wake** on the pinhole GPIO (idle-HIGH → `ESP_EXT1_WAKEUP_ANY_LOW`), alongside the existing RTC-timer wake; on a button wake, redraw the other cached orientation from flash with the radio off.                                   |
+| #   | Question             | Recommendation                                                                                                                                                                                                                                                                                                                                                                   |
+| --- | -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | Both-frames delivery | **New combined `GET /api/device/:id/frames`** returning both raw buffers in one response. The frame handler already renders both orientations; two `/frame` calls double the render, hydration, TLS, and rate-token cost for nothing.                                                                                                                                            |
+| 2   | Storage across sleep | Persist both raw frames in a **LittleFS data partition** (`/orient/frames.bin`, 2× the panel frame). Written **only on a network wake** (1–2×/day) → wear is decades; read on a button wake.                                                                                                                                                                                     |
+| 3   | Manual trigger input | Use the E1001's **dedicated green user button** as a single-purpose orientation toggle on **its own GPIO**. **Do not overload the reset pinhole** — factory reset stays GPIO2-only and unchanged. The button's exact GPIO and idle polarity are a bench-confirm item (not documented in-repo); it **must** be an RTC-capable pin so it can wake the device from deep sleep (Q4). |
+| 4   | Wake source          | **ext1 deep-sleep wake** on the **green-button GPIO** (polarity per the button's wiring — confirm at bench; likely active-LOW → `ESP_EXT1_WAKEUP_ANY_LOW`), alongside the existing RTC-timer wake. On a button wake, redraw the other cached orientation from flash with the radio off. The reset pinhole keeps its own wake/reset behavior, separate and unchanged.             |
 
-MCU-specific items (ext1 → C3 GPIO-wake API; GPIO2 → GPIO9 pinhole) are marked
-for the Phase 7 ESP32-C3 port (#57), mirroring the existing GPIO2-vs-GPIO9
-pinhole split documented in `firmware/provisioning/provisioning.ino`.
+MCU-specific items (ext1 → C3 GPIO-wake API; the green-button GPIO is re-mapped
+for the production board) are marked for the Phase 7 ESP32-C3 port (#57). The
+reset **pinhole** keeps its own GPIO2-vs-GPIO9 split
+(`firmware/provisioning/provisioning.ino`); the toggle button is a **separate**
+input from the pinhole on both boards.
 
 ## Motivation
 
@@ -67,7 +69,8 @@ problem this RFC solves.
   edits) — explicitly out of scope per the issue; separate issue.
 - Full 4-orientation auto-rotate and tilt hardware (#49 / #48) — this RFC is the
   **manual** trigger and the shared enabler only.
-- A production dedicated button + the enclosure hole for it (SCAD #50 / Phase 7).
+- The production enclosure hole / button placement for the toggle button (SCAD
+  #50 / Phase 7).
 - Changing the eInk cadence or the deep-sleep/RTC model.
 
 ## Question 1 — Both-frames delivery
@@ -217,61 +220,63 @@ wake ever populated it), the device logs and sleeps without drawing — same
 
 ## Question 3 — Manual trigger input
 
-**Recommendation for the E1001 prototype: reuse the existing recessed pinhole
-(GPIO2) with press-duration discrimination.** A short tap (release before
-~1.5 s) toggles orientation; the existing ≥5 s hold still factory-resets; the
-1.5–5 s dead-band does nothing (so a hesitant press can't accidentally reset).
+**Recommendation: use the E1001's dedicated green user button as a
+single-purpose orientation toggle, on its own GPIO — and leave the reset pinhole
+alone.** A debounced press flips orientation; the recessed pinhole keeps its sole
+job (≥5 s hold = factory reset), untouched. Two physical inputs, two unambiguous
+meanings.
 
 ### Rationale and tradeoffs
 
-- **Zero new hardware / no enclosure change.** GPIO2 is already the pinhole on
-  the E1001 (`provisioning.ino:77`, J2 header pin 4, one pin from GND), it is a
-  plain non-strapping GPIO/ADC pin, and it is **RTC-capable on the S3**, so it can
-  serve as an ext1 deep-sleep wake source (Question 4). It is bench-testable
-  exactly like the factory reset: bridge J2 pin 4 to J2 pin 2 (GND).
-- **The factory-reset hold semantics are preserved.** `checkPinhole`
-  (`provisioning.ino:398`) already debounces a continuous hold and resets the
-  timer on release; the toggle is just a second, shorter threshold on the same
-  measured hold. On an ext1 wake the button is held LOW (that is what woke us), so
-  the device stays awake, times the hold, and branches: `< 1.5 s` → toggle,
-  `≥ 5 s` → factory reset, in-between → no-op.
-- **Tradeoff — overloaded input.** A paperclip pinhole is a poor _everyday_
-  "flip my screen" affordance, and one physical input now carries two meanings.
-  This is acceptable **because #160 targets the E1001 _test_ device to prove the
-  cache-both-redraw-locally mechanism**, not to ship the final UX. The production
-  manual affordance (a dedicated side/top tactile button, or simply relying on
-  the tilt-switch auto-rotate of #49) is deferred.
-- **Alternative — dedicated button on a free RTC-capable GPIO.** Cleaner UX, but
-  (1) needs a new enclosure hole → must coordinate with the SCAD model (#50), and
-  (2) needs a **free RTC-capable GPIO**, which is scarce on the E1001: SCK 7,
-  MOSI 9, CS 10, DC 11, RES 12, BUSY 13 are the panel SPI bus; GPIO0 is
-  BOOT/USB-DTR; GPIO19/20 are native USB; GPIO2 is the pinhole. A specific free
-  pin would have to be confirmed against the board's exposed headers at the bench
-  — see open questions. Recommend deferring this to production rather than
-  blocking #160 on an enclosure decision.
+- **Clean, single-purpose affordance.** A real front/side button is a far better
+  "flip my screen" control than a paperclip pinhole, and it removes the safety
+  hazard of an everyday gesture sharing an input with destructive factory reset.
+  No press-duration guessing, no dead-band, no risk of a held toggle wiping creds.
+- **The reset pinhole is unchanged.** `checkPinhole` (`provisioning.ino:398`) and
+  its ≥5 s factory-reset hold keep working exactly as bench-verified in PR #134.
+  This RFC adds an **independent** GPIO; it does not modify the pinhole path at all.
+- **Hard requirement — the button's GPIO must be RTC-capable.** To wake the device
+  from deep sleep (Question 4) the green button must sit on an RTC IO (ESP32-S3 RTC
+  GPIOs are GPIO0–21). If the board wires the green button to a non-RTC pin it
+  cannot be a deep-sleep wake source as-is — see the open question; the fallback
+  (a non-deep-sleep poll) costs power and is undesirable on the 1–2×/day budget.
+- **Bench-confirm items (not in repo).** The repo documents the panel SPI bus
+  (`SCK 7, MOSI 9, CS 10, DC 11, RES 12, BUSY 13`), GPIO0 (BOOT/USB-DTR),
+  GPIO19/20 (native USB), and GPIO2 (pinhole) — but **not** the green button's
+  GPIO. Per the hardware walkthrough's "do not guess pins" rule, the exact pin, its
+  idle polarity (active-low pull-up vs. active-high pull-down), and its
+  RTC-capability must be read from Seeed's reTerminal E1001 schematic / pinout and
+  verified at the bench before implementation. Firmware should name it via an
+  `IB_DEV_E1001` constant (mirroring the existing pinhole split), not a magic
+  number.
 
 ### MCU-specific (mark for Phase 7 C3 port #57)
 
-- On the production **ESP32-C3** the pinhole is **GPIO9** (the strapping pin with
-  a natural pull-up), per the existing `IB_DEV_E1001` split
-  (`provisioning.ino:75–80`). The same short-tap/long-hold discrimination applies;
-  only the pin number and the wake API (Question 4) change.
+- The green button's GPIO is **board-specific**; the production ESP32-C3 re-maps it
+  to whatever free RTC/GPIO-wake-capable pin the production layout exposes, via the
+  same `IB_DEV_E1001`-style constant split. Only the pin number and the wake API
+  (Question 4) change; the single-tap toggle logic is identical. The reset
+  **pinhole**'s own GPIO2→GPIO9 split is orthogonal and unaffected.
 
 ## Question 4 — Wake source
 
-**Recommendation: enable the pinhole GPIO as an ext1 deep-sleep wake source**
-on the S3, **in addition to** the existing RTC-timer wake, and branch on
+**Recommendation: enable the green-button GPIO as an ext1 deep-sleep wake
+source** on the S3, **in addition to** the existing RTC-timer wake, and branch on
 `esp_sleep_get_wakeup_cause()`.
 
 ### Mechanism (E1001 / ESP32-S3)
 
-- The pinhole idles HIGH (internal pull-up) and reads LOW when pressed
-  (`provisioning.ino:399`). ext1 wakes on a level: use
-  `esp_sleep_enable_ext1_wakeup(BIT(PINHOLE_GPIO), ESP_EXT1_WAKEUP_ANY_LOW)`.
+- Configure ext1 on the green-button pin: e.g.
+  `esp_sleep_enable_ext1_wakeup(BIT(TOGGLE_BTN_GPIO), ESP_EXT1_WAKEUP_ANY_LOW)`
+  for an active-LOW button (internal pull-up, reads LOW when pressed). If the board
+  wires the button active-HIGH, use `ESP_EXT1_WAKEUP_ANY_HIGH` — confirm the idle
+  polarity at the bench (Question 3). The pin must be RTC-capable (GPIO0–21 on the
+  S3) for ext1 to use it.
 - Keep the existing `esp_sleep_enable_timer_wakeup(...)`
   (`deep-sleep.ino:327`) armed too. Both sources coexist; the wake cause
   distinguishes them, exactly as `setup()` already inspects the cause today
-  (`deep-sleep.ino:337`).
+  (`deep-sleep.ino:337`). The reset pinhole stays on its own pin and path,
+  independent of the toggle button.
 
 ### Redraw-from-flash flow
 
@@ -279,15 +284,11 @@ on the S3, **in addition to** the existing RTC-timer wake, and branch on
 setup() on wake:
   cause = esp_sleep_get_wakeup_cause()
 
-  if cause == EXT1 (button):
-     hold = time the press (button is LOW on wake)
-     if hold < 1.5s:           // toggle
-        load other(currentOrientation) from LittleFS -> g_fb
-        drawFrame(); flip currentOrientation
-     else if hold >= 5s:       // existing factory reset
-        clearCreds(); restart
-     // else: dead-band, no-op
-     // NB: NO Wi-Fi this path
+  if cause == EXT1 (green button):
+     debounce the press           // confirm a real toggle, not noise
+     load other(currentOrientation) from LittleFS -> g_fb
+     drawFrame(); flip currentOrientation
+     // NB: NO Wi-Fi this path; factory reset is NOT here (pinhole owns it)
 
   else (TIMER or cold boot):   // existing network pull, extended
      pullBothFrames()          // GET /api/device/:id/frames
@@ -298,14 +299,15 @@ setup() on wake:
 ```
 
 The button path never touches the radio — that is the entire point: a flip costs
-one eInk refresh and a flash read, not a Wi-Fi cycle.
+one eInk refresh and a flash read, not a Wi-Fi cycle. Factory reset is left
+entirely to the pinhole's existing `checkPinhole` path, unchanged.
 
 ### MCU-specific (mark for Phase 7 C3 port #57)
 
 - The **ESP32-C3 has no ext1**; use
-  `esp_deep_sleep_enable_gpio_wakeup(BIT(PINHOLE_GPIO), ESP_GPIO_WAKEUP_GPIO_LOW)`
-  instead. Same branch-on-wake-cause logic; only the enable call differs. This
-  mirrors the GPIO2-vs-GPIO9 pinhole split already in the codebase.
+  `esp_deep_sleep_enable_gpio_wakeup(BIT(TOGGLE_BTN_GPIO), ESP_GPIO_WAKEUP_GPIO_LOW)`
+  instead. Same branch-on-wake-cause logic; only the enable call and the
+  board-specific pin differ.
 
 ## Coordination with #48 (tilt hardware) and #49 (auto-rotate)
 
@@ -323,9 +325,9 @@ Everything _between_ the trigger and the panel is shared:
     must not define two.
   - the combined `GET /api/device/:id/frames` endpoint (Question 1) — #49 fetches
     the same way.
-- **Only the trigger differs.** #160: one button on ext1/GPIO-wake, short-tap
-  toggle. #49: two tilt-switch GPIOs as wake sources, debounced, decoded to a
-  4-orientation enum (its issue's `(A,B)` table).
+- **Only the trigger differs.** #160: the green user button on ext1/GPIO-wake, a
+  debounced single-tap toggle. #49: two tilt-switch GPIOs as wake sources,
+  debounced, decoded to a 4-orientation enum (its issue's `(A,B)` table).
 - **4 orientations from 2 stored frames.** #49 wants four orientations
   (landscape, portrait, and both inverted); this RFC caches only the two base
   orientations. Recommend `/frames` stay a **2-frame** contract and the firmware
@@ -348,9 +350,10 @@ Everything _between_ the trigger and the panel is shared:
 2. **Firmware flash store** — add a ≥512 KB LittleFS data partition;
    `storeFrames` on a 200 network wake; bench-verify both halves written and
    re-readable (Question 2).
-3. **Firmware button wake + redraw** — ext1 pinhole wake, short-tap/long-hold
-   discrimination, `redrawFromFlash` (Questions 3–4); bench-verify a tap flips
-   orientation with Wi-Fi off.
+3. **Firmware button wake + redraw** — ext1 wake on the green-button GPIO,
+   debounced single-tap → `redrawFromFlash` (Questions 3–4); bench-verify a tap
+   flips orientation with Wi-Fi off, and that the reset pinhole still
+   factory-resets independently.
 4. **Extract the shared interface** (`storeFrames` / `redrawFromFlash` /
    `currentOrientation`) so #49 plugs in its tilt trigger.
 
@@ -359,9 +362,10 @@ Everything _between_ the trigger and the panel is shared:
 - Web-side toggle persistence (per the issue — separate issue).
 - 4-orientation auto-rotate and tilt hardware (#49 / #48), beyond designing the
   shared interface here.
-- Production dedicated button + enclosure hole (SCAD #50); the Phase 7 ESP32-C3
-  port (#57) re-points the pin (GPIO2→GPIO9) and the wake API (ext1→GPIO-wake) —
-  only the MCU-specific deltas above.
+- The production enclosure hole / button placement (SCAD #50); the Phase 7
+  ESP32-C3 port (#57) re-maps the toggle-button GPIO and the wake API
+  (ext1→GPIO-wake) — only the MCU-specific deltas above. (The reset pinhole's own
+  GPIO2→GPIO9 split is separate and already tracked.)
 - Any change to the eInk cadence or RTC freshness model (RFC 0001 stands).
 
 ## Open questions for the maintainer
@@ -370,9 +374,11 @@ Everything _between_ the trigger and the panel is shared:
   currently flashed partition table? Is there room to add a ≥512 KB LittleFS data
   partition (there should be, but the active `partitions.csv` / Arduino partition
   scheme must reserve it)? Confirm via `ESP.getFlashChipSize()` at the bench.
-- **Trigger choice:** accept pinhole short-tap reuse for the prototype, or invest
-  now in a dedicated button (needs a free RTC-capable GPIO confirmed against the
-  E1001 headers **and** a SCAD #50 enclosure change)?
+- **Green-button GPIO (bench-only):** which GPIO is the E1001 green user button
+  on, what is its idle polarity, and is it RTC-capable (GPIO0–21 on the S3) so it
+  can be an ext1 deep-sleep wake source? If it is **not** RTC-capable we need a
+  fallback (alternate pin, or a non-deep-sleep poll) — confirm from Seeed's
+  schematic and at the bench before implementation.
 - **Inverted orientations:** derive on-device via 180° rotation (keep the 2-frame
   `/frames` contract) vs. have the API return all four? (Affects #49; recommend
   on-device rotation.)
@@ -389,9 +395,10 @@ Everything _between_ the trigger and the panel is shared:
 - **API integration:** `GET /frames` with mocked hydration → concatenated body of
   the expected total length; `If-Modified-Since` → 304 no body.
 - **Firmware (bench, operator):** a 200 network wake writes both halves to
-  LittleFS and they re-read byte-identical; a button tap with Wi-Fi off flips the
-  panel orientation; a ≥5 s hold still factory-resets; a tap before the first
-  network wake (empty store) no-ops without drawing.
+  LittleFS and they re-read byte-identical; a green-button tap with Wi-Fi off flips
+  the panel orientation; the reset pinhole's ≥5 s hold still factory-resets
+  (independent input, unchanged); a tap before the first network wake (empty store)
+  no-ops without drawing.
 
 ## Security & privacy
 
