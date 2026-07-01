@@ -253,7 +253,7 @@ describe('getDeviceFramesForPull', () => {
     expect(await getDeviceFramesForPull(db, d.id, null, makeDeps())).toEqual({ status: 404 });
   });
 
-  it('returns 200 with BOTH orientations and correct per-orientation byte lengths', async () => {
+  it('returns both orientations in the SAME panel raster (portrait pre-rotated)', async () => {
     const { id } = seedDeviceWithConfig(db);
     const r = await getDeviceFramesForPull(db, id, null, makeDeps());
     expect(r.status).toBe(200);
@@ -261,11 +261,13 @@ describe('getDeviceFramesForPull', () => {
     // 920 x 680 at 2bpp packs to 156,400 bytes per orientation.
     expect(r.landscape.data.byteLength).toBe(156_400);
     expect(r.portrait.data.byteLength).toBe(156_400);
-    // Landscape is wider than tall; portrait is the swap.
+    // Portrait is rotated 90° into the panel's landscape raster, so BOTH frames
+    // share one geometry — the device uploads either with the same code path.
     expect(r.landscape.width).toBeGreaterThanOrEqual(r.landscape.height);
-    expect(r.portrait.height).toBeGreaterThanOrEqual(r.portrait.width);
-    expect(r.landscape.width).toBe(r.portrait.height);
-    expect(r.landscape.height).toBe(r.portrait.width);
+    expect(r.portrait.width).toBe(r.landscape.width);
+    expect(r.portrait.height).toBe(r.landscape.height);
+    // Same raster, but different content — rotation is not a no-op copy.
+    expect(Array.from(r.portrait.data)).not.toEqual(Array.from(r.landscape.data));
     // refreshesPerDay=2 → a 12h (43200s) wake hint, same as /frame.
     expect(r.refreshIntervalSec).toBe(43_200);
   });

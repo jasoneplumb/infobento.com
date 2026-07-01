@@ -8,7 +8,7 @@
  */
 
 import type { BentoConfig } from '@infobento/core';
-import { renderBoth } from '@infobento/renderer';
+import { renderBoth, rotateFrameBuffer90 } from '@infobento/renderer';
 import { getDevice, type DB, type Device } from './db.js';
 import { hydrateConfig, type HydrateDeps } from './hydrate.js';
 
@@ -241,6 +241,12 @@ export async function getDeviceFrameForPull(
  * Combined pull: render once, return BOTH orientations (issue #160, RFC 0002).
  * Identical 304/404/500 gating to `getDeviceFrameForPull` — the device caches
  * both frames so a manual orientation flip needs no network round trip.
+ *
+ * The portrait half is rotated 90° into the panel's fixed landscape raster
+ * (`rotateFrameBuffer90`) so BOTH frames share one geometry and a deep-sleep
+ * device uploads either with the same code path — no on-device transform. The
+ * web editor's dual preview keeps the true W<H portrait via the separate
+ * `/preview` PNG path, which is unaffected.
  */
 export async function getDeviceFramesForPull(
   db: DB,
@@ -259,7 +265,9 @@ export async function getDeviceFramesForPull(
   return {
     status: 200,
     landscape: toPayload(r.dual.landscape),
-    portrait: toPayload(r.dual.portrait),
+    // Deliver portrait in the panel's landscape raster (rotated), same geometry
+    // as landscape, so the device's uploadFrame is orientation-agnostic.
+    portrait: toPayload(rotateFrameBuffer90(r.dual.portrait)),
     lastModifiedMs: r.lastModifiedMs,
     refreshIntervalSec: r.refreshIntervalSec,
   };

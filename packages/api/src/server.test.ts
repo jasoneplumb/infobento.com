@@ -254,12 +254,16 @@ describe('GET /api/device/:id/frames', () => {
     expect(landBytes).toBe(156_400);
     expect(portBytes).toBe(156_400);
 
-    // Declared dims: landscape wide, portrait tall.
+    // Portrait is pre-rotated into the panel raster, so both halves declare the
+    // SAME (landscape) geometry — the device uploads either identically.
     expect(Number(res.headers.get('X-Frame-Landscape-Width'))).toBeGreaterThanOrEqual(
       Number(res.headers.get('X-Frame-Landscape-Height')),
     );
-    expect(Number(res.headers.get('X-Frame-Portrait-Height'))).toBeGreaterThanOrEqual(
-      Number(res.headers.get('X-Frame-Portrait-Width')),
+    expect(res.headers.get('X-Frame-Portrait-Width')).toBe(
+      res.headers.get('X-Frame-Landscape-Width'),
+    );
+    expect(res.headers.get('X-Frame-Portrait-Height')).toBe(
+      res.headers.get('X-Frame-Landscape-Height'),
     );
 
     // Body is exactly the two halves concatenated; Content-Length agrees.
