@@ -10,7 +10,10 @@ import {
   drawTextWrapped,
   drawHeroChar,
   drawHeroText,
+  rotateFrameBuffer90,
   GRAY_BLACK,
+  GRAY_DARK,
+  GRAY_LIGHT,
 } from './draw.js';
 import { FONT_HEIGHT } from './font.js';
 import { HERO_FONT_HEIGHT, HERO_CHAR_ADVANCE } from './hero-font.js';
@@ -166,5 +169,40 @@ describe('drawHeroText', () => {
     const fb = createFrameBuffer({ widthPx: 920, heightPx: 80, deviceId: '' });
     const result = drawHeroText(fb, 0, 0, 'Hello World', 100);
     expect(result.width).toBeLessThanOrEqual(100);
+  });
+});
+
+describe('rotateFrameBuffer90', () => {
+  it('swaps dimensions W×H → H×W and sizes the buffer correctly', () => {
+    const src = createFrameBuffer({ widthPx: 480, heightPx: 800, deviceId: '' });
+    const out = rotateFrameBuffer90(src);
+    expect([out.width, out.height]).toEqual([800, 480]);
+    // 800×480 at 2bpp packs to ceil(800/4)*480 = 96000 bytes.
+    expect(out.data.byteLength).toBe(Math.ceil(800 / 4) * 480);
+  });
+
+  it('rotates pixels clockwise: src(x,y) → dest(H-1-y, x)', () => {
+    // 4×2 source; set three distinct corners/levels.
+    const src = createFrameBuffer({ widthPx: 4, heightPx: 2, deviceId: '' });
+    setPixel(src, 0, 0, GRAY_BLACK); // top-left
+    setPixel(src, 3, 0, GRAY_DARK); // top-right
+    setPixel(src, 0, 1, GRAY_LIGHT); // bottom-left
+    const out = rotateFrameBuffer90(src, 'cw'); // 2×4
+    expect([out.width, out.height]).toEqual([2, 4]);
+    // CW: top-left → top-right; top-right → bottom-right; bottom-left → top-left.
+    expect(getPixel(out, 1, 0)).toBe(GRAY_BLACK);
+    expect(getPixel(out, 1, 3)).toBe(GRAY_DARK);
+    expect(getPixel(out, 0, 0)).toBe(GRAY_LIGHT);
+  });
+
+  it('ccw is the inverse of cw (round-trips back to the original)', () => {
+    const src = createFrameBuffer({ widthPx: 8, heightPx: 4, deviceId: '' });
+    setPixel(src, 5, 1, GRAY_DARK);
+    setPixel(src, 0, 3, GRAY_BLACK);
+    const back = rotateFrameBuffer90(rotateFrameBuffer90(src, 'cw'), 'ccw');
+    expect([back.width, back.height]).toEqual([8, 4]);
+    expect(getPixel(back, 5, 1)).toBe(GRAY_DARK);
+    expect(getPixel(back, 0, 3)).toBe(GRAY_BLACK);
+    expect(Array.from(back.data)).toEqual(Array.from(src.data));
   });
 });

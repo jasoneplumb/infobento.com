@@ -58,6 +58,36 @@ export function getPixel(fb: FrameBuffer, x: number, y: number): number {
   return (current >> shift) & 0x03;
 }
 
+/**
+ * intent: Rotate a 2bpp frame buffer 90° into a NEW buffer with swapped
+ *   dimensions (W×H → H×W).
+ * context: A portrait render is W<H (e.g. 480×800), but the eInk panel is a
+ *   fixed landscape raster (e.g. 800×480). Rotating portrait into the panel
+ *   raster server-side lets a deep-sleep device upload both orientations with
+ *   the SAME raster and no on-device transform (issue #160 / RFC 0002).
+ * direction: 'cw' (default) rotates clockwise, 'ccw' counter-clockwise. Which is
+ *   "upright" depends on which edge the device stands on in portrait — flip it
+ *   if the bench shows portrait upside-down.
+ */
+export function rotateFrameBuffer90(fb: FrameBuffer, direction: 'cw' | 'ccw' = 'cw'): FrameBuffer {
+  const newWidth = fb.height;
+  const newHeight = fb.width;
+  const out: FrameBuffer = {
+    width: newWidth,
+    height: newHeight,
+    data: new Uint8Array(Math.ceil(newWidth / 4) * newHeight),
+  };
+  for (let dy = 0; dy < newHeight; dy++) {
+    for (let dx = 0; dx < newWidth; dx++) {
+      // CW: dest(dx,dy) ← src(dy, H-1-dx). CCW: dest(dx,dy) ← src(W-1-dy, dx).
+      const sx = direction === 'cw' ? dy : fb.width - 1 - dy;
+      const sy = direction === 'cw' ? fb.height - 1 - dx : dx;
+      setPixel(out, dx, dy, getPixel(fb, sx, sy));
+    }
+  }
+  return out;
+}
+
 /** Draw a horizontal line */
 export function drawHLine(
   fb: FrameBuffer,

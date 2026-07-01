@@ -38,6 +38,7 @@ import { computeFontMetrics } from './font-metrics.js';
 
 // Re-export PNG conversion, types, and font metrics
 export { frameToPng } from './png.js';
+export { rotateFrameBuffer90 } from './draw.js';
 export type { FrameBuffer } from './types.js';
 export { computeFontMetrics, DEFAULT_FONT_SIZE } from './font-metrics.js';
 export type { FontMetrics } from './font-metrics.js';
