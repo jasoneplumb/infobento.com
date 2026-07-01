@@ -30,16 +30,17 @@ moves to the native USB port (`/dev/cu.usbmodem*`) and bridge-port prints vanish
 
 ## Phase status
 
-| Phase | Sketch                                           | Proves                                                                                                                      | Status                  |
-| ----- | ------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------- | ----------------------- |
-| 0     | (server) `scripts/mint-device.ts`                | mint device, `/frame` returns 200                                                                                           | ✅ done (PR #109)       |
-| 1     | [`blink/`](blink/blink.ino)                      | toolchain + boot + serial, no panel                                                                                         | ✅ bench-verified       |
-| 2     | [`static-frame/`](static-frame/static-frame.ino) | framebuffer-translation path: native 2bpp → UC8179 two-plane upload (4-band gray ramp)                                      | ✅ bench-verified       |
-| 3     | [`device-pull/`](device-pull/device-pull.ino)    | Wi-Fi + `GET /api/device/<id>/frame` poll loop with `If-Modified-Since`/304 skip                                            | ✅ bench-verified       |
-| 4     | [`deep-sleep/`](deep-sleep/deep-sleep.ino)       | deep sleep + RTC wake; RTC-persisted `Last-Modified` so a 304 wake skips the refresh                                        | ✅ bench-verified       |
-| 5     | [`resilient/`](resilient/resilient.ino)          | resilience: graceful 404/429/5xx/Wi-Fi-fail handling, brownout recovery, clean draw-abort                                   | ✅ bench-verified       |
-| 6     | [`provisioning/`](provisioning/provisioning.ino) | captive-portal provisioning: AP-mode first boot, Wi-Fi scan/entry → NVS, OS auto-launch probes, pinhole factory reset → #39 | ✅ bench-verified       |
-| 7     | —                                                | port to production GDEH0576T81 + ESP32-C3 → #57                                                                             | ⬜ (blocked on dev kit) |
+| Phase | Sketch                                           | Proves                                                                                                                                        | Status                      |
+| ----- | ------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------- |
+| 0     | (server) `scripts/mint-device.ts`                | mint device, `/frame` returns 200                                                                                                             | ✅ done (PR #109)           |
+| 1     | [`blink/`](blink/blink.ino)                      | toolchain + boot + serial, no panel                                                                                                           | ✅ bench-verified           |
+| 2     | [`static-frame/`](static-frame/static-frame.ino) | framebuffer-translation path: native 2bpp → UC8179 two-plane upload (4-band gray ramp)                                                        | ✅ bench-verified           |
+| 3     | [`device-pull/`](device-pull/device-pull.ino)    | Wi-Fi + `GET /api/device/<id>/frame` poll loop with `If-Modified-Since`/304 skip                                                              | ✅ bench-verified           |
+| 4     | [`deep-sleep/`](deep-sleep/deep-sleep.ino)       | deep sleep + RTC wake; RTC-persisted `Last-Modified` so a 304 wake skips the refresh                                                          | ✅ bench-verified           |
+| 5     | [`resilient/`](resilient/resilient.ino)          | resilience: graceful 404/429/5xx/Wi-Fi-fail handling, brownout recovery, clean draw-abort                                                     | ✅ bench-verified           |
+| 6     | [`provisioning/`](provisioning/provisioning.ino) | captive-portal provisioning: AP-mode first boot, Wi-Fi scan/entry → NVS, OS auto-launch probes, pinhole factory reset → #39                   | ✅ bench-verified           |
+| 7     | —                                                | port to production GDEH0576T81 + ESP32-C3 → #57                                                                                               | ⬜ (blocked on dev kit)     |
+| ★     | [`orientation/`](orientation/orientation.ino)    | manual orientation toggle → #160: `GET /frames` caches BOTH orientations in LittleFS, green button (GPIO3, ext1) flips locally with Wi-Fi off | 🟡 drafted — awaiting bench |
 
 "Bench-verified" = run on real E1001 hardware. Phase 3 evidence lives in the
 (gitignored) `dev/serial.log`: a live run shows `GET → 200`, `drew frame in
@@ -168,6 +169,45 @@ natural pull-up — the reason #39 picked it); the `IB_DEV_E1001` branch swaps i
 **GPIO2** for bench bring-up because on the E1001 dev board GPIO9 is the panel SPI
 MOSI line (and GPIO0/BOOT is tied to the USB-serial auto-reset), so neither can
 serve as the pinhole there.
+
+**Orientation toggle (`orientation/`, #160 / RFC 0002) — drafted, awaiting bench.**
+Extends the Phase 4 deep-sleep pull: each network wake fetches BOTH orientations in
+one `GET /api/device/<id>/frames` and stores them to a LittleFS partition; a green-
+button press (GPIO3, ext1 deep-sleep wake) redraws the other cached orientation with
+the radio off. The server delivers both frames in the panel's landscape raster
+(portrait pre-rotated server-side, PR #164), so `uploadFrame` is orientation-agnostic.
+The GPIO2 reset pinhole is untouched — a distinct input from the toggle button.
+
+Flash with a built-in 8 MB scheme that includes a SPIFFS/LittleFS partition (LittleFS
+mounts it), then provide `orientation/secrets.h` (gitignored, mirror `deep-sleep/`'s):
+
+```
+arduino-cli compile --fqbn 'esp32:esp32:esp32s3:PartitionScheme=default_8MB' firmware/orientation
+arduino-cli upload  -p /dev/cu.usbserial-1430 \
+  --fqbn 'esp32:esp32:esp32s3:UploadSpeed=115200,PartitionScheme=default_8MB' firmware/orientation
+```
+
+**Orientation bench check (operator).** Watch serial at 115200:
+
+- **First network wake (cold boot / timer):** `GET /frames -> 200` → `stored both
+frames` → `drew frame` in landscape. A second wake within the window logs
+  `304 -> keep cached frames, no redraw` (the Phase 4 power win still holds).
+- **Button flip:** press the green button → `(green button)` wake, `flip landscape to
+portrait`, `drew frame` — **with no `GET`** (radio stays off). Press again → flips
+  back. Confirm the flip is ~one refresh, not a Wi-Fi cycle.
+- **Orientation is up-right:** if portrait shows upside-down, flip the server-side
+  rotation direction from `'cw'` to `'ccw'` in `getDeviceFramesForPull` (`device.ts`)
+  — not a firmware change.
+- **Empty store guard:** press the button before the first network wake ever ran →
+  `no cached frame to flip to (empty store) -> no-op` (no garbage drawn).
+- **Persistence across power loss:** flip to portrait, pull the battery/USB, repower →
+  cold boot restores `portrait` from NVS (not silently back to landscape).
+- **Reset pinhole unaffected:** the GPIO2 pinhole still factory-resets via the
+  provisioning sketch; the toggle button (GPIO3) never clears creds.
+
+MCU-specific for the Phase 7 ESP32-C3 port (#57): the green-button GPIO and the ext1
+wake API (C3 uses `esp_deep_sleep_enable_gpio_wakeup`) are re-mapped; the toggle logic
+is otherwise identical.
 
 ## Framebuffer translation (the key risk Phase 2 retired)
 
