@@ -26,10 +26,13 @@
 // landscape.
 //
 // Board:  esp32:esp32:esp32s3
-// Flash:  built-in 8 MB scheme with a SPIFFS/LittleFS partition (3MB app / 1.5MB FS):
-//   arduino-cli compile --fqbn 'esp32:esp32:esp32s3:PartitionScheme=default_8MB' firmware/orientation
-//   arduino-cli upload  -p /dev/cu.usbserial-1430 \
-//     --fqbn 'esp32:esp32:esp32s3:UploadSpeed=115200,PartitionScheme=default_8MB' firmware/orientation
+// Flash:  MUST declare 8 MB (FlashSize=8M) so the default_8MB partition table fits —
+//   the FQBN defaults to 4 MB, which overflows the table and boot-loops. The E1001
+//   is physically 32 MB; Seeed's Arduino guidance is to select 8 MB.
+//   arduino-cli compile -u -p /dev/cu.usbserial-XXXX \
+//     --fqbn 'esp32:esp32:esp32s3:UploadSpeed=115200,FlashSize=8M,PartitionScheme=default_8MB' firmware/orientation
+//   (Fallback if that ever boot-loops: drop FlashSize and use PartitionScheme=default —
+//    the 4 MB scheme still carries a ~1.4 MB LittleFS partition, plenty for the pair.)
 // Provide firmware/orientation/secrets.h (gitignored) mirroring deep-sleep/secrets.h.
 
 #include <WiFi.h>

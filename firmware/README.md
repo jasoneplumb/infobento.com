@@ -178,14 +178,20 @@ the radio off. The server delivers both frames in the panel's landscape raster
 (portrait pre-rotated server-side, PR #164), so `uploadFrame` is orientation-agnostic.
 The GPIO2 reset pinhole is untouched — a distinct input from the toggle button.
 
-Flash with a built-in 8 MB scheme that includes a SPIFFS/LittleFS partition (LittleFS
-mounts it), then provide `orientation/secrets.h` (gitignored, mirror `deep-sleep/`'s):
+Flash with the 8 MB partition scheme **and declare `FlashSize=8M`** — the FQBN
+defaults to 4 MB, which overflows the `default_8MB` table and boot-loops
+(`partition N ... exceeds flash chip size 0x400000`). The E1001 is physically 32 MB;
+Seeed's Arduino guidance is to select 8 MB. Then provide `orientation/secrets.h`
+(gitignored, mirror `deep-sleep/`'s):
 
 ```
-arduino-cli compile --fqbn 'esp32:esp32:esp32s3:PartitionScheme=default_8MB' firmware/orientation
-arduino-cli upload  -p /dev/cu.usbserial-1430 \
-  --fqbn 'esp32:esp32:esp32s3:UploadSpeed=115200,PartitionScheme=default_8MB' firmware/orientation
+arduino-cli compile -u -p /dev/cu.usbserial-XXXX \
+  --fqbn 'esp32:esp32:esp32s3:UploadSpeed=115200,FlashSize=8M,PartitionScheme=default_8MB' firmware/orientation
 ```
+
+(Fallback if that ever boot-loops: drop `FlashSize` and use `PartitionScheme=default`
+— the 4 MB scheme still carries a ~1.4 MB LittleFS partition, plenty for the ~192 KB
+pair.)
 
 **Orientation bench check (operator).** Watch serial at 115200:
 
