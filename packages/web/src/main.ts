@@ -265,7 +265,7 @@ function initEditor(): void {
     const current = getRefreshesPerDay();
     const nearest = REFRESH_PRESETS.reduce(
       (best, [, perDay]) => (Math.abs(perDay - current) < Math.abs(best - current) ? perDay : best),
-      REFRESH_PRESETS[0][1],
+      REFRESH_PRESETS[0]?.[1] ?? 0,
     );
     refreshSelect.value = String(nearest);
     refreshSelect.addEventListener('change', () => setRefreshesPerDay(Number(refreshSelect.value)));
