@@ -17,9 +17,11 @@ const MONTHS = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', '
  * intent: Calculate the day of year (1-366) for a given date
  * method: Diff from Jan 1 of same year
  */
-export function dayOfYear(date: Date): number {
-  const start = new Date(date.getFullYear(), 0, 0);
-  const diff = date.getTime() - start.getTime();
+export function dayOfYear(date: Date, utc = false): number {
+  const start = utc
+    ? Date.UTC(date.getUTCFullYear(), 0, 0)
+    : new Date(date.getFullYear(), 0, 0).getTime();
+  const diff = date.getTime() - start;
   return Math.floor(diff / 86400000);
 }
 
@@ -54,7 +56,7 @@ function drawProgressBar(
 export function renderDateBox(
   fb: FrameBuffer,
   layout: LayoutBox,
-  _config: DateBoxConfig,
+  config: DateBoxConfig,
   metrics: FontMetrics,
   now: Date = new Date(),
   showHeaders = true,
@@ -68,10 +70,17 @@ export function renderDateBox(
   const contentEnd = y + height - metrics.pad;
   if (contentWidth <= 0) return;
 
-  const dayNum = now.getDate();
-  const dayName = DAYS_OF_WEEK[now.getDay()] ?? 'SUNDAY';
-  const monthName = MONTHS[now.getMonth()] ?? 'JAN';
-  const year = now.getFullYear();
+  // Anchor to the device location's timezone (issue #166): shift the instant by
+  // the hydrated UTC offset and read UTC fields, so a UTC server still renders
+  // the device's *local* date. Without an offset, fall back to server-local time.
+  const offsetSec = config.data?.utcOffsetSeconds;
+  const useOffset = offsetSec !== undefined;
+  const local = useOffset ? new Date(now.getTime() + offsetSec * 1000) : now;
+
+  const dayNum = useOffset ? local.getUTCDate() : local.getDate();
+  const dayName = DAYS_OF_WEEK[useOffset ? local.getUTCDay() : local.getDay()] ?? 'SUNDAY';
+  const monthName = MONTHS[useOffset ? local.getUTCMonth() : local.getMonth()] ?? 'JAN';
+  const year = useOffset ? local.getUTCFullYear() : local.getFullYear();
 
   // Line 1: Day-of-week (small font)
   if (cy + metrics.bodySize > contentEnd) return;
@@ -116,7 +125,7 @@ export function renderDateBox(
   cy += metrics.bodySize + 3;
 
   // Year progress: "Day 113/365" with progress bar on same line
-  const doy = dayOfYear(now);
+  const doy = dayOfYear(local, useOffset);
   const total = daysInYear(year);
   const barHeight = 5;
 

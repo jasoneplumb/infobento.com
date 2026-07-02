@@ -19,6 +19,12 @@ export interface WeatherData {
   readonly condition: string;
   readonly high: number;
   readonly low: number;
+  /**
+   * Location's offset from UTC in seconds (Open-Meteo `timezone=auto`). Lets a
+   * co-located date box render the device's local date with zero extra fetches
+   * (issue #166) — undefined when the provider omitted it.
+   */
+  readonly utcOffsetSeconds?: number;
 }
 
 export interface WeatherBoxConfig {
@@ -69,8 +75,18 @@ export interface QuoteBoxConfig {
   readonly tags?: string;
 }
 
+/**
+ * Hydration-resolved timezone context for the date box: the device location's
+ * offset from UTC in seconds, so the renderer shows the *local* date instead of
+ * the server's UTC clock. Derived from a co-located box at pull time (issue #166).
+ */
+export interface DateData {
+  readonly utcOffsetSeconds: number;
+}
+
 export interface DateBoxConfig {
   readonly type: 'date';
+  readonly data?: DateData;
 }
 
 export interface MoonBoxConfig {

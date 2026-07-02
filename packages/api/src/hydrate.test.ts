@@ -25,6 +25,7 @@ function deps(overrides: Partial<HydrateDeps> = {}): HydrateDeps {
   return {
     cache: new InMemoryCache(),
     fetchWeather: async () => FRESH,
+    fetchUtcOffset: async () => null,
     fetchForecast: async () => null,
     fetchForecast3D: async () => null,
     fetchSunTimes: async () => null,
@@ -315,5 +316,86 @@ describe('hydrateConfig — text-bearing providers (keep baked text on failure)'
     expect(box.config?.text).toBe('FRESH');
     expect(box.config?.category).toBe('Programming');
     expect(box.config?.categories).toBe('Programming'); // request filter preserved
+  });
+});
+
+describe('hydrateConfig — date box timezone (issue #166)', () => {
+  const FRESH_TZ = { ...FRESH, utcOffsetSeconds: -7 * 3600 } as const;
+
+  function withDate(...boxes: unknown[]): BentoConfig {
+    return {
+      boxes: [...boxes, { id: 'd', type: 'date', config: { type: 'date' } }],
+      refreshesPerDay: 2,
+    } as unknown as BentoConfig;
+  }
+
+  it("reuses a hydrated weather box's offset without an extra fetch", async () => {
+    let offsetCalls = 0;
+    const out = await hydrateConfig(
+      withDate({ id: 'w', type: 'weather', config: { type: 'weather', city: 'Portland' } }),
+      deps({
+        fetchWeather: async () => FRESH_TZ,
+        fetchUtcOffset: async () => {
+          offsetCalls++;
+          return 0;
+        },
+      }),
+    );
+    const date = out.boxes.find((b) => b.type === 'date');
+    if (date?.type !== 'date') throw new Error('unreachable');
+    expect(date.config?.data).toEqual({ utcOffsetSeconds: -7 * 3600 });
+    expect(offsetCalls).toBe(0); // piggybacked — no standalone offset call
+  });
+
+  it('fetches the offset from a located box when no weather box exists', async () => {
+    let seen: string | undefined;
+    const out = await hydrateConfig(
+      withDate({ id: 'f', type: 'forecast', config: { type: 'forecast', city: 'Denver' } }),
+      deps({
+        fetchUtcOffset: async (loc) => {
+          seen = loc;
+          return -6 * 3600;
+        },
+      }),
+    );
+    const date = out.boxes.find((b) => b.type === 'date');
+    if (date?.type !== 'date') throw new Error('unreachable');
+    expect(seen).toBe('Denver');
+    expect(date.config?.data).toEqual({ utcOffsetSeconds: -6 * 3600 });
+  });
+
+  it('leaves the date box offset-less when there is no location anywhere', async () => {
+    let offsetCalls = 0;
+    const out = await hydrateConfig(
+      withDate({ id: 't', type: 'text', config: { type: 'text', text: 'hi' } }),
+      deps({
+        fetchUtcOffset: async () => {
+          offsetCalls++;
+          return -6 * 3600;
+        },
+      }),
+    );
+    const date = out.boxes.find((b) => b.type === 'date');
+    if (date?.type !== 'date') throw new Error('unreachable');
+    expect(date.config?.data).toBeUndefined(); // renderer falls back to server time
+    expect(offsetCalls).toBe(0);
+  });
+
+  it('uses the first weather box when several disagree', async () => {
+    const out = await hydrateConfig(
+      withDate(
+        { id: 'w1', type: 'weather', config: { type: 'weather', city: 'Tokyo' } },
+        { id: 'w2', type: 'weather', config: { type: 'weather', city: 'Portland' } },
+      ),
+      deps({
+        fetchWeather: async (loc) => ({
+          ...FRESH,
+          utcOffsetSeconds: loc === 'Tokyo' ? 9 * 3600 : -7 * 3600,
+        }),
+      }),
+    );
+    const date = out.boxes.find((b) => b.type === 'date');
+    if (date?.type !== 'date') throw new Error('unreachable');
+    expect(date.config?.data).toEqual({ utcOffsetSeconds: 9 * 3600 });
   });
 });

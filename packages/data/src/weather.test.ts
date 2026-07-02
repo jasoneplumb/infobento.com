@@ -1,5 +1,11 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { fetchWeather, fetchForecast, fetchForecast3D, fetchSunTimes } from './weather.js';
+import {
+  fetchWeather,
+  fetchUtcOffset,
+  fetchForecast,
+  fetchForecast3D,
+  fetchSunTimes,
+} from './weather.js';
 import { __setNominatimQueue } from './geocode.js';
 import { RateLimitedQueue } from './nominatim-queue.js';
 
@@ -58,6 +64,39 @@ describe('fetchWeather', () => {
       vi.fn(async () => ({ ok: false, json: async () => null }) as unknown as Response),
     );
     expect(await fetchWeather('Nowhere')).toBeNull();
+  });
+
+  it('surfaces the location UTC offset when the provider returns it', async () => {
+    mockByUrl({
+      utc_offset_seconds: -7 * 3600,
+      current: { temperature_2m: 20, weather_code: 0 },
+      daily: { temperature_2m_max: [25], temperature_2m_min: [10] },
+    });
+    const w = await fetchWeather('Portland', 'C');
+    expect(w?.utcOffsetSeconds).toBe(-7 * 3600);
+  });
+});
+
+describe('fetchUtcOffset', () => {
+  it('returns the location offset in seconds', async () => {
+    mockByUrl({
+      utc_offset_seconds: -7 * 3600,
+      current: { temperature_2m: 20, weather_code: 0 },
+    });
+    expect(await fetchUtcOffset('Portland')).toBe(-7 * 3600);
+  });
+
+  it('returns null when geocoding fails', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => ({ ok: false, json: async () => null }) as unknown as Response),
+    );
+    expect(await fetchUtcOffset('Nowhere')).toBeNull();
+  });
+
+  it('returns null when the provider omits the offset', async () => {
+    mockByUrl({ current: { temperature_2m: 20, weather_code: 0 } });
+    expect(await fetchUtcOffset('Portland')).toBeNull();
   });
 });
 

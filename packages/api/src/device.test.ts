@@ -15,6 +15,7 @@ import type { HydrateDeps } from './hydrate.js';
 
 /** Non-weather provider stubs — these tests exercise text/weather boxes only. */
 const NULL_PROVIDERS = {
+  fetchUtcOffset: async () => null,
   fetchForecast: async () => null,
   fetchForecast3D: async () => null,
   fetchSunTimes: async () => null,

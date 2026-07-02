@@ -15,7 +15,13 @@ export { RateLimitedQueue } from './nominatim-queue.js';
 export { geocode, NOMINATIM_MIN_INTERVAL_MS, type GeocodeResult } from './geocode.js';
 
 // Direct fetchers (Open-Meteo)
-export { fetchWeather, fetchForecast, fetchForecast3D, fetchSunTimes } from './weather.js';
+export {
+  fetchWeather,
+  fetchUtcOffset,
+  fetchForecast,
+  fetchForecast3D,
+  fetchSunTimes,
+} from './weather.js';
 export { fetchAirQuality } from './air-quality.js';
 
 // Proxy-provider fetchers (logic formerly inside api/src/server.ts handlers)

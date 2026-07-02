@@ -17,6 +17,7 @@ export type {
   CountdownBoxConfig,
   QRBoxConfig,
   QuoteBoxConfig,
+  DateData,
   DateBoxConfig,
   MoonBoxConfig,
   SunData,
