@@ -5,7 +5,8 @@
 // user pick their home Wi-Fi and type the password from any phone or laptop —
 // no app, no hardcoded secrets. Once it joins the home network the creds are
 // persisted to NVS and subsequent boots run the normal pull/deep-sleep firmware
-// (Phases 3-5). A 5-second pinhole hold factory-resets back to AP mode.
+// (Phases 3-5). Holding BOTH white buttons for 5s factory-resets back to AP mode
+// and shows a resident reset screen on the panel (issue #171).
 //
 // This is the gate to a shippable out-of-box flow (see docs/hardware/
 // CONNECTIVITY.md "First-time setup flow"). Unlike the earlier phases there is
@@ -17,7 +18,7 @@
 //   creds in NVS, join succeeds     -> "provisioned"; hand off to the pull loop
 //   creds in NVS, join fails        -> fall back to AP mode so a moved/renamed
 //                                      network (or a wrong saved password) can be
-//                                      re-provisioned without a pinhole reset
+//                                      re-provisioned without a factory reset
 //
 // Captive portal (AP mode), served from the on-board web server at 192.168.4.1:
 //   GET  /            setup page: server-side Wi-Fi scan -> <select>, + manual
@@ -47,45 +48,167 @@
 #include <DNSServer.h>
 #include <Preferences.h>
 #include <esp_system.h>
+#include <SPI.h>
+#include "reset_screen.h"  // baked landscape+portrait reset frames (issue #171)
 
-// ----- MCU-specific (mark for the Phase 7 ESP32-C3 port) -------------------
-// Pinhole factory-reset button. Production target is the ESP32-C3, where GPIO9
-// is the strapping/boot pin and carries a natural pull-up — that is why #39
-// suggests it. Phase 7 / SCAD #50 confirm this lands on the recessed back-panel
-// pinhole. Pressed reads LOW (button shorts the pin to ground).
-//
-// NOTE: GPIO9 is NOT free on the E1001 dev board — it is the panel SPI MOSI line
-// (pin map: SCK 7, MOSI 9, CS 10, DC 11, RES 12, BUSY 13). It is driven low there,
-// defeating INPUT_PULLUP, so the firmware reads a permanent "held" pinhole and
-// factory-resets in a loop. GPIO0 (BOOT) is no good either: it is wired to the
-// USB-serial auto-reset (DTR) circuit, so it reads LOW whenever a serial monitor
-// is attached — which is always during bench bring-up. So for the E1001 we use a
-// free, non-strapping GPIO that idles HIGH on its internal pull-up; short it to
-// ground for 5s to trigger the factory reset. Phase 7 drops this branch for the C3.
-//
-// GPIO2 is exposed on the E1001 8-pin expansion header J2 (pin 4), one pin away
-// from GND (pin 2) — so the factory reset is testable without opening the case:
-// bridge J2 pin 4 to J2 pin 2 for 5s. It is a plain GPIO/ADC pin, not a strapping
-// pin (GPIO0/3/45/46) and not a native-USB pin (GPIO19/20), so grounding it is safe
-// at boot and does not disturb the USB-UART serial bridge.
-// TODO(#57 Phase 7): delete this whole block — the production ESP32-C3 uses
-// GPIO9 natively. Until then this is hardcoded to 1 (E1001 dev board); building
-// for the C3 before Phase 7 means setting it to 0 by hand (the #else picks GPIO9,
-// which is the panel MOSI line on the E1001 and would re-trigger the reset loop).
-#define IB_DEV_E1001 1
-#if IB_DEV_E1001
-#define PINHOLE_GPIO 2  // E1001 expansion header J2 pin 4; ground to J2 pin 2 (GND) for 5s
-#else
-#define PINHOLE_GPIO 9  // ESP32-C3 strapping pin behind the back-panel pinhole
-#endif
-#define PINHOLE_HOLD_MS 5000  // full-press hold that triggers a factory reset
+// ----- Buttons (E1001; Phase 7 ESP32-C3 re-pins) ---------------------------
+// Factory reset moved off the recessed GPIO2 pinhole onto the two front WHITE
+// buttons: hold BOTH for 5s. No case-opening, no bridging the J2 header — it
+// uses affordances the user can see. Verified against Seeed's reTerminal E1001
+// wiki: green=GPIO3, white-right=GPIO4 (the only ext1 wake-capable white button),
+// white-left=GPIO5; all active-LOW on INPUT_PULLUP. The GREEN button (GPIO3,
+// shared with the orientation flip, #160) toggles the reset screen between
+// landscape and portrait. Panel SPI uses 7/9/10/11/12/13, so 3/4/5 are clear.
+// TODO(#57 Phase 7): re-pin for the production ESP32-C3.
+#define GREEN_BTN_GPIO 3
+#define WHITE_BTN_R_GPIO 4
+#define WHITE_BTN_L_GPIO 5
+#define RESET_HOLD_MS 5000  // both white buttons held this long => factory reset
+
+// ----- UC8179 grayscale panel (vendored from firmware/orientation) ----------
+// Provisioning normally never touches the panel, but the factory-reset screen
+// must be shown with no network (before any SSID exists), so this sketch gains
+// the driver + the two baked frames (reset_screen.h). Identical draw path to the
+// deep-sleep / orientation sketches: native bytes are per-byte NOT-flipped to the
+// panel canvas (0=white..3=black -> 0=black..3=white), then uploaded.
+#define EPD_SCK_PIN 7
+#define EPD_MOSI_PIN 9
+#define EPD_CS_PIN 10
+#define EPD_DC_PIN 11
+#define EPD_RES_PIN 12
+#define EPD_BUSY_PIN 13
+#define EPD_W 800
+#define EPD_H 480
+#define IB_FRAME_LEN (EPD_W * EPD_H / 4)  // 96000
+#define RESET_LANDSCAPE 0
+#define RESET_PORTRAIT 1
+
+static SPIClass hspi(HSPI);
+static SPISettings spiSet(2000000, MSBFIRST, SPI_MODE0);
+
+static const uint8_t LUT_VCOM_GRAY[] = {
+  0x00,0x00,0x06,0x08,0x07,0x01, 0x00,0x06,0x0A,0x0B,0x0A,0x01,
+  0x00,0x03,0x03,0x00,0x00,0x03, 0x00,0x05,0x09,0x06,0x06,0x01,
+  0x00,0x02,0x02,0x0A,0x0A,0x01, 0x00,0x0A,0x11,0x06,0x07,0x01,
+  0x00,0x02,0x01,0x02,0x01,0x01 };
+static const uint8_t LUT_WW_GRAY[] = {
+  0x15,0x00,0x06,0x08,0x07,0x01, 0x54,0x06,0x0A,0x0B,0x0A,0x01,
+  0x90,0x03,0x03,0x00,0x00,0x03, 0x2A,0x05,0x09,0x06,0x06,0x01,
+  0xAA,0x02,0x02,0x0A,0x0A,0x01, 0x00,0x0A,0x11,0x06,0x07,0x01,
+  0x28,0x02,0x01,0x02,0x01,0x01 };
+static const uint8_t LUT_KW_GRAY[] = {
+  0x2A,0x00,0x06,0x08,0x07,0x01, 0x59,0x06,0x0A,0x0B,0x0A,0x01,
+  0x90,0x03,0x03,0x00,0x00,0x03, 0x5A,0x05,0x09,0x06,0x06,0x01,
+  0xA8,0x02,0x02,0x0A,0x0A,0x01, 0x45,0x0A,0x11,0x06,0x07,0x01,
+  0xA8,0x02,0x01,0x02,0x01,0x01 };
+static const uint8_t LUT_WK_GRAY[] = {
+  0x16,0x00,0x06,0x08,0x07,0x01, 0xA0,0x06,0x0A,0x0B,0x0A,0x01,
+  0x90,0x03,0x03,0x00,0x00,0x03, 0x99,0x05,0x09,0x06,0x06,0x01,
+  0xA0,0x02,0x02,0x0A,0x0A,0x01, 0x40,0x0A,0x11,0x06,0x07,0x01,
+  0x20,0x02,0x01,0x02,0x01,0x01 };
+static const uint8_t LUT_KK_GRAY[] = {
+  0x26,0x00,0x06,0x08,0x07,0x01, 0x6A,0x06,0x0A,0x0B,0x0A,0x01,
+  0x90,0x03,0x03,0x00,0x00,0x03, 0x65,0x05,0x09,0x06,0x06,0x01,
+  0x50,0x02,0x02,0x0A,0x0A,0x01, 0x10,0x0A,0x11,0x06,0x07,0x01,
+  0x10,0x02,0x01,0x02,0x01,0x01 };
+static const uint8_t CMD_USER_GRAY[] = { 0x17,0x3F,0x3F,0x07,0x06,0x12 };
+
+static void epdCheckBusy(uint16_t timeoutMs = 10000) {
+  delay(10);
+  unsigned long t0 = millis();
+  while (!digitalRead(EPD_BUSY_PIN)) {
+    if (millis() - t0 > timeoutMs) { Serial.println("[IB] WARN: BUSY timeout"); break; }
+    delay(10);
+  }
+}
+static void epdCmd(uint8_t c) {
+  hspi.beginTransaction(spiSet);
+  digitalWrite(EPD_DC_PIN, LOW); digitalWrite(EPD_CS_PIN, LOW);
+  hspi.transfer(c);
+  digitalWrite(EPD_CS_PIN, HIGH); digitalWrite(EPD_DC_PIN, HIGH);
+  hspi.endTransaction();
+}
+static void epdData(uint8_t d) {
+  hspi.beginTransaction(spiSet);
+  digitalWrite(EPD_CS_PIN, LOW); hspi.transfer(d); digitalWrite(EPD_CS_PIN, HIGH);
+  hspi.endTransaction();
+}
+static void epdLUT(uint8_t c, const uint8_t* l, uint16_t n) { epdCmd(c); for (uint16_t i=0;i<n;i++) epdData(l[i]); }
+static void epdInitGray() {
+  digitalWrite(EPD_RES_PIN, LOW); delay(10); digitalWrite(EPD_RES_PIN, HIGH); delay(10); epdCheckBusy();
+  epdCmd(0x01); epdData(0x07);
+  epdData(CMD_USER_GRAY[0]); epdData(CMD_USER_GRAY[1]); epdData(CMD_USER_GRAY[2]); epdData(CMD_USER_GRAY[3]);
+  epdCmd(0x30); epdData(CMD_USER_GRAY[4]);
+  epdCmd(0x82); epdData(CMD_USER_GRAY[5]);
+  epdCmd(0x06); epdData(0x27); epdData(0x27); epdData(0x28); epdData(0x17);
+  epdCmd(0x04); delay(100); epdCheckBusy();
+  epdCmd(0x00); epdData(0x3F);
+  epdCmd(0xE3); epdData(0x88);
+  epdCmd(0x50); epdData(0x10); epdData(0x07);
+  epdCmd(0x52); epdData(0x00);
+  epdCmd(0x61); epdData(EPD_W>>8); epdData(EPD_W&0xFF); epdData(EPD_H>>8); epdData(EPD_H&0xFF);
+  epdLUT(0x20, LUT_VCOM_GRAY, sizeof(LUT_VCOM_GRAY)); epdCheckBusy();
+  epdLUT(0x21, LUT_WW_GRAY, sizeof(LUT_WW_GRAY)); epdCheckBusy();
+  epdLUT(0x22, LUT_KW_GRAY, sizeof(LUT_KW_GRAY)); epdCheckBusy();
+  epdLUT(0x23, LUT_WK_GRAY, sizeof(LUT_WK_GRAY));
+  epdLUT(0x24, LUT_KK_GRAY, sizeof(LUT_KK_GRAY));
+}
+static void epdUpload(const uint8_t* fb) {
+  const uint32_t bpr = EPD_W / 4;
+  for (uint8_t plane = 0; plane < 2; plane++) {
+    epdCmd(plane == 0 ? 0x10 : 0x13);
+    hspi.beginTransaction(spiSet); digitalWrite(EPD_CS_PIN, LOW);
+    for (uint16_t row = 0; row < EPD_H; row++) {
+      const uint8_t* rp = fb + (uint32_t)row * bpr;
+      for (uint16_t c8 = 0; c8 < EPD_W/8; c8++) {
+        uint8_t out = 0;
+        for (uint8_t b = 0; b < 8; b++) {
+          uint16_t px = c8*8 + b;
+          uint8_t sh = (3 - (px & 3)) * 2;
+          uint8_t gray = 3 - ((rp[px/4] >> sh) & 0x03);
+          uint8_t want = (plane == 0) ? (gray & 0x01) : (gray & 0x02);
+          if (want) out |= (0x80 >> b);
+        }
+        hspi.transfer(out);
+      }
+    }
+    digitalWrite(EPD_CS_PIN, HIGH); hspi.endTransaction();
+  }
+}
+static void epdRefresh() { epdCmd(0x12); delay(100); epdCheckBusy(); }
+static void epdSleep() { epdCmd(0x02); epdCheckBusy(); epdCmd(0x07); epdData(0xA5); }
+
+// Panel pins to a known state; call once in setup() before any draw.
+static void epdBegin() {
+  pinMode(EPD_CS_PIN, OUTPUT);  digitalWrite(EPD_CS_PIN, HIGH);
+  pinMode(EPD_DC_PIN, OUTPUT);  digitalWrite(EPD_DC_PIN, HIGH);
+  pinMode(EPD_RES_PIN, OUTPUT); digitalWrite(EPD_RES_PIN, HIGH);
+  pinMode(EPD_BUSY_PIN, INPUT);
+  hspi.begin(EPD_SCK_PIN, -1, EPD_MOSI_PIN, -1);
+}
+
+// Draw one baked reset frame from PROGMEM (native -> panel canvas via per-byte
+// NOT, exactly like the orientation sketch's drawFrame).
+void drawResetScreen(uint8_t orientation) {
+  uint8_t* fb = (uint8_t*)malloc(IB_FRAME_LEN);
+  if (!fb) { Serial.println("[IB] reset screen: 96KB alloc failed"); return; }
+  const uint8_t* src = (orientation == RESET_PORTRAIT) ? RESET_SCREEN_PORTRAIT : RESET_SCREEN_LANDSCAPE;
+  memcpy_P(fb, src, IB_FRAME_LEN);
+  for (uint32_t i = 0; i < IB_FRAME_LEN; i++) fb[i] = ~fb[i];
+  epdInitGray();
+  epdUpload(fb);
+  epdRefresh();
+  epdSleep();
+  free(fb);
+  Serial.printf("[IB] drew reset screen (%s)\n", orientation == RESET_PORTRAIT ? "portrait" : "landscape");
+}
 
 // ----- Captive-portal network ----------------------------------------------
 #define DNS_PORT 53
 #define HTTP_PORT 80
 #define JOIN_TIMEOUT_MS 15000  // how long /save waits for the home Wi-Fi to join
 
-// ----- NVS (survives deep sleep + power loss; cleared by the pinhole) -------
+// ----- NVS (survives deep sleep + power loss; cleared by the factory reset) -
 // Keys: ssid / pass (home Wi-Fi), server (optional custom API base, empty =
 // default infobento.com), provisioned (bool — set only AFTER a confirmed join).
 static const char* NVS_NAMESPACE = "infobento";
@@ -96,9 +219,11 @@ WebServer server(HTTP_PORT);
 const IPAddress AP_IP(192, 168, 4, 1);
 const IPAddress AP_MASK(255, 255, 255, 0);
 
-static bool g_apMode = false;          // true while the captive portal is up
-static bool g_pinholeDown = false;     // true while the pinhole is held
-static unsigned long g_pressStart = 0; // millis() the pinhole went down
+static bool g_apMode = false;                        // true while the captive portal is up
+static uint8_t g_resetOrientation = RESET_LANDSCAPE; // reset-screen orientation (default landscape)
+static bool g_comboDown = false;                     // true while both white buttons are held
+static unsigned long g_comboStart = 0;               // millis() the white-button combo went down
+static bool g_greenDown = false;                     // last green-button level (edge detect)
 
 // ----- Identity -------------------------------------------------------------
 
@@ -381,37 +506,57 @@ void startAP() {
   Serial.println("[IB] captive portal up");
 }
 
-// ----- Pinhole factory reset ------------------------------------------------
+// ----- Factory reset (two white buttons) + reset-screen orientation ---------
 
-// Clears the saved Wi-Fi credentials and reboots; the device returns to AP mode
-// on the next boot. Same effect as the web-side "forget Wi-Fi" (#39).
+// Draw the resident reset screen, wipe ALL saved state, and reboot into AP mode.
+// The screen is drawn FIRST, from flash, so the panel explains what happened and
+// how to reconnect before any SSID exists (the eInk then holds it through the
+// reboot). Same credential effect as the web-side "forget Wi-Fi" (#39).
 void factoryReset() {
-  Serial.println("[IB] PINHOLE 5s hold -> factory reset (clearing creds)");
+  Serial.println("[IB] WHITE x2 5s hold -> factory reset (draw screen, clear creds)");
+  drawResetScreen(g_resetOrientation);
   clearCreds();
   delay(200);
   prefs.end();  // close the NVS handle cleanly before the reboot
   ESP.restart();
 }
 
-// Detect a continuous 5-second hold (not just a momentary tap). Debounced by the
-// requirement to stay LOW for the whole window; any release resets the timer.
-void checkPinhole() {
-  bool pressed = (digitalRead(PINHOLE_GPIO) == LOW);
-  if (pressed) {
-    if (!g_pinholeDown) {
-      // Separate "down" flag rather than a g_pressStart==0 sentinel: millis()
-      // wraps to 0 every ~49.7 days, and a press captured at that instant would
-      // otherwise read as "not pressed" and reset the hold timer.
-      g_pinholeDown = true;
-      g_pressStart = millis();
-      Serial.println("[IB] pinhole down — hold 5s for factory reset");
-    } else if (millis() - g_pressStart >= PINHOLE_HOLD_MS) {
+// Reset trigger: BOTH white buttons held LOW continuously for RESET_HOLD_MS. Any
+// release resets the timer (debounced by sustained hold). Separate "down" flag
+// rather than a g_comboStart==0 sentinel: millis() wraps to 0 every ~49.7 days,
+// and a press captured at that instant would otherwise read as "not held".
+void checkResetCombo() {
+  bool both = (digitalRead(WHITE_BTN_R_GPIO) == LOW) && (digitalRead(WHITE_BTN_L_GPIO) == LOW);
+  if (both) {
+    if (!g_comboDown) {
+      g_comboDown = true;
+      g_comboStart = millis();
+      Serial.println("[IB] both white buttons down — hold 5s for factory reset");
+    } else if (millis() - g_comboStart >= RESET_HOLD_MS) {
       factoryReset();  // does not return
     }
   } else {
-    if (g_pinholeDown) Serial.println("[IB] pinhole released");
-    g_pinholeDown = false;
+    if (g_comboDown) Serial.println("[IB] white-button combo released");
+    g_comboDown = false;
   }
+}
+
+// Green button flips the reset screen between landscape and portrait (matches
+// the #160 orientation toggle; default landscape). Runs in any state, not just
+// AP mode, so the flip works after provisioning too. Edge-triggered on the
+// HIGH->LOW transition, with a short debounce.
+void checkGreenButton() {
+  bool pressed = (digitalRead(GREEN_BTN_GPIO) == LOW);
+  if (pressed && !g_greenDown) {
+    delay(20);  // debounce the edge
+    if (digitalRead(GREEN_BTN_GPIO) == LOW) {
+      g_resetOrientation = (g_resetOrientation == RESET_LANDSCAPE) ? RESET_PORTRAIT : RESET_LANDSCAPE;
+      Serial.printf("[IB] green -> reset screen %s\n",
+                    g_resetOrientation == RESET_PORTRAIT ? "portrait" : "landscape");
+      drawResetScreen(g_resetOrientation);
+    }
+  }
+  g_greenDown = pressed;
 }
 
 // ----- Lifecycle ------------------------------------------------------------
@@ -420,7 +565,10 @@ void setup() {
   Serial.begin(115200);
   delay(200);
   prefs.begin(NVS_NAMESPACE, false);
-  pinMode(PINHOLE_GPIO, INPUT_PULLUP);
+  pinMode(GREEN_BTN_GPIO, INPUT_PULLUP);
+  pinMode(WHITE_BTN_R_GPIO, INPUT_PULLUP);
+  pinMode(WHITE_BTN_L_GPIO, INPUT_PULLUP);
+  epdBegin();  // panel pins to a known state so a reset can draw its screen
 
   bool provisioned = prefs.getBool("provisioned", false);
   String ssid = prefs.getString("ssid", "");
@@ -430,12 +578,12 @@ void setup() {
   if (provisioned && ssid.length()) {
     // Returning device: try the saved network. On success the steady-state
     // pull/deep-sleep firmware (Phases 3-5) takes over from here; on the bench
-    // this sketch just proves the join and idles (watching the pinhole). On
+    // this sketch just proves the join and idles (watching the reset buttons). On
     // failure (network moved / password changed) fall back to provisioning.
     WiFi.mode(WIFI_STA);
     if (tryJoin(ssid, prefs.getString("pass", ""))) {
       Serial.println("[IB] provisioned + online -> hand off to pull loop (idle on bench)");
-      return;  // loop() keeps watching the pinhole
+      return;  // loop() keeps watching the reset buttons
     }
     Serial.println("[IB] saved creds did not join -> re-entering AP mode");
   }
@@ -448,6 +596,7 @@ void loop() {
     dns.processNextRequest();
     server.handleClient();
   }
-  checkPinhole();
+  checkResetCombo();
+  checkGreenButton();  // flip the reset screen orientation in any state (AP or provisioned-idle)
   delay(5);  // light yield so a tight AP-idle loop doesn't peg the CPU
 }
