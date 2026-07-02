@@ -1,0 +1,163 @@
+/**
+ * Generate the resident factory-reset screens for the E1001 provisioning firmware
+ * (issue #171). Renders TWO 800x480 2-bit InfoBento-native framebuffers —
+ * landscape and portrait — and emits them as PROGMEM C arrays
+ * (firmware/provisioning/reset_screen.h) that the firmware draws on reset,
+ * before any Wi-Fi/SSID exists, so they must be baked in, not fetched.
+ *
+ * Portrait is rendered tall (480x800 logical) then rotated 90° into the panel's
+ * fixed landscape raster (same as the /frames portrait, RFC 0002 §Q1), so the
+ * firmware's uploadFrame is orientation-agnostic and the green button just picks
+ * the other array. Default orientation is landscape.
+ *
+ * Run: npx tsx scripts/gen-reset-screen.ts
+ *
+ * Design (operator-directed): action-oriented "how to reconnect", an explicit
+ * statement that all usage/user data was erased, large type for close-range
+ * reading, and the www.infobento.com address (text + QR) for more information.
+ */
+import { writeFileSync } from 'node:fs';
+import { resolve, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const REPO = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+const R = `${REPO}/packages/renderer/src`;
+
+const { createFrameBuffer } = await import(`${R}/index.ts`);
+const { drawText, drawTextWrapped, setPixel, rotateFrameBuffer90, GRAY_BLACK, GRAY_DARK } =
+  await import(`${R}/draw.ts`);
+const { renderQRBox } = await import(`${R}/boxes/qr.ts`);
+const { computeFontMetrics } = await import(`${R}/font-metrics.ts`);
+
+type FB = { width: number; height: number; data: Uint8Array };
+
+const PANEL_W = 800;
+const PANEL_H = 480;
+const HELP_URL = 'https://www.infobento.com';
+const metrics = computeFontMetrics();
+
+const WIPE_TEXT = 'This device was reset. All saved Wi-Fi, settings, and usage data were erased.';
+const STEPS = [
+  '1.  On your phone, join the Wi-Fi',
+  '      network  "InfoBento-XXXX"',
+  '2.  The setup page opens automatically',
+  '3.  Enter your home Wi-Fi to reconnect',
+];
+
+function hline(fb: FB, x0: number, x1: number, y: number): void {
+  for (let x = x0; x < x1; x++) setPixel(fb, x, y, GRAY_BLACK);
+}
+
+function drawQR(fb: FB, x: number, y: number, size: number): void {
+  renderQRBox(
+    fb,
+    {
+      box: {
+        id: 'qr',
+        type: 'qr' as const,
+        label: 'HELP',
+        config: { type: 'qr' as const, url: HELP_URL },
+      },
+      x,
+      y,
+      width: size,
+      height: size,
+    },
+    { type: 'qr', url: HELP_URL },
+    metrics,
+    false,
+  );
+}
+
+// Landscape: text column on the left, QR top-right.
+function drawLandscape(): FB {
+  const fb = createFrameBuffer({ widthPx: PANEL_W, heightPx: PANEL_H, deviceId: '' }) as FB;
+  const MX = 40;
+  const COL = 470;
+  drawText(fb, MX, 42, 'Set up InfoBento', COL, GRAY_BLACK, 44, 700);
+  hline(fb, MX, MX + COL, 104);
+  drawTextWrapped(fb, MX, 120, WIPE_TEXT, COL, 70, GRAY_DARK, 21, 400);
+  let y = 210;
+  for (const line of STEPS) {
+    drawText(fb, MX, y, line, COL + 60, GRAY_BLACK, 23, 500);
+    y += 40;
+  }
+  drawText(fb, MX, 432, 'More information:  www.infobento.com', 760, GRAY_BLACK, 22, 600);
+  drawQR(fb, 545, 120, 215);
+  drawText(fb, 560, 345, 'Scan for help', 200, GRAY_DARK, 18, 500);
+  return fb;
+}
+
+// Portrait: rendered tall (480x800 logical), rotated into the panel raster below.
+function drawPortraitLogical(): FB {
+  const fb = createFrameBuffer({ widthPx: PANEL_H, heightPx: PANEL_W, deviceId: '' }) as FB; // 480x800
+  const MX = 36;
+  const COL = 480 - MX * 2;
+  drawText(fb, MX, 54, 'Set up', COL, GRAY_BLACK, 46, 700);
+  drawText(fb, MX, 104, 'InfoBento', COL, GRAY_BLACK, 46, 700);
+  hline(fb, MX, MX + COL, 168);
+  drawTextWrapped(fb, MX, 186, WIPE_TEXT, COL, 130, GRAY_DARK, 22, 400);
+  let y = 320;
+  for (const line of STEPS) {
+    drawText(fb, MX, y, line, COL + 20, GRAY_BLACK, 22, 500);
+    y += 44;
+  }
+  drawText(fb, MX, 520, 'More information:', COL, GRAY_BLACK, 22, 600);
+  drawText(fb, MX, 552, 'www.infobento.com', COL, GRAY_BLACK, 22, 600);
+  drawQR(fb, MX + 60, 600, 190);
+  return fb;
+}
+
+function toHeader(name: string, fb: FB): string {
+  const bytes = fb.data;
+  const rows: string[] = [];
+  for (let i = 0; i < bytes.length; i += 16) {
+    const chunk = Array.from(bytes.slice(i, i + 16)).map(
+      (b) => `0x${b.toString(16).padStart(2, '0').toUpperCase()}`,
+    );
+    rows.push('  ' + chunk.join(',') + ',');
+  }
+  return `const uint8_t ${name}[] PROGMEM = {\n${rows.join('\n')}\n};\n`;
+}
+
+const landscape = drawLandscape();
+const portrait = rotateFrameBuffer90(drawPortraitLogical()) as FB; // 480x800 -> 800x480 panel raster
+
+for (const [label, fb] of [
+  ['landscape', landscape],
+  ['portrait', portrait],
+] as const) {
+  if (fb.width !== PANEL_W || fb.height !== PANEL_H || fb.data.length !== (PANEL_W / 4) * PANEL_H) {
+    throw new Error(`${label} wrong geometry: ${fb.width}x${fb.height} len=${fb.data.length}`);
+  }
+}
+
+const header = `// AUTO-GENERATED by scripts/gen-reset-screen.ts — DO NOT EDIT BY HAND.
+// Resident factory-reset screens for the E1001 provisioning firmware (issue #171).
+// Two ${PANEL_W}x${PANEL_H} frames, 2-bit InfoBento-native (0=white .. 3=black),
+// 4 px/byte, ${landscape.data.length} bytes each. Portrait is pre-rotated into the
+// panel's landscape raster, so drawing is orientation-agnostic and the green
+// button just selects the other array (default: landscape). The firmware
+// NOT-flips each byte to the UC8179 canvas (0=black .. 3=white), same as the
+// deep-sleep / orientation draw path.
+#pragma once
+#include <pgmspace.h>
+
+static const uint16_t RESET_SCREEN_W = ${PANEL_W};
+static const uint16_t RESET_SCREEN_H = ${PANEL_H};
+static const uint32_t RESET_SCREEN_LEN = ${landscape.data.length};
+
+${toHeader('RESET_SCREEN_LANDSCAPE', landscape)}
+${toHeader('RESET_SCREEN_PORTRAIT', portrait)}`;
+
+const out = `${REPO}/firmware/provisioning/reset_screen.h`;
+writeFileSync(out, header);
+console.log(`wrote ${out} — landscape+portrait, ${landscape.data.length} bytes each`);
+
+// Optional visual check: PREVIEW=<dir> npx tsx scripts/gen-reset-screen.ts
+if (process.env.PREVIEW) {
+  const { frameToPng } = await import(`${R}/png.ts`);
+  writeFileSync(`${process.env.PREVIEW}/reset-landscape.png`, frameToPng(landscape));
+  writeFileSync(`${process.env.PREVIEW}/reset-portrait.png`, frameToPng(portrait));
+  console.log(`wrote preview PNGs to ${process.env.PREVIEW}`);
+}
