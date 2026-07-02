@@ -36,6 +36,12 @@ describe('dayOfYear', () => {
   it('returns 60 for March 1 of a non-leap year', () => {
     expect(dayOfYear(new Date(2026, 2, 1))).toBe(60);
   });
+
+  it('computes day-of-year from UTC fields when utc=true', () => {
+    // Still Jan 1 / Dec 31 in UTC regardless of the server's local timezone.
+    expect(dayOfYear(new Date('2026-01-01T12:00:00Z'), true)).toBe(1);
+    expect(dayOfYear(new Date('2026-12-31T12:00:00Z'), true)).toBe(365);
+  });
 });
 
 describe('renderDateBox', () => {
@@ -62,5 +68,22 @@ describe('renderDateBox', () => {
     };
     const fb = render(config);
     expect(fb.data.some((b) => b !== 0)).toBe(true);
+  });
+
+  it('anchors to the hydrated UTC offset, so the local date differs across a day boundary (issue #166)', () => {
+    // Server instant at UTC midnight; a −1h offset is still the 22nd locally
+    // while +1h is the 23rd — the offset path (getUTC*) is deterministic
+    // regardless of the machine timezone the test runs in.
+    const now = new Date('2026-04-23T00:00:00Z');
+    const draw = (utcOffsetSeconds: number) => {
+      const config: DateBoxConfig = { type: 'date', data: { utcOffsetSeconds } };
+      const fb = createFrameBuffer({ widthPx: 120, heightPx: 100, deviceId: '' });
+      renderDateBox(fb, makeLayout(config), config, metrics, now);
+      return fb;
+    };
+    const prevDay = draw(-3600);
+    const nextDay = draw(3600);
+    expect(prevDay.data.some((b) => b !== 0)).toBe(true);
+    expect(prevDay.data.every((b, i) => b === nextDay.data[i])).toBe(false);
   });
 });

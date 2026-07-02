@@ -15,6 +15,7 @@ import type {
   BentoConfig,
   BentoBox,
   WeatherData,
+  DateData,
   ForecastEntry,
   Forecast3DEntry,
   SunData,
@@ -25,6 +26,7 @@ import type {
 import {
   InMemoryCache,
   fetchWeather as dataFetchWeather,
+  fetchUtcOffset as dataFetchUtcOffset,
   fetchForecast as dataFetchForecast,
   fetchForecast3D as dataFetchForecast3D,
   fetchSunTimes as dataFetchSunTimes,
@@ -44,6 +46,7 @@ import {
 export interface HydrateDeps {
   readonly cache: Cache;
   readonly fetchWeather: (location: string, unit: 'F' | 'C') => Promise<WeatherData | null>;
+  readonly fetchUtcOffset: (location: string) => Promise<number | null>;
   readonly fetchForecast: (
     location: string,
     hours: number,
@@ -75,6 +78,8 @@ const HOROSCOPE_TTL_MS = 6 * 60 * 60 * 1000;
 const ONTHISDAY_TTL_MS = 6 * 60 * 60 * 1000;
 const QUOTE_TTL_MS = 6 * 60 * 60 * 1000;
 const JOKE_TTL_MS = 6 * 60 * 60 * 1000;
+// A location's UTC offset is stable across a pull cycle; cache it like sun times.
+const OFFSET_TTL_MS = 6 * 60 * 60 * 1000;
 
 // Bound each upstream call well under the firmware's HTTP timeout, so a hung
 // provider yields a placeholder frame instead of hanging the pull (RFC §6).
@@ -130,7 +135,66 @@ function resolveCached<T>(
  */
 export async function hydrateConfig(config: BentoConfig, deps: HydrateDeps): Promise<BentoConfig> {
   const boxes = await Promise.all(config.boxes.map((box) => hydrateBox(box, deps)));
-  return { ...config, boxes };
+  return { ...config, boxes: await resolveDateOffsets(boxes, deps) };
+}
+
+/** First non-empty city on a location-bearing box, if any — the source for a
+ *  date box's timezone when there's no weather box to piggyback on. */
+function firstLocatedCity(boxes: readonly BentoBox[]): string | undefined {
+  for (const box of boxes) {
+    if (
+      box.type === 'weather' ||
+      box.type === 'forecast' ||
+      box.type === 'forecast3d' ||
+      box.type === 'sun' ||
+      box.type === 'aqi'
+    ) {
+      const city = box.config?.city.trim();
+      if (city) return city;
+    }
+  }
+  return undefined;
+}
+
+/**
+ * Give every date box the device's UTC offset so it renders the *local* date,
+ * not the server's UTC clock (issue #166). Prefer a hydrated weather box's
+ * offset — already fetched, so zero extra calls — otherwise resolve it once from
+ * the first located box's city. With no location anywhere, leave date boxes
+ * untouched: the renderer falls back to server time.
+ */
+async function resolveDateOffsets(
+  boxes: readonly BentoBox[],
+  deps: HydrateDeps,
+): Promise<BentoBox[]> {
+  const result = [...boxes];
+  if (!result.some((box) => box.type === 'date')) return result;
+
+  let offset: number | undefined;
+  for (const box of result) {
+    if (box.type === 'weather' && box.config?.data?.utcOffsetSeconds !== undefined) {
+      offset = box.config.data.utcOffsetSeconds;
+      break;
+    }
+  }
+  if (offset === undefined) {
+    const city = firstLocatedCity(result);
+    if (city) {
+      offset = await resolveCached<number>(
+        deps,
+        `utcoffset:${city.toLowerCase()}`,
+        OFFSET_TTL_MS,
+        `utcoffset "${city}"`,
+        () => deps.fetchUtcOffset(city),
+      );
+    }
+  }
+  if (offset === undefined) return result;
+
+  const data: DateData = { utcOffsetSeconds: offset };
+  return result.map((box) =>
+    box.type === 'date' ? { ...box, config: { ...(box.config ?? { type: 'date' }), data } } : box,
+  );
 }
 
 async function hydrateBox(box: BentoBox, deps: HydrateDeps): Promise<BentoBox> {
@@ -305,6 +369,7 @@ export function defaultHydrateDeps(): HydrateDeps {
   return {
     cache: sharedCache,
     fetchWeather: dataFetchWeather,
+    fetchUtcOffset: dataFetchUtcOffset,
     fetchForecast: (location, hours) => dataFetchForecast(location, hours, 'F'),
     fetchForecast3D: (location, days) => dataFetchForecast3D(location, days, 'F'),
     fetchSunTimes: dataFetchSunTimes,

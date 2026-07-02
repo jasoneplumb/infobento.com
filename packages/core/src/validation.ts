@@ -79,8 +79,13 @@ const QuoteBoxConfigSchema = z.object({
   tags: z.string().optional(),
 });
 
+const DateDataSchema = z.object({
+  utcOffsetSeconds: z.number(),
+});
+
 const DateBoxConfigSchema = z.object({
   type: z.literal('date'),
+  data: DateDataSchema.optional(),
 });
 
 const MoonBoxConfigSchema = z.object({

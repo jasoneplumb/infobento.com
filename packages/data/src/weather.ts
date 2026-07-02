@@ -32,6 +32,8 @@ function toTemp(celsius: number, unit: 'F' | 'C'): number {
 }
 
 interface OpenMeteoForecast {
+  /** Location's offset from UTC in seconds — present when timezone=auto. */
+  utc_offset_seconds?: number;
   current: {
     temperature_2m: number;
     weather_code: number;
@@ -74,7 +76,37 @@ export async function fetchWeather(
       condition: weatherCondition(forecast.current.weather_code),
       high: toTemp(highC, unit),
       low: toTemp(lowC, unit),
+      // Only include when the provider returned it, so callers that omit
+      // timezone=auto don't get an undefined-valued key.
+      ...(forecast.utc_offset_seconds !== undefined
+        ? { utcOffsetSeconds: forecast.utc_offset_seconds }
+        : {}),
     };
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Geocode a location and return only its current offset from UTC in seconds
+ * (Open-Meteo `timezone=auto`). Used to give a date box the device's local date
+ * when no weather box is present to piggyback on (issue #166). Returns null if
+ * the location can't be found or the request fails.
+ */
+export async function fetchUtcOffset(location: string): Promise<number | null> {
+  const place = await geocode(location);
+  if (!place) return null;
+
+  try {
+    const url =
+      `https://api.open-meteo.com/v1/forecast` +
+      `?latitude=${String(place.latitude)}` +
+      `&longitude=${String(place.longitude)}` +
+      `&current=temperature_2m&timezone=auto&forecast_days=1`;
+    const res = await fetch(url);
+    if (!res.ok) return null;
+    const data = (await res.json()) as { utc_offset_seconds?: number };
+    return data.utc_offset_seconds ?? null;
   } catch {
     return null;
   }
