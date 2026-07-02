@@ -28,10 +28,12 @@ export function propagateLocationToEmptyBoxes(city: string): void {
         box.type === 'forecast' ||
         box.type === 'forecast3d' ||
         box.type === 'sun' ||
-        box.type === 'aqi'
+        box.type === 'aqi' ||
+        box.type === 'date'
       ) {
-        const cfg = box.config as { city: string };
-        if (cfg.city.trim() === '') {
+        // The date box's city is optional (may be undefined); the rest require it.
+        const cfg = box.config as { city?: string };
+        if ((cfg.city ?? '').trim() === '') {
           cfg.city = city;
         }
       }

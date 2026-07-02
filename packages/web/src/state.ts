@@ -66,7 +66,8 @@ export interface QuoteConfig {
 }
 
 export interface DateConfig {
-  _placeholder: string;
+  /** Optional location so the date renders in the device's local timezone (#168). */
+  city?: string;
 }
 
 export interface MoonConfig {
@@ -274,7 +275,7 @@ function defaultBoxes(): EditorBox[] {
       id: uid(),
       type: 'date',
       label: 'Date',
-      config: { _placeholder: '' } as DateConfig,
+      config: { city: '' } as DateConfig,
       split: 'left',
     },
     {

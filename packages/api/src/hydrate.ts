@@ -156,44 +156,70 @@ function firstLocatedCity(boxes: readonly BentoBox[]): string | undefined {
   return undefined;
 }
 
+/** Resolve a city's UTC offset through the shared cache (undefined on failure). */
+function offsetForCity(city: string, deps: HydrateDeps): Promise<number | undefined> {
+  return resolveCached<number>(
+    deps,
+    `utcoffset:${city.toLowerCase()}`,
+    OFFSET_TTL_MS,
+    `utcoffset "${city}"`,
+    () => deps.fetchUtcOffset(city),
+  );
+}
+
 /**
- * Give every date box the device's UTC offset so it renders the *local* date,
- * not the server's UTC clock (issue #166). Prefer a hydrated weather box's
- * offset — already fetched, so zero extra calls — otherwise resolve it once from
- * the first located box's city. With no location anywhere, leave date boxes
- * untouched: the renderer falls back to server time.
+ * Device-wide fallback offset for date boxes that carry no location of their
+ * own: prefer a hydrated weather box's offset (already fetched, zero extra
+ * calls), else one lookup from the first located box's city. Undefined when
+ * there's no location anywhere.
+ */
+async function deriveSharedOffset(
+  boxes: readonly BentoBox[],
+  deps: HydrateDeps,
+): Promise<number | undefined> {
+  for (const box of boxes) {
+    if (box.type === 'weather' && box.config?.data?.utcOffsetSeconds !== undefined) {
+      return box.config.data.utcOffsetSeconds;
+    }
+  }
+  const city = firstLocatedCity(boxes);
+  return city ? offsetForCity(city, deps) : undefined;
+}
+
+/**
+ * Give every date box the UTC offset it should render in so it shows the *local*
+ * date, not the server's UTC clock (issues #166, #168). Precedence per box:
+ * its own configured location → a device-wide fallback (weather box, else first
+ * located box) → left untouched, where the renderer falls back to server time.
  */
 async function resolveDateOffsets(
   boxes: readonly BentoBox[],
   deps: HydrateDeps,
 ): Promise<BentoBox[]> {
-  const result = [...boxes];
-  if (!result.some((box) => box.type === 'date')) return result;
+  if (!boxes.some((box) => box.type === 'date')) return [...boxes];
 
-  let offset: number | undefined;
-  for (const box of result) {
-    if (box.type === 'weather' && box.config?.data?.utcOffsetSeconds !== undefined) {
-      offset = box.config.data.utcOffsetSeconds;
-      break;
+  // The shared fallback is resolved at most once, and only if some date box
+  // actually needs it (i.e. has no location of its own).
+  let shared: number | undefined;
+  let sharedDone = false;
+  const sharedOffset = async (): Promise<number | undefined> => {
+    if (!sharedDone) {
+      shared = await deriveSharedOffset(boxes, deps);
+      sharedDone = true;
     }
-  }
-  if (offset === undefined) {
-    const city = firstLocatedCity(result);
-    if (city) {
-      offset = await resolveCached<number>(
-        deps,
-        `utcoffset:${city.toLowerCase()}`,
-        OFFSET_TTL_MS,
-        `utcoffset "${city}"`,
-        () => deps.fetchUtcOffset(city),
-      );
-    }
-  }
-  if (offset === undefined) return result;
+    return shared;
+  };
 
-  const data: DateData = { utcOffsetSeconds: offset };
-  return result.map((box) =>
-    box.type === 'date' ? { ...box, config: { ...(box.config ?? { type: 'date' }), data } } : box,
+  return Promise.all(
+    boxes.map(async (box) => {
+      if (box.type !== 'date') return box;
+      const ownCity = box.config?.city?.trim();
+      let offset = ownCity ? await offsetForCity(ownCity, deps) : undefined;
+      offset ??= await sharedOffset();
+      if (offset === undefined) return box;
+      const data: DateData = { utcOffsetSeconds: offset };
+      return { ...box, config: { ...(box.config ?? { type: 'date' }), data } };
+    }),
   );
 }
 
