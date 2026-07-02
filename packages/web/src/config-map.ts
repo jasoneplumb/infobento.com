@@ -112,7 +112,7 @@ export function toBentoBox(editor: EditorBox): BentoBox {
       };
     }
     case 'date': {
-      const c = box.config as DateConfig;
+      const c = editor.config as DateConfig;
       const city = c.city?.trim();
       return { ...base, type: 'date', config: { type: 'date', ...(city ? { city } : {}) } };
     }

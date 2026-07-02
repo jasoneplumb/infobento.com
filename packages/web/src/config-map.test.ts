@@ -112,6 +112,25 @@ describe('toBentoConfig (export = drop-in device config)', () => {
     const cfg = toBentoConfig([{ id: 1, type: 'text', label: 'Note', config: { content: 'hi' } }]);
     expect(cfg.refreshesPerDay).toBe(3);
   });
+
+  // Regression: the date case referenced an undefined `box` (should be `editor`),
+  // which threw `ReferenceError: box is not defined` inside toBentoConfig whenever
+  // a date box was present — aborting the editor's preview render entirely (#168).
+  it('date box: exports without throwing, with and without a location', () => {
+    const plain = toBentoConfig([{ id: 1, type: 'date', label: 'Date', config: {} }]);
+    expect(plain.boxes[0]).toMatchObject({ type: 'date', config: { type: 'date' } });
+    expect((plain.boxes[0]?.config as { city?: string }).city).toBeUndefined();
+    expect(validateBentoConfig(plain).valid).toBe(true);
+
+    const located = toBentoConfig([
+      { id: 1, type: 'date', label: 'Date', config: { city: 'Beaverton, Oregon' } },
+    ]);
+    expect(located.boxes[0]).toMatchObject({
+      type: 'date',
+      config: { type: 'date', city: 'Beaverton, Oregon' },
+    });
+    expect(validateBentoConfig(located).valid).toBe(true);
+  });
 });
 
 describe('fromBentoConfig', () => {
