@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.34.0] - 2026-07-02
+
+### Added
+
+- **Optional explicit location on the date box (#168).** The date box can now carry its own location (geocoded like the weather boxes), so it renders the correct local date even in a layout with no other location-bearing box. Precedence at pull-time hydration: the date box's own location → a co-located box's timezone (a weather box's already-fetched offset, else the first located box) → the server clock. The location is optional — leaving it blank keeps the zero-config derivation from #166 — and a standalone date box now participates in the editor's IP-based location auto-fill, so it picks up the user's timezone with no manual setup.
+
 ## [0.33.0] - 2026-07-01
 
 ### Added
