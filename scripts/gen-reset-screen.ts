@@ -41,7 +41,8 @@ const STEPS = [
   '1.  On your phone, join the Wi-Fi',
   '      network  "InfoBento-XXXX"',
   '2.  The setup page opens automatically',
-  '3.  Enter your home Wi-Fi to reconnect',
+  '3.  Enter your home Wi-Fi and the',
+  '      Device ID from the sticker',
 ];
 
 function hline(fb: FB, x0: number, x1: number, y: number): void {
