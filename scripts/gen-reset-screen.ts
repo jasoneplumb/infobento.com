@@ -150,9 +150,16 @@ static const uint32_t RESET_SCREEN_LEN = ${landscape.data.length};
 ${toHeader('RESET_SCREEN_LANDSCAPE', landscape)}
 ${toHeader('RESET_SCREEN_PORTRAIT', portrait)}`;
 
-const out = `${REPO}/firmware/provisioning/reset_screen.h`;
-writeFileSync(out, header);
-console.log(`wrote ${out} — landscape+portrait, ${landscape.data.length} bytes each`);
+// Both the provisioning and integrated (Phase 7) sketches embed the same frames;
+// write both so they can never drift out of sync.
+const outs = [
+  `${REPO}/firmware/provisioning/reset_screen.h`,
+  `${REPO}/firmware/integrated/reset_screen.h`,
+];
+for (const out of outs) writeFileSync(out, header);
+console.log(
+  `wrote ${outs.length} copies — landscape+portrait, ${landscape.data.length} bytes each`,
+);
 
 // Optional visual check: PREVIEW=<dir> npx tsx scripts/gen-reset-screen.ts
 if (process.env.PREVIEW) {
