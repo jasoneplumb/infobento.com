@@ -541,9 +541,10 @@ void checkResetCombo() {
   }
 }
 
-// Green button flips the reset screen between landscape and portrait while the
-// portal is up (matches the #160 orientation toggle; default landscape).
-// Edge-triggered on the HIGH->LOW transition, with a short debounce.
+// Green button flips the reset screen between landscape and portrait (matches
+// the #160 orientation toggle; default landscape). Runs in any state, not just
+// AP mode, so the flip works after provisioning too. Edge-triggered on the
+// HIGH->LOW transition, with a short debounce.
 void checkGreenButton() {
   bool pressed = (digitalRead(GREEN_BTN_GPIO) == LOW);
   if (pressed && !g_greenDown) {
@@ -594,8 +595,8 @@ void loop() {
   if (g_apMode) {
     dns.processNextRequest();
     server.handleClient();
-    checkGreenButton();  // flip the reset screen's orientation while the portal is up
   }
   checkResetCombo();
+  checkGreenButton();  // flip the reset screen orientation in any state (AP or provisioned-idle)
   delay(5);  // light yield so a tight AP-idle loop doesn't peg the CPU
 }
