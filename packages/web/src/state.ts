@@ -68,6 +68,7 @@ export interface QuoteConfig {
 export interface DateConfig {
   /** Optional location so the date renders in the device's local timezone (#168). */
   city?: string;
+  showYearProgress?: boolean;
 }
 
 export interface MoonConfig {
@@ -635,10 +636,10 @@ export function setSplitRatio(id: number, ratio: number): void {
   });
 }
 
-export function updateConfig(id: number, key: string, value: string | number): void {
+export function updateConfig(id: number, key: string, value: string | number | boolean): void {
   const box = findBox(id);
   if (!box) return;
-  (box.config as unknown as Record<string, string | number>)[key] = value;
+  (box.config as unknown as Record<string, string | number | boolean>)[key] = value;
   // Remember the latest location so newly-added location rows can default to it.
   if (key === 'city' && typeof value === 'string' && value.trim()) lastKnownLocation = value;
   renderPreview();

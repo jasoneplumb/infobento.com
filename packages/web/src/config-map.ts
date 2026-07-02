@@ -114,7 +114,15 @@ export function toBentoBox(editor: EditorBox): BentoBox {
     case 'date': {
       const c = editor.config as DateConfig;
       const city = c.city?.trim();
-      return { ...base, type: 'date', config: { type: 'date', ...(city ? { city } : {}) } };
+      return {
+        ...base,
+        type: 'date',
+        config: {
+          type: 'date',
+          ...(city ? { city } : {}),
+          ...(c.showYearProgress !== undefined ? { showYearProgress: c.showYearProgress } : {}),
+        },
+      };
     }
     case 'moon': {
       return { ...base, type: 'moon', config: { type: 'moon' } };
@@ -315,7 +323,10 @@ export function fromBentoBox(box: BentoBox): ExportBox {
       } as QuoteConfig;
       break;
     case 'date':
-      config = { city: str(cfg?.['city']) } as DateConfig;
+      config = {
+        city: str(cfg?.['city']),
+        showYearProgress: cfg?.['showYearProgress'] as boolean | undefined,
+      } as DateConfig;
       break;
     case 'moon':
       config = { _placeholder: '' };

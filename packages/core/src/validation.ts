@@ -87,6 +87,7 @@ const DateBoxConfigSchema = z.object({
   type: z.literal('date'),
   city: z.string().optional(),
   data: DateDataSchema.optional(),
+  showYearProgress: z.boolean().optional(),
 });
 
 const MoonBoxConfigSchema = z.object({

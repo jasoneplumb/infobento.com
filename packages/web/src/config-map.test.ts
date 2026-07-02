@@ -131,6 +131,24 @@ describe('toBentoConfig (export = drop-in device config)', () => {
     });
     expect(validateBentoConfig(located).valid).toBe(true);
   });
+
+  it('date box: showYearProgress round-trips through toBentoConfig/fromBentoConfig', () => {
+    const out = roundTrip({
+      id: 10,
+      type: 'date',
+      label: 'Date',
+      config: { city: 'Portland', showYearProgress: true },
+    });
+    expect(out.config).toEqual({ city: 'Portland', showYearProgress: true });
+
+    const outWithoutProgress = roundTrip({
+      id: 11,
+      type: 'date',
+      label: 'Date',
+      config: { showYearProgress: false },
+    });
+    expect(outWithoutProgress.config).toMatchObject({ showYearProgress: false });
+  });
 });
 
 describe('fromBentoConfig', () => {

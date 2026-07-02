@@ -125,31 +125,33 @@ export function renderDateBox(
   cy += metrics.bodySize + 3;
 
   // Year progress: "Day 113/365" with progress bar on same line
-  const doy = dayOfYear(local, useOffset);
-  const total = daysInYear(year);
-  const barHeight = 5;
+  if (config.showYearProgress === true) {
+    const doy = dayOfYear(local, useOffset);
+    const total = daysInYear(year);
+    const barHeight = 5;
 
-  if (cy + barHeight > contentEnd) {
-    return;
+    if (cy + barHeight > contentEnd) {
+      return;
+    }
+
+    const progressLabel = `${String(doy)}/${String(total)}`;
+    const labelWidth = progressLabel.length * metrics.bodyAdvance;
+    const barX = x + metrics.pad + labelWidth + 4;
+    const barWidth = contentWidth - labelWidth - 4;
+
+    drawText(
+      fb,
+      x + metrics.pad,
+      cy,
+      progressLabel,
+      labelWidth,
+      GRAY_LIGHT,
+      metrics.bodySize,
+      metrics.weight,
+    );
+    if (barWidth > 10) {
+      drawProgressBar(fb, barX, cy + 1, barWidth, barHeight, doy / total);
+    }
+    cy += Math.max(metrics.bodySize, barHeight) + metrics.pad;
   }
-
-  const progressLabel = `${String(doy)}/${String(total)}`;
-  const labelWidth = progressLabel.length * metrics.bodyAdvance;
-  const barX = x + metrics.pad + labelWidth + 4;
-  const barWidth = contentWidth - labelWidth - 4;
-
-  drawText(
-    fb,
-    x + metrics.pad,
-    cy,
-    progressLabel,
-    labelWidth,
-    GRAY_LIGHT,
-    metrics.bodySize,
-    metrics.weight,
-  );
-  if (barWidth > 10) {
-    drawProgressBar(fb, barX, cy + 1, barWidth, barHeight, doy / total);
-  }
-  cy += Math.max(metrics.bodySize, barHeight) + metrics.pad;
 }

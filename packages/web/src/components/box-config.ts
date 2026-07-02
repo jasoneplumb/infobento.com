@@ -539,10 +539,28 @@ function buildDateForm(box: EditorBox): DocumentFragment {
     makeLocationField(cityInput, (city) => updateConfig(box.id, 'city', city), false),
   );
 
+  // Checkbox for year progress visibility
+  const checkboxWrapper = document.createElement('div');
+  checkboxWrapper.className = 'field';
+  const checkbox = document.createElement('input');
+  checkbox.type = 'checkbox';
+  checkbox.checked = cfg.showYearProgress ?? false;
+  checkbox.addEventListener('change', () => {
+    updateConfig(box.id, 'showYearProgress', checkbox.checked);
+  });
+  const checkboxLabel = document.createElement('label');
+  checkboxLabel.style.display = 'flex';
+  checkboxLabel.style.alignItems = 'center';
+  checkboxLabel.style.gap = '0.5rem';
+  checkboxLabel.appendChild(checkbox);
+  checkboxLabel.appendChild(document.createTextNode('Show year progress'));
+  checkboxWrapper.appendChild(checkboxLabel);
+  frag.appendChild(checkboxWrapper);
+
   const info = document.createElement('div');
   info.className = 'weather-status';
   info.textContent =
-    'Date and year progress are computed automatically. Set a location to keep the date in that timezone.';
+    'Date is computed automatically. Set a location to keep the date in that timezone.';
   frag.appendChild(info);
   return frag;
 }

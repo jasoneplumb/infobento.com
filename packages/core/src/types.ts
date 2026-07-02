@@ -93,6 +93,7 @@ export interface DateBoxConfig {
    */
   readonly city?: string;
   readonly data?: DateData;
+  readonly showYearProgress?: boolean;
 }
 
 export interface MoonBoxConfig {

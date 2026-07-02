@@ -14,13 +14,13 @@ function popcount(n: number): number {
   return count;
 }
 
-function makeLayout(config: DateBoxConfig): LayoutBox {
+function makeLayout(config: DateBoxConfig, height = 100): LayoutBox {
   return {
     box: { id: 'date-1', type: 'date' as const, label: 'Date', config },
     x: 0,
     y: 0,
     width: 120,
-    height: 100,
+    height,
   };
 }
 
@@ -85,5 +85,25 @@ describe('renderDateBox', () => {
     const nextDay = draw(3600);
     expect(prevDay.data.some((b) => b !== 0)).toBe(true);
     expect(prevDay.data.every((b, i) => b === nextDay.data[i])).toBe(false);
+  });
+
+  it('accepts showYearProgress config option without error', () => {
+    const config: DateBoxConfig = { type: 'date' };
+    const fb = createFrameBuffer({ widthPx: 120, heightPx: 100, deviceId: '' });
+    expect(() =>
+      renderDateBox(fb, makeLayout(config), config, metrics, new Date('2026-06-15T12:00:00')),
+    ).not.toThrow();
+    const withoutFlag = fb.data.reduce((sum, byte) => sum + popcount(byte), 0);
+    expect(withoutFlag).toBeGreaterThan(0);
+  });
+
+  it('renders with showYearProgress: true', () => {
+    const config: DateBoxConfig = { type: 'date', showYearProgress: true };
+    const fb = createFrameBuffer({ widthPx: 120, heightPx: 100, deviceId: '' });
+    expect(() =>
+      renderDateBox(fb, makeLayout(config), config, metrics, new Date('2026-06-15T12:00:00')),
+    ).not.toThrow();
+    const withProgress = fb.data.reduce((sum, byte) => sum + popcount(byte), 0);
+    expect(withProgress).toBeGreaterThan(0);
   });
 });
