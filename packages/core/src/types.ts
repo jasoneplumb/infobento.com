@@ -86,6 +86,12 @@ export interface DateData {
 
 export interface DateBoxConfig {
   readonly type: 'date';
+  /**
+   * Optional location (geocoded like the weather boxes) so the date resolves to
+   * the correct local timezone even with no other location-bearing box present
+   * (issue #168). Blank → fall back to a co-located box, then server time.
+   */
+  readonly city?: string;
   readonly data?: DateData;
 }
 

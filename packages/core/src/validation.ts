@@ -85,6 +85,7 @@ const DateDataSchema = z.object({
 
 const DateBoxConfigSchema = z.object({
   type: z.literal('date'),
+  city: z.string().optional(),
   data: DateDataSchema.optional(),
 });
 

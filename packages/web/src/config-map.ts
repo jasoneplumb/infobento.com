@@ -24,6 +24,7 @@ import type {
   TextConfig,
   QRConfig,
   QuoteConfig,
+  DateConfig,
   SunConfig,
   AQIConfig,
   ProgressConfig,
@@ -111,7 +112,9 @@ export function toBentoBox(editor: EditorBox): BentoBox {
       };
     }
     case 'date': {
-      return { ...base, type: 'date', config: { type: 'date' } };
+      const c = box.config as DateConfig;
+      const city = c.city?.trim();
+      return { ...base, type: 'date', config: { type: 'date', ...(city ? { city } : {}) } };
     }
     case 'moon': {
       return { ...base, type: 'moon', config: { type: 'moon' } };
@@ -312,7 +315,7 @@ export function fromBentoBox(box: BentoBox): ExportBox {
       } as QuoteConfig;
       break;
     case 'date':
-      config = { _placeholder: '' };
+      config = { city: str(cfg?.['city']) } as DateConfig;
       break;
     case 'moon':
       config = { _placeholder: '' };

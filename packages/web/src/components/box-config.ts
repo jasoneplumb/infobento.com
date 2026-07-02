@@ -10,6 +10,7 @@ import type {
   Forecast3DConfig,
   QRConfig,
   QuoteConfig,
+  DateConfig,
   WeatherConfig,
   SunConfig,
   AQIConfig,
@@ -152,6 +153,7 @@ const LOCATE_ICON =
 function makeLocationField(
   cityInput: HTMLInputElement,
   onCity: (city: string) => void,
+  required = true,
 ): HTMLDivElement {
   const wrapper = document.createElement('div');
   wrapper.className = 'field';
@@ -184,7 +186,7 @@ function makeLocationField(
   labelRow.appendChild(locBtn);
   wrapper.appendChild(labelRow);
   wrapper.appendChild(cityInput);
-  attachValidation(cityInput, wrapper, validateRequired('a location'));
+  if (required) attachValidation(cityInput, wrapper, validateRequired('a location'));
 
   return wrapper;
 }
@@ -524,11 +526,23 @@ function buildQuoteForm(box: EditorBox): DocumentFragment {
   return frag;
 }
 
-function buildDateForm(_box: EditorBox): DocumentFragment {
+function buildDateForm(box: EditorBox): DocumentFragment {
   const frag = document.createDocumentFragment();
+  const cfg = box.config as DateConfig;
+
+  // Optional location: geocoded server-side at pull time to render the date in
+  // the device's local timezone (#168). Blank falls back to another location
+  // box, then the server clock.
+  const cityInput = inputEl('text', cfg.city ?? '', (v) => updateConfig(box.id, 'city', v));
+  cityInput.placeholder = 'Optional — e.g. Portland, OR';
+  frag.appendChild(
+    makeLocationField(cityInput, (city) => updateConfig(box.id, 'city', city), false),
+  );
+
   const info = document.createElement('div');
   info.className = 'weather-status';
-  info.textContent = 'Date and year progress are computed automatically.';
+  info.textContent =
+    'Date and year progress are computed automatically. Set a location to keep the date in that timezone.';
   frag.appendChild(info);
   return frag;
 }
