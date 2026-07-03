@@ -37,7 +37,12 @@ import {
 } from './state';
 import { DEVICE_PROFILES } from '@infobento/core';
 import { renderBoxList, decorateBoxList } from './components/box-list';
-import { renderPreview, setPreviewOrientation, onRenderedBoxIds } from './components/preview';
+import {
+  renderPreview,
+  setPreviewOrientation,
+  getPreviewOrientation,
+  onRenderedBoxIds,
+} from './components/preview';
 import { requireConsent } from './components/consent';
 import { openSignInDialog } from './components/sign-in';
 import { openDevicesDialog } from './components/devices';
@@ -214,7 +219,9 @@ function initEditor(): void {
 
   const landscapeToggle = document.querySelector<HTMLInputElement>('#toggle-landscape input');
   if (landscapeToggle) {
-    landscapeToggle.checked = false;
+    // Restore the persisted per-browser preference (defaults to landscape) so
+    // the toggle survives reloads and matches the device's landscape output.
+    landscapeToggle.checked = getPreviewOrientation();
     landscapeToggle.addEventListener('change', () =>
       setPreviewOrientation(landscapeToggle.checked),
     );

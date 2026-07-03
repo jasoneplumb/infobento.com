@@ -12,8 +12,29 @@ let _imgLandscape: HTMLImageElement | undefined;
 let _imgPortrait: HTMLImageElement | undefined;
 let _pendingRequest: AbortController | undefined;
 let _debounceTimer: ReturnType<typeof setTimeout> | undefined;
-let _showLandscape = false;
 let _containerId: string | undefined;
+
+// -- Landscape orientation view preference (per-browser, issue #159) ---------
+//
+// Orientation is a *view* preference, not part of BentoConfig — it must never
+// leak into the exported/cloud-synced config. So it persists under its own
+// localStorage key, independent of the editor's config state. It defaults to
+// landscape because every firmware sketch requests `?orientation=landscape`
+// (the device always shows landscape), so the preview should match the device
+// on first load rather than resetting to portrait each reload.
+const ORIENTATION_KEY = 'infobento-landscape';
+
+function loadOrientation(): boolean {
+  try {
+    const saved = localStorage.getItem(ORIENTATION_KEY);
+    if (saved === null) return true; // default: landscape
+    return saved === 'true';
+  } catch {
+    return true; // storage unavailable — fall back to the landscape default
+  }
+}
+
+let _showLandscape = loadOrientation();
 
 // Box ids that actually render in each orientation (the rest were dropped — they
 // don't fit the panel). Drives the editor's "rendered vs. won't-fit" indicator.
@@ -42,8 +63,19 @@ export function renderPreview(containerId: string): void {
   _debounceTimer = setTimeout(() => renderPreviewNow(containerId), 150);
 }
 
+/** The persisted landscape view preference (defaults to landscape). Used to
+ *  initialize the toggle checkbox on load so it matches what the preview shows. */
+export function getPreviewOrientation(): boolean {
+  return _showLandscape;
+}
+
 export function setPreviewOrientation(landscape: boolean): void {
   _showLandscape = landscape;
+  try {
+    localStorage.setItem(ORIENTATION_KEY, String(landscape));
+  } catch {
+    // Storage full or unavailable — the preference just won't survive reload.
+  }
   if (_containerId) mountActivePreview(_containerId);
   // The dropped set differs per orientation — refresh the editor indicator.
   emitRenderedIds();
