@@ -33,7 +33,8 @@ jobs:
         run: npm run build
 
       - name: Build web bundle
-        run: cd packages/web && npx vite build
+        # Via the package script so the setup-guide PDF is generated into dist/
+        run: npm run build -w @infobento/web
 
       - name: Create deployment package
         run: |

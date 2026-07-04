@@ -563,6 +563,13 @@ app.get('/api/device/:id/frames', async (c) => {
 
 const webDist = resolve(__dirname, '../../web/dist');
 if (existsSync(webDist)) {
+  // Friendly URL for the setup guide (the file itself is setup-guide.html,
+  // built as a second Vite entry; the PDF is emitted next to it at build time).
+  app.use(
+    '/setup-guide',
+    serveStatic({ root: relative(process.cwd(), webDist), path: 'setup-guide.html' }),
+  );
+
   app.use('/*', serveStatic({ root: relative(process.cwd(), webDist) }));
 
   // SPA fallback: serve index.html for non-API routes

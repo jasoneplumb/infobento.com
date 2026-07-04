@@ -17,6 +17,13 @@ export default defineConfig({
   },
   build: {
     outDir: 'dist',
+    rollupOptions: {
+      input: {
+        // Multi-page build: the editor SPA plus the standalone setup guide.
+        main: fileURLToPath(new URL('./index.html', import.meta.url)),
+        'setup-guide': fileURLToPath(new URL('./setup-guide.html', import.meta.url)),
+      },
+    },
   },
   resolve: {
     alias: {
