@@ -61,6 +61,19 @@ header {
   background: #333;
 }
 
+.header-link {
+  color: #ddd;
+  font-size: 13px;
+  text-decoration: none;
+  align-self: center;
+  padding: 4px 8px;
+}
+
+.header-link:hover {
+  color: #fff;
+  text-decoration: underline;
+}
+
 /* -- Header menu dropdown -------------------------------------------------- */
 
 .menu-wrapper {

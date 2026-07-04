@@ -16,7 +16,7 @@
  * statement that all usage/user data was erased, large type for close-range
  * reading, and the www.infobento.com address (text + QR) for more information.
  */
-import { writeFileSync } from 'node:fs';
+import { mkdirSync, writeFileSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -162,9 +162,17 @@ console.log(
   `wrote ${outs.length} copies — landscape+portrait, ${landscape.data.length} bytes each`,
 );
 
+// The setup guide (issue #181) embeds the landscape frame so customers see
+// exactly what an unconfigured device shows — regenerated here alongside the
+// firmware headers so guide and firmware can never drift apart.
+const { frameToPng } = await import(`${R}/png.ts`);
+const guidePng = `${REPO}/packages/web/public/setup-guide/device-setup-screen.png`;
+mkdirSync(dirname(guidePng), { recursive: true });
+writeFileSync(guidePng, frameToPng(landscape));
+console.log(`wrote ${guidePng}`);
+
 // Optional visual check: PREVIEW=<dir> npx tsx scripts/gen-reset-screen.ts
 if (process.env.PREVIEW) {
-  const { frameToPng } = await import(`${R}/png.ts`);
   writeFileSync(`${process.env.PREVIEW}/reset-landscape.png`, frameToPng(landscape));
   writeFileSync(`${process.env.PREVIEW}/reset-portrait.png`, frameToPng(portrait));
   console.log(`wrote preview PNGs to ${process.env.PREVIEW}`);
