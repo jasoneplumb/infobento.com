@@ -118,3 +118,25 @@ git push origin feature/your-feature-name
 - [ ] Intent headers on new files
 - [ ] PR description explains the change
 - [ ] PR is focused on a single feature or fix
+
+### 6. Request a Claude Review
+
+Add the `review-requested` label to trigger the automated Claude review — as a
+separate step _after_ creating the PR (folding it into `gh pr create` suppresses
+the `labeled` event the workflow listens for):
+
+```bash
+gh pr edit <N> --add-label review-requested
+```
+
+The reviewer posts inline comments on specific lines plus a summary comment
+starting with `🔍 Review verdict: N findings` — the summary appears even when
+there are zero findings. A review run that posts _nothing_ fails its check by
+design (the tripwire added for #185): silence means the reviewer broke, not
+that the code is clean. Re-trigger a review by removing and re-adding the
+label.
+
+Note: PRs that modify `.github/workflows/claude-review.yml` itself are
+admin-merged once `ci` is green — a modified review workflow shouldn't
+self-certify, and in practice these PRs' review checks come out skipped
+rather than passing.
