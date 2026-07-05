@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.35.1] - 2026-07-05
+
+### Documentation
+
+- **Setup-guide sticker image is now a real pairing sticker (#188, #189).** The guide's example sticker is rendered from the bench device's actual pairing record instead of the sample CSV. The pair code shown resolves only against the local dev database, so the published QR cannot claim anything on production. Also corrects CLAUDE.md: the web app is public at www.infobento.com — assets under `packages/web/public/` are world-readable, and production pair codes / Device IDs must never be published.
+
 ## [0.35.0] - 2026-07-04
 
 ### Added
