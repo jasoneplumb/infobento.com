@@ -104,5 +104,5 @@ The renderer produces eInk frame buffers (4 levels, 156,400 bytes for 920x680). 
 
 - **Single-port production:** Hono serves API + web UI from one port (default 4000). Will eventually be co-hosted alongside tiles- and webmap.dev on the same server.
 - **API:** Stateless pure functions, edge-deployable (Hono runs on Node, Cloudflare Workers, Deno, Bun).
-- **Web app:** Private during initial development.
+- **Web app:** Public at https://www.infobento.com — anything in `packages/web/public/` (including setup-guide assets) is world-readable; never publish production pair codes or Device IDs.
 - **GitHub repo:** Private. Use `review-requested` label on PRs to trigger Claude review.
