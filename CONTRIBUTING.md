@@ -136,6 +136,7 @@ design (the tripwire added for #185): silence means the reviewer broke, not
 that the code is clean. Re-trigger a review by removing and re-adding the
 label.
 
-Note: PRs that modify `.github/workflows/claude-review.yml` itself cannot pass
-their own review check (the action requires the workflow file on the PR branch
-to match mainline) — those are admin-merged once `ci` is green.
+Note: PRs that modify `.github/workflows/claude-review.yml` itself are
+admin-merged once `ci` is green — a modified review workflow shouldn't
+self-certify, and in practice these PRs' review checks come out skipped
+rather than passing.
