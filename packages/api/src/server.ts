@@ -26,6 +26,7 @@ import {
 import { DISPLAY_WIDTH, DISPLAY_HEIGHT } from '@infobento/core';
 import { pickFallbackQuote, pickFallbackJoke, pickFallbackHoroscope } from './fallback/index.js';
 import {
+  fetchIpLocation,
   fetchJoke,
   fetchQuote,
   fetchHoroscope,
@@ -225,6 +226,65 @@ app.get('/api/stocks', async (c) => {
     return c.json({ error: 'Failed to fetch stock quote' }, 502);
   }
   return c.json({ price: quote.price, change: quote.change, changePercent: quote.changePercent });
+});
+
+/** Loopback/private/link-local addresses that ipapi.co cannot geolocate. */
+function isPrivateIp(ip: string): boolean {
+  return (
+    ip === '127.0.0.1' ||
+    ip === '::1' ||
+    /^10\./.test(ip) ||
+    /^192\.168\./.test(ip) ||
+    /^172\.(1[6-9]|2\d|3[01])\./.test(ip) ||
+    /^169\.254\./.test(ip) ||
+    /^f[cd]/i.test(ip) ||
+    /^fe80/i.test(ip)
+  );
+}
+
+// Successful lookups cached per client IP: every server-side lookup shares the
+// server's source IP against ipapi.co's per-IP free-tier quota, so repeated
+// page loads must not each spend a request. Failures (rate limit, outage) are
+// deliberately NOT cached — the next request retries. Not InMemoryCache, which
+// stores whatever the fetcher returns, including those transient failures.
+const GEOLOCATE_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
+const GEOLOCATE_CACHE_MAX_ENTRIES = 10_000;
+const geolocateCache = new Map<
+  string,
+  { value: { city: string | null; countryCode: string | null }; storedAtMs: number }
+>();
+
+/** Test seam. */
+export function _resetGeolocateCacheForTesting(): void {
+  geolocateCache.clear();
+}
+
+// Server-side IP geolocation (issue #183). The browser calls this same-origin
+// route instead of ipapi.co directly, which tracker blocklists (Firefox ETP,
+// adblockers) block. Absence of a result is a normal outcome — always 200,
+// with nulls, and the client falls back to its UTC+0 default.
+app.get('/api/geolocate', async (c) => {
+  // First hop of x-forwarded-for is the client when deployed behind a proxy.
+  // A private/loopback address (local dev, LAN self-host) → ip-less lookup,
+  // which resolves the server's own egress IP — correct exactly when the
+  // server and the user share a network.
+  const fwd = (c.req.header('x-forwarded-for') ?? '').split(',')[0]?.trim() ?? '';
+  const ip = fwd !== '' && !isPrivateIp(fwd) ? fwd : undefined;
+
+  const key = ip ?? 'self';
+  const hit = geolocateCache.get(key);
+  if (hit && Date.now() - hit.storedAtMs < GEOLOCATE_CACHE_TTL_MS) {
+    return c.json(hit.value);
+  }
+
+  const loc = await fetchIpLocation(ip);
+  const value = { city: loc?.city ?? null, countryCode: loc?.countryCode ?? null };
+  if (loc) {
+    // Blunt cap so an XFF-spoofing client can't grow the map without bound.
+    if (geolocateCache.size >= GEOLOCATE_CACHE_MAX_ENTRIES) geolocateCache.clear();
+    geolocateCache.set(key, { value, storedAtMs: Date.now() });
+  }
+  return c.json(value);
 });
 
 app.get('/api/quote', async (c) => {

@@ -6,7 +6,7 @@
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { app } from './server.js';
+import { app, _resetGeolocateCacheForTesting } from './server.js';
 import {
   _resetSingletonForTesting,
   getDb,
@@ -289,5 +289,85 @@ describe('GET /api/device/:id/frames', () => {
   it('404 for an unknown device id', async () => {
     const res = await app.request('/api/device/does-not-exist/frames');
     expect(res.status).toBe(404);
+  });
+});
+
+describe('GET /api/geolocate (#183)', () => {
+  beforeEach(() => {
+    _resetGeolocateCacheForTesting();
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it('looks up the first x-forwarded-for hop (the client IP behind a proxy)', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValue(
+        new Response(JSON.stringify({ city: 'Detroit', region: 'Michigan', country_code: 'us' })),
+      );
+    vi.stubGlobal('fetch', fetchMock);
+
+    const res = await app.request('/api/geolocate', {
+      headers: { 'x-forwarded-for': '8.8.8.8, 10.0.0.1' },
+    });
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ city: 'Detroit, Michigan', countryCode: 'US' });
+    expect(fetchMock).toHaveBeenCalledWith('https://ipapi.co/8.8.8.8/json/');
+  });
+
+  it('uses an ip-less lookup for private/loopback client addresses', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValue(new Response(JSON.stringify({ city: 'London', country_code: 'gb' })));
+    vi.stubGlobal('fetch', fetchMock);
+
+    const res = await app.request('/api/geolocate', {
+      headers: { 'x-forwarded-for': '192.168.1.10' },
+    });
+    expect(await res.json()).toEqual({ city: 'London', countryCode: 'GB' });
+    expect(fetchMock).toHaveBeenCalledWith('https://ipapi.co/json/');
+  });
+
+  it('returns 200 with nulls when the upstream lookup fails (absence is normal)', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('upstream down')));
+
+    const res = await app.request('/api/geolocate');
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ city: null, countryCode: null });
+  });
+
+  it('serves repeat lookups for the same client IP from cache (one upstream call)', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValue(new Response(JSON.stringify({ city: 'Detroit', country_code: 'us' })));
+    vi.stubGlobal('fetch', fetchMock);
+
+    const headers = { 'x-forwarded-for': '8.8.8.8' };
+    const first = await app.request('/api/geolocate', { headers });
+    const second = await app.request('/api/geolocate', { headers });
+    expect(await first.json()).toEqual({ city: 'Detroit', countryCode: 'US' });
+    expect(await second.json()).toEqual({ city: 'Detroit', countryCode: 'US' });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not cache failures — the next request retries upstream', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(new Response('slow down', { status: 429 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ city: 'Detroit', country_code: 'us' })));
+    vi.stubGlobal('fetch', fetchMock);
+
+    const headers = { 'x-forwarded-for': '8.8.8.8' };
+    expect(await (await app.request('/api/geolocate', { headers })).json()).toEqual({
+      city: null,
+      countryCode: null,
+    });
+    expect(await (await app.request('/api/geolocate', { headers })).json()).toEqual({
+      city: 'Detroit',
+      countryCode: 'US',
+    });
+    expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 });

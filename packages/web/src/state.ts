@@ -188,6 +188,8 @@ export interface EditorState {
   profileId: string;
   /** Temperature unit for weather/forecast displays (derived from IP locale). */
   tempUnit: 'F' | 'C';
+  /** True when location rows were filled with the UTC+0 fallback guess (#183). */
+  locationIsFallback: boolean;
   /** Box-type chips the user has hidden from the Add palette. */
   hiddenChips: EditorBoxType[];
 }
@@ -337,6 +339,7 @@ const state: EditorState = {
   refreshesPerDay: DEFAULT_REFRESHES_PER_DAY,
   profileId: DEFAULT_PROFILE_ID,
   tempUnit: 'F',
+  locationIsFallback: false,
   hiddenChips: [],
 };
 
@@ -348,6 +351,26 @@ export const LOCATION_TYPES: ReadonlySet<EditorBoxType> = new Set([
   'sun',
   'aqi',
 ]);
+
+// Box types whose city is optional but still location-parameterized (#183).
+export const OPTIONAL_LOCATION_TYPES: ReadonlySet<EditorBoxType> = new Set(['date']);
+
+/**
+ * Every box type that can be parameterized by location — THE canonical set.
+ * Detection and the UTC+0 fallback both derive from it, so adding a future
+ * location-parameterized type means touching only the sets above.
+ */
+export const LOCATION_PARAM_TYPES: ReadonlySet<EditorBoxType> = new Set([
+  ...LOCATION_TYPES,
+  ...OPTIONAL_LOCATION_TYPES,
+]);
+
+/**
+ * The UTC+0 default city applied when no location can be detected (#183).
+ * A guess, not a confirmed location: it is never recorded via noteLocation,
+ * and rows still holding it are replaced by a later successful detection.
+ */
+export const FALLBACK_LOCATION = 'London, UK';
 
 // Most recently set city (from detection, the location button, or typing).
 let lastKnownLocation = '';
@@ -365,7 +388,10 @@ export function getKnownLocation(): string {
 
 /** Record a detected/used location so new location rows can default to it. */
 export function noteLocation(city: string): void {
-  if (city.trim()) lastKnownLocation = city;
+  if (!city.trim()) return;
+  lastKnownLocation = city;
+  // A real location supersedes the UTC+0 guess (#183).
+  setLocationFallback(false);
 }
 
 let _renderFn: (() => void) | null = null;
@@ -819,6 +845,18 @@ export function setTempUnit(unit: 'F' | 'C'): void {
   renderPreview();
 }
 
+/** Whether location rows currently hold the UTC+0 fallback guess (#183). */
+export function isLocationFallback(): boolean {
+  return state.locationIsFallback;
+}
+
+/** Mark (or clear) the location-is-a-guess flag; persisted so a later visit retries detection. */
+export function setLocationFallback(value: boolean): void {
+  if (state.locationIsFallback === value) return;
+  state.locationIsFallback = value;
+  persist();
+}
+
 /** Box-type chips the user has hidden from the Add palette. */
 export function getHiddenChips(): EditorBoxType[] {
   return state.hiddenChips;
@@ -866,6 +904,7 @@ function persistToLocalStorage(): void {
       refreshesPerDay: state.refreshesPerDay,
       profileId: state.profileId,
       tempUnit: state.tempUnit,
+      locationIsFallback: state.locationIsFallback,
       hiddenChips: state.hiddenChips,
     };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
@@ -944,6 +983,9 @@ function loadFromLocalStorage(): boolean {
         state.profileId = obj.profileId;
       }
       if (obj.tempUnit === 'F' || obj.tempUnit === 'C') state.tempUnit = obj.tempUnit;
+      if (typeof obj.locationIsFallback === 'boolean') {
+        state.locationIsFallback = obj.locationIsFallback;
+      }
       if (Array.isArray(obj.hiddenChips)) {
         const valid = new Set(Object.keys(BOX_TYPE_LABELS));
         state.hiddenChips = (obj.hiddenChips as unknown[]).filter(
