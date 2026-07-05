@@ -23,6 +23,7 @@ export {
   fetchSunTimes,
 } from './weather.js';
 export { fetchAirQuality } from './air-quality.js';
+export { fetchIpLocation, type IpLocationResult } from './ip-location.js';
 
 // Proxy-provider fetchers (logic formerly inside api/src/server.ts handlers)
 export {

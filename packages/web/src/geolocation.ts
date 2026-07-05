@@ -1,13 +1,29 @@
 /**
  * Location detection for InfoBento.
  *
- * Uses IP-based geolocation (ipapi.co) — no browser permission prompt — to
- * default location-dependent rows to the user's city. This is the same source
- * as the manual "Use my location" button, so rows work out of the box without
- * the user knowing to press anything.
+ * Detection order (issue #183):
+ *   1. GET /api/geolocate — server-side ipapi.co lookup. Same-origin, so
+ *      tracker blocklists (Firefox ETP, adblockers) that block ipapi.co in
+ *      the browser cannot block it.
+ *   2. Direct ipapi.co from the browser — keeps detection working when the
+ *      editor runs without the api server (Vite dev without the proxy target).
+ *   3. FALLBACK_LOCATION (London, UK — UTC+0) fills empty location rows so
+ *      every location-parameterized box renders data. Marked as a guess via
+ *      the persisted fallback flag: never recorded with noteLocation, retried
+ *      on the next visit, and replaced by any later successful detection.
  */
 
-import { setState, getKnownLocation, noteLocation, setTempUnit } from './state';
+import { fetchIpLocation } from '@infobento/data';
+import {
+  setState,
+  getKnownLocation,
+  noteLocation,
+  setTempUnit,
+  isLocationFallback,
+  setLocationFallback,
+  LOCATION_PARAM_TYPES,
+  FALLBACK_LOCATION,
+} from './state';
 
 /**
  * Countries that use Fahrenheit (US + a handful of territories); everyone else
@@ -15,22 +31,15 @@ import { setState, getKnownLocation, noteLocation, setTempUnit } from './state';
  */
 const FAHRENHEIT_COUNTRIES = new Set(['US', 'BS', 'BZ', 'KY', 'PW', 'FM', 'MH', 'LR']);
 
-function unitForCountry(code: string | undefined): 'F' | 'C' {
+function unitForCountry(code: string | null): 'F' | 'C' {
   return code && FAHRENHEIT_COUNTRIES.has(code.toUpperCase()) ? 'F' : 'C';
 }
 
-/** Fill any location-dependent row that still has an empty city. */
+/** Fill any location-parameterized row that still has an empty city. */
 export function propagateLocationToEmptyBoxes(city: string): void {
   setState((s) => {
     for (const box of s.boxes) {
-      if (
-        box.type === 'weather' ||
-        box.type === 'forecast' ||
-        box.type === 'forecast3d' ||
-        box.type === 'sun' ||
-        box.type === 'aqi' ||
-        box.type === 'date'
-      ) {
+      if (LOCATION_PARAM_TYPES.has(box.type)) {
         // The date box's city is optional (may be undefined); the rest require it.
         const cfg = box.config as { city?: string };
         if ((cfg.city ?? '').trim() === '') {
@@ -41,38 +50,67 @@ export function propagateLocationToEmptyBoxes(city: string): void {
   });
 }
 
-/**
- * IP-based city lookup via ipapi.co — no browser permission prompt.
- * Returns "City, Region" (or "City"), or null on failure.
- */
-export async function detectLocationByIP(): Promise<string | null> {
+/** Replace rows still holding the fallback guess with the detected city. */
+function replaceFallbackRows(city: string): void {
+  setState((s) => {
+    for (const box of s.boxes) {
+      if (LOCATION_PARAM_TYPES.has(box.type)) {
+        const cfg = box.config as { city?: string };
+        if (cfg.city === FALLBACK_LOCATION) {
+          cfg.city = city;
+        }
+      }
+    }
+  });
+}
+
+/** Same-origin server-side lookup — the path tracker blocklists can't block. */
+async function fetchServerGeolocation(): Promise<{
+  city: string;
+  countryCode: string | null;
+} | null> {
   try {
-    const res = await fetch('https://ipapi.co/json/');
+    const res = await fetch('/api/geolocate');
     if (!res.ok) return null;
-    const data = (await res.json()) as {
-      city?: string;
-      region?: string;
-      country_code?: string;
-      error?: boolean;
-    };
-    if (data.error || !data.city) return null;
-    // Pick the temperature unit from the detected locale (US → °F, else °C).
-    setTempUnit(unitForCountry(data.country_code));
-    return data.region ? `${data.city}, ${data.region}` : data.city;
+    const data = (await res.json()) as { city?: string | null; countryCode?: string | null };
+    if (!data.city) return null;
+    return { city: data.city, countryCode: data.countryCode ?? null };
   } catch {
     return null;
   }
 }
 
 /**
- * If no location is known yet, detect one (IP-based) and fill every empty
- * location row — as if the user had pressed "Use my location". No-op when a
- * location is already set. The config forms auto-fetch data on render.
+ * IP-based city lookup: server route first, then direct ipapi.co.
+ * Returns "City, Region" (or "City"), or null when neither path works.
+ * On success, also picks the temperature unit from the detected locale.
+ */
+export async function detectLocationByIP(): Promise<string | null> {
+  const loc = (await fetchServerGeolocation()) ?? (await fetchIpLocation());
+  if (!loc) return null;
+  setTempUnit(unitForCountry(loc.countryCode));
+  return loc.city;
+}
+
+/**
+ * If no confirmed location is known yet, detect one and fill every empty
+ * location row — as if the user had pressed "Use my location". When detection
+ * fails entirely, default the rows to FALLBACK_LOCATION (UTC+0) instead of
+ * leaving them empty (#183); the flag makes the next visit retry for real.
  */
 export async function ensureLocationDefault(): Promise<void> {
-  if (getKnownLocation().trim() !== '') return;
+  const known = getKnownLocation().trim();
+  if (known !== '' && !isLocationFallback()) return;
+
   const city = await detectLocationByIP();
-  if (!city) return;
-  noteLocation(city);
-  propagateLocationToEmptyBoxes(city);
+  if (city) {
+    noteLocation(city); // also clears the fallback flag
+    replaceFallbackRows(city);
+    propagateLocationToEmptyBoxes(city);
+  } else if (known === '') {
+    // Not noteLocation'd: the guess must never become the "known" location.
+    setLocationFallback(true);
+    setTempUnit('C');
+    propagateLocationToEmptyBoxes(FALLBACK_LOCATION);
+  }
 }
