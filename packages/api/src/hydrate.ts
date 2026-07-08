@@ -97,7 +97,10 @@ const MIN_UPSTREAM_INTERVAL_MS = 5 * 60 * 1000;
  * today's behavior — fresh content at every pull, one upstream call per pull.
  */
 export function effectiveTtlMs(baseTtlMs: number, refreshesPerDay: number | undefined): number {
-  if (refreshesPerDay === undefined || refreshesPerDay <= 0) return baseTtlMs;
+  // Number.isFinite also rejects NaN, which `<= 0` alone would let through.
+  if (refreshesPerDay === undefined || !Number.isFinite(refreshesPerDay) || refreshesPerDay <= 0) {
+    return baseTtlMs;
+  }
   const pullIntervalMs = DAY_MS / refreshesPerDay;
   return Math.min(baseTtlMs, Math.max(pullIntervalMs, MIN_UPSTREAM_INTERVAL_MS));
 }

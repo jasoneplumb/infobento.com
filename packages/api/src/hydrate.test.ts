@@ -454,6 +454,7 @@ describe('effectiveTtlMs (#193)', () => {
     expect(effectiveTtlMs(30 * MIN, 3)).toBe(30 * MIN);
     expect(effectiveTtlMs(6 * HOUR, undefined)).toBe(6 * HOUR);
     expect(effectiveTtlMs(6 * HOUR, 0)).toBe(6 * HOUR);
+    expect(effectiveTtlMs(6 * HOUR, Number.NaN)).toBe(6 * HOUR);
   });
 });
 
