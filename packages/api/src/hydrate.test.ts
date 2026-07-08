@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
-import { InMemoryCache } from '@infobento/data';
+import { InMemoryCache, type Cache, type CacheGetOptions } from '@infobento/data';
 import type { BentoConfig } from '@infobento/core';
-import { hydrateConfig, type HydrateDeps } from './hydrate.js';
+import { hydrateConfig, effectiveTtlMs, type HydrateDeps } from './hydrate.js';
 
 const FRESH = { temperature: 70, condition: 'Clear', high: 75, low: 60 } as const;
 
@@ -429,5 +429,78 @@ describe('hydrateConfig — date box timezone (issue #166)', () => {
     const date = out.boxes.find((b) => b.type === 'date');
     if (date?.type !== 'date') throw new Error('unreachable');
     expect(date.config?.data).toEqual({ utcOffsetSeconds: -6 * 3600 });
+  });
+});
+
+// --- #193: provider TTLs scale to the device's refresh interval --------------
+
+const MIN = 60 * 1000;
+const HOUR = 60 * MIN;
+
+describe('effectiveTtlMs (#193)', () => {
+  it('scales the TTL down to the pull interval', () => {
+    expect(effectiveTtlMs(6 * HOUR, 96)).toBe(15 * MIN); // "every 15 min"
+    expect(effectiveTtlMs(30 * MIN, 96)).toBe(15 * MIN);
+    expect(effectiveTtlMs(6 * HOUR, 24)).toBe(1 * HOUR); // "every hour"
+  });
+
+  it('never drops below the 5-minute upstream floor (bench cadences)', () => {
+    expect(effectiveTtlMs(6 * HOUR, 5760)).toBe(5 * MIN); // 15 s pulls
+    expect(effectiveTtlMs(15 * MIN, 1440)).toBe(5 * MIN); // 1 min pulls
+  });
+
+  it('keeps the base ceiling for slow cadences and missing/zero values', () => {
+    expect(effectiveTtlMs(6 * HOUR, 2)).toBe(6 * HOUR); // 12 h pulls — unchanged
+    expect(effectiveTtlMs(30 * MIN, 3)).toBe(30 * MIN);
+    expect(effectiveTtlMs(6 * HOUR, undefined)).toBe(6 * HOUR);
+    expect(effectiveTtlMs(6 * HOUR, 0)).toBe(6 * HOUR);
+  });
+});
+
+/** Cache stub that records the ttlMs each provider key was resolved with. */
+function ttlCapturingCache(): { cache: Cache; ttls: Map<string, number> } {
+  const ttls = new Map<string, number>();
+  const cache: Cache = {
+    get<T>(key: string, fetcher: () => Promise<T>, opts: CacheGetOptions): Promise<T> {
+      ttls.set(key, opts.ttlMs);
+      return fetcher();
+    },
+  };
+  return { cache, ttls };
+}
+
+describe('hydrateConfig passes refresh-scaled TTLs to the cache (#193)', () => {
+  const boxes = [
+    { id: 'q', type: 'quote', config: { type: 'quote', text: 'seed' } },
+    { id: 'w', type: 'weather', config: { type: 'weather', city: 'Portland' } },
+    { id: 'd', type: 'date', config: { type: 'date', city: 'Portland' } },
+  ];
+
+  async function ttlsFor(refreshesPerDay: number): Promise<Map<string, number>> {
+    const { cache, ttls } = ttlCapturingCache();
+    await hydrateConfig({ boxes, refreshesPerDay } as unknown as BentoConfig, {
+      ...deps(),
+      cache,
+      fetchUtcOffset: async () => -25200,
+    });
+    return ttls;
+  }
+
+  it('at 96/day (15 min) every provider TTL is the pull interval', async () => {
+    const ttls = await ttlsFor(96);
+    expect(ttls.get('quote:')).toBe(15 * MIN); // base 6 h, scaled down
+    expect(ttls.get('weather:portland:F')).toBe(15 * MIN); // base 30 min, scaled down
+  });
+
+  it('at 2/day the base TTLs are unchanged', async () => {
+    const ttls = await ttlsFor(2);
+    expect(ttls.get('quote:')).toBe(6 * HOUR);
+    expect(ttls.get('weather:portland:F')).toBe(30 * MIN);
+  });
+
+  it('the UTC-offset lookup keeps its base TTL even at bench cadence', async () => {
+    const ttls = await ttlsFor(5760);
+    expect(ttls.get('quote:')).toBe(5 * MIN); // floor
+    expect(ttls.get('utcoffset:portland')).toBe(6 * HOUR); // not scaled
   });
 });
