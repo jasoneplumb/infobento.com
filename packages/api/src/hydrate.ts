@@ -64,10 +64,11 @@ export interface HydrateDeps {
   readonly fetchJoke: (categories: string) => Promise<JokeResult | null>;
 }
 
-// Per-provider freshness — independent of the device's 304 cadence (RFC 0001 §3).
-// Every TTL is shorter than the smallest data-bucket (12h) so each scheduled pull
-// re-fetches, while the shared single-flight cache still collapses the wake-herd of
-// devices in one city/sign/symbol into a single upstream call per window.
+// Per-provider freshness ceilings (RFC 0001 §3). Each is scaled down to the
+// device's configured pull interval by effectiveTtlMs (#193) so "Refresh every
+// 15 min" actually shows different content every 15 min — while the shared
+// single-flight cache still collapses the wake-herd of devices in one
+// city/sign/symbol into a single upstream call per window.
 const WEATHER_TTL_MS = 30 * 60 * 1000;
 const FORECAST_TTL_MS = 30 * 60 * 1000;
 const FORECAST3D_TTL_MS = 3 * 60 * 60 * 1000;
@@ -79,7 +80,30 @@ const ONTHISDAY_TTL_MS = 6 * 60 * 60 * 1000;
 const QUOTE_TTL_MS = 6 * 60 * 60 * 1000;
 const JOKE_TTL_MS = 6 * 60 * 60 * 1000;
 // A location's UTC offset is stable across a pull cycle; cache it like sun times.
+// Deliberately NOT scaled by the refresh interval: it's location metadata (not
+// content the user expects to rotate) and sits on the rate-limited Nominatim path.
 const OFFSET_TTL_MS = 6 * 60 * 60 * 1000;
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+// Floor under the scaled TTLs: the bench/testing cadences (down to a 15 s pull
+// interval) must not translate into upstream calls at that rate.
+const MIN_UPSTREAM_INTERVAL_MS = 5 * 60 * 1000;
+
+/**
+ * Scale a provider's base TTL to the device's configured refresh interval
+ * (#193): content refetches as often as the user asked to refresh, but never
+ * more often than the floor, and never less often than the base ceiling.
+ * The cache only fetches on access, so slow cadences (interval > base) keep
+ * today's behavior — fresh content at every pull, one upstream call per pull.
+ */
+export function effectiveTtlMs(baseTtlMs: number, refreshesPerDay: number | undefined): number {
+  // Number.isFinite also rejects NaN, which `<= 0` alone would let through.
+  if (refreshesPerDay === undefined || !Number.isFinite(refreshesPerDay) || refreshesPerDay <= 0) {
+    return baseTtlMs;
+  }
+  const pullIntervalMs = DAY_MS / refreshesPerDay;
+  return Math.min(baseTtlMs, Math.max(pullIntervalMs, MIN_UPSTREAM_INTERVAL_MS));
+}
 
 // Bound each upstream call well under the firmware's HTTP timeout, so a hung
 // provider yields a placeholder frame instead of hanging the pull (RFC §6).
@@ -134,7 +158,8 @@ function resolveCached<T>(
  * holds params only; any baked data is a discardable seed (RFC 0001 §2).
  */
 export async function hydrateConfig(config: BentoConfig, deps: HydrateDeps): Promise<BentoConfig> {
-  const boxes = await Promise.all(config.boxes.map((box) => hydrateBox(box, deps)));
+  const ttlOf = (baseTtlMs: number): number => effectiveTtlMs(baseTtlMs, config.refreshesPerDay);
+  const boxes = await Promise.all(config.boxes.map((box) => hydrateBox(box, deps, ttlOf)));
   return { ...config, boxes: await resolveDateOffsets(boxes, deps) };
 }
 
@@ -223,7 +248,11 @@ async function resolveDateOffsets(
   );
 }
 
-async function hydrateBox(box: BentoBox, deps: HydrateDeps): Promise<BentoBox> {
+async function hydrateBox(
+  box: BentoBox,
+  deps: HydrateDeps,
+  ttlOf: (baseTtlMs: number) => number,
+): Promise<BentoBox> {
   switch (box.type) {
     case 'weather': {
       if (!box.config) return box; // unconfigured → renderer placeholder
@@ -234,7 +263,7 @@ async function hydrateBox(box: BentoBox, deps: HydrateDeps): Promise<BentoBox> {
         ? await resolveCached<WeatherData>(
             deps,
             `weather:${city.toLowerCase()}:F`,
-            WEATHER_TTL_MS,
+            ttlOf(WEATHER_TTL_MS),
             `weather "${city}"`,
             () => deps.fetchWeather(city, 'F'),
           )
@@ -249,7 +278,7 @@ async function hydrateBox(box: BentoBox, deps: HydrateDeps): Promise<BentoBox> {
         ? await resolveCached<readonly ForecastEntry[]>(
             deps,
             `forecast:${city.toLowerCase()}:${String(hours)}`,
-            FORECAST_TTL_MS,
+            ttlOf(FORECAST_TTL_MS),
             `forecast "${city}"`,
             () => deps.fetchForecast(city, hours),
           )
@@ -264,7 +293,7 @@ async function hydrateBox(box: BentoBox, deps: HydrateDeps): Promise<BentoBox> {
         ? await resolveCached<readonly Forecast3DEntry[]>(
             deps,
             `forecast3d:${city.toLowerCase()}:${String(days)}`,
-            FORECAST3D_TTL_MS,
+            ttlOf(FORECAST3D_TTL_MS),
             `forecast3d "${city}"`,
             () => deps.fetchForecast3D(city, days),
           )
@@ -278,6 +307,9 @@ async function hydrateBox(box: BentoBox, deps: HydrateDeps): Promise<BentoBox> {
         ? await resolveCached<SunData>(
             deps,
             `sun:${city.toLowerCase()}`,
+            // Not scaled by the refresh interval (like OFFSET_TTL_MS): sunrise/
+            // sunset are stable within a day, so faster pulls would refetch
+            // identical data. Review finding on #194.
             SUN_TTL_MS,
             `sun "${city}"`,
             () => deps.fetchSunTimes(city),
@@ -292,7 +324,7 @@ async function hydrateBox(box: BentoBox, deps: HydrateDeps): Promise<BentoBox> {
         ? await resolveCached<AQIData>(
             deps,
             `aqi:${city.toLowerCase()}`,
-            AQI_TTL_MS,
+            ttlOf(AQI_TTL_MS),
             `aqi "${city}"`,
             () => deps.fetchAirQuality(city),
           )
@@ -307,7 +339,7 @@ async function hydrateBox(box: BentoBox, deps: HydrateDeps): Promise<BentoBox> {
         ? await resolveCached<StockData>(
             deps,
             `stocks:${symbol.toUpperCase()}:${duration}`,
-            STOCKS_TTL_MS,
+            ttlOf(STOCKS_TTL_MS),
             `stocks "${symbol}"`,
             () => deps.fetchStocks(symbol, duration),
           )
@@ -321,7 +353,7 @@ async function hydrateBox(box: BentoBox, deps: HydrateDeps): Promise<BentoBox> {
       const res = await resolveCached<HoroscopeResult>(
         deps,
         `horoscope:${sign}`,
-        HOROSCOPE_TTL_MS,
+        ttlOf(HOROSCOPE_TTL_MS),
         `horoscope "${sign}"`,
         () => deps.fetchHoroscope(sign),
       );
@@ -338,7 +370,7 @@ async function hydrateBox(box: BentoBox, deps: HydrateDeps): Promise<BentoBox> {
       const res = await resolveCached<OnThisDayResult>(
         deps,
         `onthisday:${category}`,
-        ONTHISDAY_TTL_MS,
+        ttlOf(ONTHISDAY_TTL_MS),
         `onthisday "${category}"`,
         () => deps.fetchOnThisDay(category),
       );
@@ -354,7 +386,7 @@ async function hydrateBox(box: BentoBox, deps: HydrateDeps): Promise<BentoBox> {
       const res = await resolveCached<QuoteResult>(
         deps,
         `quote:${tags.toLowerCase()}`,
-        QUOTE_TTL_MS,
+        ttlOf(QUOTE_TTL_MS),
         `quote "${tags || 'any'}"`,
         () => deps.fetchQuote(tags),
       );
@@ -368,7 +400,7 @@ async function hydrateBox(box: BentoBox, deps: HydrateDeps): Promise<BentoBox> {
       const res = await resolveCached<JokeResult>(
         deps,
         `joke:${categories.toLowerCase()}`,
-        JOKE_TTL_MS,
+        ttlOf(JOKE_TTL_MS),
         `joke "${categories || 'any'}"`,
         () => deps.fetchJoke(categories),
       );
