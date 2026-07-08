@@ -504,3 +504,17 @@ describe('hydrateConfig passes refresh-scaled TTLs to the cache (#193)', () => {
     expect(ttls.get('utcoffset:portland')).toBe(6 * HOUR); // not scaled
   });
 });
+
+describe('sun TTL is not refresh-scaled (#194 review finding)', () => {
+  it('keeps the 6 h base TTL even at fast cadences — sun times are stable within a day', async () => {
+    const { cache, ttls } = ttlCapturingCache();
+    await hydrateConfig(
+      {
+        boxes: [{ id: 's', type: 'sun', config: { type: 'sun', city: 'Portland' } }],
+        refreshesPerDay: 96,
+      } as unknown as BentoConfig,
+      { ...deps(), cache },
+    );
+    expect(ttls.get('sun:portland')).toBe(6 * HOUR);
+  });
+});

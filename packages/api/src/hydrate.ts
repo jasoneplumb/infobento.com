@@ -304,7 +304,10 @@ async function hydrateBox(
         ? await resolveCached<SunData>(
             deps,
             `sun:${city.toLowerCase()}`,
-            ttlOf(SUN_TTL_MS),
+            // Not scaled by the refresh interval (like OFFSET_TTL_MS): sunrise/
+            // sunset are stable within a day, so faster pulls would refetch
+            // identical data. Review finding on #194.
+            SUN_TTL_MS,
             `sun "${city}"`,
             () => deps.fetchSunTimes(city),
           )
