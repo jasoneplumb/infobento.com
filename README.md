@@ -2,6 +2,11 @@
 
 > _See what matters. Skip the spiral._
 
+[![Website](https://img.shields.io/badge/web-infobento.com-blue)](https://www.infobento.com)
+[![License: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
+[![TypeScript](https://img.shields.io/badge/TypeScript-Node16-blue.svg)](tsconfig.base.json)
+[![ESP32-C3](https://img.shields.io/badge/MCU-ESP32--C3-grey.svg)](firmware)
+
 A small, solar-powered eInk decorator that lives on a counter, shelf, or windowsill. Configure once on a web page; it sips light from the window and shows what matters most — weather, 8-hour forecast, 8-day forecast, calendar, quote, countdown, stocks, QR code, text, date, moon phase, sunrise/sunset, air quality, year progress, habits, horoscope, joke, on this day — for months on its own.
 
 ## Overview
