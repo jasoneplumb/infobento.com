@@ -63,7 +63,7 @@ Set it on a kitchen counter, a desk, or a shelf. The body is its own stand, with
                                    └───────────┘
 ```
 
-The cloud API is a pure function: BentoConfig in, frame buffer out. The server renders the framebuffer; the device caches the last framebuffer in flash for offline resilience (stale display, not blank). First-time setup via captive portal; on each refresh the device polls `infobento.com/api/device/{device-id}/frames` for a freshly rendered frame (both orientations in one response), using its device id as a bearer secret. The web editor is where you set up your boxes; configuration lives in browser localStorage, and once a device is paired to an account it is also stored server-side and pushed via `PUT /api/device/{device-id}/config`.
+Rendering is a pure function of config: `POST /api/render` takes a BentoConfig and returns a frame buffer, and the web editor's preview uses exactly that path. The device never sends a config — it identifies itself with its device id and the server renders from the config it holds for that device. The device caches the last framebuffer in flash for offline resilience (stale display, not blank). First-time setup via captive portal; on each refresh the device polls `infobento.com/api/device/{device-id}/frames` for a freshly rendered frame (both orientations in one response), using its device id as a bearer secret. The web editor is where you set up your boxes; configuration lives in browser localStorage, and once a device is paired to an account it is also stored server-side and pushed via `PUT /api/device/{device-id}/config`.
 
 ## Quick Start
 
