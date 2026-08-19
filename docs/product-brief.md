@@ -16,9 +16,9 @@ A solar-powered eInk bento dashboard that sits on your counter, desk, or shelf. 
 
 InfoBento is a calm surface for the room. The information you check most often — weather, the next thing on your calendar, days until something you're looking forward to, air-quality status from cloud data — sits there in sharp eInk, visible at a glance from across the room. The display is a multi-box bento dashboard (up to 10 boxes, multi-column, with big glanceable numbers). Configure once on a web page; it sips light from the window and refreshes on its own.
 
-Tidbyt and TRMNL are the ambient-display references. InfoBento differs by combining a glanceable eInk bento dashboard with a no-account, solar-powered form factor — calmer, cheaper, and solar.
+Tidbyt and TRMNL are the ambient-display references. InfoBento differs by combining a glanceable eInk bento dashboard with a solar-powered, cable-free form factor — calmer than the LED displays, and the only one in the set that runs without a wall socket.
 
-**Target price:** $49–69 (Kickstarter)
+**Target price:** $99 early bird / $129 standard (Kickstarter), shipping at cost
 **Distribution:** Kickstarter campaign
 
 ---
@@ -177,9 +177,9 @@ The AQI box draws Open-Meteo cloud air-quality data — a cloud data box like we
 | **Power**      | Wall outlet required           | Solar-powered, no cable                                |
 | **Plugin/box** | DIY scripts or app marketplace | 18-box multi-box bento dashboard, up to 10 boxes       |
 | **Account**    | App + account                  | Web page, no app; passkey/OAuth sign-in to claim       |
-| **Price**      | $179 / varies                  | $49–69 (Kickstarter)                                   |
+| **Price**      | $179 / varies                  | $99–129 (Kickstarter)                                  |
 
-InfoBento is a calmer, cheaper, solar take on the ambient-display category: no wall cable, no app, no plugin marketplace — just a glanceable 5.76" eInk bento dashboard that refreshes itself on window light.
+InfoBento is a calmer, solar take on the ambient-display category: no wall cable, no app, no plugin marketplace — just a glanceable 5.76" eInk bento dashboard that refreshes itself on window light. It undercuts the LED displays and sits level with the other eInk entrant, which needs mains power.
 
 ---
 
@@ -200,7 +200,8 @@ InfoBento is a calmer, cheaper, solar take on the ambient-display category: no w
 - **Hardware validation** — Dev kit (ESP32-C3 + GDEH0576T81) on order. Validates grey rendering, refresh speed, viewing angle.
 - **Grey fallback** — If 2-bit grey looks bad on hardware, Floyd-Steinberg dithering to 1-bit as fallback (#56).
 - **Orientation auto-rotate** — Validate 2× ball-in-tube tilt switches drive reliable landscape/portrait detection.
-- **Price validation:** $49–69 Kickstarter price needs manufacturer quotes to confirm the ~$45–50 BOM estimate.
+- **Price validation:** the ~$45–50 BOM is an estimate pending manufacturer quotes. It is the input the $99/$129 pricing depends on — if the panel quote lands above ~$35, revisit the tiers rather than absorbing it.
+- **Certification + tooling NRE** — FCC/CE for a Wi-Fi device, UN38.3 for the lithium cell, and injection-mold tooling are unbudgeted. These are recovered from per-unit margin, which is why pricing at or near BOM does not work at any volume.
 - **Firmware:** Captive portal provisioning (#39), Wi-Fi connect, config poll, framebuffer write, deep sleep cycle.
 - **Enclosure:** SCAD model (#50) for ~14×11 cm housing, ≤4 mm bezel, solar cavity, fold-out kickstand, pinhole reset.
 - **Founder bio** — still to write; lock before Day 0 of the campaign

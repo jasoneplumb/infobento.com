@@ -337,7 +337,11 @@ Total BOM is approximately **$45–50** at Kickstarter volume (qty ~1k), dominat
 | Housing                   | ~$5       |
 | Tilt switches             | ~$0.20    |
 
-**Price target:** $49–69 (Kickstarter).
+**Price target:** $99 early bird / $129 standard (Kickstarter), shipping charged
+at cost. Against a ~$45–50 BOM this leaves roughly $36–62 per unit to cover
+platform and payment fees, packaging, replacements, and the tooling and
+certification NRE. The earlier $49–69 target did not: it sat at or below BOM
+once fees and worldwide shipping were counted.
 
 ---
 
