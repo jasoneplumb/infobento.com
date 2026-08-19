@@ -1,6 +1,25 @@
 {
   "name": "@infobento/data",
   "version": "0.35.1",
+  "description": "InfoBento data: pure, edge-safe box-data providers (weather, air quality, quote, …) with caching.",
+  "keywords": [
+    "infobento",
+    "eink",
+    "weather",
+    "open-meteo",
+    "data-providers",
+    "typescript"
+  ],
+  "homepage": "https://www.infobento.com",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jasoneplumb/infobento.com.git",
+    "directory": "packages/data"
+  },
+  "bugs": {
+    "url": "https://github.com/jasoneplumb/infobento.com/issues"
+  },
+  "author": "Jason E Plumb",
   "license": "Apache-2.0",
   "type": "module",
   "main": "dist/index.js",
