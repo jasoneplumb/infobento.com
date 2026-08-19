@@ -53,7 +53,7 @@ Set it on a kitchen counter, a desk, or a shelf. The body is its own stand, with
 ```
 ┌─────────────────┐    Wi-Fi     ┌──────────────┐
 │     Device       │◄────────────►│  Cloud API   │
-│  eInk            │              │ (stateless)  │
+│  eInk            │              │ Hono + SQLite│
 │  ESP32 + solar   │              └──────────────┘
 └─────────────────┘                      ▲
                                          │

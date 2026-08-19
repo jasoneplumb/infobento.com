@@ -1,8 +1,9 @@
 /**
  * Intent: Pure-function helpers for the firmware's device-pull endpoints.
  * Context: Issue #75 — `GET /api/device/:id/{config,frame}`. Server-side
- *   rendering: device sends config to cloud, gets frame back. Device id is the
- *   bearer secret (no auth header — long opaque token treated like an API key).
+ *   rendering: the device sends only its id and the server renders from the
+ *   config it holds for that device. Device id is the bearer secret (no auth
+ *   header — long opaque token treated like an API key).
  * Pattern: Endpoint logic separated from Hono so the cases (200/304/404/500)
  *   can be unit-tested without standing up a server.
  */

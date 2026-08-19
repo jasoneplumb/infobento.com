@@ -132,6 +132,8 @@ There are no buttons or interactive controls on the device — only a recessed p
 
 No server-side state, no user accounts, no databases. Config lives on the client. Device caches last framebuffer in flash for offline resilience.
 
+> **⚠️ Superseded (epic #77).** The principle above is retained as the original design record. It no longer describes the shipped system: the API stores accounts, device pairings, and per-device config in SQLite, and auth is passkey + Apple/Google OAuth. What survives is narrower — _rendering_ is still a pure function (`POST /api/render`: config in, frame buffer out), and the web editor's preview uses exactly that path. The device-facing `/frames` path is stateful by design: the device sends only its id, and the server renders from stored config.
+
 ### Visual Restraint
 
 > A tight, intentional tonal palette used with discipline. Every tone earns its place.

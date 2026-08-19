@@ -78,9 +78,9 @@ Tidbyt and TRMNL are the ambient-display references. InfoBento differs by combin
 ```
 +--------------------+   Wi-Fi      +--------------+
 |       Device       |<------------>|  Cloud API   |
-|   eInk             |              |  (stateless, |
-|   ESP32-C3         |              |  pure        |
-|                    |              |  function)   |
+|   eInk             |              |  (Hono +     |
+|   ESP32-C3         |              |  SQLite;     |
+|                    |              |  renders)    |
 +--------------------+              +--------------+
                                            ^
                                            |
@@ -96,9 +96,9 @@ Tidbyt and TRMNL are the ambient-display references. InfoBento differs by combin
 
 **Config delivery:**
 
-1. First-time: captive portal (device broadcasts `InfoBento-XXXX` SSID, user uploads config JSON + Wi-Fi credentials)
+1. First-time: captive portal (device broadcasts `InfoBento-XXXX` SSID, user enters Wi-Fi credentials + the Device ID from the sticker)
 2. Ongoing: device polls `infobento.com/api/device/{device-id}/frames` for a server-rendered frame
-3. Config stored in ESP32 NVS; framebuffer cached in flash
+3. Wi-Fi credentials and device id stored in ESP32 NVS; config held server-side; framebuffer cached in flash
 
 ---
 
@@ -214,7 +214,7 @@ InfoBento is a calmer, cheaper, solar take on the ambient-display category: no w
 infobento.com/
   packages/core/      Types, layout engine, validation (Zod)
   packages/renderer/  eInk framebuffer generation
-  packages/api/       Hono server (stateless API + static files)
+  packages/api/       Hono server (render API, auth/pairing, static files)
   packages/web/       Vite web editor (vanilla JS, no framework)
 ```
 
