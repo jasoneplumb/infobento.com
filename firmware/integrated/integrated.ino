@@ -310,7 +310,7 @@ void pullFrames() {
   WiFiClientSecure secureClient;
   WiFiClient plainClient;
   WiFiClient* client;
-  if (tls) { secureClient.setInsecure(); client = &secureClient; }  // pin ISRG Root X1 to harden (#143)
+  if (tls) { secureClient.setInsecure(); client = &secureClient; }  // pin ISRG Root X1 to harden (#145)
   else client = &plainClient;
 
   HTTPClient http;
