@@ -340,18 +340,20 @@ Total BOM is approximately **$45–50** at Kickstarter volume (qty ~1k), dominat
 **Price target:** $99 early bird / $129 standard (Kickstarter), shipping charged
 at cost.
 
-At the $47 BOM midpoint, and after deducting ~8% platform and payment fees,
-packaging (~$3), and a replacement allowance (~$5), each unit nets roughly **$36
-at $99** and **$64 at $129**. That remainder is what funds the one-time costs —
-injection-mould tooling, FCC/CE, UN38.3 — which no per-unit line item covers.
+Working from the $47.50 BOM midpoint of the $45–50 range, and deducting ~~8%
+platform and payment fees, packaging (~~$3), and a replacement allowance (~$5),
+each unit nets roughly **$36 at $99** and **$63 at $129**. That remainder is what
+funds the one-time costs — injection-mould tooling, FCC/CE, UN38.3 — which no
+per-unit line item covers.
 
-The earlier $49–69 target produced a *negative* remainder on the same inputs,
-plus ~$15 to ship a lithium-cell product worldwide as promised: about **−$7 at
-$69** and **−$25 at $49**. No volume fixed that, because the shortfall scaled
-with units sold.
+The earlier $49–69 target was negative on the same inputs once ~$15 of absorbed
+worldwide shipping was added: about **−$7 at $69** and **−$25 at $49**. No volume
+fixed that, because the shortfall scaled with units sold.
 
-The only difference in assumptions between the two paragraphs is that shipping
-line: the new tiers charge it at cost, so it is not a cost to absorb.
+Two changes were needed, not one. Charging shipping at cost is necessary but not
+sufficient: without it, $69 clears only ~$8 and $49 is still ~$10 in the red. The
+price increase is what creates enough headroom to fund tooling and certification
+at a realistic unit count.
 
 ---
 

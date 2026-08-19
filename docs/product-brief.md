@@ -179,7 +179,7 @@ The AQI box draws Open-Meteo cloud air-quality data — a cloud data box like we
 | **Account**    | App + account                  | Web page, no app; passkey/OAuth sign-in to claim       |
 | **Price**      | $179 / varies                  | $99–129 (Kickstarter)                                  |
 
-InfoBento is a calmer, solar take on the ambient-display category: no wall cable, no app, no plugin marketplace — just a glanceable 5.76" eInk bento dashboard that refreshes itself on window light. It undercuts the LED displays on price; against the other eInk entrant it competes on solar operation rather than on cost.
+InfoBento is a calmer, solar take on the ambient-display category: no wall cable, no app, no plugin marketplace — just a glanceable 5.76" eInk bento dashboard that refreshes itself on window light. Solar operation is the durable differentiator; see the table above for how the pricing compares.
 
 ---
 
