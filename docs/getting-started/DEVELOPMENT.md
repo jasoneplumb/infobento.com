@@ -9,7 +9,7 @@ npm run build        # Build all packages (tsc -b with project references)
 npm run typecheck    # Type-check only (no emit)
 ```
 
-Packages build in dependency order: core -> renderer -> api.
+Packages build in dependency order: core -> data -> renderer -> api.
 The web package builds separately via Vite.
 
 ### Testing
@@ -33,7 +33,7 @@ npm run format:check # Check formatting without writing
 
 ### Import Extensions
 
-All imports in `core`, `renderer`, and `api` must include `.js` extensions:
+All imports in `core`, `data`, `renderer`, and `api` must include `.js` extensions:
 
 ```typescript
 import { BentoBox } from '@infobento/core/index.js';

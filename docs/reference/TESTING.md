@@ -9,9 +9,9 @@
 ## Running Tests
 
 ```bash
-npm test              # All tests, single run
-npm test -- --watch   # Watch mode (TDD)
-npm test -- --filter core  # Filter by package name
+npm test                    # All tests, single run
+npm test -- --watch         # Watch mode (TDD)
+npm test -- packages/core   # Filter by path substring
 ```
 
 ## Writing Tests
@@ -48,6 +48,7 @@ describe('myFunction', () => {
 ### What to Test
 
 - **Core:** Layout calculations, type validation, config parsing
+- **Data:** Provider fetch/parse logic, cache behavior, upstream error handling
 - **Renderer:** Frame buffer generation, pixel correctness, boundary conditions
 - **API:** Endpoint handlers (pure functions), validation, error cases
 - **Web:** Component behavior (not implementation details), user workflows
@@ -59,5 +60,6 @@ Most of the codebase is pure functions, which makes testing straightforward:
 ```typescript
 // Input -> expected output, no mocks needed
 const result = render(config, device);
-expect(result.data.length).toBe(6000);
+// Packed 2 bits per pixel, 4 pixels per byte
+expect(result.data.length).toBe((device.width * device.height) / 4);
 ```

@@ -131,7 +131,7 @@ echo "Restarting $SERVICE_NAME service..."
 systemctl restart "$SERVICE_NAME"
 sleep 3
 
-# Health check — Hono serves API on port 4000, Caddy/nginx reverse-proxies
+# Health check — Hono serves API on port 4000, nginx reverse-proxies
 if curl -sf --max-time 10 http://localhost:4000/api/health -o /dev/null 2>/dev/null; then
   echo "Health check passed!"
 else

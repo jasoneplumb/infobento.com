@@ -30,8 +30,8 @@ Single mode: counter-standing. Refreshes 1–2× per day on solar power. There i
 2. **Device** stores its Wi-Fi credentials, device id, and server URL in ESP32 NVS — not the bento config, which lives server-side.
 3. **Device** wakes on RTC alarm, joins saved Wi-Fi, and issues `GET /api/device/{device-id}/frames` over HTTPS, sending `If-Modified-Since` so an unchanged frame costs a 304.
 4. **Cloud API** looks up the device's stored config, hydrates live box data, renders both orientations, and returns them.
-5. **Device** caches the framebuffer in flash, writes it to the eInk display, and returns to deep sleep.
-6. **Offline resilience:** if Wi-Fi is unavailable, the device displays the last cached framebuffer from flash (stale content, not blank).
+5. **Device** writes the framebuffer to the eInk display and returns to deep sleep. The framebuffer itself does not survive sleep — only `Last-Modified` and a boot counter persist, in RTC slow memory (`RTC_DATA_ATTR`).
+6. **Offline resilience:** if Wi-Fi is unavailable, the panel simply keeps showing the last frame it was given (stale content, not blank). This is a physical property of eInk, not a cache — no flash copy of the framebuffer is needed. (The `integrated`/`orientation` sketches do keep a LittleFS copy of both orientations, but that exists to serve the local orientation flip with the radio off, not for offline resilience.)
 
 ### Key Design Decisions
 
@@ -45,17 +45,24 @@ Single mode: counter-standing. Refreshes 1–2× per day on solar power. There i
 ## Package Architecture
 
 ```
-@infobento/core          Types, constants, layout engine
-    ↑           ↑
-@infobento/renderer    @infobento/web
-    ↑                    (calls API via HTTP)
-@infobento/api
+              @infobento/core          Types, constants, layout engine
+                ↑    ↑    ↑
+    ┌───────────┘    │    └───────────┐
+@infobento/data  @infobento/renderer  @infobento/web
+    ↑    ↑            ↑    ↑            (calls API via HTTP)
+    │    └────────────┼────┘
+    └─────────────────┤
+              @infobento/api
 ```
 
 - **core** has no dependencies on other packages
+- **data** depends on core (pure box-data providers + cache; no DOM/`window`)
 - **renderer** depends on core (types for layout data)
-- **api** depends on core and renderer (orchestrates rendering)
-- **web** depends on core (for types), calls api via HTTP (not direct import)
+- **api** depends on core, data, and renderer (hydrates box data, then renders)
+- **web** depends on core, data, and renderer, and calls api via HTTP (not direct
+  import). The renderer dependency is build-only — the editor previews via
+  `POST /api/preview` and stubs out the renderer's PNG encoder (see
+  `packages/web/src/stubs/pngjs.ts`).
 
 ## Server Architecture
 
@@ -70,20 +77,20 @@ Production:
   Internet
      │
      ▼
-  Cloudflare (DNS + CDN + DDoS + TLS edge — free tier)
-     │
-     ▼
   DigitalOcean droplet (co-tenant with tiles- and webmap.dev)
      │
      ▼
-  Caddy (TLS termination, reverse proxy, auto-cert via Let's Encrypt)
+  nginx (TLS termination, reverse proxy) — host-managed, not provisioned from this repo
      │
      ▼
-  Hono (:4000) on Node, managed by systemd
-     ├── /api/*               → API routes (pure functions)
-     ├── /api/firmware/*      → OTA manifest + .bin files (served from disk)
-     └── /*                   → Static files from web/dist (SPA fallback)
+  Hono on Node, bound to 127.0.0.1:4000, managed by systemd
+     ├── /api/*  → API routes
+     └── /*      → Static files from web/dist (SPA fallback)
 ```
+
+The apex `infobento.com` 301-redirects to `www.infobento.com`, which is the
+canonical host. See [DEPLOY.md](../DEPLOY.md) for the host layout, the
+version-controlled systemd unit, and the required secrets.
 
 - **Hono** chosen for: lightweight, pure-function friendly, runs unchanged on Node
 - **Vite proxy** in dev: `/api` requests forwarded to Hono; all other requests served by Vite with HMR
@@ -91,8 +98,13 @@ Production:
 ## Deployment
 
 - **DigitalOcean droplet** ($6/mo tier handles 10K-100K devices comfortably; co-tenant with tiles- and webmap.dev so marginal cost for InfoBento is ~$1-2/mo)
-- **Cloudflare proxy** in front (free tier) for DDoS protection, edge cache, TLS termination, anycast DNS
-- **OTA firmware** files served directly from `/var/www/firmware/*.bin` on the droplet — no object storage needed at this scale
-- **Single port:** Hono serves API + web UI + firmware from one port (default 4000), proxied by Caddy
-- **Migration path:** Hono is portable, so moving to Cloudflare Workers, Vercel Edge, or another provider is a few-hour exercise if the droplet ever becomes the bottleneck (it won't at the scales we plan for)
-- **Device firmware:** separate repo (future)
+- **nginx** on the droplet terminates TLS and reverse-proxies to Hono on `127.0.0.1:4000`. It is configured on the host, not from this repo — the only deploy-managed server config here is [`deploy/infobento.service`](../../deploy/infobento.service).
+- **Single port:** Hono serves API + web UI from one port (default 4000), behind nginx
+- **Migration path:** the pure render path (`POST /api/render`, `/api/preview`, `/api/validate`) is portable to Workers/Deno/Bun unchanged. The auth, pairing, and device-config paths are **not** — `better-sqlite3` is a native module, so those are Node-bound until the store is swapped.
+- **Device firmware:** in this repo under [`firmware/`](../../firmware/README.md) — Arduino sketches for the ESP32-S3 dev board (reTerminal E1001), targeting ESP32-C3 for production.
+
+**Not yet built:** there is no OTA firmware distribution — no `/api/firmware/*`
+route exists, and nothing serves `.bin` files. Firmware is flashed over USB
+(see [`firmware/README.md`](../../firmware/README.md)). There is also no
+Cloudflare proxy in front of the origin today; the droplet's nginx is reached
+directly.

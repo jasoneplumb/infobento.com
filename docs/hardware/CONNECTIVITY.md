@@ -46,11 +46,11 @@ The captive-portal HTML is part of the firmware — small enough to fit in flash
 Config flows to the device in two stages:
 
 1. **First-time (captive portal):** During AP-mode setup, the user enters Wi-Fi credentials, the Device ID from the pairing sticker, and optionally a custom server URL for self-hosting. The device stores those three values in ESP32 NVS. The bento config itself is never uploaded to the device — it lives server-side, bound to the account that claimed the device.
-2. **Ongoing (cloud poll):** The device polls `infobento.com/api/device/{device-id}/frames` on each refresh cycle, sending `If-Modified-Since` so an unchanged frame costs a 304. The server renders from the config it holds for that device; the device caches the returned frame in flash and redraws only when it changes.
+2. **Ongoing (cloud poll):** The device polls `infobento.com/api/device/{device-id}/frames` on each refresh cycle, sending `If-Modified-Since` so an unchanged frame costs a 304. The server renders from the config it holds for that device; the device redraws only when the frame changes (a 304 sends it straight back to sleep without touching the panel).
 
 ### Server-side rendering
 
-The device does not render locally. On each refresh cycle it sends only its device id — the bearer secret — and the server renders from the config it holds for that device, returning a framebuffer. The device caches the last framebuffer in flash so that if Wi-Fi is unavailable, the display shows stale content rather than going blank.
+The device does not render locally. On each refresh cycle it sends only its device id — the bearer secret — and the server renders from the config it holds for that device, returning a framebuffer. If Wi-Fi is unavailable, the panel shows stale content rather than going blank — eInk holds its last image with no power and no stored copy, so no flash framebuffer cache is required. Only `Last-Modified` and a boot counter persist across sleeps, in RTC slow memory. (The `integrated`/`orientation` sketches additionally cache both orientations in LittleFS, so the green-button flip can redraw with the radio off.)
 
 ### Storage
 

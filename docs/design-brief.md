@@ -10,7 +10,7 @@ _A calm bento dashboard for counters, desks, and shelves._
 
 **Domain:** Consumer electronics
 **Phase:** Campaign (pre-Kickstarter)
-**Version:** v0.22.0
+**Last reviewed:** 2026-08-19, against v0.35.1
 
 ---
 
@@ -132,7 +132,7 @@ There are no buttons or interactive controls on the device — only a recessed p
 
 No server-side state, no user accounts, no databases. Config lives on the client. Device caches last framebuffer in flash for offline resilience.
 
-> **⚠️ Superseded (epic #77).** The principle above is retained as the original design record. It no longer describes the shipped system: the API stores accounts, device pairings, and per-device config in SQLite, and auth is passkey + Apple/Google OAuth. What survives is narrower — _rendering_ is still a pure function (`POST /api/render`: config in, frame buffer out), and the web editor's preview uses exactly that path. The device-facing `/frames` path is stateful by design: the device sends only its id, and the server renders from stored config.
+> **⚠️ Superseded (epic #77).** The principle above is retained as the original design record. It no longer describes the shipped system: the API stores accounts, device pairings, and per-device config in SQLite, and auth is passkey + Apple/Google OAuth. What survives is narrower — _rendering_ is still a pure function (`POST /api/render`: config in, frame buffer out), and the web editor's preview uses exactly that path. The device-facing `/frames` path is stateful by design: the device sends only its id, and the server renders from stored config. The flash-cache claim above also turned out to be unnecessary: eInk holds its last image with no power, so offline resilience needs no stored framebuffer (see `docs/hardware/CONNECTIVITY.md`).
 
 ### Visual Restraint
 
@@ -357,4 +357,4 @@ Total BOM is approximately **$45–50** at Kickstarter volume (qty ~1k), dominat
 ---
 
 _InfoBento -- A calm bento dashboard for counters, desks, and shelves._
-_Phase: Campaign | Version: v0.22.0 | June 2026_
+_Phase: Campaign | Authored June 2026 | Last reviewed 2026-08-19 against v0.35.1_

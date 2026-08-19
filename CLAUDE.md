@@ -58,7 +58,10 @@ core (types, layout)  <──  renderer (eInk framebuffer)  <──  api (render
 - `data` imports only from `core` (pure `fetch`, no DOM/`window`, browser- and edge-safe)
 - `renderer` imports only from `core`
 - `api` imports from `core`, `data`, and `renderer`
-- `web` imports from `core` and `data` (calls API via HTTP, not direct import)
+- `web` imports from `core` and `data`, and calls `api` via HTTP (not direct import).
+  It also carries a build-only `renderer` dependency: the editor previews via
+  `POST /api/preview` and stubs out the renderer's PNG encoder
+  (`packages/web/src/stubs/pngjs.ts`) rather than rendering locally.
 
 ## Critical: .js Extensions Required
 

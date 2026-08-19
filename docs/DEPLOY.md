@@ -23,7 +23,9 @@ to the host and runs `scripts/deploy-infobento.sh`.
 | `/etc/infobento/auth.env`               | Runtime auth secrets (`root:www-data`, `640`); written by the deploy from GitHub secrets, loaded via the unit's `EnvironmentFile=`.      |
 | `/var/lib/infobento/data.db`            | SQLite store (override with `INFOBENTO_DB_PATH`).                                                                                        |
 
-The service listens on `127.0.0.1:4000`; nginx terminates TLS and reverse-proxies.
+The service listens on `127.0.0.1:4000`; nginx terminates TLS and reverse-proxies
+(nginx 1.24 on Ubuntu, configured on the host — this repo does not provision or
+deploy the proxy config).
 **The canonical host is `www.infobento.com`** — the apex `infobento.com` 301-redirects
 to it, so all origins/redirect URIs must use `www.`.
 
