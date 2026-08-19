@@ -802,7 +802,7 @@
       "description": "PR #189 replaced the sample setup-guide sticker with the real bench device's sticker, embedding an unclaimed pair code in both the printed text and the QR payload. packages/web/public/ is served at www.infobento.com, so any reader could have claimed the device. The PR passed review — the diff was a PNG, and the reviewer read the diff.",
       "findingType": "problem",
       "severity": "critical",
-      "evidence": "dev.db devices row 9e161c40-b648-47f1-b9e0-6ee3fb81d833 / pair code DUPP8E, owner_account_id empty; sticker.png committed under packages/web/public/setup-guide/.",
+      "evidence": "dev.db devices row <redacted device id> / pair code <redacted pair code>, owner_account_id empty; sticker.png committed under packages/web/public/setup-guide/.",
       "recommendation": "Reverted to the sample-CSV sticker in PR #201. Rotate the code if the row exists in production. Only ever use pair codes from scripts/sample-devices.csv in published assets. Binary assets need review attention that diff-reading does not provide.",
       "status": "fixed",
       "id": "b27df43b-7e90-491d-a8ed-1b52b97b9796",
