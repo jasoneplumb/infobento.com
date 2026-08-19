@@ -136,11 +136,11 @@
       "type": "design-principle",
       "name": "Pure Function Architecture",
       "statement": "Rendering is a pure function — same config in, same frame buffer out, every time",
-      "description": "Rendering has no state: POST /api/render takes a BentoConfig and returns frame data, and the web editor's preview uses exactly that path. The server as a whole is NOT stateless. Epic #77 (PRs #82 SQLite, #83 passkey+OAuth, #112 pairing, #113 account binding) added SQLite-backed accounts, device pairings, and per-device config, plus passkey + Apple/Google OAuth. The device-facing path is stateful by design: the device sends only its device id and the server renders from the config it holds. Keep the purity boundary at the renderer, not at the process.",
+      "description": "Rendering has no state: POST /api/render takes a BentoConfig and returns frame data, and the web editor's preview uses exactly that path. The server as a whole is NOT stateless. Epic #77 (PRs #82 SQLite, #83 passkey+OAuth, #112 pairing, #113 account binding) added SQLite-backed accounts, device pairings, and per-device config, plus passkey + Apple/Google OAuth. The device-facing path is stateful by design: the device sends only its device id and the server renders from the config it holds. Keep the purity boundary at the renderer, not at the process. Separately, the auth ceremonies are themselves stateless — the WebAuthn challenge and OAuth PKCE verifier round-trip in HMAC-signed cookies with no server-side store — but that is a property of the auth subsystem, not evidence of rendering purity.",
       "source": "Originally a technical constraint (edge deployability, power budget, simplicity). Narrowed by epic #77 when SaaS-default hosting required accounts and server-side config.",
       "examples": [
         "POST /api/render takes config JSON, returns binary frame — genuinely stateless",
-        "Auth challenges round-trip in HMAC-signed cookies, no server-side challenge store",
+        "The web editor's preview renders through that same pure path",
         "Device caches last frame in flash for offline display"
       ],
       "counterExamples": [
@@ -422,7 +422,7 @@
         "2-bit (4-level grayscale) framebuffer — black, dark gray, light gray, white. No color.",
         "Aspect ratio 1.353:1, set by the GDEH0576T81 (920x680). Golden ratio retired at panel lock.",
         "198 DPI on the production panel; the 7.5\" E1001 dev panel is ~124 DPI (bench floor).",
-        "Display nearly fills enclosure — bezel target <=4mm (README), tightened from an earlier 3mm note",
+        "Display nearly fills enclosure — bezel target <=4mm (README), RELAXED from the earlier 3mm goal",
         "Refresh once or twice a day on solar power (~2-3s per refresh)",
         "Frame buffer size derived from the chosen panel via frameBufferBytes() in @infobento/core",
         "Orientation: /frames returns BOTH orientations pre-rendered, so a flip costs no radio wake (RFC 0002)"
@@ -508,7 +508,7 @@
       "type": "design-principle",
       "name": "Two-Font TTF System",
       "statement": "TrueType font rendering via Inter (OFL) with opentype.js — configurable body size (8-42px), hero size derived proportionally — no system font dependencies",
-      "description": "The renderer uses Inter (OFL-licensed TrueType font) via opentype.js for all text. Body font size is user-configurable (8-42px). Two constants share the name DEFAULT_FONT_SIZE and differ: the user-facing initial default is 38px (packages/web/src/state.ts, a local const the editor seeds every fresh config with), while packages/renderer/src/font-metrics.ts uses 20px as the fallback for callers that omit fontSize. A real config therefore carries 38 unless the user moves the slider); hero size is derived proportionally (bodySize * 2.6). Anti-aliased via scanline TTF rasterization. Dynamic FontMetrics system computes all spacing, padding, and line heights from the chosen body size. Two visual weights — hero (bold) and body (regular) — create clear hierarchy.",
+      "description": "The renderer uses Inter (OFL-licensed TrueType font) via opentype.js for all text. Body font size is user-configurable (8-42px). Two constants share the name DEFAULT_FONT_SIZE and differ: the user-facing initial default is 38px (packages/web/src/state.ts, a local const the editor seeds every fresh config with), while packages/renderer/src/font-metrics.ts uses 20px as the fallback for callers that omit fontSize. A real config therefore carries 38 unless the user moves the slider.; hero size is derived proportionally (bodySize * 2.6). Anti-aliased via scanline TTF rasterization. Dynamic FontMetrics system computes all spacing, padding, and line heights from the chosen body size. Two visual weights — hero (bold) and body (regular) — create clear hierarchy.",
       "source": "Font evolution: 5x7 bitmap (v0.1) → Spleen 8x16 bitmap (v0.4) → Inter TTF via opentype.js (v0.7.0). TTF rendering enables configurable font sizes and proper kerning.",
       "examples": [
         "Inter Bold hero: '62F', '9:00', '14 days' at user-chosen size",
