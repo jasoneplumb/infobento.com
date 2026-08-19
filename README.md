@@ -2,9 +2,13 @@
 
 > _See what matters. Skip the spiral._
 
+[![CI](https://github.com/jasoneplumb/infobento.com/actions/workflows/ci.yml/badge.svg?branch=mainline)](https://github.com/jasoneplumb/infobento.com/actions/workflows/ci.yml)
 [![Website](https://img.shields.io/badge/web-infobento.com-blue)](https://www.infobento.com)
 [![License: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
+[![Hardware: CERN-OHL-P-2.0](https://img.shields.io/badge/hardware-CERN--OHL--P--2.0-blue.svg)](hardware/LICENSE)
+[![Docs: CC-BY-4.0](https://img.shields.io/badge/docs-CC--BY--4.0-blue.svg)](docs/LICENSE)
 [![TypeScript](https://img.shields.io/badge/TypeScript-Node16-blue.svg)](tsconfig.base.json)
+[![Node](https://img.shields.io/badge/node-%3E%3D20-brightgreen.svg)](package.json)
 [![ESP32-C3](https://img.shields.io/badge/MCU-ESP32--C3-grey.svg)](firmware)
 
 A small, solar-powered eInk decorator that lives on a counter, shelf, or windowsill. Configure once on a web page; it sips light from the window and shows what matters most — weather, 8-hour forecast, 8-day forecast, calendar, quote, countdown, stocks, QR code, text, date, moon phase, sunrise/sunset, air quality, year progress, habits, horoscope, joke, on this day — for months on its own.
@@ -59,7 +63,7 @@ Set it on a kitchen counter, a desk, or a shelf. The body is its own stand, with
                                    └───────────┘
 ```
 
-The cloud API is a pure function: BentoConfig in, frame buffer out. The server renders the framebuffer; the device caches the last framebuffer in flash for offline resilience (stale display, not blank). First-time setup via captive portal; config updates polled from cloud via `infobento.com/api/config/{device-id}`. The web editor is where you set up your boxes; configuration lives in browser localStorage and can be exported/imported as JSON.
+The cloud API is a pure function: BentoConfig in, frame buffer out. The server renders the framebuffer; the device caches the last framebuffer in flash for offline resilience (stale display, not blank). First-time setup via captive portal; on each refresh the device polls `infobento.com/api/device/{device-id}/frames` for a freshly rendered frame (both orientations in one response), using its device id as a bearer secret. The web editor is where you set up your boxes; configuration lives in browser localStorage, and once a device is paired to an account it is also stored server-side and pushed via `PUT /api/device/{device-id}/config`.
 
 ## Quick Start
 
@@ -77,12 +81,13 @@ npm run lint
 
 ## Monorepo Structure
 
-| Package              | Name                  | Purpose                                     |
-| -------------------- | --------------------- | ------------------------------------------- |
-| `packages/core/`     | `@infobento/core`     | Types, bento box definitions, layout engine |
-| `packages/renderer/` | `@infobento/renderer` | eInk frame buffer generation                |
-| `packages/api/`      | `@infobento/api`      | Stateless pure-function cloud API           |
-| `packages/web/`      | `@infobento/web`      | Web configuration interface                 |
+| Package              | Name                  | Purpose                                        |
+| -------------------- | --------------------- | ---------------------------------------------- |
+| `packages/core/`     | `@infobento/core`     | Types, bento box definitions, layout engine    |
+| `packages/data/`     | `@infobento/data`     | Box-data providers (weather, quote, …) + cache |
+| `packages/renderer/` | `@infobento/renderer` | eInk frame buffer generation                   |
+| `packages/api/`      | `@infobento/api`      | Stateless pure-function cloud API              |
+| `packages/web/`      | `@infobento/web`      | Web configuration interface                    |
 
 ## Self-hosting & auth env vars
 
@@ -169,4 +174,4 @@ E Plumb and InfoBento contributors.
 
 ## Status
 
-Active development (v0.29.0). Renderer produces framebuffers with 18 box types. Web editor at localhost:5173 for configuration. Passkey + Apple/Google OAuth and the SaaS device-pairing flow are shipped in `@infobento/api` (epic #77 complete). Firmware bring-up is dev-first on the reTerminal E1001: blink, static-frame, and Wi-Fi device-pull all bench-verified (epic #106, Phases 1–3). Production-panel validation pending the GDEH0576T81 dev kit (#57).
+Active development (v0.35.1). Renderer produces framebuffers with 18 box types. Web editor at localhost:5173 for configuration. Passkey + Apple/Google OAuth and the SaaS device-pairing flow are shipped in `@infobento/api` (epic #77 complete). Firmware bring-up is dev-first on the reTerminal E1001: blink, static-frame, and Wi-Fi device-pull all bench-verified (epic #106, Phases 1–3). Production-panel validation pending the GDEH0576T81 dev kit (#57).

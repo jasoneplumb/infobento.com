@@ -254,7 +254,7 @@ User                          Cloud                        Device
   |                              |                            |
   |   [updates]                  |                            |
   |-- push config to cloud ----->|                            |
-  |                              |<--- poll /api/config/ID ---|
+  |                              |<- poll /api/device/ID/frames -|
   |                              |---- framebuffer binary --->|
   |                              |                            |
   |                              |     [device caches last    |

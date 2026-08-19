@@ -26,7 +26,7 @@ Single mode: counter-standing. Refreshes 1–2× per day on solar power. There i
 
 ### Data Flow
 
-1. **User** configures bento boxes via the **Web UI** (browser localStorage). Config is uploaded to the device during captive-portal setup or polled from `infobento.com/api/config/{device-id}` for OTA updates.
+1. **User** configures bento boxes via the **Web UI** (browser localStorage, plus server-side storage once the device is paired to an account). The device is pointed at its device id during captive-portal setup, then polls `infobento.com/api/device/{device-id}/frames` each refresh cycle for a server-rendered frame.
 2. **Device** stores config in ESP32 NVS.
 3. **Device** wakes on RTC alarm, joins saved Wi-Fi, sends config to the **Cloud API** via HTTPS.
 4. **Cloud API** renders the framebuffer (pure function: config in, frame buffer out) and returns it.

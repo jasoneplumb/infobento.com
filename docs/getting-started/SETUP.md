@@ -12,7 +12,7 @@ Get InfoBento running locally in under 5 minutes.
 
 ```bash
 # 1. Clone
-git clone https://github.com/jasoneplumber/infobento.com.git
+git clone https://github.com/jasoneplumb/infobento.com.git
 cd infobento.com
 
 # 2. Install

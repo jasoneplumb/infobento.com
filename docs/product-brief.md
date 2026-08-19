@@ -97,7 +97,7 @@ Tidbyt and TRMNL are the ambient-display references. InfoBento differs by combin
 **Config delivery:**
 
 1. First-time: captive portal (device broadcasts `InfoBento-XXXX` SSID, user uploads config JSON + Wi-Fi credentials)
-2. Ongoing: device polls `infobento.com/api/config/{device-id}` for config updates
+2. Ongoing: device polls `infobento.com/api/device/{device-id}/frames` for a server-rendered frame
 3. Config stored in ESP32 NVS; framebuffer cached in flash
 
 ---

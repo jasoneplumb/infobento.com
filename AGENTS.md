@@ -2,7 +2,7 @@
 
 ## Project Structure
 
-Monorepo managed via npm workspaces: `packages/core` (types, layout), `packages/renderer` (2-bit grayscale framebuffer), `packages/api` (stateless API), `packages/web` (React config UI). Documentation in `docs/`.
+Monorepo managed via npm workspaces: `packages/core` (types, layout), `packages/data` (box-data providers + cache), `packages/renderer` (2-bit grayscale framebuffer), `packages/api` (stateless API), `packages/web` (vanilla-TS config UI). Documentation in `docs/`.
 
 ## Commands
 

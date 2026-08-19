@@ -46,7 +46,7 @@ The captive-portal HTML is part of the firmware — small enough to fit in flash
 Config flows to the device in two stages:
 
 1. **First-time (captive portal):** During AP-mode setup, the user enters Wi-Fi credentials and uploads a config JSON (exported from the web editor). The device stores config in ESP32 NVS.
-2. **Ongoing (cloud poll):** The device polls `infobento.com/api/config/{device-id}` on each refresh cycle for config updates. If the cloud has a newer config, the device downloads it and overwrites the NVS copy.
+2. **Ongoing (cloud poll):** The device polls `infobento.com/api/device/{device-id}/frames` on each refresh cycle, sending `If-Modified-Since` so an unchanged frame costs a 304. The server renders from the config it holds for that device; the device caches the returned frame in flash and redraws only when it changes.
 
 ### Server-side rendering
 

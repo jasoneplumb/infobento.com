@@ -25,7 +25,7 @@ infobento.com/
 ├── packages/data/      @infobento/data: pure box-data providers (weather, quote, …) + cache
 ├── packages/renderer/  @infobento/renderer: eInk frame buffer generation
 ├── packages/api/       @infobento/api: Hono server — stateless API + static file serving
-└── packages/web/       @infobento/web: Vite + React configuration interface (private)
+└── packages/web/       @infobento/web: Vite + vanilla-TS configuration interface (private)
 ```
 
 ## Dev Server Architecture
@@ -105,4 +105,4 @@ The renderer produces eInk frame buffers (4 levels, 156,400 bytes for 920x680). 
 - **Single-port production:** Hono serves API + web UI from one port (default 4000). Will eventually be co-hosted alongside tiles- and webmap.dev on the same server.
 - **API:** Stateless pure functions, edge-deployable (Hono runs on Node, Cloudflare Workers, Deno, Bun).
 - **Web app:** Public at https://www.infobento.com — anything in `packages/web/public/` (including setup-guide assets) is world-readable; never publish production pair codes or Device IDs.
-- **GitHub repo:** Private. Use `review-requested` label on PRs to trigger Claude review.
+- **GitHub repo:** Public. Use `review-requested` label on PRs to trigger Claude review. Anything committed is world-readable — never commit live pair codes, Device IDs, or bench Wi-Fi credentials.
