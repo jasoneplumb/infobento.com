@@ -342,13 +342,16 @@ at cost.
 
 At the $47 BOM midpoint, and after deducting ~8% platform and payment fees,
 packaging (~$3), and a replacement allowance (~$5), each unit nets roughly **$36
-at $99** and **$62 at $129**. That remainder is what funds the one-time costs —
+at $99** and **$64 at $129**. That remainder is what funds the one-time costs —
 injection-mould tooling, FCC/CE, UN38.3 — which no per-unit line item covers.
 
-The earlier $49–69 target produced a *negative* remainder on the same basis:
-about −$7 at $69 and −$27 at $49, once worldwide shipping of a lithium-cell
-product was included. No volume fixed that, because the shortfall scaled with
-units sold.
+The earlier $49–69 target produced a *negative* remainder on the same inputs,
+plus ~$15 to ship a lithium-cell product worldwide as promised: about **−$7 at
+$69** and **−$25 at $49**. No volume fixed that, because the shortfall scaled
+with units sold.
+
+The only difference in assumptions between the two paragraphs is that shipping
+line: the new tiers charge it at cost, so it is not a cost to absorb.
 
 ---
 
