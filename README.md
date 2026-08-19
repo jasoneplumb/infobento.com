@@ -21,7 +21,7 @@ Building a layout in the web editor needs no account — it saves to your browse
 Binding a device to that layout does: you claim it with a passkey or a Google/Apple
 sign-in, so the server knows whose config to render for it.
 
-Set it on a kitchen counter, a desk, or a shelf. The body is its own stand, with a fold-out kickstand to angle the display toward you if needed. The upper portion of the back is a solar panel that charges the device from indirect light through a window. It refreshes once or twice a day, which is plenty for the things you actually look at it for. $49–69 via Kickstarter (≈ $45–50 BOM at volume — the 5.76" panel dominates).
+Set it on a kitchen counter, a desk, or a shelf. The body is its own stand, with a fold-out kickstand to angle the display toward you if needed. The upper portion of the back is a solar panel that charges the device from indirect light through a window. It refreshes once or twice a day, which is plenty for the things you actually look at it for. $99–129 via Kickstarter (≈ $45–50 BOM at volume — the 5.76" panel dominates).
 
 ### Hardware
 
