@@ -203,7 +203,7 @@ InfoBento is a calmer, cheaper, solar take on the ambient-display category: no w
 - **Price validation:** $49–69 Kickstarter price needs manufacturer quotes to confirm the ~$45–50 BOM estimate.
 - **Firmware:** Captive portal provisioning (#39), Wi-Fi connect, config poll, framebuffer write, deep sleep cycle.
 - **Enclosure:** SCAD model (#50) for ~14×11 cm housing, ≤4 mm bezel, solar cavity, fold-out kickstand, pinhole reset.
-- **Founder bio** — TODO in `docs/kickstarter-copy.md`; lock before Day 0 of campaign
+- **Founder bio** — still to write; lock before Day 0 of the campaign
 - **Content-aware layout:** Height allocation for all 18 box types — shipped in v0.13.0 via `computeMinHeight` per renderer.
 
 ---

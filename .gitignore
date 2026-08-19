@@ -59,3 +59,9 @@ firmware/dev/
 dev.db
 dev.db-shm
 dev.db-wal
+
+# Internal working files — kept locally, deliberately not tracked.
+# .tux/  is the product-model tool's state (findings, retrospectives).
+# kickstarter-copy.md is unlaunched campaign copy incl. pledge pricing.
+.tux/
+docs/kickstarter-copy.md

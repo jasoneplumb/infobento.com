@@ -30,7 +30,6 @@ docs/
 │
 ├── product-brief.md         Product positioning, BOM, competitive framing
 ├── design-brief.md          Design principles, requirements, visual system
-├── kickstarter-copy.md      Campaign copy draft
 │
 ├── getting-started/
 │   ├── SETUP.md              5-minute setup guide
