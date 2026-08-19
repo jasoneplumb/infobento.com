@@ -44,24 +44,21 @@ Single mode: counter-standing. Refreshes 1–2× per day on solar power. There i
 
 ## Package Architecture
 
-```
-                    @infobento/core          Types, constants, layout engine
-                      ↑     ↑     ↑
-        ┌─────────────┘     │     └─────────────┐
-@infobento/data   @infobento/renderer   @infobento/web
-        ↑   ↑             ↑                (calls API via HTTP)
-        │   └─────────────┤
-        └─────────────────┤
-                  @infobento/api
-```
+| Package               | Depends on           | Role                             |
+| --------------------- | -------------------- | -------------------------------- |
+| `@infobento/core`     | —                    | Types, constants, layout engine  |
+| `@infobento/data`     | core                 | Box-data providers + cache       |
+| `@infobento/renderer` | core                 | eInk framebuffer generation      |
+| `@infobento/api`      | core, data, renderer | Hydrates box data, then renders  |
+| `@infobento/web`      | core, data           | Config UI; reaches api over HTTP |
 
-- **core** has no dependencies on other packages
-- **data** depends on core (pure box-data providers + cache; no DOM/`window`)
-- **renderer** depends on core (types for layout data)
-- **api** depends on core, data, and renderer (hydrates box data, then renders)
-- **web** depends on core and data, and calls api via HTTP (not direct import).
-  It does **not** depend on the renderer: the editor previews by calling
-  `POST /api/preview`, so nothing is rasterized in the browser.
+Dependencies flow strictly downward in that table — nothing depends on a package
+listed below it, and there are no cycles.
+
+- **data** is browser- and edge-safe: pure `fetch`, no DOM or `window`
+- **web** reaches `api` over HTTP and never imports it directly
+- **web** does **not** depend on `renderer`: the editor previews by calling
+  `POST /api/preview`, so nothing is rasterized in the browser
 
 ## Server Architecture
 
