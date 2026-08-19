@@ -16,6 +16,7 @@ import type { DB } from './db.js';
 import { signSession } from './auth/session.js';
 import {
   createForgetWifiHandler,
+  createGetDeviceConfigHandler,
   createListDevicesHandler,
   createPutDeviceConfigHandler,
   createUnpairDeviceHandler,
@@ -47,6 +48,10 @@ function makeApp(db: DB): Hono {
   app.post(
     '/api/device/:id/forget',
     createForgetWifiHandler(() => db),
+  );
+  app.get(
+    '/api/me/device/:id/config',
+    createGetDeviceConfigHandler(() => db),
   );
   return app;
 }
@@ -330,5 +335,93 @@ describe('POST /api/device/:id/forget', () => {
     expect(res.status).toBe(404);
     // The intruder could not flag a device they don't own.
     expect(getDevice(db, device.id)?.forget_pending).toBe(0);
+  });
+});
+
+describe('GET /api/me/device/:id/config (session-gated read, #116)', () => {
+  let db: DB;
+  let app: Hono;
+
+  beforeEach(() => {
+    process.env['SESSION_SECRET'] = TEST_SECRET;
+    resetRateLimit();
+    db = createDb(':memory:');
+    app = makeApp(db);
+  });
+
+  afterEach(() => {
+    delete process.env['SESSION_SECRET'];
+    db.close();
+  });
+
+  it('401s without a session', async () => {
+    const device = createDevice(db, { pairCode: 'GET401' });
+    const res = await app.request(`/api/me/device/${device.id}/config`);
+    expect(res.status).toBe(401);
+  });
+
+  it('returns the stored config to the owner', async () => {
+    const owner = createAccount(db);
+    const device = createDevice(db, { pairCode: 'GET200' });
+    claimDevice(db, 'GET200', owner.id);
+    setConfig(db, device.id, JSON.stringify(VALID_CONFIG));
+
+    const res = await app.request(`/api/me/device/${device.id}/config`, {
+      headers: cookie(owner.id),
+    });
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ config: VALID_CONFIG });
+  });
+
+  it('distinguishes "claimed but unconfigured" (200 + null) from "not yours" (404)', async () => {
+    // This distinction is the point of the endpoint: the old firmware-facing
+    // GET returned 404 for both, which is what made #191 ambiguous.
+    const owner = createAccount(db);
+    const device = createDevice(db, { pairCode: 'GETNUL' });
+    claimDevice(db, 'GETNUL', owner.id);
+
+    const res = await app.request(`/api/me/device/${device.id}/config`, {
+      headers: cookie(owner.id),
+    });
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ config: null });
+  });
+
+  it('returns opaque 404 for another account, an unclaimed device, and an unknown id alike', async () => {
+    const owner = createAccount(db);
+    const intruder = createAccount(db);
+    const claimed = createDevice(db, { pairCode: 'GETOTH' });
+    claimDevice(db, 'GETOTH', owner.id);
+    setConfig(db, claimed.id, JSON.stringify(VALID_CONFIG));
+    const unclaimed = createDevice(db, { pairCode: 'GETUNC' });
+
+    const other = await app.request(`/api/me/device/${claimed.id}/config`, {
+      headers: cookie(intruder.id),
+    });
+    const orphan = await app.request(`/api/me/device/${unclaimed.id}/config`, {
+      headers: cookie(intruder.id),
+    });
+    const missing = await app.request(`/api/me/device/does-not-exist/config`, {
+      headers: cookie(intruder.id),
+    });
+
+    expect(other.status).toBe(404);
+    expect(orphan.status).toBe(404);
+    expect(missing.status).toBe(404);
+    // Indistinguishable bodies — a non-owner learns nothing about which ids exist.
+    expect(await other.json()).toEqual(await missing.json());
+  });
+
+  it('does not leak the config of a device owned by someone else', async () => {
+    const owner = createAccount(db);
+    const intruder = createAccount(db);
+    const device = createDevice(db, { pairCode: 'GETLEK' });
+    claimDevice(db, 'GETLEK', owner.id);
+    setConfig(db, device.id, JSON.stringify(VALID_CONFIG));
+
+    const res = await app.request(`/api/me/device/${device.id}/config`, {
+      headers: cookie(intruder.id),
+    });
+    expect(JSON.stringify(await res.json())).not.toContain('yo');
   });
 });

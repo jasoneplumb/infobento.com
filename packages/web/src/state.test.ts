@@ -12,6 +12,8 @@ import {
   loadConfig,
   serializeBoxes,
   setState,
+  updateConfig,
+  updateConfigList,
   updateLabel,
   BOX_TYPE_LABELS,
   getPersistenceMode,
@@ -379,5 +381,63 @@ describe('loadConfig — never silently wipes a layout', () => {
     });
     expect(ok).toBe(true);
     expect(getBoxes().map((b) => b.type)).toEqual(['date']);
+  });
+});
+
+describe('in-row config edits persist (#192)', () => {
+  it('writes an updateConfig value to localStorage in local mode', () => {
+    addBox('date');
+    const id = getBoxes()[0]!.id;
+
+    updateConfig(id, 'showYearProgress', true);
+
+    // The bug: the preview updated but the value never left memory, so the
+    // stored config came back as {"type":"date"} with the key simply absent.
+    const stored = localStorage.getItem('infobento-config');
+    expect(stored).toContain('showYearProgress');
+    expect(JSON.parse(stored!)).toMatchObject({
+      boxes: [{ config: { showYearProgress: true } }],
+    });
+  });
+
+  it('pushes an updateConfig value to the cloud hook in cloud mode', () => {
+    addBox('date');
+    const id = getBoxes()[0]!.id;
+    const cloudSave = vi.fn();
+    onCloudPersist(cloudSave);
+    enterCloudMode('device-1');
+    cloudSave.mockClear();
+
+    updateConfig(id, 'showYearProgress', true);
+
+    // Without this the device kept rendering the old config indefinitely —
+    // the exact bench symptom in #192.
+    expect(cloudSave).toHaveBeenCalled();
+  });
+
+  it('persists updateConfigList edits too', () => {
+    addBox('date');
+    const id = getBoxes()[0]!.id;
+    const cloudSave = vi.fn();
+    onCloudPersist(cloudSave);
+    enterCloudMode('device-1');
+    cloudSave.mockClear();
+
+    updateConfigList(id, 'entries', [{ day: 'Sat', high: 62, low: 43 }]);
+
+    expect(cloudSave).toHaveBeenCalled();
+  });
+
+  it('still does not persist while a cloud seed is being applied', () => {
+    // enterCloudMode's seed path suppresses persistence to avoid echoing the
+    // fetched config straight back at the server; adding persist() to
+    // updateConfig must not defeat that.
+    const cloudSave = vi.fn();
+    onCloudPersist(cloudSave);
+    enterCloudMode('device-1', {
+      version: 2,
+      boxes: [{ type: 'text', label: 'A', config: { content: 'one' } }],
+    });
+    expect(cloudSave).not.toHaveBeenCalled();
   });
 });

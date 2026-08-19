@@ -81,6 +81,59 @@ export function createPutDeviceConfigHandler(getDb: () => DB) {
 }
 
 /**
+ * Build the `GET /api/me/device/:id/config` handler — the SESSION-gated read of
+ * a device's stored config, for the web editor.
+ *
+ * Why this exists (#116): the editor previously read config through the
+ * firmware-facing `GET /api/device/:id/config`, where the device id alone is
+ * the bearer secret. That worked only because the id came from the
+ * ownership-gated `/api/me/devices` list, which mixed two auth models in one
+ * flow and made the editor's safety depend on where it happened to get the id.
+ * This handler mirrors `createPutDeviceConfigHandler` exactly, so read and
+ * write share one ownership check.
+ *
+ * Responses:
+ *   401 — no valid session.
+ *   429 — too many reads for this account.
+ *   404 — missing, unclaimed, or owned by someone else (opaque, deliberately).
+ *   200 — `{ config }`, where config is null when nothing is stored yet.
+ */
+export function createGetDeviceConfigHandler(getDb: () => DB) {
+  return (c: Context): Response => {
+    const session = readSession(c);
+    if (!session) return c.json({ error: 'unauthenticated' }, 401);
+
+    // Shares the `cfg:` bucket with the PUT handler — an editor that reads and
+    // writes is one logical actor and should draw from one allowance.
+    if (!consumeToken(`cfg:${session.accountId}`)) {
+      return c.json({ error: 'rate_limited' }, 429, { 'Retry-After': '60' });
+    }
+
+    const id = c.req.param('id');
+    if (!id) return c.json({ error: 'not_found' }, 404);
+    const device = getDevice(getDb(), id);
+    // Opaque 404 for missing, unclaimed, and other-owner alike — same reasoning
+    // as the PUT handler: never confirm that a device id exists to a non-owner.
+    if (!device || device.owner_account_id !== session.accountId) {
+      return c.json({ error: 'not_found' }, 404);
+    }
+
+    // A claimed device with no config yet is a 200 with null, NOT a 404. The
+    // caller must be able to tell "you don't own this" from "nothing stored
+    // yet" — conflating them is what made #191 hard to reason about.
+    if (!device.config_json) return c.json({ config: null });
+
+    try {
+      return c.json({ config: JSON.parse(device.config_json) as unknown });
+    } catch {
+      // Stored config is corrupt; report it as absent rather than 500ing, so
+      // the editor can overwrite it on the next save.
+      return c.json({ config: null });
+    }
+  };
+}
+
+/**
  * Build the `GET /api/me/devices` handler — lists the caller's paired devices
  * as `{ id, pairCode, hasConfig }`. The raw config_json is deliberately omitted
  * so the list endpoint can't be used to bulk-exfiltrate configs.

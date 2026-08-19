@@ -81,30 +81,41 @@ export async function unpairDevice(id: string): Promise<boolean> {
 export async function selectDevice(deviceId: string): Promise<boolean> {
   let res: Response;
   try {
-    res = await fetch(`/api/device/${encodeURIComponent(deviceId)}/config`, {
+    // Session-gated read (#116). Previously this used the firmware-facing
+    // GET /api/device/:id/config, where the device id alone is the bearer
+    // secret — safe only because the id came from the ownership-gated devices
+    // list. This endpoint does its own ownership check, so the editor no longer
+    // depends on where it obtained the id.
+    res = await fetch(`/api/me/device/${encodeURIComponent(deviceId)}/config`, {
       credentials: 'same-origin',
     });
   } catch {
     return false;
   }
 
-  if (res.status === 404) {
-    // `deviceId` came from the ownership-gated /api/me/devices list, so the
-    // device is known to exist and be ours — a 404 from this firmware-facing
-    // GET therefore means "no config stored yet". Adopt the editor's current
-    // content; the first edit creates the config.
-    enterCloudMode(deviceId);
-    return true;
-  }
+  // 404 now means what it says: not ours, or gone. It is no longer overloaded
+  // with "no config yet" — that case is a 200 with config: null.
   if (!res.ok) return false;
 
+  let config: unknown = null;
   try {
-    const config = (await res.json()) as BentoConfig;
-    enterCloudMode(deviceId, fromBentoConfig(config));
+    ({ config } = (await res.json()) as { config: unknown });
   } catch {
-    // Stored config didn't parse — still enter cloud mode so edits overwrite it.
-    enterCloudMode(deviceId);
+    config = null; // corrupt payload — treat as unconfigured and overwrite
   }
+
+  if (config === null) {
+    // Never-configured device (#191). Adopt the editor's current boxes and push
+    // them immediately rather than waiting for an edit that may never come.
+    // Without this the device stays configless, /frames keeps returning 404,
+    // and the physical unit sits on the "Set up InfoBento" screen forever even
+    // though pairing and Wi-Fi provisioning both succeeded.
+    enterCloudMode(deviceId);
+    await saveNow();
+    return true;
+  }
+
+  enterCloudMode(deviceId, fromBentoConfig(config as BentoConfig));
   return true;
 }
 

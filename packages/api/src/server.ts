@@ -62,6 +62,7 @@ import { consumeToken } from './rate-limit.js';
 import { createPairHandler } from './pair.js';
 import {
   createForgetWifiHandler,
+  createGetDeviceConfigHandler,
   createListDevicesHandler,
   createPutDeviceConfigHandler,
   createUnpairDeviceHandler,
@@ -485,6 +486,7 @@ app.post('/api/pair', createPairHandler(getDb));
 // OWNS the device. Distinct from the firmware-facing pull endpoints below,
 // where the device id itself is the bearer secret and there is no session.
 app.put('/api/device/:id/config', createPutDeviceConfigHandler(getDb));
+app.get('/api/me/device/:id/config', createGetDeviceConfigHandler(getDb));
 app.get('/api/me/devices', createListDevicesHandler(getDb));
 app.delete('/api/device/:id/owner', createUnpairDeviceHandler(getDb));
 // "Forget Wi-Fi" (issue #39) — owner queues a credential reset that the device
