@@ -16,7 +16,7 @@ A solar-powered eInk bento dashboard that sits on your counter, desk, or shelf. 
 
 InfoBento is a calm surface for the room. The information you check most often — weather, the next thing on your calendar, days until something you're looking forward to, air-quality status from cloud data — sits there in sharp eInk, visible at a glance from across the room. The display is a multi-box bento dashboard (up to 10 boxes, multi-column, with big glanceable numbers). Configure once on a web page; it sips light from the window and refreshes on its own.
 
-Tidbyt and TRMNL are the ambient-display references. InfoBento differs by combining a glanceable eInk bento dashboard with a solar-powered, cable-free form factor — calmer than the LED displays, and the only one in the set that runs without a wall socket.
+Tidbyt and TRMNL are the ambient-display references. InfoBento differs by combining a glanceable eInk bento dashboard with a solar-harvesting form factor — calm eInk rather than a glowing LED grid, and designed to top itself up from window light rather than to be plugged in and left.
 
 **Target price:** $99 early bird / $129 standard (Kickstarter), shipping at cost
 **Distribution:** Kickstarter campaign
@@ -179,7 +179,7 @@ The AQI box draws Open-Meteo cloud air-quality data — a cloud data box like we
 | **Account**    | App + account                  | Web page, no app; passkey/OAuth sign-in to claim       |
 | **Price**      | $179 / varies                  | $99–129 (Kickstarter)                                  |
 
-InfoBento is a calmer, solar take on the ambient-display category: no wall cable, no app, no plugin marketplace — just a glanceable 5.76" eInk bento dashboard that refreshes itself on window light. It undercuts the LED displays and sits level with the other eInk entrant, which needs mains power.
+InfoBento is a calmer, solar take on the ambient-display category: no wall cable, no app, no plugin marketplace — just a glanceable 5.76" eInk bento dashboard that refreshes itself on window light. It undercuts the LED displays on price and sits level with the other eInk entrant, competing there on solar operation rather than on cost.
 
 ---
 

@@ -338,10 +338,17 @@ Total BOM is approximately **$45–50** at Kickstarter volume (qty ~1k), dominat
 | Tilt switches             | ~$0.20    |
 
 **Price target:** $99 early bird / $129 standard (Kickstarter), shipping charged
-at cost. Against a ~$45–50 BOM this leaves roughly $36–62 per unit to cover
-platform and payment fees, packaging, replacements, and the tooling and
-certification NRE. The earlier $49–69 target did not: it sat at or below BOM
-once fees and worldwide shipping were counted.
+at cost.
+
+At the $47 BOM midpoint, and after deducting ~8% platform and payment fees,
+packaging (~$3), and a replacement allowance (~$5), each unit nets roughly **$36
+at $99** and **$62 at $129**. That remainder is what funds the one-time costs —
+injection-mould tooling, FCC/CE, UN38.3 — which no per-unit line item covers.
+
+The earlier $49–69 target produced a *negative* remainder on the same basis:
+about −$7 at $69 and −$27 at $49, once worldwide shipping of a lithium-cell
+product was included. No volume fixed that, because the shortfall scaled with
+units sold.
 
 ---
 
