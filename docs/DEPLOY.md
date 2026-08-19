@@ -26,6 +26,7 @@ to the host and runs `scripts/deploy-infobento.sh`.
 The service listens on `127.0.0.1:4000`; nginx terminates TLS and reverse-proxies
 (nginx 1.24 on Ubuntu, configured on the host — this repo does not provision or
 deploy the proxy config).
+
 **The canonical host is `www.infobento.com`** — the apex `infobento.com` 301-redirects
 to it, so all origins/redirect URIs must use `www.`.
 
