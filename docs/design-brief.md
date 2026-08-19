@@ -227,7 +227,7 @@ Single eInk panel (Good Display GDEH0576T81, 5.76", 920×680, 198 DPI), enclosur
 
 ### Web Configuration Editor
 
-Single-column layout: preview on top, editor below. Vanilla JS with reactive state, no framework.
+Single-column layout: preview on top, editor below. Vanilla TS with reactive state, no framework.
 
 **Elements:**
 

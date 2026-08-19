@@ -187,7 +187,7 @@ InfoBento is a calmer, cheaper, solar take on the ambient-display category: no w
 
 1. **Multi-Box Bento Dashboard** — The 5.76" panel hosts a multi-box dashboard (up to 10 boxes, multi-column) with big glanceable numbers.
 2. **Zero Device Interaction** — No buttons, no taps, no gestures. The only control is a recessed pinhole reset for recovery. Configure once at the web editor; the device just shows what matters.
-3. **Pure Function Architecture** — Stateless cloud API. Same config in, same frame out.
+3. **Pure Function Architecture** — Rendering is a pure function: same config in, same frame out (`POST /api/render`). ⚠️ Superseded in part by epic #77 — the API as a whole is no longer stateless; accounts, device pairings, and per-device config live in SQLite, and the device-facing path renders from stored config given only a device id.
 4. **Free by Default** — All 18 dashboard box types work without accounts or API keys.
 5. **Visual Restraint** — Four shades used with intention. Hero data, body text, and metadata each earn their contrast level.
 6. **Web-Only Configuration** — Browser is the only config surface. No companion app.
@@ -215,7 +215,7 @@ infobento.com/
   packages/core/      Types, layout engine, validation (Zod)
   packages/renderer/  eInk framebuffer generation
   packages/api/       Hono server (render API, auth/pairing, static files)
-  packages/web/       Vite web editor (vanilla JS, no framework)
+  packages/web/       Vite web editor (vanilla TS, no framework)
 ```
 
 **Current version:** v0.22.0

@@ -33,7 +33,7 @@ All four commands should pass with zero errors. If they do, you're ready to cont
 | --------------------- | ------------------------------------------- |
 | `@infobento/core`     | Types, bento box definitions, layout engine |
 | `@infobento/renderer` | eInk frame buffer generation                |
-| `@infobento/api`      | Stateless pure-function cloud API           |
+| `@infobento/api`      | Render API, auth + pairing (SQLite)         |
 | `@infobento/web`      | Web configuration interface                 |
 
 ## Next Steps

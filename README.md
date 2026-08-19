@@ -81,13 +81,13 @@ npm run lint
 
 ## Monorepo Structure
 
-| Package              | Name                  | Purpose                                        |
-| -------------------- | --------------------- | ---------------------------------------------- |
-| `packages/core/`     | `@infobento/core`     | Types, bento box definitions, layout engine    |
-| `packages/data/`     | `@infobento/data`     | Box-data providers (weather, quote, …) + cache |
-| `packages/renderer/` | `@infobento/renderer` | eInk frame buffer generation                   |
-| `packages/api/`      | `@infobento/api`      | Stateless pure-function cloud API              |
-| `packages/web/`      | `@infobento/web`      | Web configuration interface                    |
+| Package              | Name                  | Purpose                                           |
+| -------------------- | --------------------- | ------------------------------------------------- |
+| `packages/core/`     | `@infobento/core`     | Types, bento box definitions, layout engine       |
+| `packages/data/`     | `@infobento/data`     | Box-data providers (weather, quote, …) + cache    |
+| `packages/renderer/` | `@infobento/renderer` | eInk frame buffer generation                      |
+| `packages/api/`      | `@infobento/api`      | Render API, auth + pairing (SQLite), static files |
+| `packages/web/`      | `@infobento/web`      | Web configuration interface                       |
 
 ## Self-hosting & auth env vars
 
