@@ -412,6 +412,30 @@ describe('GET /api/me/device/:id/config (session-gated read, #116)', () => {
     expect(await other.json()).toEqual(await missing.json());
   });
 
+  it('reads draw from their own bucket and cannot exhaust the write allowance', async () => {
+    // Selecting a device costs a read AND a write (#191 seeds a fresh device),
+    // so sharing one bucket let a few device switches drain the write quota.
+    const owner = createAccount(db);
+    const device = createDevice(db, { pairCode: 'GETBKT' });
+    claimDevice(db, 'GETBKT', owner.id);
+
+    // Burn the entire read allowance.
+    for (let i = 0; i < 10; i++) {
+      const r = await app.request(`/api/me/device/${device.id}/config`, {
+        headers: cookie(owner.id),
+      });
+      expect(r.status).toBe(200);
+    }
+    expect(
+      (await app.request(`/api/me/device/${device.id}/config`, { headers: cookie(owner.id) }))
+        .status,
+    ).toBe(429);
+
+    // Writes must still be available — different namespace.
+    const write = await putConfig(app, device.id, VALID_CONFIG, owner.id);
+    expect(write.status).toBe(200);
+  });
+
   it('does not leak the config of a device owned by someone else', async () => {
     const owner = createAccount(db);
     const intruder = createAccount(db);

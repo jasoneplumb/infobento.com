@@ -14,13 +14,7 @@
 
 import type { BentoConfig } from '@infobento/core';
 import { toBentoConfig, fromBentoConfig } from './config-map';
-import {
-  enterCloudMode,
-  exitToLocalMode,
-  getActiveDeviceId,
-  getPersistenceMode,
-  onCloudPersist,
-} from './state';
+import { enterCloudMode, exitToLocalMode, getActiveDeviceId, onCloudPersist } from './state';
 
 export interface SessionInfo {
   authenticated: boolean;
@@ -71,7 +65,12 @@ export async function unpairDevice(id: string): Promise<boolean> {
       credentials: 'same-origin',
     });
     // If the device we just unpaired was the active one, drop back to local.
-    if (res.ok && getActiveDeviceId() === id) exitToLocalMode();
+    // Cancel any queued save first — it would otherwise fire against a device
+    // this account no longer owns.
+    if (res.ok && getActiveDeviceId() === id) {
+      cancelPendingSave();
+      exitToLocalMode();
+    }
     return res.ok;
   } catch {
     return false;
@@ -80,11 +79,24 @@ export async function unpairDevice(id: string): Promise<boolean> {
 
 /**
  * Make `deviceId` the active device: fetch its stored config and switch the
- * editor into cloud mode. A device with no config yet (404) still becomes
- * active — the editor keeps its current boxes and the first edit creates the
- * config. Returns false only if the request itself failed or was unauthorized.
+ * editor into cloud mode.
+ *
+ * A device the server has no config for (200 with `config: null`) is seeded
+ * immediately from the editor's current boxes, so it starts serving frames
+ * without waiting for an edit (#191).
+ *
+ * Returns true only when the device is genuinely active: the read succeeded,
+ * and for a fresh device the seeding write was accepted. Every failure path —
+ * transport error, non-2xx, undecodable body, rejected seed — returns false, so
+ * a caller can never present a device as selected when it isn't.
  */
 export async function selectDevice(deviceId: string): Promise<boolean> {
+  // Drop any debounced save still queued for the PREVIOUS device. Without this,
+  // editing device A and immediately selecting device B lets A's timer fire
+  // after the switch and PUT the editor's contents to B, clobbering the config
+  // we just loaded.
+  cancelPendingSave();
+
   let res: Response;
   try {
     // Session-gated read (#116). Previously this used the firmware-facing
@@ -103,26 +115,38 @@ export async function selectDevice(deviceId: string): Promise<boolean> {
   // with "no config yet" — that case is a 200 with config: null.
   if (!res.ok) return false;
 
-  let config: unknown = null;
+  let config: unknown;
   try {
     ({ config } = (await res.json()) as { config: unknown });
   } catch {
-    config = null; // corrupt payload — treat as unconfigured and overwrite
+    // A body we cannot decode is a TRANSPORT failure, not evidence that the
+    // device is unconfigured. Treating it as "no config" would route into the
+    // seeding path below and PUT the editor's local boxes over whatever the
+    // device really had — silent data loss on a transient blip. Bail instead.
+    return false;
   }
 
-  if (config === null) {
+  // `== null` deliberately, to catch undefined as well: a body of `{}` yields
+  // undefined, which a `=== null` test would let fall through into the mapping
+  // path and throw.
+  if (config == null) {
     // Never-configured device (#191). Adopt the editor's current boxes and push
     // them immediately rather than waiting for an edit that may never come.
     // Without this the device stays configless, /frames keeps returning 404,
     // and the physical unit sits on the "Set up InfoBento" screen forever even
     // though pairing and Wi-Fi provisioning both succeeded.
     enterCloudMode(deviceId);
-    await saveNow();
-    // saveNow() drops to local mode on 401/404 (expired session, or the device
-    // stopped being ours between the read and the write). Report the selection
-    // as failed in that case: returning true while sitting in local mode tells
-    // the caller the device is active when it isn't.
-    return getPersistenceMode() === 'cloud';
+    // Report the selection as failed unless the seed was actually accepted.
+    // saveNow() returns false for a swallowed network error and for a 429 whose
+    // retry is merely scheduled — in both cases the device still has no config,
+    // so claiming success would leave the user staring at a setup screen while
+    // the UI says the device is live.
+    const seeded = await saveNow();
+    if (!seeded) {
+      exitToLocalMode();
+      return false;
+    }
+    return true;
   }
 
   try {
@@ -144,13 +168,20 @@ export async function signOut(): Promise<void> {
   } catch {
     // Even if the network call fails, drop the client back to local mode.
   }
+  // A queued save must not outlive the session that authorised it.
+  cancelPendingSave();
   exitToLocalMode();
 }
 
-/** Push the current editor config to the active device. */
-async function saveNow(): Promise<void> {
+/**
+ * Push the current editor config to the active device.
+ * Returns true only when the server accepted the write — callers that need to
+ * report success to a user (selectDevice's initial push) must not treat a
+ * scheduled retry or a swallowed network error as a completed save.
+ */
+async function saveNow(): Promise<boolean> {
   const deviceId = getActiveDeviceId();
-  if (!deviceId) return;
+  if (!deviceId) return false;
   try {
     const res = await fetch(`/api/device/${encodeURIComponent(deviceId)}/config`, {
       method: 'PUT',
@@ -158,14 +189,14 @@ async function saveNow(): Promise<void> {
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify(toBentoConfig()),
     });
-    if (res.ok) return;
+    if (res.ok) return true;
     // The device can no longer accept this account's writes — session expired
     // (401), or the device is gone / no longer ours (opaque 404 from the
     // ownership check). Fall back to local mode so the user keeps editing
     // locally instead of silently losing writes.
     if (res.status === 401 || res.status === 404) {
       exitToLocalMode();
-      return;
+      return false;
     }
     // Rate limited (429) — retry the latest config after the server cooldown
     // rather than dropping this write. The retry re-reads current editor state.
@@ -176,14 +207,26 @@ async function saveNow(): Promise<void> {
       _saveTimer = setTimeout(() => void saveNow(), delayMs);
     }
     // Other 5xx: transient; the next edit reschedules a save.
+    return false;
   } catch {
     // Network hiccup — the next edit reschedules a save.
+    return false;
   }
+}
+
+/**
+ * Cancel a queued debounced save. Required whenever the active device changes:
+ * the timer captures no device id, so a stale timer writes the editor's current
+ * contents to whatever device is active when it fires.
+ */
+function cancelPendingSave(): void {
+  if (_saveTimer) clearTimeout(_saveTimer);
+  _saveTimer = undefined;
 }
 
 /** Debounced cloud save, registered as the state module's cloud-persist hook. */
 function scheduleSave(): void {
-  if (_saveTimer) clearTimeout(_saveTimer);
+  cancelPendingSave();
   _saveTimer = setTimeout(() => void saveNow(), SAVE_DEBOUNCE_MS);
 }
 

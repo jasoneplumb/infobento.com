@@ -14,6 +14,7 @@ import type { Context } from 'hono';
 import { validateBentoConfig, BentoConfigSchema } from '@infobento/core';
 import type { DB } from './db.js';
 import { getDevice, getDevicesForAccount, requestForget, setConfig, unclaimDevice } from './db.js';
+import type { Device } from './db.js';
 import { readSession } from './auth/session.js';
 import { consumeToken } from './rate-limit.js';
 
@@ -22,6 +23,48 @@ interface DeviceSummary {
   readonly id: string;
   readonly pairCode: string;
   readonly hasConfig: boolean;
+}
+
+/**
+ * Shared gate for every owner-scoped device route: session -> rate limit ->
+ * ownership. Returns the device on success, or the Response to send back.
+ *
+ * Extracted because four handlers repeated this preamble verbatim, so any change
+ * to it — a new status code, a rate-limit namespace, a Hono typing workaround —
+ * had to be made in four places and could silently diverge in one.
+ *
+ * Order matters and is deliberate: the rate limit is consumed BEFORE the
+ * ownership check, so probing ids you don't own costs tokens. Checking ownership
+ * first would let an authenticated caller enumerate device ids for free.
+ *
+ * `bucket` namespaces the limiter. Reads use their own bucket so that opening
+ * devices in the editor cannot exhaust the allowance for writes.
+ */
+function requireOwnedDevice(
+  c: Context,
+  getDb: () => DB,
+  bucket: 'cfg' | 'cfgread',
+): { device: Device } | { response: Response } {
+  const session = readSession(c);
+  if (!session) return { response: c.json({ error: 'unauthenticated' }, 401) };
+
+  if (!consumeToken(`${bucket}:${session.accountId}`)) {
+    return { response: c.json({ error: 'rate_limited' }, 429, { 'Retry-After': '60' }) };
+  }
+
+  // Unreachable at runtime — Hono always populates :id for these routes — but
+  // c.req.param('id') is typed `string | undefined`, so the guard is required
+  // for type-safety, not defensiveness. Deleting it fails the build (TS2345).
+  const id = c.req.param('id');
+  if (!id) return { response: c.json({ error: 'not_found' }, 404) };
+
+  const device = getDevice(getDb(), id);
+  // Opaque 404 for missing, unclaimed, and other-owner alike — never confirm
+  // that a device id exists to a caller who doesn't own it.
+  if (!device || device.owner_account_id !== session.accountId) {
+    return { response: c.json({ error: 'not_found' }, 404) };
+  }
+  return { device };
 }
 
 /**
@@ -39,26 +82,10 @@ interface DeviceSummary {
  */
 export function createPutDeviceConfigHandler(getDb: () => DB) {
   return async (c: Context): Promise<Response> => {
-    const session = readSession(c);
-    if (!session) return c.json({ error: 'unauthenticated' }, 401);
-
-    // Throttle per account, namespaced disjoint from the `pair:` and device-id
-    // buckets so a chatty editor can't starve the pairing or pull limiters.
-    if (!consumeToken(`cfg:${session.accountId}`)) {
-      return c.json({ error: 'rate_limited' }, 429, { 'Retry-After': '60' });
-    }
-
-    // c.req.param('id') is typed string | undefined here, so this guard is
-    // required for type-safety (Hono provides it at runtime, but TS can't know).
-    const id = c.req.param('id');
-    if (!id) return c.json({ error: 'not_found' }, 404);
+    const gate = requireOwnedDevice(c, getDb, 'cfg');
+    if ('response' in gate) return gate.response;
+    const id = gate.device.id;
     const db = getDb();
-    const device = getDevice(db, id);
-    // Opaque 404 for missing, unclaimed, and other-owner alike — don't reveal
-    // that a device id exists to a caller who doesn't own it.
-    if (!device || device.owner_account_id !== session.accountId) {
-      return c.json({ error: 'not_found' }, 404);
-    }
 
     let body: unknown;
     try {
@@ -100,27 +127,11 @@ export function createPutDeviceConfigHandler(getDb: () => DB) {
  */
 export function createGetDeviceConfigHandler(getDb: () => DB) {
   return (c: Context): Response => {
-    const session = readSession(c);
-    if (!session) return c.json({ error: 'unauthenticated' }, 401);
-
-    // Shares the `cfg:` bucket with the PUT handler — an editor that reads and
-    // writes is one logical actor and should draw from one allowance.
-    if (!consumeToken(`cfg:${session.accountId}`)) {
-      return c.json({ error: 'rate_limited' }, 429, { 'Retry-After': '60' });
-    }
-
-    // Unreachable at runtime — Hono always populates :id for this route — but
-    // c.req.param('id') is typed `string | undefined`, so the guard is required
-    // for type-safety, not defensiveness. Same as the PUT handler above;
-    // deleting it fails the build with TS2345.
-    const id = c.req.param('id');
-    if (!id) return c.json({ error: 'not_found' }, 404);
-    const device = getDevice(getDb(), id);
-    // Opaque 404 for missing, unclaimed, and other-owner alike — same reasoning
-    // as the PUT handler: never confirm that a device id exists to a non-owner.
-    if (!device || device.owner_account_id !== session.accountId) {
-      return c.json({ error: 'not_found' }, 404);
-    }
+    // Read-scoped bucket: opening devices in the editor must not eat into the
+    // write allowance, and selecting a fresh device costs a read AND a write.
+    const gate = requireOwnedDevice(c, getDb, 'cfgread');
+    if ('response' in gate) return gate.response;
+    const { device } = gate;
 
     // A claimed device with no config yet is a 200 with null, NOT a 404. The
     // caller must be able to tell "you don't own this" from "nothing stored
