@@ -772,6 +772,10 @@ export function updateLabel(id: number, value: string): void {
   if (!box) return;
   box.label = value;
   renderPreview();
+  // Third instance of the #192 silent-drop bug: renaming a box and changing
+  // nothing else lost the rename on reload. A sweep of every exported mutator
+  // confirms this was the last one missing persistence.
+  persist();
 }
 
 export function getShowHeaders(): boolean {

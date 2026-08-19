@@ -109,6 +109,10 @@ export function createGetDeviceConfigHandler(getDb: () => DB) {
       return c.json({ error: 'rate_limited' }, 429, { 'Retry-After': '60' });
     }
 
+    // Unreachable at runtime — Hono always populates :id for this route — but
+    // c.req.param('id') is typed `string | undefined`, so the guard is required
+    // for type-safety, not defensiveness. Same as the PUT handler above;
+    // deleting it fails the build with TS2345.
     const id = c.req.param('id');
     if (!id) return c.json({ error: 'not_found' }, 404);
     const device = getDevice(getDb(), id);

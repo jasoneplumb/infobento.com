@@ -415,6 +415,23 @@ describe('in-row config edits persist (#192)', () => {
     expect(cloudSave).toHaveBeenCalled();
   });
 
+  it('persists a box label rename (updateLabel — third instance of #192)', () => {
+    addBox('quote');
+    const id = getBoxes()[0]!.id;
+    const cloudSave = vi.fn();
+    onCloudPersist(cloudSave);
+    enterCloudMode('device-1');
+    cloudSave.mockClear();
+
+    // Renaming a box and changing nothing else previously lost the rename on
+    // reload. Found by review on #204 after updateConfig/updateConfigList were
+    // fixed — a sweep of every exported mutator confirms this was the last one.
+    updateLabel(id, 'My favorite');
+
+    expect(cloudSave).toHaveBeenCalled();
+    expect(getBoxes()[0]!.label).toBe('My favorite');
+  });
+
   it('persists updateConfigList edits too', () => {
     addBox('date');
     const id = getBoxes()[0]!.id;

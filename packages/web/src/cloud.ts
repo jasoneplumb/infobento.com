@@ -14,7 +14,13 @@
 
 import type { BentoConfig } from '@infobento/core';
 import { toBentoConfig, fromBentoConfig } from './config-map';
-import { enterCloudMode, exitToLocalMode, getActiveDeviceId, onCloudPersist } from './state';
+import {
+  enterCloudMode,
+  exitToLocalMode,
+  getActiveDeviceId,
+  getPersistenceMode,
+  onCloudPersist,
+} from './state';
 
 export interface SessionInfo {
   authenticated: boolean;
@@ -112,10 +118,22 @@ export async function selectDevice(deviceId: string): Promise<boolean> {
     // though pairing and Wi-Fi provisioning both succeeded.
     enterCloudMode(deviceId);
     await saveNow();
-    return true;
+    // saveNow() drops to local mode on 401/404 (expired session, or the device
+    // stopped being ours between the read and the write). Report the selection
+    // as failed in that case: returning true while sitting in local mode tells
+    // the caller the device is active when it isn't.
+    return getPersistenceMode() === 'cloud';
   }
 
-  enterCloudMode(deviceId, fromBentoConfig(config as BentoConfig));
+  try {
+    enterCloudMode(deviceId, fromBentoConfig(config as BentoConfig));
+  } catch {
+    // Stored config didn't map into the editor model — enter cloud mode anyway
+    // with the current boxes so the next save overwrites the bad record. The
+    // pre-#116 code caught this; dropping the guard turned a recoverable bad
+    // record into an unhandled rejection that left the UI mid-transition.
+    enterCloudMode(deviceId);
+  }
   return true;
 }
 
