@@ -2,10 +2,9 @@
  * Bundled local fallback for quote / joke / horoscope API endpoints.
  *
  * When the upstream provider returns a non-2xx response, the proxy falls back
- * to a random matching entry from these in-memory sets. Decided in Round 12 Q3
- * (2026-04-25, see .tux/project.json) after we hit 3 different provider
- * outages in a single session (quotable.io main domain dead, JokeAPI hyphen
- * quirk, Yahoo Finance 429s).
+ * to a random matching entry from these in-memory sets. Decided 2026-04-25
+ * after we hit 3 different provider outages in a single session (quotable.io
+ * main domain dead, JokeAPI hyphen quirk, Yahoo Finance 429s).
  *
  * Coverage:
  *   - quotes:    ~243 entries from quotable.kurokeita.dev mirror
