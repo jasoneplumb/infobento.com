@@ -24,8 +24,8 @@ infobento.com/
 ├── packages/core/      @infobento/core: types, bento box definitions, layout engine
 ├── packages/data/      @infobento/data: pure box-data providers (weather, quote, …) + cache
 ├── packages/renderer/  @infobento/renderer: eInk frame buffer generation
-├── packages/api/       @infobento/api: Hono server — stateless API + static file serving
-└── packages/web/       @infobento/web: Vite + React configuration interface (private)
+├── packages/api/       @infobento/api: Hono server — render API, auth/pairing (SQLite), static files
+└── packages/web/       @infobento/web: Vite + vanilla-TS configuration interface (private)
 ```
 
 ## Dev Server Architecture
@@ -48,7 +48,7 @@ npm start -w @infobento/api      # Hono serves everything on :4000
 ## Module Boundaries
 
 ```
-core (types, layout)  <──  renderer (eInk framebuffer)  <──  api (stateless endpoints)
+core (types, layout)  <──  renderer (eInk framebuffer)  <──  api (render + auth/pairing)
   ^                                                            ^
   ├──  data (box-data providers + cache)  ─────────────────────┘
   └──  web (config UI)  ───────────────  data
@@ -98,11 +98,11 @@ InfoBento is a bento-box-sized countertop eInk display:
 - **Connectivity:** Wi-Fi (ESP32); configure once via web UI
 - **Form factor:** ~14×11cm enclosure (sized to fit GDEH0576T81 panel closely), solar panel on upper back, body-as-stand with a fold-out kickstand for ~12-15° tilt
 
-The renderer produces eInk frame buffers (4 levels, 156,400 bytes for 920x680). The API is stateless and pure-functional — it takes a config, returns a frame buffer.
+The renderer produces eInk frame buffers (4 levels, 156,400 bytes for 920x680). Rendering is pure-functional — `POST /api/render` takes a config and returns a frame buffer — but the API as a whole is not stateless: since epic #77 it stores accounts, device pairings, and per-device config in SQLite, and the device-facing `/frames` path renders from that stored config given only a device id.
 
 ## Deployment
 
 - **Single-port production:** Hono serves API + web UI from one port (default 4000). Will eventually be co-hosted alongside tiles- and webmap.dev on the same server.
-- **API:** Stateless pure functions, edge-deployable (Hono runs on Node, Cloudflare Workers, Deno, Bun).
+- **API:** Hono, currently Node-bound — `better-sqlite3` is a native module, so the auth/pairing/config paths are not edge-deployable as-is. The pure render path (`POST /api/render`, `/api/preview`, `/api/validate`) has no state and would port to Workers/Deno/Bun unchanged.
 - **Web app:** Public at https://www.infobento.com — anything in `packages/web/public/` (including setup-guide assets) is world-readable; never publish production pair codes or Device IDs.
-- **GitHub repo:** Private. Use `review-requested` label on PRs to trigger Claude review.
+- **GitHub repo:** Public. Use `review-requested` label on PRs to trigger Claude review. Anything committed is world-readable — never commit live pair codes, Device IDs, or bench Wi-Fi credentials.

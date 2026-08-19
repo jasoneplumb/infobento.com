@@ -2,13 +2,13 @@
 
 ## System Overview
 
-InfoBento is a small, solar-powered eInk decorator that lives on a counter, shelf, or windowsill. Configure once on the web; the device fetches frames from a stateless cloud API and shows what matters most — weather, your next event, a countdown, a quote — refreshing once or twice a day on solar power alone.
+InfoBento is a small, solar-powered eInk decorator that lives on a counter, shelf, or windowsill. Configure once on the web; the device fetches server-rendered frames from the cloud API and shows what matters most — weather, your next event, a countdown, a quote — refreshing once or twice a day on solar power alone.
 
 ```
 ┌──────────────┐    Wi-Fi     ┌─────────────┐
 │    Device     │◄────────────►│  Cloud API  │
-│  eInk         │              │ (stateless) │
-│  ESP32-C3     │              │ (Hono on DO)│
+│  eInk         │              │ (Hono on DO)│
+│  ESP32-C3     │              │ + SQLite    │
 └──────────────┘              └─────────────┘
                                       ▲
                                       │
@@ -26,16 +26,16 @@ Single mode: counter-standing. Refreshes 1–2× per day on solar power. There i
 
 ### Data Flow
 
-1. **User** configures bento boxes via the **Web UI** (browser localStorage). Config is uploaded to the device during captive-portal setup or polled from `infobento.com/api/config/{device-id}` for OTA updates.
-2. **Device** stores config in ESP32 NVS.
-3. **Device** wakes on RTC alarm, joins saved Wi-Fi, sends config to the **Cloud API** via HTTPS.
-4. **Cloud API** renders the framebuffer (pure function: config in, frame buffer out) and returns it.
+1. **User** configures bento boxes via the **Web UI** (browser localStorage, plus server-side storage once the device is paired to an account). The device is pointed at its device id during captive-portal setup, then polls `infobento.com/api/device/{device-id}/frames` each refresh cycle for a server-rendered frame.
+2. **Device** stores its Wi-Fi credentials, device id, and server URL in ESP32 NVS — not the bento config, which lives server-side.
+3. **Device** wakes on RTC alarm, joins saved Wi-Fi, and issues `GET /api/device/{device-id}/frames` over HTTPS, sending `If-Modified-Since` so an unchanged frame costs a 304.
+4. **Cloud API** looks up the device's stored config, hydrates live box data, renders both orientations, and returns them.
 5. **Device** caches the framebuffer in flash, writes it to the eInk display, and returns to deep sleep.
 6. **Offline resilience:** if Wi-Fi is unavailable, the device displays the last cached framebuffer from flash (stale content, not blank).
 
 ### Key Design Decisions
 
-- **Stateless API** — pure functions, no server-side state. Config in, frame buffer out.
+- **Pure-function rendering** — `POST /api/render` is config in, frame buffer out, with no state involved. The device-facing path is not stateless: since epic #77 the server stores accounts, device pairings, and per-device config in SQLite, and renders from that.
 - **eInk rendering** — eInk panel driven via SSD2677 partial-refresh waveforms.
 - **Solar-only power** — refresh budget sized to the solar harvest budget for moderate indoor light; USB-C tops up the battery when needed.
 - **Wi-Fi direct + web-only config** — no native phone app for v1. Captive-portal setup, web editor handles configuration.

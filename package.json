@@ -2,6 +2,30 @@
   "name": "infobento.com",
   "version": "0.35.1",
   "private": true,
+  "description": "Solar-powered eInk bento dashboard for the counter, desk, or shelf — weather, forecast, calendar, countdown and more, configured once in a browser.",
+  "keywords": [
+    "eink",
+    "epaper",
+    "e-paper",
+    "esp32",
+    "esp32-c3",
+    "solar",
+    "ambient-display",
+    "dashboard",
+    "open-source-hardware",
+    "iot",
+    "hono",
+    "typescript"
+  ],
+  "homepage": "https://www.infobento.com",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jasoneplumb/infobento.com.git"
+  },
+  "bugs": {
+    "url": "https://github.com/jasoneplumb/infobento.com/issues"
+  },
+  "author": "Jason E Plumb",
   "license": "Apache-2.0",
   "type": "module",
   "workspaces": [

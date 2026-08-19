@@ -2,6 +2,24 @@
   "name": "@infobento/web",
   "version": "0.35.1",
   "private": true,
+  "description": "InfoBento web: the vanilla-TS + Vite configuration interface and live preview.",
+  "keywords": [
+    "infobento",
+    "eink",
+    "vite",
+    "editor",
+    "typescript"
+  ],
+  "homepage": "https://www.infobento.com",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jasoneplumb/infobento.com.git",
+    "directory": "packages/web"
+  },
+  "bugs": {
+    "url": "https://github.com/jasoneplumb/infobento.com/issues"
+  },
+  "author": "Jason E Plumb",
   "license": "Apache-2.0",
   "type": "module",
   "scripts": {

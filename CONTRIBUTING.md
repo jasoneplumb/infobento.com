@@ -9,7 +9,7 @@
 ## First Time Setup
 
 ```bash
-git clone https://github.com/jasoneplumber/infobento.com.git
+git clone https://github.com/jasoneplumb/infobento.com.git
 cd infobento.com
 npm install
 

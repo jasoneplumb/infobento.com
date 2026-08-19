@@ -1,6 +1,6 @@
 # API Reference
 
-The InfoBento API is a **Hono** HTTP server with stateless pure-function endpoints. In production, it serves both API routes and the built web UI from a single port (default 4000).
+The InfoBento API is a **Hono** HTTP server. The rendering endpoints below are stateless pure functions; the auth, pairing, and device-config endpoints added by epic #77 are backed by SQLite and are **not** documented here yet (see the endpoint-coverage note at the end). In production, it serves both API routes and the built web UI from a single port (default 4000).
 
 ## Design Principles
 
@@ -57,3 +57,25 @@ Render a bento config into a PNG preview image. Supports optional `scale` query 
 **Request:** `BentoConfig` JSON
 **Query:** `?scale=N` (integer, optional)
 **Response:** PNG image (`image/png`)
+
+---
+
+## Endpoint coverage
+
+⚠️ **This reference documents 5 of the API's 28 routes.** The five above are the stateless
+rendering endpoints. Undocumented, all added after this file was written:
+
+| Group                    | Routes                                                                                                   |
+| ------------------------ | -------------------------------------------------------------------------------------------------------- |
+| Auth — passkey           | `POST /api/auth/passkey/{register,login}/{options,verify}`                                               |
+| Auth — OAuth             | `GET /api/auth/oauth/:provider/{start,callback}`                                                         |
+| Auth — session           | `GET /api/auth/session`, `POST /api/auth/signout`                                                        |
+| Pairing                  | `POST /api/pair`                                                                                         |
+| Account                  | `GET /api/me/devices`, `DELETE /api/device/:id/owner`                                                    |
+| Device (firmware-facing) | `GET /api/device/:id/{config,frame,frames}`, `PUT /api/device/:id/config`, `POST /api/device/:id/forget` |
+| Rendering                | `POST /api/render-dual`                                                                                  |
+| Data proxies             | `GET /api/{quote,joke,horoscope,stocks,onthisday,geolocate}`                                             |
+
+Authoritative source is `packages/api/src/server.ts`. Documenting these matters most for
+self-hosters, since the auth env vars in the README are useless without the routes they
+configure. Tracked as follow-up work.

@@ -1,7 +1,11 @@
 /**
- * Intent: Stateless pure-function API for generating eInk display frames
- * Context: Called by the device (via phone bridge) to get updated display data
- * Pattern: Pure functions — no server state, edge-deployable
+ * Intent: Stateless pure-function helpers for generating eInk display frames.
+ *   Scope note: this module is genuinely stateless — the server as a whole is
+ *   not, since epic #77 added SQLite-backed accounts, pairings, and config.
+ * Context: Backs POST /api/render, /api/preview and /api/validate. The device
+ *   reaches the server over Wi-Fi directly; the BLE phone bridge was deferred
+ *   to a possible v2 and never shipped.
+ * Pattern: Pure functions — no server state, edge-deployable on their own.
  */
 
 import type { BentoConfig } from '@infobento/core';

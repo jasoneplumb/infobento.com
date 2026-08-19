@@ -45,16 +45,17 @@ The captive-portal HTML is part of the firmware — small enough to fit in flash
 
 Config flows to the device in two stages:
 
-1. **First-time (captive portal):** During AP-mode setup, the user enters Wi-Fi credentials and uploads a config JSON (exported from the web editor). The device stores config in ESP32 NVS.
-2. **Ongoing (cloud poll):** The device polls `infobento.com/api/config/{device-id}` on each refresh cycle for config updates. If the cloud has a newer config, the device downloads it and overwrites the NVS copy.
+1. **First-time (captive portal):** During AP-mode setup, the user enters Wi-Fi credentials, the Device ID from the pairing sticker, and optionally a custom server URL for self-hosting. The device stores those three values in ESP32 NVS. The bento config itself is never uploaded to the device — it lives server-side, bound to the account that claimed the device.
+2. **Ongoing (cloud poll):** The device polls `infobento.com/api/device/{device-id}/frames` on each refresh cycle, sending `If-Modified-Since` so an unchanged frame costs a 304. The server renders from the config it holds for that device; the device caches the returned frame in flash and redraws only when it changes.
 
 ### Server-side rendering
 
-The device does not render locally. On each refresh cycle it sends its config JSON to the cloud API and receives a framebuffer back. The device caches the last framebuffer in flash so that if Wi-Fi is unavailable, the display shows stale content rather than going blank.
+The device does not render locally. On each refresh cycle it sends only its device id — the bearer secret — and the server renders from the config it holds for that device, returning a framebuffer. The device caches the last framebuffer in flash so that if Wi-Fi is unavailable, the display shows stale content rather than going blank.
 
 ### Storage
 
-- **Config:** ESP32 NVS (survives deep sleep and power loss; cleared by pinhole factory reset)
+- **Wi-Fi credentials, device id, server URL:** ESP32 NVS (survives deep sleep and power loss; cleared by factory reset)
+- **Config:** server-side only — stored against the device row in SQLite, never written to NVS
 - **Last framebuffer:** flash (survives deep sleep and power loss; overwritten on each successful fetch)
 
 ## Recovery (pinhole reset)

@@ -1,0 +1,27 @@
+InfoBento
+Copyright 2026 Jason E Plumb and InfoBento contributors
+
+This product includes software developed by Jason E Plumb and the InfoBento
+contributors (https://www.infobento.com).
+
+Licensed under the Apache License, Version 2.0 (the "License"); you may not
+use this file except in compliance with the License. You may obtain a copy of
+the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Portions of this repository are released under different licenses — see
+LICENSING.md for the full breakdown:
+
+  - Software (packages/, scripts/, repo root) — Apache-2.0 (LICENSE)
+  - Hardware design files (hardware/)         — CERN-OHL-P-2.0 (hardware/LICENSE)
+  - Documentation (docs/)                     — CC-BY-4.0 (docs/LICENSE)
+
+--------------------------------------------------------------------------------
+Third-party assets bundled in this repository
+--------------------------------------------------------------------------------
+
+Inter typeface (packages/renderer/assets/Inter-*.ttf)
+  Copyright (c) 2016 The Inter Project Authors
+  Licensed under the SIL Open Font License, Version 1.1.
+  See packages/renderer/assets/Inter-LICENSE.txt for the full license text.

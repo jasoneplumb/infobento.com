@@ -89,7 +89,7 @@ The bill of materials runs about $45–50 at volume — the 5.76" eInk panel alo
 ## Risks & honesty
 
 - **Hardware:** off-the-shelf parts throughout — the GDEH0576T81 panel, ESP32-C3, a LiPo cell, and a standard solar harvester — with documented sourcing. No custom silicon, no exotic materials.
-- **Software:** the web editor and rendering pipeline already work at infobento.com. You can use it today before you back. The cloud API is a single small stateless server — boring, well-understood, repairable.
+- **Software:** the web editor and rendering pipeline already work at infobento.com. You can use it today before you back. The cloud API is a single small server — boring, well-understood, repairable.
 - **Long-term:** if InfoBento ever winds down, the device keeps showing its last frame indefinitely, and the cloud architecture is documented and minimal so a third party (or you) could rehost it. We don't want to be a Pebble.
 
 ---
