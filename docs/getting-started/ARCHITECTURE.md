@@ -45,24 +45,23 @@ Single mode: counter-standing. Refreshes 1–2× per day on solar power. There i
 ## Package Architecture
 
 ```
-              @infobento/core          Types, constants, layout engine
-                ↑    ↑    ↑
-    ┌───────────┘    │    └───────────┐
-@infobento/data  @infobento/renderer  @infobento/web
-    ↑    ↑            ↑    ↑            (calls API via HTTP)
-    │    └────────────┼────┘
-    └─────────────────┤
-              @infobento/api
+                    @infobento/core          Types, constants, layout engine
+                      ↑     ↑     ↑
+        ┌─────────────┘     │     └─────────────┐
+@infobento/data   @infobento/renderer   @infobento/web
+        ↑   ↑             ↑                (calls API via HTTP)
+        │   └─────────────┤
+        └─────────────────┤
+                  @infobento/api
 ```
 
 - **core** has no dependencies on other packages
 - **data** depends on core (pure box-data providers + cache; no DOM/`window`)
 - **renderer** depends on core (types for layout data)
 - **api** depends on core, data, and renderer (hydrates box data, then renders)
-- **web** depends on core, data, and renderer, and calls api via HTTP (not direct
-  import). The renderer dependency is build-only — the editor previews via
-  `POST /api/preview` and stubs out the renderer's PNG encoder (see
-  `packages/web/src/stubs/pngjs.ts`).
+- **web** depends on core and data, and calls api via HTTP (not direct import).
+  It does **not** depend on the renderer: the editor previews by calling
+  `POST /api/preview`, so nothing is rasterized in the browser.
 
 ## Server Architecture
 

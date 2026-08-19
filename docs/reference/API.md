@@ -29,8 +29,12 @@ npm start -w @infobento/api       # Hono on :4000
 
 Health check endpoint.
 
-**Response:** `{ status: "ok", version: "<package version>" }` — the version is read
-from the package at build time, so it tracks the release (e.g. `"0.35.1"`).
+**Response:** `{ status: "ok", version: "<package version>" }` — e.g. `"0.35.1"`.
+
+The version is read at **server startup**, not at build time: `server.ts` resolves
+`../package.json` relative to the compiled entrypoint and `readFileSync`s it. A
+deployment that ships `dist/` without the adjacent `package.json` therefore fails
+at startup rather than falling back to a default.
 
 ### GET /api/box-types
 

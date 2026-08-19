@@ -58,8 +58,11 @@ describe('myFunction', () => {
 Most of the codebase is pure functions, which makes testing straightforward:
 
 ```typescript
+import { frameBufferBytes } from '@infobento/core';
+
 // Input -> expected output, no mocks needed
 const result = render(config, device);
-// Packed 2 bits per pixel, 4 pixels per byte
-expect(result.data.length).toBe((device.width * device.height) / 4);
+// Packed 2 bits per pixel; rows are byte-aligned, so derive the length
+// from the helper rather than restating the formula
+expect(result.data.length).toBe(frameBufferBytes(device.widthPx, device.heightPx));
 ```

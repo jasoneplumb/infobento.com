@@ -25,17 +25,4 @@ export default defineConfig({
       },
     },
   },
-  resolve: {
-    alias: {
-      // pngjs is Node-only (uses Buffer); the web preview renders via <canvas>
-      // instead of PNG, so we stub the import to avoid bundling issues.
-      pngjs: fileURLToPath(new URL('./src/stubs/pngjs.ts', import.meta.url)),
-      // ttf-font.ts uses node:fs to load font files; stub it for browser builds.
-      // The web preview will call the API server for rendered frames instead.
-      '../src/ttf-font.js': fileURLToPath(new URL('./src/stubs/ttf-font.ts', import.meta.url)),
-      '../../renderer/src/ttf-font.js': fileURLToPath(
-        new URL('./src/stubs/ttf-font.ts', import.meta.url),
-      ),
-    },
-  },
 });

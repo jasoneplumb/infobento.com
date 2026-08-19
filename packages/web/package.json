@@ -30,8 +30,7 @@
   },
   "dependencies": {
     "@infobento/core": "*",
-    "@infobento/data": "*",
-    "@infobento/renderer": "*"
+    "@infobento/data": "*"
   },
   "devDependencies": {
     "vite": "^6.0.0"
