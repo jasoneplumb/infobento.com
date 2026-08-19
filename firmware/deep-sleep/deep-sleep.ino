@@ -263,7 +263,7 @@ void pullOnce() {
   // Skip TLS cert validation — acceptable for a single device on a trusted
   // network. The device id is the bearer secret in the URL, so an on-path
   // attacker on the device's Wi-Fi could capture it without verification;
-  // pin the ISRG Root X1 CA via client.setCACert(...) to harden (see #143).
+  // pin the ISRG Root X1 CA via client.setCACert(...) to harden (see #145).
   client.setInsecure();
 #else
   String url = String("http://") + IB_API_HOST + ":" + IB_API_PORT +

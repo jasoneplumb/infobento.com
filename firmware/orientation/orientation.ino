@@ -300,7 +300,7 @@ void pullFrames() {
   String url = String("https://") + IB_API_HOST + ":" + IB_API_PORT +
                "/api/device/" + IB_DEVICE_ID + "/frames";
   WiFiClientSecure client;
-  client.setInsecure();  // device id is the bearer secret in the URL; pin ISRG Root X1 to harden (#143)
+  client.setInsecure();  // device id is the bearer secret in the URL; pin ISRG Root X1 to harden (#145)
 #else
   String url = String("http://") + IB_API_HOST + ":" + IB_API_PORT +
                "/api/device/" + IB_DEVICE_ID + "/frames";

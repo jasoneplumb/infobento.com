@@ -255,8 +255,17 @@ over HTTPS (mint the device id on the host — see `docs/DEPLOY.md`):
 #define IB_API_TLS  1
 ```
 
-`IB_API_TLS` is honored by the `deep-sleep` sketch only; the earlier `device-pull`
-/ `resilient` bench sketches are HTTP-only (LAN by design).
+`IB_API_TLS` is a build-time **switch**, not a statement about which sketches can
+speak HTTPS. How each one chooses its transport:
+
+| Sketch                      | Transport                                                                       |
+| --------------------------- | ------------------------------------------------------------------------------- |
+| `deep-sleep`, `orientation` | `IB_API_TLS` macro, defaults to `1` (https); set `0` in `secrets.h` for LAN dev |
+| `integrated`                | runtime — HTTPS iff the stored server URL starts with `https`                   |
+| `device-pull`, `resilient`  | HTTP only, by design (LAN bench tools)                                          |
+
+So three sketches can reach production over TLS, and none of them verifies the
+certificate — see the warning below.
 
 > ### ⚠️ These sketches do not verify TLS certificates
 >
