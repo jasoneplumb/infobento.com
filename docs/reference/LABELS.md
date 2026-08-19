@@ -23,9 +23,25 @@ Label taxonomy for the infobento.com project. Labels drive automation and workfl
 | `in-progress` | Actively being worked on |
 | `done`        | Completed                |
 
+## Planning & Triage Labels
+
+| Label         | Meaning                                                       |
+| ------------- | ------------------------------------------------------------- |
+| `epic`        | Umbrella issue tracking a body of work across several issues  |
+| `important`   | Elevated priority                                             |
+| `ongoing`     | Long-running work, not expected to close in one pass          |
+| `v2`          | Deferred to a possible v2 (e.g. the color-renderer track)     |
+| `pivot`       | Predates the counter-only pivot; kept for history, not active |
+| `review-debt` | A merged PR that still owes a retroactive review              |
+
 ## Special Labels
 
 | Label              | Purpose                                      |
 | ------------------ | -------------------------------------------- |
 | `review-requested` | Triggers Claude Code review workflow         |
 | `no-review`        | Allows merge without Claude review (CI only) |
+
+GitHub's stock labels (`duplicate`, `invalid`, `wontfix`, `question`,
+`good first issue`, `help wanted`) and Dependabot's ecosystem labels
+(`github_actions`, `javascript`) also exist but are not part of this
+taxonomy.
