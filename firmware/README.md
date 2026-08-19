@@ -256,9 +256,28 @@ over HTTPS (mint the device id on the host — see `docs/DEPLOY.md`):
 ```
 
 `IB_API_TLS` is honored by the `deep-sleep` sketch only; the earlier `device-pull`
-/ `resilient` bench sketches are HTTP-only (LAN by design). HTTPS uses
-`client.setInsecure()` (no cert check) — fine on a trusted network; CA-pinning is
-a hardening follow-up (#143).
+/ `resilient` bench sketches are HTTP-only (LAN by design).
+
+> ### ⚠️ These sketches do not verify TLS certificates
+>
+> Every sketch that speaks HTTPS — `deep-sleep`, `orientation`, `integrated` —
+> calls `client.setInsecure()`, which disables certificate validation entirely.
+> Combined with the fact that **the device id is a bearer secret carried in the
+> URL path** (`/api/device/<device-id>/frames`), an attacker positioned between
+> the device and the network — a hostile Wi-Fi access point, a compromised
+> router, an ARP-spoofing neighbour — can present any certificate, read the
+> device id, and from then on impersonate the device or pull its owner's
+> rendered frames.
+>
+> This is acceptable for **bench work on a network you control**, which is all
+> these sketches are currently used for. It is **not** acceptable for firmware
+> shipped on hardware in other people's homes.
+>
+> Hardening is tracked in **#145**: pin the ISRG Root X1 CA via
+> `client.setCACert(...)`, add an explicit `http.setTimeout()` so the TLS
+> handshake has margin, and optionally persist the TLS session ticket in RTC
+> memory across wakes. Anyone building on this firmware for real deployment
+> should do that first.
 
 `provisioning` is the **exception** — it has no `secrets.h` and needs none: the
 whole point of captive-portal setup is that the device starts with no creds and
