@@ -3,8 +3,8 @@
   "name": "InfoBento",
   "description": "Solar-powered eInk bento dashboard for kitchen counters, desks, and shelves. Enclosure sized to fit the GDEH0576T81 panel closely (~14x11cm) with a Good Display GDEH0576T81 5.76\" 920x680 198-DPI eInk panel (SSD2677 driver) that nearly fills the front face. Monolithic white housing, solar panel on the upper back, body-as-stand with a fold-out kickstand to angle it ~12-15° if needed. Two tilt switches detect orientation for auto-rotate. Designed to survive a 4-foot drop. Configure once on a web page; refreshes 1-2x/day on solar power. Targeted at $49-69 via Kickstarter (~$45-50 BOM at volume; the 5.76\" panel dominates). Renderer produces eInk framebuffers with antialiased TTF fonts (Inter) and configurable rounded box borders.",
   "domain": "consumer-electronics",
-  "version": 3,
-  "currentPhase": "campaign",
+  "version": 4,
+  "currentPhase": "evaluate",
   "createdAt": 1776109685435,
   "artifacts": [
     {
@@ -135,24 +135,24 @@
     {
       "type": "design-principle",
       "name": "Pure Function Architecture",
-      "statement": "The API must be stateless — same config in, same frame buffer out, every time",
-      "description": "No server-side state, no user accounts for MVP, no databases. The cloud API is a pure function that takes a BentoConfig and returns rendered frame data. Config lives on the client (localStorage + phone).",
-      "source": "Technical constraint — edge deployability, power budget, simplicity",
+      "statement": "Rendering is a pure function — same config in, same frame buffer out, every time",
+      "description": "Rendering has no state: POST /api/render takes a BentoConfig and returns frame data, and the web editor's preview uses exactly that path. The server as a whole is NOT stateless. Epic #77 (PRs #82 SQLite, #83 passkey+OAuth, #112 pairing, #113 account binding) added SQLite-backed accounts, device pairings, and per-device config, plus passkey + Apple/Google OAuth. The device-facing path is stateful by design: the device sends only its device id and the server renders from the config it holds. Keep the purity boundary at the renderer, not at the process.",
+      "source": "Originally a technical constraint (edge deployability, power budget, simplicity). Narrowed by epic #77 when SaaS-default hosting required accounts and server-side config.",
       "examples": [
-        "POST /api/render takes config JSON, returns binary frame",
-        "Config stored in browser localStorage",
-        "Device caches last frame in NVS for offline display"
+        "POST /api/render takes config JSON, returns binary frame — genuinely stateless",
+        "Auth challenges round-trip in HMAC-signed cookies, no server-side challenge store",
+        "Device caches last frame in flash for offline display"
       ],
       "counterExamples": [
-        "Server-side user profiles",
-        "Database-backed config storage",
-        "Session tokens or cookies"
+        "Putting rendering behind a session or an account lookup",
+        "Per-request state in the render path that makes the same config produce different frames",
+        "Storing device-specific rendering overrides outside the config record"
       ],
       "id": "42cdec7b-400b-41fe-b9ec-b0f492ccc8ca",
       "relatedIds": [],
       "metadata": {},
       "createdAt": 1776109732474,
-      "updatedAt": 1776109732474
+      "updatedAt": 1787011200000
     },
     {
       "type": "design-principle",
@@ -183,11 +183,11 @@
       "type": "design-principle",
       "name": "Free by Default",
       "statement": "All box types must work without accounts, API keys, or subscriptions",
-      "description": "All 18 box types use free data sources or local computation. Weather, forecast, forecast3d, sunrise/sunset, and air quality use Open-Meteo (free, no key). Quotes use the api.quotable.kurokeita.dev mirror (free, no auth). Horoscope uses api-ninjas (free), joke uses JokeAPI (free), on-this-day uses Wikipedia (free). Stocks uses Yahoo Finance (free, no key). Date, moon, countdown, progress, QR, text, habits, and calendar are pure local computation or user input. Quote/joke/horoscope additionally fall back to a bundled ~50KB local set on upstream failure. No user should need to create an account anywhere to use the product.",
+      "description": "All 18 box types use free data sources or local computation. Weather, forecast, forecast3d, sunrise/sunset, and air quality use Open-Meteo (free, no key). Quotes use the api.quotable.kurokeita.dev mirror (free, no auth). Horoscope uses api-ninjas (free), joke uses JokeAPI (free), on-this-day uses Wikipedia (free). Stocks uses Yahoo Finance (free, no key). Date, moon, countdown, progress, QR, text, habits, and calendar are pure local computation or user input. Quote/joke/horoscope additionally fall back to a bundled ~50KB local set on upstream failure. No box type requires an account or API key. Note the scope limit: since epic #77, claiming a physical device to an account IS required for pairing (POST /api/pair returns 401 without a session). This principle governs box data, not device ownership.",
       "source": "User research — friction in setup kills adoption for consumer hardware",
       "examples": [
         "Weather, forecast, sunrise/sunset, air quality via Open-Meteo (free, no API key)",
-        "Quotes via ZenQuotes (free, no auth)",
+        "Quotes via the api.quotable.kurokeita.dev mirror (free, no auth)",
         "Date, moon, countdown, progress are pure local computation (no network at all)",
         "QR and text are user-entered content"
       ],
@@ -200,20 +200,20 @@
       "relatedIds": [],
       "metadata": {},
       "createdAt": 1776109732755,
-      "updatedAt": 1776109732755
+      "updatedAt": 1787011200000
     },
     {
       "type": "design-principle",
       "name": "Web-Only Configuration",
       "statement": "InfoBento is configured exclusively from a web browser. No native phone app required.",
-      "description": "The web editor at infobento.com is the only configuration surface. Configuration lives in browser localStorage with JSON import/export. The device pulls its frame from a stateless cloud API on its refresh schedule. First-time Wi-Fi setup uses a captive-portal flow on the device itself; recovery via a recessed pinhole reset. There is no companion iOS or Android app for v1, and the product does not require one to function. This removes ~6+ months of pre-launch engineering scope, removes App Store / Play Store review as launch gates, removes the iOS background BLE risk, and keeps the 'Free by Default' promise intact (no account, no app installation, no app permissions to grant).",
+      "description": "The web editor at infobento.com is the only configuration surface. Configuration lives in browser localStorage with JSON import/export. The device pulls a server-rendered frame on its refresh schedule, identifying itself with its device id. First-time Wi-Fi setup uses a captive-portal flow on the device itself; recovery via a recessed pinhole reset. There is no companion iOS or Android app for v1, and the product does not require one to function. This removes ~6+ months of pre-launch engineering scope, removes App Store / Play Store review as launch gates, removes the iOS background BLE risk, and keeps the 'Free by Default' promise intact for box data (no app installation, no app permissions). Since epic #77 an account IS required to pair a device, though not to use the editor.",
       "source": "Chosen to avoid native-app scope: the box types ship fine at 1–2 refreshes/day, so no real-time requirement justifies native apps.",
       "examples": [
         "Configure boxes by visiting infobento.com on any device with a browser",
         "Captive-portal Wi-Fi setup on first boot — works from any phone or laptop, no app install",
-        "Pinhole reset on the back for Wi-Fi credential clearing",
+        "Factory reset on the device for clearing Wi-Fi credentials",
         "JSON import/export for portability between browsers / devices",
-        "Cloud API is stateless — same config in, same frame out, no user account anywhere"
+        "Anonymous use: the editor and preview work with no sign-in; an account is needed only to pair a physical device"
       ],
       "counterExamples": [
         "Required iOS or Android app to use the device",
@@ -228,7 +228,7 @@
       ],
       "metadata": {},
       "createdAt": 1776556500000,
-      "updatedAt": 1776556500000
+      "updatedAt": 1787011200000
     },
     {
       "type": "requirement",
@@ -323,11 +323,11 @@
     {
       "type": "requirement",
       "label": "REQ-006",
-      "statement": "Config persists in browser localStorage with JSON export/import for portability",
-      "source": "Open question resolution — no server-side state for MVP",
+      "statement": "Config persists in browser localStorage with JSON export/import; once a device is paired to an account, config is also stored server-side and pushed via PUT /api/device/:id/config",
+      "source": "Originally 'no server-side state for MVP'. SUPERSEDED by epic #77 (SaaS-default hosting): the device pulls rendered frames and never holds the bento config, so the config must live server-side.",
       "category": "functional",
       "priority": "must",
-      "rationale": "Avoids auth complexity while keeping config portable between devices",
+      "rationale": "localStorage still backs anonymous use with no sign-in. Server-side storage was required once the device stopped receiving config directly: it holds only Wi-Fi credentials, its device id, and the server URL in NVS.",
       "status": "accepted",
       "userClassIds": [
         "b3572422-6629-426d-9df2-20a4c3eaa3e6",
@@ -337,7 +337,7 @@
       "relatedIds": [],
       "metadata": {},
       "createdAt": 1776109751621,
-      "updatedAt": 1776109751621
+      "updatedAt": 1787011200000
     },
     {
       "type": "scenario",
@@ -406,26 +406,26 @@
       "type": "wireframe",
       "name": "Bento Box eInk Layout",
       "screenName": "DeviceDisplay",
-      "description": "Single eInk panel on the front, enclosure ~14×11cm (fits GDEH0576T81 panel module closely with minimal bezel). Golden-ratio aspect ratio (1.618:1 target, 1.667:1 closest stock). High DPI for crisp text at glance distance. Tilt switches detect orientation — layout auto-rotates when device is stood on its short edge.",
+      "description": "Single eInk panel on the front, enclosure ~14x11cm (fits the GDEH0576T81 module closely with minimal bezel). Panel is 920x680 = 1.353:1; the earlier golden-ratio target was retired with the panel lock at v0.7.0 (see REQ-010). 198 DPI for crisp text at glance distance. Orientation handling is unsettled: RFC 0002 shipped a MANUAL green-button flip on the E1001 dev board; tilt-switch auto-rotate remains a production design question.",
       "fidelity": "medium",
       "status": "active",
       "elements": [
-        "3-6 sections — quote, full weather, countdown hero, date, QR, text — filling the generous panel area",
+        "Up to 10 boxes (MAX_BOXES) — quote, weather, forecast, countdown hero, date, QR, text — filling the panel area",
         "Inter TTF hero font (52px default) for primary data, Inter body font (20px default) for labels and body",
         "SDF-antialiased rounded box borders (configurable corner radius 0-10) on grey background",
         "Configurable padding (0-10) between boxes and display edge",
         "Content rendered in 4-level grayscale — anti-aliased fonts, gray labels for hierarchy",
         "Multi-column layouts viable at bento scale — horizontal splits at ~80px+ per column",
-        "Layout auto-rotates based on tilt switch orientation (landscape default, portrait when stood on end)"
+        "Layout flip is manual on the E1001 (green button, cached frames); tilt-switch auto-rotate not yet built"
       ],
       "annotations": [
         "2-bit (4-level grayscale) framebuffer — black, dark gray, light gray, white. No color.",
-        "Golden-ratio panel (~1.618:1 aspect ratio) — closest stock is 7.5\" at 5:3 (1.667:1, 3% off)",
-        "High DPI target: ≥200 DPI preferred; stock 7.5\" panels are ~124 DPI, custom panel at volume for higher",
-        "Display nearly fills enclosure — minimal bezel (≤3mm target)",
+        "Aspect ratio 1.353:1, set by the GDEH0576T81 (920x680). Golden ratio retired at panel lock.",
+        "198 DPI on the production panel; the 7.5\" E1001 dev panel is ~124 DPI (bench floor).",
+        "Display nearly fills enclosure — bezel target <=4mm (README), tightened from an earlier 3mm note",
         "Refresh once or twice a day on solar power (~2-3s per refresh)",
-        "Frame buffer size derived from chosen panel via frameBufferBytes() helper in @infobento/core",
-        "Tilt switch GPIO interrupt triggers re-render in rotated layout — no manual config needed"
+        "Frame buffer size derived from the chosen panel via frameBufferBytes() in @infobento/core",
+        "Orientation: /frames returns BOTH orientations pre-rendered, so a flip costs no radio wake (RFC 0002)"
       ],
       "externalRef": null,
       "userClassIds": [
@@ -437,13 +437,13 @@
       "relatedIds": [],
       "metadata": {},
       "createdAt": 1776109802135,
-      "updatedAt": 1776109802135
+      "updatedAt": 1787011200000
     },
     {
       "type": "wireframe",
       "name": "Web Configuration Editor",
       "screenName": "ConfigEditor",
-      "description": "Main web UI screen where users configure their counter device's bento boxes. Vanilla JS with reactive state pattern. Client-side renderer for instant preview. Single-column layout: preview on top, editor below.",
+      "description": "Main web UI screen where users configure their counter device's bento boxes. Vanilla TS with reactive state pattern. Client-side renderer for instant preview. Single-column layout: preview on top, editor below.",
       "fidelity": "medium",
       "status": "active",
       "elements": [
@@ -454,14 +454,21 @@
         "Per-box config form (location for weather/forecast, date+label for countdown, URL for QR, textarea for text, text+author for quote)",
         "Remove button per box",
         "Inline-editable box labels",
-        "Consent dialog (Privacy + Terms) on first load, persisted in localStorage"
+        "Consent dialog (Privacy + Terms) on first load, persisted in localStorage",
+        "Header: Setup Guide link and Menu dropdown (Import / Export JSON, sign in, devices)",
+        "Sign-in dialog: passkey, Sign in with Google, Sign in with Apple (components/sign-in.ts)",
+        "Devices panel: list of paired devices, select one to switch the editor into cloud mode, unpair, forget Wi-Fi (components/devices.ts)",
+        "Pair page at /pair/<code>: claim a device from its sticker QR (requires sign-in)",
+        "Display selector: production 5.76\" 920x680 vs Seeed reTerminal E1001 7.5\" 800x480",
+        "Landscape/portrait toggle, Font Weight slider, Refresh interval selector"
       ],
       "annotations": [
         "Preview fetches server-rendered PNG from /api/preview (enables TTF rendering)",
         "Single-column editor: preview on top, editor below (#29 merged 2026-04-23). localStorage v2 schema with v1 migration.",
-        "No account required — config lives in localStorage with JSON import/export",
+        "Two persistence modes: anonymous (localStorage, no sign-in) and cloud (config stored server-side against a paired device, pushed via PUT /api/device/:id/config)",
+        "Sign-in is required only to pair a physical device — the editor and preview work fully anonymously",
         "Responsive layout: stacks vertically on narrow viewports (<=720px)",
-        "Vanilla JS with reactive state, no framework",
+        "Vanilla TS with reactive state, no framework",
         "18 box types: text, countdown, weather, forecast, forecast3d, qr, quote, date, moon, sun, aqi, progress, stocks, calendar, habit, horoscope, joke, onthisday (tasks + worldclock removed in v0.16.0)",
         "Geocoding via Nominatim handles 'Portland, OR', addresses, and landmarks like 'Mt. St. Helens'"
       ],
@@ -479,7 +486,7 @@
       "relatedIds": [],
       "metadata": {},
       "createdAt": 1776109802284,
-      "updatedAt": 1776109802284
+      "updatedAt": 1787011200000
     },
     {
       "type": "requirement",
@@ -499,9 +506,9 @@
     },
     {
       "type": "design-principle",
-      "name": "Two-Font Bitmap System",
+      "name": "Two-Font TTF System",
       "statement": "TrueType font rendering via Inter (OFL) with opentype.js — configurable body size (8-42px), hero size derived proportionally — no system font dependencies",
-      "description": "The renderer uses Inter (OFL-licensed TrueType font) via opentype.js for all text. Body font size is user-configurable (8-42px, default 38px); hero size is derived proportionally (bodySize * 2.6). Anti-aliased via scanline TTF rasterization. Dynamic FontMetrics system computes all spacing, padding, and line heights from the chosen body size. Two visual weights — hero (bold) and body (regular) — create clear hierarchy.",
+      "description": "The renderer uses Inter (OFL-licensed TrueType font) via opentype.js for all text. Body font size is user-configurable (8-42px, default 20px — DEFAULT_FONT_SIZE in font-metrics.ts); hero size is derived proportionally (bodySize * 2.6). Anti-aliased via scanline TTF rasterization. Dynamic FontMetrics system computes all spacing, padding, and line heights from the chosen body size. Two visual weights — hero (bold) and body (regular) — create clear hierarchy.",
       "source": "Font evolution: 5x7 bitmap (v0.1) → Spleen 8x16 bitmap (v0.4) → Inter TTF via opentype.js (v0.7.0). TTF rendering enables configurable font sizes and proper kerning.",
       "examples": [
         "Inter Bold hero: '62F', '9:00', '14 days' at user-chosen size",
@@ -517,28 +524,29 @@
       "relatedIds": [],
       "metadata": {},
       "createdAt": 1776110090095,
-      "updatedAt": 1776110090095
+      "updatedAt": 1787011200000
     },
     {
       "type": "prototype",
-      "name": "Rendering Pipeline (v0.4.0+)",
+      "name": "Rendering Pipeline + SaaS Backend (v0.35.x)",
       "description": "Full rendering pipeline: BentoConfig (Zod-validated) -> layout (vertical + horizontal split, configurable padding) -> Inter TTF fonts + SDF rounded borders + 14x14 icons -> draw -> 156,400-byte frame buffer (920x680). 18 box types with content-aware height allocation. Web editor with font size, corner radius, and padding controls, in-place box type switcher, and add-box chip rail. Deployed to infobento.com.",
       "fidelity": "high",
       "format": "TypeScript (packages/core + packages/renderer + packages/api + packages/web)",
-      "scope": "Core types with Zod validation, layout engine (920x680, configurable padding, horizontal split, content-aware height hints), Inter TTF fonts via opentype.js, SDF rounded borders, 14x14 icons, 18 box renderers, single-column web editor with font/corner/padding controls + server-rendered PNG preview + localStorage v2, API with structured errors, passkey + Apple/Google OAuth auth, deployed",
+      "scope": "Core types with Zod validation, layout engine (920x680, configurable padding, horizontal split, content-aware height hints), Inter TTF fonts via opentype.js, SDF rounded borders, 14x14 icons, 18 box renderers, single-column web editor with font/corner/padding controls + server-rendered PNG preview + localStorage v2, API with structured errors, passkey + Apple/Google OAuth auth, SQLite device pairing and server-side config, pull-time data hydration with a shared cache (RFC 0001), dual-orientation /frames (RFC 0002), firmware bring-up phases 1-6 bench-verified on the E1001, deployed",
       "designArtifactIds": ["45f1b6df-a76f-4c48-8ab2-bd1cfc067f00"],
       "location": "packages/",
       "knownLimitations": [
         "No center alignment in text rendering",
         "Maximum 10 boxes enforced by layout truncation (dynamic based on font size)",
-        "Weather and quote data fetched client-side only (no server-side caching)",
-        "No firmware yet — software demo only (firmware tracked in #39, #48, #49)"
+        "docs/reference/API.md documents 5 of 28 routes",
+        "Production panel unvalidated — GDEH0576T81 grey rendering still gated on the dev-kit order (#57)",
+        "Enclosure CAD in hardware/ models a superseded folding form factor (#199)"
       ],
       "id": "dc655ce4-a20a-498c-bce0-d6bdbdbe44c0",
       "relatedIds": [],
       "metadata": {},
       "createdAt": 1776112977017,
-      "updatedAt": 1776112977017
+      "updatedAt": 1787011200000
     },
     {
       "type": "finding",
@@ -594,11 +602,11 @@
     {
       "type": "requirement",
       "label": "REQ-010",
-      "statement": "Device enclosure (~14×11cm) fits the GDEH0576T81 panel closely with minimal bezel, golden-ratio display (1.618:1 target aspect ratio)",
-      "source": "The product is called InfoBento — it should feel like a bento box. Golden ratio (φ) produces the most naturally pleasing proportions for an information display. Closest stock panel: 7.5\" at 5:3 (1.667:1, 3% from φ). Custom panels at volume can hit 1.618:1 exactly.",
+      "statement": "Device enclosure (~14x11cm) fits the GDEH0576T81 panel module closely with minimal bezel",
+      "source": "The product is called InfoBento — it should feel like a bento box. A golden-ratio (1.618:1) display was the original target, RETIRED when the panel locked to the GDEH0576T81 at v0.7.0: 920x680 is 1.353:1. Proportion is now set by the panel, not chosen.",
       "category": "non-functional",
       "priority": "must",
-      "rationale": "Size and proportion are core to the product identity. The bento box metaphor — compartmentalized, balanced, portable — should be reflected in the physical object. At ~14×11cm the enclosure fits the GDEH0576T81 panel module (125.4×99.5mm) closely with minimal bezel, keeping the device compact enough to sit on a counter without dominating the surface while remaining large enough for comfortable reading from across a room.",
+      "rationale": "Size is core to the product identity; aspect ratio is now a consequence of the panel rather than a requirement. The bento box metaphor — compartmentalized, balanced, portable — should be reflected in the physical object. At ~14×11cm the enclosure fits the GDEH0576T81 panel module (125.4×99.5mm) closely with minimal bezel, keeping the device compact enough to sit on a counter without dominating the surface while remaining large enough for comfortable reading from across a room.",
       "status": "accepted",
       "userClassIds": [
         "659af1c0-7967-4009-84ca-7febdab16a3d",
@@ -608,7 +616,7 @@
       "relatedIds": [],
       "metadata": {},
       "createdAt": 1776643200000,
-      "updatedAt": 1776643200000
+      "updatedAt": 1787011200000
     },
     {
       "type": "requirement",
@@ -617,14 +625,14 @@
       "source": "High DPI ensures crisp text at glance distance. Minimal bezel maximizes the 'all-screen' aesthetic — the display IS the device from the front.",
       "category": "non-functional",
       "priority": "should",
-      "rationale": "At 1-bit, DPI directly determines text sharpness — there is no anti-aliasing to compensate for low resolution. Minimal bezel makes the device look like a floating sheet of paper rather than a gadget with a screen. Stock 7.5\" panels (124 DPI) are acceptable for launch; ≥200 DPI is the target for volume production (custom panel order at 5K+ units).",
+      "rationale": "DPI drives text sharpness at glance distance. The 2-bit framebuffer (REQ-009) buys anti-aliased TTF edges, which softens but does not remove the DPI requirement — anti-aliasing improves edge quality, not stroke resolution. Minimal bezel makes the device look like a floating sheet of paper rather than a gadget with a screen. The GDEH0576T81 ships 198 DPI, meeting the target; the 7.5\" E1001 dev panel at 124 DPI is the acceptable-for-bench floor.",
       "status": "accepted",
       "userClassIds": ["659af1c0-7967-4009-84ca-7febdab16a3d"],
       "id": "req-011-high-dpi-minimal-bezel",
       "relatedIds": ["req-010-bento-golden-ratio"],
       "metadata": {},
       "createdAt": 1776643200000,
-      "updatedAt": 1776643200000
+      "updatedAt": 1787011200000
     },
     {
       "type": "requirement",
@@ -687,11 +695,11 @@
       "type": "finding",
       "title": "eInk display design research — layout patterns (addressed)",
       "description": "Research across Tidbyt, Watchy, TRMNL, thermal printer art, and eInk phone accessories (YotaPhone, InkCase, HiSense) yielded consistent design principles for small 1-bit displays:\n\n1. ONE DOMINANT ELEMENT — a single large hero element (time, temperature) taking 40-50% of height reads best. Cramming too much kills legibility.\n2. TWO FONT SIZES MAX — large hero + small data. No medium. The contrast jump IS the hierarchy.\n3. WHITESPACE BEATS BORDERS — generous padding between sections feels cleaner than 1px borders around everything. Current renderer over-uses borders.\n4. RECEIPT-STYLE LAYOUT — label left-aligned, value right-aligned, monospace. Horizontal rules as dividers.\n5. 3-4 DATA ITEMS MAX — rotate screens for more info rather than crowding one frame.\n6. STATIC > INTERACTIVE — eInk phone accessories that tried to be mini-Android (YotaPhone, HiSense) disappointed users. Single-purpose static frames (InkCase clock faces) worked best.\n7. NO TOUCH REQUIRED — designs assuming eInk touch input universally failed. Treat the back as display-only.\n\nThe current renderer treats all boxes identically (border + uppercase label + dotted divider + wrapped text). The research points toward differentiated visual treatment per box type as the next rendering improvement.",
-      "findingType": "recommendation",
+      "findingType": "suggestion",
       "severity": "minor",
       "evidence": "Web research: Tidbyt review (macwright.com), Watchy docs (sqfmi), TRMNL (trmnl.com), YotaPhone review (Engadget, Phone Scoop), InkCase (Kickstarter), thermal-sans-mono (GitHub)",
       "recommendation": "Implement hero font size for primary data (weather temp, countdown number). Reduce border usage — use whitespace gaps instead. Differentiate box renderers visually by type. Consider screen rotation (2-3 states cycling) as an alternative to cramming 6 boxes.",
-      "status": "addressed",
+      "status": "accepted",
       "id": "b2c3d4e5-design-research-0001",
       "relatedIds": [],
       "metadata": {},
@@ -702,11 +710,11 @@
       "type": "finding",
       "title": "Quotable.io main domain dead — switched to kurokeita.dev mirror",
       "description": "DNS resolution fails for api.quotable.io as of 2026-04-25. The same dataset is hosted at api.quotable.kurokeita.dev (community fork). Quote provider migrated; tag-steering and maxLength support both work on the mirror. Single-point-of-failure risk: mirror is hobby-hosted.",
-      "findingType": "external",
-      "severity": "moderate",
+      "findingType": "observation",
+      "severity": "minor",
       "evidence": "curl https://api.quotable.io/random returns 'Could not resolve host'; mirror returns expected JSON shape with title-cased tag filtering",
       "recommendation": "Monitor mirror availability. the bundled local fallback covers a future failure of the mirror.",
-      "status": "worked-around",
+      "status": "partially-resolved",
       "id": "a040673b-dc7f-43b5-bc17-f225878bdecb",
       "relatedIds": [],
       "metadata": {},
@@ -717,7 +725,7 @@
       "type": "finding",
       "title": "JokeAPI URL hyphen treated as category separator (Knock-Knock unreachable)",
       "description": "JokeAPI v2 splits the category path segment on hyphens AND commas, so /joke/Knock-Knock is parsed as two categories ('knock', 'knock') and rejected. Knock-Knock is reachable nowhere via the URL scheme. Issue spec listed it as valid; whitelist updated to JokeAPI's actual valid set.",
-      "findingType": "external",
+      "findingType": "observation",
       "severity": "minor",
       "evidence": "GET /joke/Knock-Knock → 'No matching joke found... Got: knock, knock but possible categories are: Any, Misc, Programming, Dark, Pun, Spooky, Christmas'",
       "recommendation": "Whitelist limited to: Programming, Misc, Pun, Dark, Spooky, Christmas. Drop Knock-Knock from issue spec going forward.",
@@ -732,7 +740,7 @@
       "type": "finding",
       "title": "Yahoo Finance returns 429 without desktop User-Agent",
       "description": "query1.finance.yahoo.com/v8/finance/chart/<sym> rate-limits anonymous bot traffic; works fine when the request carries a Mozilla-style User-Agent. Stocks proxy adds 'Mozilla/5.0 (compatible; InfoBento/1.0)'.",
-      "findingType": "external",
+      "findingType": "observation",
       "severity": "minor",
       "evidence": "Bare curl returns 'Edge: Too Many Requests'; with -H 'User-Agent: Mozilla/5.0' returns expected JSON",
       "recommendation": "If Yahoo tightens further, stooq.com CSV is a viable no-key fallback (verified working).",
@@ -757,6 +765,111 @@
       "metadata": {},
       "createdAt": 1777168105114,
       "updatedAt": 1777168105114
+    },
+    {
+      "type": "finding",
+      "title": "Epic #77 superseded the stateless-API principle",
+      "description": "SaaS-default hosting shipped: SQLite storage (PR #82), passkey + Apple/Google OAuth (#83), device pairing via POST /api/pair (#112), and account binding in the editor (#113). The 'Pure Function Architecture' principle previously listed server-side profiles, database-backed config and session cookies as counter-examples; all three are now shipped behaviour. Rendering itself stays pure.",
+      "findingType": "observation",
+      "severity": null,
+      "evidence": "packages/api/src/db.ts (accounts, devices, oauth_identities, passkey_credentials); auth/session.ts; pair.ts returns 401 without a session.",
+      "recommendation": "Keep the purity boundary at the renderer, not the process. Claim 'pure rendering', never 'stateless API'.",
+      "status": "accepted",
+      "id": "a3a3ce9b-d742-40f3-8519-5b66a89d0ed7",
+      "relatedIds": [],
+      "metadata": {},
+      "createdAt": 1787011200000,
+      "updatedAt": 1787011200000
+    },
+    {
+      "type": "finding",
+      "title": "Device pulls frames, never config — /api/config/{id} never existed",
+      "description": "Five documents described the device polling infobento.com/api/config/{device-id} for config updates. No such route was ever registered. The firmware polls GET /api/device/<id>/frames and receives both orientations pre-rendered; the bento config never reaches the device, which holds only Wi-Fi credentials, its device id and the server URL in NVS.",
+      "findingType": "problem",
+      "severity": "major",
+      "evidence": "firmware/integrated/integrated.ino:309 builds g_server + '/api/device/' + g_deviceid + '/frames'; no 'api/config' route exists anywhere in packages/api/src.",
+      "recommendation": "Fixed in PR #201. When documenting an endpoint, grep the router for it first.",
+      "status": "fixed",
+      "id": "748b30da-bc8f-4487-82f2-cf39a2820eca",
+      "relatedIds": [],
+      "metadata": {},
+      "createdAt": 1787011200000,
+      "updatedAt": 1787011200000
+    },
+    {
+      "type": "finding",
+      "title": "A live device pair code was published to a world-readable directory",
+      "description": "PR #189 replaced the sample setup-guide sticker with the real bench device's sticker, embedding an unclaimed pair code in both the printed text and the QR payload. packages/web/public/ is served at www.infobento.com, so any reader could have claimed the device. The PR passed review — the diff was a PNG, and the reviewer read the diff.",
+      "findingType": "problem",
+      "severity": "critical",
+      "evidence": "dev.db devices row 9e161c40-b648-47f1-b9e0-6ee3fb81d833 / pair code DUPP8E, owner_account_id empty; sticker.png committed under packages/web/public/setup-guide/.",
+      "recommendation": "Reverted to the sample-CSV sticker in PR #201. Rotate the code if the row exists in production. Only ever use pair codes from scripts/sample-devices.csv in published assets. Binary assets need review attention that diff-reading does not provide.",
+      "status": "fixed",
+      "id": "b27df43b-7e90-491d-a8ed-1b52b97b9796",
+      "relatedIds": [],
+      "metadata": {},
+      "createdAt": 1787011200000,
+      "updatedAt": 1787011200000
+    },
+    {
+      "type": "finding",
+      "title": "Automated review gates fail silently and read as green",
+      "description": "Three distinct failure modes observed. (1) 2026-06-20 to 07-04: claude-code-action in agent mode did not inject PR context, so every review run 'succeeded' having reviewed nothing; fixed by a fail-loud tripwire in PR #186. (2) The reviewer posts as login 'claude', while tooling filtered on 'claude[bot]', making a reviewed PR classify as unreviewed. (3) 'Feedback addressed' is computed as 'a commit exists after the feedback timestamp', which any commit satisfies.",
+      "findingType": "problem",
+      "severity": "major",
+      "evidence": "Run-log signature num_turns: 4 with 'No buffered inline comments'; on PR #201 a claude[bot]-only filter returned 0 across all three channels for a PR carrying 9 review items.",
+      "recommendation": "Treat a green review check as evidence only where an empty-review tripwire exists. Match reviewer logins as a set. Never merge substantive findings on the addressed-heuristic alone.",
+      "status": "partially-resolved",
+      "id": "17168147-de16-4be3-9486-9118e2ee36b8",
+      "relatedIds": [],
+      "metadata": {},
+      "createdAt": 1787011200000,
+      "updatedAt": 1787011200000
+    },
+    {
+      "type": "finding",
+      "title": "Corrections of a propagated claim are systematically incomplete",
+      "description": "The superseded 'stateless API' claim had reached 12 locations. Three successive review rounds on PR #201 returned 4, then 8, then 3 findings — each round the same defect class at a wider radius, because each repair fixed the file in view. The repo-wide sweep intended to end this was itself run as grep -E without -i, so every capital-S instance stayed invisible; round three found exactly those.",
+      "findingType": "problem",
+      "severity": "major",
+      "evidence": "PR #201 review rounds; case-sensitive sweep missed README.md and docs/getting-started/SETUP.md table rows reading 'Stateless pure-function cloud API'.",
+      "recommendation": "A partially corrected document is worse than an untouched one — it reads as authoritative. Sweep case-insensitively, across every file type, and re-run the sweep after fixing.",
+      "status": "fixed",
+      "id": "e3ba7f92-aa91-4ae8-ad4a-bbe8ce9664ff",
+      "relatedIds": [],
+      "metadata": {},
+      "createdAt": 1787011200000,
+      "updatedAt": 1787011200000
+    },
+    {
+      "type": "finding",
+      "title": "Three incompatible enclosure generations coexisted in the repo",
+      "description": "hardware/infobento.scad models a 70.6x140mm folding device with a 2.9\" panel and a hinge (the pre-pivot pocket concept); issue #50 specified a 180x120mm body around a 7.5\" golden-ratio panel; the shipped product is a ~14x11cm monolithic body around the 5.76\" GDEH0576T81. The CAD ships under CERN-OHL-P, so anyone printing it gets the wrong object.",
+      "findingType": "problem",
+      "severity": "major",
+      "evidence": "hardware/infobento.scad device_width=70.6, device_height=140, panel 37x79, 'Offset from hinge edge'; README specifies monolithic, no hinge.",
+      "recommendation": "#50 closed, replaced by #199 scoped to the real enclosure, including removal of the stale CAD.",
+      "status": "partially-resolved",
+      "id": "3a0537ca-ede1-4276-a5df-e9c09541145b",
+      "relatedIds": [],
+      "metadata": {},
+      "createdAt": 1787011200000,
+      "updatedAt": 1787011200000
+    },
+    {
+      "type": "finding",
+      "title": "Firmware bring-up reached a provisioned device on the E1001 bench",
+      "description": "Epic #106 phases 0-6 are bench-verified on the Seeed reTerminal E1001: blink, static frame, Wi-Fi device-pull with If-Modified-Since/304, deep sleep + RTC wake, resilience, and captive-portal provisioning. The integrated sketch boots a provisioned device into the dashboard. Phase 7 (port to the production GDEH0576T81 + ESP32-C3) is gated on the dev-kit order (#57).",
+      "findingType": "positive",
+      "severity": null,
+      "evidence": "firmware/{blink,static-frame,device-pull,deep-sleep,resilient,provisioning,orientation,integrated}; PRs #127, #131, #133, #172, #174.",
+      "recommendation": "Treat the E1001 as the dev target and the GDEH0576T81 as the production target; the renderer's 2-bit output maps to both. Bench findings live in docs/hardware/.",
+      "status": "accepted",
+      "id": "91ff3261-b7ed-454c-8f1b-88e6e82b936c",
+      "relatedIds": [],
+      "metadata": {},
+      "createdAt": 1787011200000,
+      "updatedAt": 1787011200000
     }
   ],
   "extensions": {}
