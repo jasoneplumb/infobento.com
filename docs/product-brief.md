@@ -8,7 +8,7 @@ date: 'June 2026'
 
 **See what matters. Skip the spiral.**
 
-A solar-powered eInk bento dashboard that sits on your counter, desk, or shelf. Weather, a countdown, a quote, air-quality status — visible at a glance from across the room, in crisp eInk. Built around a Good Display GDEH0576T81 5.76" panel (920×680, 198 DPI) driven by an ESP32-class controller. No cables, no account, no plugin marketplace.
+A solar-powered eInk bento dashboard that sits on your counter, desk, or shelf. Weather, a countdown, a quote, air-quality status — visible at a glance from across the room, in crisp eInk. Built around a Good Display GDEH0576T81 5.76" panel (920×680, 198 DPI) driven by an ESP32-class controller. No cables, no app, no plugin marketplace.
 
 ---
 
@@ -90,7 +90,7 @@ Tidbyt and TRMNL are the ambient-display references. InfoBento differs by combin
                                      +------------+
 ```
 
-**Pure function API:** Config JSON in, framebuffer binary out. No server-side state, no user accounts.
+**Pure function API:** Config JSON in, framebuffer binary out — on the render path. ⚠️ No longer true API-wide: since epic #77 accounts, device pairings, and per-device config live in SQLite, and claiming a device requires a passkey or Google/Apple sign-in (see the note under "Pure Function Architecture" below).
 
 **On-device mapping:** After the cloud returns the framebuffer, the firmware maps it to the 920×680 panel and applies orientation from the tilt switches.
 
@@ -98,7 +98,7 @@ Tidbyt and TRMNL are the ambient-display references. InfoBento differs by combin
 
 1. First-time: captive portal (device broadcasts `InfoBento-XXXX` SSID, user enters Wi-Fi credentials + the Device ID from the sticker)
 2. Ongoing: device polls `infobento.com/api/device/{device-id}/frames` for a server-rendered frame
-3. Wi-Fi credentials and device id stored in ESP32 NVS; config held server-side; framebuffer cached in flash
+3. Wi-Fi credentials and device id stored in ESP32 NVS; config held server-side; no framebuffer cache needed (eInk holds the last image unpowered)
 
 ---
 
@@ -142,7 +142,7 @@ The AQI box draws Open-Meteo cloud air-quality data — a cloud data box like we
 - Show/hide box headers toggle
 - Config persists in browser localStorage
 - JSON import/export for portability
-- No account required
+- No account required to build a layout (an account is required to claim a device)
 - Deployed at infobento.com
 
 ---
@@ -176,10 +176,10 @@ The AQI box draws Open-Meteo cloud air-quality data — a cloud data box like we
 | **MCU**        | ESP32 / ESP8266 / RP2040 class | ESP32-C3 controller                                    |
 | **Power**      | Wall outlet required           | Solar-powered, no cable                                |
 | **Plugin/box** | DIY scripts or app marketplace | 18-box multi-box bento dashboard, up to 10 boxes       |
-| **Account**    | App + account                  | Web page, no account                                   |
+| **Account**    | App + account                  | Web page, no app; passkey/OAuth sign-in to claim       |
 | **Price**      | $179 / varies                  | $49–69 (Kickstarter)                                   |
 
-InfoBento is a calmer, cheaper, solar take on the ambient-display category: no wall cable, no account, no plugin marketplace — just a glanceable 5.76" eInk bento dashboard that refreshes itself on window light.
+InfoBento is a calmer, cheaper, solar take on the ambient-display category: no wall cable, no app, no plugin marketplace — just a glanceable 5.76" eInk bento dashboard that refreshes itself on window light.
 
 ---
 
@@ -213,13 +213,14 @@ InfoBento is a calmer, cheaper, solar take on the ambient-display category: no w
 ```
 infobento.com/
   packages/core/      Types, layout engine, validation (Zod)
+  packages/data/      Box-data providers (weather, quote, …) + cache
   packages/renderer/  eInk framebuffer generation
   packages/api/       Hono server (render API, auth/pairing, static files)
   packages/web/       Vite web editor (vanilla TS, no framework)
 ```
 
-**Current version:** v0.22.0
-**Tests:** 28 test files across `packages/*/src/**/*.test.ts`
+**Current version:** v0.35.1
+**Tests:** 53 test files across `packages/*/src/**/*.test.ts`
 **Quality gate:** `npm run build && npm test && npm run lint && npm run format:check`
 
 ---

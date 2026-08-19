@@ -9,7 +9,7 @@ npm run build        # Build all packages (tsc -b with project references)
 npm run typecheck    # Type-check only (no emit)
 ```
 
-Packages build in dependency order: core -> renderer -> api.
+Packages build in dependency order: core -> data -> renderer -> api.
 The web package builds separately via Vite.
 
 ### Testing
@@ -33,10 +33,19 @@ npm run format:check # Check formatting without writing
 
 ### Import Extensions
 
-All imports in `core`, `renderer`, and `api` must include `.js` extensions:
+**Relative** imports in `core`, `data`, `renderer`, and `api` must include `.js`
+extensions — `module: "Node16"` with no bundler means extensionless relative
+imports fail at runtime:
 
 ```typescript
-import { BentoBox } from '@infobento/core/index.js';
+import { splitLeftFraction } from './constants.js';
+```
+
+**Cross-package** imports use the bare specifier. Each package exports only `"."`,
+so a subpath import throws `ERR_PACKAGE_PATH_NOT_EXPORTED`:
+
+```typescript
+import type { BentoBox } from '@infobento/core';
 ```
 
 The `web` package uses Vite's bundler and does NOT require extensions.
@@ -67,5 +76,5 @@ See [docs/reference/INTENT_TEMPLATES.md](../reference/INTENT_TEMPLATES.md) for t
 Use `import type` for type-only imports (enforced by `verbatimModuleSyntax`):
 
 ```typescript
-import type { BentoBox } from '@infobento/core/index.js';
+import type { BentoBox } from '@infobento/core';
 ```

@@ -1,6 +1,6 @@
 # InfoBento — _See what matters. Skip the spiral._
 
-A calm, solar-powered 5.76" eInk bento dashboard for your counter, desk, or shelf. It shows the things you check most — weather, forecast, your next event, a countdown, a quote, air quality — in crisp eInk, visible at a glance. No account. No app. No buttons. No cables. Configure once at infobento.com.
+A calm, solar-powered 5.76" eInk bento dashboard for your counter, desk, or shelf. It shows the things you check most — weather, forecast, your next event, a countdown, a quote, air quality — in crisp eInk, visible at a glance. No app. No buttons. No cables. No subscriptions. Configure once at infobento.com.
 
 **See what matters. Skip the spiral.**
 
@@ -24,14 +24,14 @@ Pick it up and turn it, and a tilt switch auto-rotates the layout to match. Fold
 
 ## How it compares
 
-We're not competing with glowing pixel-art displays. InfoBento is the calmest, simplest member of the ambient-display set — still calm eInk instead of a glowing LED grid, solar-powered, no account, and cheaper.
+We're not competing with glowing pixel-art displays. InfoBento is the calmest, simplest member of the ambient-display set — still calm eInk instead of a glowing LED grid, solar-powered, no app to install, and cheaper.
 
-| Display       | Price      | Calm eInk  | Solar   | No account / no app |
-| ------------- | ---------- | ---------- | ------- | ------------------- |
-| **InfoBento** | **$49–69** | **Yes**    | **Yes** | **Yes**             |
-| Tidbyt        | $179       | No (LED)   | No      | App required        |
-| TRMNL         | $129       | Yes (eInk) | No      | Account required    |
-| LaMetric Time | $199       | No (LED)   | No      | App required        |
+| Display       | Price      | Calm eInk  | Solar   | Setup            |
+| ------------- | ---------- | ---------- | ------- | ---------------- |
+| **InfoBento** | **$49–69** | **Yes**    | **Yes** | **Web, no app**  |
+| Tidbyt        | $179       | No (LED)   | No      | App required     |
+| TRMNL         | $129       | Yes (eInk) | No      | Account required |
+| LaMetric Time | $199       | No (LED)   | No      | App required     |
 
 Calmer than the glowing displays. Self-powered, so it lives anywhere there's light. And well under the price of every smart display on the shelf.
 
@@ -64,11 +64,12 @@ Mix and match. A few boxes for a calm layout, more for a dense one.
 
 ---
 
-## No account. No app. Privacy by simplicity.
+## No app. No sensors. Privacy by simplicity.
 
 InfoBento has no sensors and collects no data about you or your room. There's nothing to opt out of because there's nothing watching.
 
-- **No account, no app, no email capture.** Configure it once in a browser and you're done.
+- **No app to install.** Configure it in a browser and you're done.
+- **Sign in once to claim your device** — a passkey (Face ID / Touch ID, no password) or Google/Apple. That's what tells the server which layout is yours. Nothing else is asked of you, and there's no marketing email list.
 - **No sensors, no data collection.** The device pulls a frame and displays it — that's all.
 - **No subscriptions. Ever.**
 
@@ -98,13 +99,15 @@ The bill of materials runs about $45–50 at volume — the 5.76" eInk panel alo
 
 [**Open the editor at infobento.com →**](https://infobento.com)
 
-Configure boxes, see the live preview, save. No account, no signup, no email capture. This is the actual editor that will configure the production device.
+Configure boxes, see the live preview, save — no sign-in needed to try it; your layout lives in your browser. This is the actual editor that will configure the production device.
 
 ---
 
 ## FAQ
 
-**Do I need an app?** No. Everything is configured in a web browser. There's no app to install and no account to create.
+**Do I need an app?** No. Everything is configured in a web browser — there's no app to install.
+
+**Do I need an account?** To try the editor, no. To bind a device to your layout, yes — you claim it with a passkey (Face ID / Touch ID, no password to remember) or a Google/Apple sign-in. That's how the server knows whose layout to render for your device.
 
 **Does it need to be plugged in?** No. The solar panel tops up a rechargeable battery. Set it near a window with indirect light and it runs cable-free.
 

@@ -29,12 +29,13 @@ All four commands should pass with zero errors. If they do, you're ready to cont
 
 ## Package Overview
 
-| Package               | What it does                                |
-| --------------------- | ------------------------------------------- |
-| `@infobento/core`     | Types, bento box definitions, layout engine |
-| `@infobento/renderer` | eInk frame buffer generation                |
-| `@infobento/api`      | Render API, auth + pairing (SQLite)         |
-| `@infobento/web`      | Web configuration interface                 |
+| Package               | What it does                                   |
+| --------------------- | ---------------------------------------------- |
+| `@infobento/core`     | Types, bento box definitions, layout engine    |
+| `@infobento/data`     | Box-data providers (weather, quote, …) + cache |
+| `@infobento/renderer` | eInk frame buffer generation                   |
+| `@infobento/api`      | Render API, auth + pairing (SQLite)            |
+| `@infobento/web`      | Web configuration interface                    |
 
 ## Next Steps
 

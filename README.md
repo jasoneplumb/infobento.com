@@ -15,7 +15,11 @@ A small, solar-powered eInk decorator that lives on a counter, shelf, or windows
 
 ## Overview
 
-InfoBento is a small calm surface for the room. The information you check most often — weather, the next thing on your calendar, days until something you're looking forward to — sits there in crisp eInk, visible at a glance from across the room. No Wi-Fi setup ritual, no account to make, no batteries to swap, nothing to fiddle with day to day.
+InfoBento is a small calm surface for the room. The information you check most often — weather, the next thing on your calendar, days until something you're looking forward to — sits there in crisp eInk, visible at a glance from across the room. One-time Wi-Fi and sign-in setup, then no batteries to swap and nothing to fiddle with day to day.
+
+Building a layout in the web editor needs no account — it saves to your browser.
+Binding a device to that layout does: you claim it with a passkey or a Google/Apple
+sign-in, so the server knows whose config to render for it.
 
 Set it on a kitchen counter, a desk, or a shelf. The body is its own stand, with a fold-out kickstand to angle the display toward you if needed. The upper portion of the back is a solar panel that charges the device from indirect light through a window. It refreshes once or twice a day, which is plenty for the things you actually look at it for. $49–69 via Kickstarter (≈ $45–50 BOM at volume — the 5.76" panel dominates).
 
@@ -63,7 +67,7 @@ Set it on a kitchen counter, a desk, or a shelf. The body is its own stand, with
                                    └───────────┘
 ```
 
-Rendering is a pure function of config: `POST /api/render` takes a BentoConfig and returns a frame buffer, and the web editor's preview uses exactly that path. The device never sends a config — it identifies itself with its device id and the server renders from the config it holds for that device. The device caches the last framebuffer in flash for offline resilience (stale display, not blank). First-time setup via captive portal; on each refresh the device polls `infobento.com/api/device/{device-id}/frames` for a freshly rendered frame (both orientations in one response), using its device id as a bearer secret. The web editor is where you set up your boxes; configuration lives in browser localStorage, and once a device is paired to an account it is also stored server-side and pushed via `PUT /api/device/{device-id}/config`.
+Rendering is a pure function of config: `POST /api/render` takes a BentoConfig and returns a frame buffer, and the web editor's preview uses exactly that path. The device never sends a config — it identifies itself with its device id and the server renders from the config it holds for that device. If Wi-Fi is unavailable the panel keeps showing its last frame (stale display, not blank) — that is eInk holding its image, not a cached copy in flash. First-time setup via captive portal; on each refresh the device polls `infobento.com/api/device/{device-id}/frames` for a freshly rendered frame (both orientations in one response), using its device id as a bearer secret. The web editor is where you set up your boxes; configuration lives in browser localStorage, and once a device is paired to an account it is also stored server-side and pushed via `PUT /api/device/{device-id}/config`.
 
 ## Quick Start
 
@@ -174,4 +178,4 @@ E Plumb and InfoBento contributors.
 
 ## Status
 
-Active development (v0.35.1). Renderer produces framebuffers with 18 box types. Web editor at localhost:5173 for configuration. Passkey + Apple/Google OAuth and the SaaS device-pairing flow are shipped in `@infobento/api` (epic #77 complete). Firmware bring-up is dev-first on the reTerminal E1001: blink, static-frame, and Wi-Fi device-pull all bench-verified (epic #106, Phases 1–3). Production-panel validation pending the GDEH0576T81 dev kit (#57).
+Active development (v0.35.1). Renderer produces framebuffers with 18 box types. Web editor at localhost:5173 for configuration. Passkey + Apple/Google OAuth and the SaaS device-pairing flow are shipped in `@infobento/api` (epic #77 complete). Firmware bring-up is dev-first on the reTerminal E1001: Phases 0–6 are bench-verified (epic #106) — blink, static-frame, Wi-Fi device-pull, deep-sleep, resilience, and captive-portal provisioning. Only Phase 7, the port to the production GDEH0576T81 panel + ESP32-C3, remains, gated on the dev-kit order (#57). Per-phase status lives in [`firmware/README.md`](firmware/README.md#phase-status).

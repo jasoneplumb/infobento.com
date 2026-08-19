@@ -4,9 +4,11 @@ The InfoBento API is a **Hono** HTTP server. The rendering endpoints below are s
 
 ## Design Principles
 
+These describe the five rendering endpoints documented below, not the API as a whole:
+
 1. **Pure functions** — Same input always produces same output
-2. **No server state** — Config comes from the client, not a database
-3. **Edge-deployable** — Hono runs on Node, Cloudflare Workers, Deno, Bun
+2. **No server state on the render path** — the config is supplied in the request body, not read from a database. This does **not** hold API-wide: the auth, pairing, and device-config endpoints added by epic #77 are backed by SQLite.
+3. **Edge-deployable render path** — the rendering endpoints run unchanged on Node, Cloudflare Workers, Deno, or Bun. The stateful endpoints do not: `better-sqlite3` is a native module, so they are Node-bound as written.
 4. **Binary output** — Frame buffers are packed 2-bit-per-pixel arrays (4 pixels per byte, 4 levels per pixel)
 5. **Same-port serving** — API + static web UI from one server (like phasebot)
 
@@ -27,7 +29,12 @@ npm start -w @infobento/api       # Hono on :4000
 
 Health check endpoint.
 
-**Response:** `{ status: "ok", version: "0.1.0" }`
+**Response:** `{ status: "ok", version: "<package version>" }` — e.g. `"0.35.1"`.
+
+The version is read at **server startup**, not at build time: `server.ts` resolves
+`../package.json` relative to the compiled entrypoint and `readFileSync`s it. A
+deployment that ships `dist/` without the adjacent `package.json` therefore fails
+at startup rather than falling back to a default.
 
 ### GET /api/box-types
 

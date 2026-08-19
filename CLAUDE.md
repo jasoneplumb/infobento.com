@@ -58,19 +58,34 @@ core (types, layout)  <──  renderer (eInk framebuffer)  <──  api (render
 - `data` imports only from `core` (pure `fetch`, no DOM/`window`, browser- and edge-safe)
 - `renderer` imports only from `core`
 - `api` imports from `core`, `data`, and `renderer`
-- `web` imports from `core` and `data` (calls API via HTTP, not direct import)
+- `web` imports from `core` and `data`, and calls `api` via HTTP (not direct
+  import). It does **not** depend on `renderer` — the editor previews via
+  `POST /api/preview`, so nothing is rasterized in the browser.
 
 ## Critical: .js Extensions Required
 
-All TypeScript imports in `core`, `data`, `renderer`, and `api` MUST include `.js` extensions.
-The project uses `module: "Node16"` with no bundler — extensionless imports fail at runtime.
+**Relative** imports within `core`, `data`, `renderer`, and `api` MUST include `.js`
+extensions. The project uses `module: "Node16"` with no bundler — extensionless
+relative imports fail at runtime.
 
 ```typescript
-// Correct
-import { render } from '@infobento/renderer/index.js';
+// Correct — relative import, .js extension
+import { splitLeftFraction } from './constants.js';
 
 // Wrong — will fail at runtime
+import { splitLeftFraction } from './constants';
+```
+
+**Cross-package** imports use the bare package specifier. Each workspace package
+defines only `"."` in its `exports` map, so a subpath import throws
+`ERR_PACKAGE_PATH_NOT_EXPORTED`.
+
+```typescript
+// Correct — bare specifier
 import { render } from '@infobento/renderer';
+
+// Wrong — subpath is not exported
+import { render } from '@infobento/renderer/index.js';
 ```
 
 **Exception:** The `web` package uses Vite's bundler (`moduleResolution: "bundler"`) and does NOT require `.js` extensions.
