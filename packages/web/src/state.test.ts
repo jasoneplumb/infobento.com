@@ -73,7 +73,7 @@ describe('serializeBoxes (export/persist round-trip)', () => {
 
 describe('changeBoxType', () => {
   it('replaces type and resets config to the new defaults', () => {
-    addBox('joke');
+    addBox('horoscope');
     const id = getBoxes()[0]!.id;
     changeBoxType(id, 'quote');
     const box = getBoxes()[0]!;
@@ -82,15 +82,15 @@ describe('changeBoxType', () => {
   });
 
   it('overwrites the label when it still matches the old default', () => {
-    addBox('joke');
+    addBox('horoscope');
     const id = getBoxes()[0]!.id;
-    expect(getBoxes()[0]!.label).toBe(BOX_TYPE_LABELS.joke);
+    expect(getBoxes()[0]!.label).toBe(BOX_TYPE_LABELS.horoscope);
     changeBoxType(id, 'quote');
     expect(getBoxes()[0]!.label).toBe(BOX_TYPE_LABELS.quote);
   });
 
   it('preserves a user-customized label across a type switch', () => {
-    addBox('joke');
+    addBox('horoscope');
     const id = getBoxes()[0]!.id;
     updateLabel(id, 'My favorite');
     changeBoxType(id, 'quote');
@@ -228,7 +228,7 @@ describe('persistence mode (local vs cloud, issue #76)', () => {
       version: 2,
       boxes: [
         { type: 'quote', label: 'Q', config: { content: 'hi', author: '' } },
-        { type: 'joke', label: 'J', config: { content: 'ha' } },
+        { type: 'onthisday', label: 'O', config: { content: 'ha', category: 'events' } },
       ],
     });
     expect(getBoxes()).toHaveLength(2);
@@ -239,5 +239,145 @@ describe('persistence mode (local vs cloud, issue #76)', () => {
     expect(getActiveDeviceId()).toBeNull();
     expect(getBoxes()).toHaveLength(1);
     expect(getBoxes()[0]!.type).toBe('weather');
+  });
+});
+
+describe('loadConfig — configs naming a removed box type', () => {
+  beforeEach(() => {
+    setState((s) => {
+      s.boxes = [];
+    });
+  });
+
+  it('loads the surviving boxes from a device config that still names a removed type', () => {
+    // A device paired before #210 has `joke` sitting in its stored config_json.
+    // Zod no longer admits that type, so without the pre-filter the whole
+    // config is rejected and the owner sees none of their boxes.
+    const ok = loadConfig({
+      boxes: [
+        { id: 'a', type: 'quote', label: 'Q', config: { type: 'quote', text: 'hi' } },
+        { id: 'b', type: 'joke', label: 'J', config: { type: 'joke', text: 'ha' } },
+        { id: 'c', type: 'weather', label: 'W', config: { type: 'weather', city: 'Reno' } },
+      ],
+      refreshesPerDay: 2,
+    });
+
+    expect(ok).toBe(true);
+    expect(getBoxes().map((b) => b.type)).toEqual(['quote', 'weather']);
+  });
+
+  it('drops a removed type from a version-2 editor config', () => {
+    // formBuilders has no entry for 'habit' any more, so leaving it in would
+    // make buildConfigForm throw rather than degrade.
+    const ok = loadConfig({
+      version: 2,
+      boxes: [
+        { type: 'habit', label: 'H', config: { habits: [] } },
+        { type: 'date', label: 'D', config: {} },
+      ],
+    });
+
+    expect(ok).toBe(true);
+    expect(getBoxes().map((b) => b.type)).toEqual(['date']);
+  });
+
+  it('reports failure when every box names a removed type', () => {
+    // Nothing loadable is left; the caller keeps whatever it had.
+    expect(
+      loadConfig({
+        boxes: [{ id: 'a', type: 'calendar', label: 'C', config: { type: 'calendar' } }],
+        refreshesPerDay: 2,
+      }),
+    ).toBe(false);
+  });
+});
+
+describe('loadConfig — malformed boxes arrays', () => {
+  beforeEach(() => {
+    setState((s) => {
+      s.boxes = [];
+    });
+  });
+
+  it('rejects null and primitive elements without throwing', () => {
+    // The pre-filter runs upstream of Zod, which used to absorb any element
+    // shape. Reading .type off null would throw past loadConfig's try/finally.
+    expect(() =>
+      loadConfig({
+        boxes: [null, 42, 'nope', undefined, { type: 'weather', label: 'W', config: {} }],
+        refreshesPerDay: 2,
+      }),
+    ).not.toThrow();
+  });
+
+  it('keeps the valid boxes alongside malformed elements', () => {
+    const ok = loadConfig({
+      boxes: [
+        null,
+        { id: 'a', type: 'quote', label: 'Q', config: { type: 'quote', text: 'hi' } },
+        { type: 'joke', label: 'J', config: { type: 'joke', text: 'ha' } },
+      ],
+      refreshesPerDay: 2,
+    });
+    expect(ok).toBe(true);
+    expect(getBoxes().map((b) => b.type)).toEqual(['quote']);
+  });
+
+  it('drops a box whose type is not a string', () => {
+    expect(() =>
+      loadConfig({ version: 2, boxes: [{ type: 7, label: 'x', config: {} }] }),
+    ).not.toThrow();
+    expect(getBoxes()).toHaveLength(0);
+  });
+});
+
+describe('loadConfig — never silently wipes a layout', () => {
+  beforeEach(() => {
+    setState((s) => {
+      s.boxes = [];
+    });
+    addBox('weather');
+  });
+
+  it('reports failure and keeps existing boxes when a v2 import is all stale', () => {
+    // importJSON only alerts when loadConfig returns false. Returning true here
+    // would wipe the user's layout and look like a clean import.
+    const ok = loadConfig({
+      version: 2,
+      boxes: [
+        { type: 'joke', label: 'J', config: {} },
+        { type: 'habit', label: 'H', config: {} },
+      ],
+    });
+    expect(ok).toBe(false);
+    expect(getBoxes().map((b) => b.type)).toEqual(['weather']);
+  });
+
+  it('reports failure and keeps existing boxes when a v1 import is all stale', () => {
+    const ok = loadConfig({
+      version: 1,
+      D: [{ type: 'calendar', label: 'C', config: {} }],
+      P: [{ type: 'joke', label: 'J', config: {} }],
+    });
+    expect(ok).toBe(false);
+    expect(getBoxes().map((b) => b.type)).toEqual(['weather']);
+  });
+
+  it('still accepts a genuinely empty boxes array', () => {
+    // Distinct from "everything was stale" — nothing was dropped.
+    expect(loadConfig({ version: 2, boxes: [] })).toBe(true);
+    expect(getBoxes()).toHaveLength(0);
+  });
+
+  it('commits the survivors when a v2 import is only partly stale', () => {
+    const ok = loadConfig({
+      version: 2,
+      boxes: [
+        { type: 'joke', label: 'J', config: {} },
+        { type: 'date', label: 'D', config: {} },
+      ],
+    });
+    expect(ok).toBe(true);
+    expect(getBoxes().map((b) => b.type)).toEqual(['date']);
   });
 });

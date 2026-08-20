@@ -35,12 +35,10 @@ import {
   fetchHoroscope as dataFetchHoroscope,
   fetchOnThisDay as dataFetchOnThisDay,
   fetchQuote as dataFetchQuote,
-  fetchJoke as dataFetchJoke,
   type Cache,
   type HoroscopeResult,
   type OnThisDayResult,
   type QuoteResult,
-  type JokeResult,
 } from '@infobento/data';
 
 export interface HydrateDeps {
@@ -61,7 +59,6 @@ export interface HydrateDeps {
   readonly fetchHoroscope: (sign: string) => Promise<HoroscopeResult | null>;
   readonly fetchOnThisDay: (category: string) => Promise<OnThisDayResult | null>;
   readonly fetchQuote: (tags: string) => Promise<QuoteResult | null>;
-  readonly fetchJoke: (categories: string) => Promise<JokeResult | null>;
 }
 
 // Per-provider freshness ceilings (RFC 0001 §3). Each is scaled down to the
@@ -78,7 +75,6 @@ const STOCKS_TTL_MS = 15 * 60 * 1000;
 const HOROSCOPE_TTL_MS = 6 * 60 * 60 * 1000;
 const ONTHISDAY_TTL_MS = 6 * 60 * 60 * 1000;
 const QUOTE_TTL_MS = 6 * 60 * 60 * 1000;
-const JOKE_TTL_MS = 6 * 60 * 60 * 1000;
 // A location's UTC offset is stable across a pull cycle; cache it like sun times.
 // Deliberately NOT scaled by the refresh interval: it's location metadata (not
 // content the user expects to rotate) and sits on the rate-limited Nominatim path.
@@ -394,22 +390,9 @@ async function hydrateBox(
       if (!res) return box;
       return { ...box, config: { ...box.config, text: res.text, author: res.author } };
     }
-    case 'joke': {
-      if (!box.config) return box;
-      const categories = box.config.categories ?? '';
-      const res = await resolveCached<JokeResult>(
-        deps,
-        `joke:${categories.toLowerCase()}`,
-        ttlOf(JOKE_TTL_MS),
-        `joke "${categories || 'any'}"`,
-        () => deps.fetchJoke(categories),
-      );
-      if (!res) return box;
-      return { ...box, config: { ...box.config, text: res.text, category: res.category } };
-    }
     default:
-      // Non-live boxes (text/qr/date/moon/countdown/progress/calendar/habit)
-      // hold user-authored or clock-derived content — nothing to re-fetch.
+      // Non-live boxes (text/qr/date/moon/countdown/progress) hold
+      // user-authored or clock-derived content — nothing to re-fetch.
       return box;
   }
 }
@@ -436,6 +419,5 @@ export function defaultHydrateDeps(): HydrateDeps {
     fetchHoroscope: dataFetchHoroscope,
     fetchOnThisDay: dataFetchOnThisDay,
     fetchQuote: (tags) => dataFetchQuote({ tags }),
-    fetchJoke: dataFetchJoke,
   };
 }

@@ -16,17 +16,11 @@ import type {
   AQIConfig,
   ProgressConfig,
   HoroscopeConfig,
-  JokeConfig,
   OnThisDayConfig,
   StocksConfig,
-  CalendarConfig,
-  HabitConfig,
 } from '../state';
 import {
   updateConfig,
-  updateConfigList,
-  appendToConfigList,
-  removeFromConfigList,
   updateForecastEntries,
   updateForecast3DEntries,
   updateWeatherData,
@@ -35,7 +29,7 @@ import {
   updateStocksData,
   getTempUnit,
 } from '../state';
-import type { CalendarEvent, HabitEntry, StockDuration } from '@infobento/core';
+import type { StockDuration } from '@infobento/core';
 import { STOCK_DURATIONS, DEFAULT_STOCK_DURATION } from '@infobento/core';
 import { propagateLocationToEmptyBoxes, detectLocationByIP } from '../geolocation.js';
 import {
@@ -44,7 +38,6 @@ import {
   fetchWeather,
   fetchQuote,
   fetchHoroscope,
-  fetchJoke,
   fetchOnThisDay,
   fetchStocks,
   fetchSunTimes,
@@ -782,63 +775,6 @@ function buildHoroscopeForm(box: EditorBox): DocumentFragment {
   return frag;
 }
 
-function buildJokeForm(box: EditorBox): DocumentFragment {
-  const frag = document.createDocumentFragment();
-  const cfg = box.config as JokeConfig;
-
-  const jokeTextarea = textareaEl(cfg.content, (v) => updateConfig(box.id, 'content', v));
-
-  const btn = document.createElement('button');
-  btn.type = 'button';
-  btn.className = 'btn-random-quote';
-  btn.textContent = 'Random Joke';
-
-  const categoriesInput = document.createElement('input');
-  categoriesInput.type = 'text';
-  categoriesInput.value = cfg.categories ?? '';
-  categoriesInput.placeholder = 'Programming, Pun, Misc, Dark, Spooky, Christmas';
-
-  const doFetch = async (): Promise<void> => {
-    btn.disabled = true;
-    btn.textContent = 'Fetching\u2026';
-    const result = await fetchJoke(categoriesInput.value);
-    if (result) {
-      jokeTextarea.value = result.text;
-      updateConfig(box.id, 'content', result.text);
-      updateConfig(box.id, 'category', result.category);
-      btn.textContent = 'Random Joke';
-    } else {
-      btn.textContent = categoriesInput.value.trim()
-        ? 'No joke for those categories'
-        : 'Fetch failed';
-      setTimeout(() => {
-        btn.textContent = 'Random Joke';
-      }, 2000);
-    }
-    btn.disabled = false;
-  };
-
-  categoriesInput.addEventListener('input', () => {
-    updateConfig(box.id, 'categories', categoriesInput.value);
-    debouncedFetch(box.id, doFetch);
-  });
-
-  btn.addEventListener('click', () => {
-    void doFetch();
-  });
-
-  frag.appendChild(makeField('Joke Text', jokeTextarea, validateRequired('a joke')));
-  frag.appendChild(makeField('Categories (optional)', categoriesInput));
-  frag.appendChild(btn);
-
-  // Auto-fetch when freshly added (empty body)
-  if (!cfg.content.trim()) {
-    void doFetch();
-  }
-
-  return frag;
-}
-
 const ONTHISDAY_CATEGORIES: Array<[string, string]> = [
   ['events', 'Events'],
   ['births', 'Births'],
@@ -906,57 +842,7 @@ function buildOnThisDayForm(box: EditorBox): DocumentFragment {
   return frag;
 }
 
-// -- List editor helper -----------------------------------------------------
-
-/**
- * Build a generic add/remove row editor. The caller renders the row's input
- * fields; this helper handles list framing, the remove button per row, and
- * an Add button that triggers a form rebuild via setState.
- */
-function buildListField(
-  label: string,
-  rowCount: number,
-  buildRow: (idx: number) => HTMLElement,
-  onAdd: () => void,
-  onRemove: (idx: number) => void,
-  addLabel: string,
-): HTMLElement {
-  const wrapper = document.createElement('div');
-  wrapper.className = 'field';
-  const labelEl = document.createElement('label');
-  labelEl.textContent = label;
-  wrapper.appendChild(labelEl);
-
-  const list = document.createElement('div');
-  list.className = 'list-editor';
-  for (let idx = 0; idx < rowCount; idx++) {
-    const row = document.createElement('div');
-    row.className = 'list-editor-row';
-    row.appendChild(buildRow(idx));
-    const removeBtn = document.createElement('button');
-    removeBtn.type = 'button';
-    removeBtn.className = 'btn-list-remove';
-    removeBtn.textContent = '\u2715';
-    const removeIdx = idx;
-    removeBtn.addEventListener('click', () => {
-      onRemove(removeIdx);
-    });
-    row.appendChild(removeBtn);
-    list.appendChild(row);
-  }
-  wrapper.appendChild(list);
-
-  const addBtn = document.createElement('button');
-  addBtn.type = 'button';
-  addBtn.className = 'btn-list-add';
-  addBtn.textContent = `+ ${addLabel}`;
-  addBtn.addEventListener('click', onAdd);
-  wrapper.appendChild(addBtn);
-
-  return wrapper;
-}
-
-// -- Stocks / Calendar / Habit forms ----------------------------------------
+// -- Stocks form ------------------------------------------------------------
 
 function buildStocksForm(box: EditorBox): DocumentFragment {
   const frag = document.createDocumentFragment();
@@ -1022,110 +908,6 @@ function buildStocksForm(box: EditorBox): DocumentFragment {
   return frag;
 }
 
-function buildCalendarForm(box: EditorBox): DocumentFragment {
-  const frag = document.createDocumentFragment();
-  const cfg = box.config as CalendarConfig;
-
-  const renderRow = (idx: number): HTMLElement => {
-    const row = document.createElement('div');
-    row.className = 'list-row-fields';
-    const event = cfg.events[idx];
-    if (!event) return row;
-
-    const time = inputEl('text', event.time ?? '', (v) => {
-      const next = cfg.events.map((e, i) => (i === idx ? { ...e, time: v } : e));
-      updateConfigList<CalendarEvent>(box.id, 'events', next);
-    });
-    time.placeholder = '14:00';
-    time.style.width = '5rem';
-
-    const title = inputEl('text', event.title, (v) => {
-      const next = cfg.events.map((e, i) => (i === idx ? { ...e, title: v } : e));
-      updateConfigList<CalendarEvent>(box.id, 'events', next);
-    });
-    title.placeholder = 'Event title';
-
-    row.appendChild(time);
-    row.appendChild(title);
-    return row;
-  };
-
-  frag.appendChild(
-    buildListField(
-      'Events',
-      cfg.events.length,
-      renderRow,
-      () => appendToConfigList<CalendarEvent>(box.id, 'events', { title: '', time: '' }),
-      (idx) => removeFromConfigList(box.id, 'events', idx),
-      'Add event',
-    ),
-  );
-  return frag;
-}
-
-function buildHabitForm(box: EditorBox): DocumentFragment {
-  const frag = document.createDocumentFragment();
-  const cfg = box.config as HabitConfig;
-
-  const renderRow = (idx: number): HTMLElement => {
-    const row = document.createElement('div');
-    row.className = 'list-row-fields';
-    const habit = cfg.habits[idx];
-    if (!habit) return row;
-
-    const checkbox = document.createElement('input');
-    checkbox.type = 'checkbox';
-    checkbox.checked = habit.completedToday;
-    checkbox.title = 'Completed today';
-    checkbox.addEventListener('change', () => {
-      const next = cfg.habits.map((h, i) =>
-        i === idx ? { ...h, completedToday: checkbox.checked } : h,
-      );
-      updateConfigList<HabitEntry>(box.id, 'habits', next);
-    });
-
-    const name = inputEl('text', habit.name, (v) => {
-      const next = cfg.habits.map((h, i) => (i === idx ? { ...h, name: v } : h));
-      updateConfigList<HabitEntry>(box.id, 'habits', next);
-    });
-    name.placeholder = 'Habit name';
-
-    const streak = document.createElement('input');
-    streak.type = 'number';
-    streak.min = '0';
-    streak.value = String(habit.streak);
-    streak.style.width = '4rem';
-    streak.title = 'Streak (days)';
-    streak.addEventListener('input', () => {
-      const n = Math.max(0, parseInt(streak.value, 10) || 0);
-      const next = cfg.habits.map((h, i) => (i === idx ? { ...h, streak: n } : h));
-      updateConfigList<HabitEntry>(box.id, 'habits', next);
-    });
-
-    row.appendChild(checkbox);
-    row.appendChild(name);
-    row.appendChild(streak);
-    return row;
-  };
-
-  frag.appendChild(
-    buildListField(
-      'Habits',
-      cfg.habits.length,
-      renderRow,
-      () =>
-        appendToConfigList<HabitEntry>(box.id, 'habits', {
-          name: '',
-          streak: 0,
-          completedToday: false,
-        }),
-      (idx) => removeFromConfigList(box.id, 'habits', idx),
-      'Add habit',
-    ),
-  );
-  return frag;
-}
-
 // -- Registry ---------------------------------------------------------------
 
 const formBuilders: Record<EditorBoxType, (box: EditorBox) => DocumentFragment> = {
@@ -1142,11 +924,8 @@ const formBuilders: Record<EditorBoxType, (box: EditorBox) => DocumentFragment> 
   aqi: buildAQIForm,
   progress: buildProgressForm,
   horoscope: buildHoroscopeForm,
-  joke: buildJokeForm,
   onthisday: buildOnThisDayForm,
   stocks: buildStocksForm,
-  calendar: buildCalendarForm,
-  habit: buildHabitForm,
 };
 
 export function buildConfigForm(box: EditorBox): DocumentFragment {

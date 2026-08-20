@@ -24,10 +24,9 @@ import {
   validateConfig,
 } from './index.js';
 import { DISPLAY_WIDTH, DISPLAY_HEIGHT } from '@infobento/core';
-import { pickFallbackQuote, pickFallbackJoke, pickFallbackHoroscope } from './fallback/index.js';
+import { pickFallbackQuote, pickFallbackHoroscope } from './fallback/index.js';
 import {
   fetchIpLocation,
-  fetchJoke,
   fetchQuote,
   fetchHoroscope,
   fetchStocks,
@@ -85,7 +84,6 @@ app.get('/api/box-types', (c) => {
     { type: 'weather', label: 'Weather', requiresAuth: false },
     { type: 'quote', label: 'Daily Quote', requiresAuth: false },
     { type: 'horoscope', label: 'Horoscope', requiresAuth: false },
-    { type: 'joke', label: 'Joke', requiresAuth: false },
     { type: 'onthisday', label: 'On This Day', requiresAuth: false },
     { type: 'stocks', label: 'Stocks', requiresAuth: false },
     { type: 'countdown', label: 'Countdown', requiresAuth: false },
@@ -166,10 +164,10 @@ app.post('/api/render-dual', async (c) => {
   });
 });
 
-// On-this-day / joke / horoscope / stocks / quote are thin wrappers over
+// On-this-day / horoscope / stocks / quote are thin wrappers over
 // @infobento/data (RFC 0001 Phase 1). The data layer performs the upstream call
 // and returns null on failure; the route applies the bundled fallback
-// (quote/joke/horoscope) or maps null to an error (onthisday/stocks). Request
+// (quote/horoscope) or maps null to an error (onthisday/stocks). Request
 // validation (400s) stays here using the validators exported from the data
 // package, so the data fetchers can be reused at pull-time hydration.
 
@@ -179,19 +177,6 @@ app.get('/api/onthisday', async (c) => {
     return c.json({ error: 'Failed to fetch On This Day entry' }, 502);
   }
   return c.json({ text: result.text, year: result.year, category: result.category });
-});
-
-app.get('/api/joke', async (c) => {
-  const raw = (c.req.query('categories') ?? '').trim();
-  const joke = await fetchJoke(raw);
-  if (joke) {
-    return c.json({ text: joke.text, category: joke.category });
-  }
-  const fb = pickFallbackJoke(raw);
-  if (fb) {
-    return c.json({ text: fb.text, category: fb.category, fallback: true });
-  }
-  return c.json({ error: 'No joke found matching the criteria' }, 502);
 });
 
 app.get('/api/horoscope', async (c) => {

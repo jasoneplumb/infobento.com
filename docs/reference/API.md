@@ -81,7 +81,7 @@ rendering endpoints. Undocumented, all added after this file was written:
 | Account                  | `GET /api/me/devices`, `DELETE /api/device/:id/owner`                                                    |
 | Device (firmware-facing) | `GET /api/device/:id/{config,frame,frames}`, `PUT /api/device/:id/config`, `POST /api/device/:id/forget` |
 | Rendering                | `POST /api/render-dual`                                                                                  |
-| Data proxies             | `GET /api/{quote,joke,horoscope,stocks,onthisday,geolocate}`                                             |
+| Data proxies             | `GET /api/{quote,horoscope,stocks,onthisday,geolocate}`                                                  |
 
 Authoritative source is `packages/api/src/server.ts`. Documenting these matters most for
 self-hosters, since the auth env vars in the README are useless without the routes they

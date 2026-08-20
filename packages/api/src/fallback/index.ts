@@ -1,15 +1,13 @@
 /**
- * Bundled local fallback for quote / joke / horoscope API endpoints.
+ * Bundled local fallback for the quote / horoscope API endpoints.
  *
  * When the upstream provider returns a non-2xx response, the proxy falls back
  * to a random matching entry from these in-memory sets. Decided 2026-04-25
  * after we hit 3 different provider outages in a single session (quotable.io
- * main domain dead, JokeAPI hyphen quirk, Yahoo Finance 429s).
+ * main domain dead, Yahoo Finance 429s).
  *
  * Coverage:
  *   - quotes:    ~243 entries from quotable.kurokeita.dev mirror
- *   - jokes:     ~37 entries from JokeAPI (Programming/Misc/Pun — Dark/Spooky/
- *                Christmas + safe-mode return empty upstream)
  *   - horoscopes: 30 evergreen sign-agnostic readings, stamped with the
  *                 requested sign on lookup
  *
@@ -29,18 +27,9 @@ interface QuoteFallback {
   readonly tags: readonly string[];
 }
 
-interface JokeFallback {
-  readonly text: string;
-  readonly category: string;
-}
-
 const quotes: readonly QuoteFallback[] = JSON.parse(
   readFileSync(resolve(__dirname, 'quotes.json'), 'utf8'),
 ) as QuoteFallback[];
-
-const jokes: readonly JokeFallback[] = JSON.parse(
-  readFileSync(resolve(__dirname, 'jokes.json'), 'utf8'),
-) as JokeFallback[];
 
 const horoscopes: readonly string[] = JSON.parse(
   readFileSync(resolve(__dirname, 'horoscopes.json'), 'utf8'),
@@ -70,28 +59,6 @@ export function pickFallbackQuote(tagsCsv?: string): { text: string; author: str
   const pick = pickRandom(pool);
   if (!pick) return null;
   return { text: pick.text, author: pick.author };
-}
-
-/**
- * Pick a random fallback joke, optionally filtered by categories (case-
- * insensitive). Falls back to the full set if no entry matches.
- */
-export function pickFallbackJoke(
-  categoriesCsv?: string,
-): { text: string; category: string } | null {
-  const requested = (categoriesCsv ?? '')
-    .split(',')
-    .map((c) => c.trim().toLowerCase())
-    .filter((c) => c.length > 0);
-
-  let pool: readonly JokeFallback[] = jokes;
-  if (requested.length > 0 && !requested.includes('any')) {
-    const match = jokes.filter((j) => requested.includes(j.category.toLowerCase()));
-    if (match.length > 0) pool = match;
-  }
-  const pick = pickRandom(pool);
-  if (!pick) return null;
-  return { text: pick.text, category: pick.category };
 }
 
 /**

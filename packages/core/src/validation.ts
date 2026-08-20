@@ -145,39 +145,11 @@ const StocksBoxConfigSchema = z.object({
   data: StockDataSchema.optional(),
 });
 
-const CalendarEventSchema = z.object({
-  title: z.string().min(1),
-  time: z.string().optional(),
-});
-
-const CalendarBoxConfigSchema = z.object({
-  type: z.literal('calendar'),
-  events: z.array(CalendarEventSchema).optional(),
-});
-
-const HabitEntrySchema = z.object({
-  name: z.string().min(1),
-  streak: z.number().int().min(0),
-  completedToday: z.boolean(),
-});
-
-const HabitBoxConfigSchema = z.object({
-  type: z.literal('habit'),
-  habits: z.array(HabitEntrySchema).min(1, 'At least one habit is required'),
-});
-
 const HoroscopeBoxConfigSchema = z.object({
   type: z.literal('horoscope'),
   sign: z.string().min(1, 'Sign is required'),
   text: z.string().min(1, 'Text is required'),
   date: z.string().optional(),
-});
-
-const JokeBoxConfigSchema = z.object({
-  type: z.literal('joke'),
-  text: z.string().min(1, 'Text is required'),
-  category: z.string().optional(),
-  categories: z.string().optional(),
 });
 
 const OnThisDayBoxConfigSchema = z.object({
@@ -264,24 +236,9 @@ const StocksBentoBoxSchema = BentoBoxBaseSchema.extend({
   config: StocksBoxConfigSchema.optional(),
 });
 
-const CalendarBentoBoxSchema = BentoBoxBaseSchema.extend({
-  type: z.literal('calendar'),
-  config: CalendarBoxConfigSchema.optional(),
-});
-
-const HabitBentoBoxSchema = BentoBoxBaseSchema.extend({
-  type: z.literal('habit'),
-  config: HabitBoxConfigSchema.optional(),
-});
-
 const HoroscopeBentoBoxSchema = BentoBoxBaseSchema.extend({
   type: z.literal('horoscope'),
   config: HoroscopeBoxConfigSchema.optional(),
-});
-
-const JokeBentoBoxSchema = BentoBoxBaseSchema.extend({
-  type: z.literal('joke'),
-  config: JokeBoxConfigSchema.optional(),
 });
 
 const OnThisDayBentoBoxSchema = BentoBoxBaseSchema.extend({
@@ -303,10 +260,7 @@ const BentoBoxSchema = z.discriminatedUnion('type', [
   AQIBentoBoxSchema,
   ProgressBentoBoxSchema,
   StocksBentoBoxSchema,
-  CalendarBentoBoxSchema,
-  HabitBentoBoxSchema,
   HoroscopeBentoBoxSchema,
-  JokeBentoBoxSchema,
   OnThisDayBentoBoxSchema,
 ]);
 

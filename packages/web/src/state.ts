@@ -14,8 +14,6 @@ import type {
   AQIData,
   StockData,
   StockDuration,
-  CalendarEvent,
-  HabitEntry,
 } from '@infobento/core';
 import { DEFAULT_STOCK_DURATION, DEVICE_PROFILES, DEFAULT_PROFILE_ID } from '@infobento/core';
 import { DEFAULT_REFRESHES_PER_DAY, MAX_REFRESHES_PER_DAY } from '@infobento/core';
@@ -97,12 +95,6 @@ export interface HoroscopeConfig {
   date: string;
 }
 
-export interface JokeConfig {
-  content: string;
-  category?: string;
-  categories?: string; // user's CSV input filter
-}
-
 export interface OnThisDayConfig {
   content: string;
   year?: string;
@@ -113,14 +105,6 @@ export interface StocksConfig {
   symbol: string;
   duration?: StockDuration;
   data?: StockData;
-}
-
-export interface CalendarConfig {
-  events: CalendarEvent[];
-}
-
-export interface HabitConfig {
-  habits: HabitEntry[];
 }
 
 export type EditorBoxConfig =
@@ -137,11 +121,8 @@ export type EditorBoxConfig =
   | AQIConfig
   | ProgressConfig
   | HoroscopeConfig
-  | JokeConfig
   | OnThisDayConfig
-  | StocksConfig
-  | CalendarConfig
-  | HabitConfig;
+  | StocksConfig;
 
 export type EditorBoxType = Extract<
   BentoBoxType,
@@ -158,11 +139,8 @@ export type EditorBoxType = Extract<
   | 'aqi'
   | 'progress'
   | 'horoscope'
-  | 'joke'
   | 'onthisday'
   | 'stocks'
-  | 'calendar'
-  | 'habit'
 >;
 
 export interface EditorBox {
@@ -217,11 +195,8 @@ const DEFAULTS: Record<EditorBoxType, () => EditorBoxConfig> = {
   aqi: () => ({ city: '' }),
   progress: () => ({ progressLabel: 'Year', startDate: '', endDate: '' }),
   horoscope: () => ({ sign: '', content: '', date: '' }),
-  joke: () => ({ content: '' }),
   onthisday: () => ({ content: '', category: 'events' }),
   stocks: () => ({ symbol: '', duration: DEFAULT_STOCK_DURATION }),
-  calendar: () => ({ events: [] }),
-  habit: () => ({ habits: [{ name: '', streak: 0, completedToday: false }] }),
 };
 
 export const BOX_TYPE_LABELS: Record<EditorBoxType, string> = {
@@ -238,11 +213,8 @@ export const BOX_TYPE_LABELS: Record<EditorBoxType, string> = {
   aqi: 'Air Quality',
   progress: 'Progress',
   horoscope: 'Horoscope',
-  joke: 'Joke',
   onthisday: 'On This Day',
   stocks: 'Stocks',
-  calendar: 'Calendar',
-  habit: 'Habits',
 };
 
 /**
@@ -254,9 +226,9 @@ export const CHIP_GROUPS: ReadonlyArray<{
   readonly types: readonly EditorBoxType[];
 }> = [
   { label: 'Weather & Sky', types: ['weather', 'forecast', 'forecast3d', 'aqi', 'moon', 'sun'] },
-  { label: 'Time & Dates', types: ['date', 'countdown', 'progress', 'calendar'] },
-  { label: 'Personal', types: ['habit', 'stocks'] },
-  { label: 'Fun & Discovery', types: ['quote', 'joke', 'horoscope', 'onthisday'] },
+  { label: 'Time & Dates', types: ['date', 'countdown', 'progress'] },
+  { label: 'Markets', types: ['stocks'] },
+  { label: 'Fun & Discovery', types: ['quote', 'horoscope', 'onthisday'] },
   { label: 'Utility', types: ['text', 'qr'] },
 ];
 
@@ -671,33 +643,6 @@ export function updateConfig(id: number, key: string, value: string | number | b
   renderPreview();
 }
 
-/** In-row list edits — does not rebuild the form (keeps input focus). */
-export function updateConfigList<T>(id: number, key: string, items: T[]): void {
-  const box = findBox(id);
-  if (!box) return;
-  (box.config as unknown as Record<string, T[]>)[key] = items;
-  renderPreview();
-}
-
-/** Add/remove rows — uses setState so the form rebuilds with the new row count. */
-export function appendToConfigList<T>(id: number, key: string, item: T): void {
-  setState(() => {
-    const box = findBox(id);
-    if (!box) return;
-    const list = (box.config as unknown as Record<string, T[]>)[key];
-    if (Array.isArray(list)) list.push(item);
-  });
-}
-
-export function removeFromConfigList(id: number, key: string, idx: number): void {
-  setState(() => {
-    const box = findBox(id);
-    if (!box) return;
-    const list = (box.config as unknown as Record<string, unknown[]>)[key];
-    if (Array.isArray(list) && idx >= 0 && idx < list.length) list.splice(idx, 1);
-  });
-}
-
 export function updateWeatherData(id: number, data: WeatherData): void {
   const box = findBox(id);
   if (!box || box.type !== 'weather') return;
@@ -913,6 +858,40 @@ function persistToLocalStorage(): void {
   }
 }
 
+/**
+ * Box types this build knows how to render and edit. Derived from
+ * BOX_TYPE_LABELS so it can never drift from the editor's own type list.
+ */
+const KNOWN_BOX_TYPES: ReadonlySet<string> = new Set(Object.keys(BOX_TYPE_LABELS));
+
+/**
+ * intent: Narrow one raw array element to something with a known box type
+ * method: Explicit object + string checks before the Set lookup
+ * why: The input is untrusted JSON (localStorage, a device's stored config, an
+ *   imported file), so an element can be null or a primitive. Reading `.type`
+ *   off those throws, and the BentoConfig call site sits upstream of Zod, which
+ *   used to absorb any element shape. A TypeScript cast would not help — it is
+ *   erased at runtime.
+ */
+function hasKnownBoxType(box: unknown): box is { type: string } {
+  if (typeof box !== 'object' || box === null) return false;
+  const type: unknown = (box as { type?: unknown }).type;
+  return typeof type === 'string' && KNOWN_BOX_TYPES.has(type);
+}
+
+/**
+ * intent: Drop boxes whose type this build no longer knows
+ * method: Filter against KNOWN_BOX_TYPES via the hasKnownBoxType guard
+ * why: A config saved before a box type was removed still names it. Left in,
+ *   one stale box takes down everything around it — Zod rejects the whole
+ *   config on the device-config path, and `formBuilders[type]` is undefined on
+ *   the localStorage path, so buildConfigForm throws. Dropping the stale box
+ *   loses only that box.
+ */
+export function dropUnknownBoxTypes<T extends { type: string }>(boxes: readonly unknown[]): T[] {
+  return boxes.filter(hasKnownBoxType) as T[];
+}
+
 function hydrateBoxes(
   raw: Array<{
     type: string;
@@ -922,7 +901,11 @@ function hydrateBoxes(
     splitRatio?: number;
   }>,
 ): EditorBox[] {
-  const boxes: EditorBox[] = raw.map((b) => {
+  // Runs for BOTH loadConfig paths. The version-2 path (localStorage restore,
+  // file import) reaches here directly and never passes the BentoConfig
+  // pre-filter, so this is the only guard standing between a stale box type and
+  // `formBuilders[type]` being undefined in buildConfigForm.
+  const boxes: EditorBox[] = dropUnknownBoxTypes<(typeof raw)[number]>(raw).map((b) => {
     // config comes from persisted JSON as a flat string map; the runtime shape
     // matches one of the EditorBoxConfig union members it was serialized from, so
     // narrow through `unknown` at this deserialization boundary.
@@ -1037,24 +1020,33 @@ export function loadConfig(parsed: unknown): boolean {
   // config_json stores): no `version` field but a boxes array. Validate it, then
   // convert to the version-2 editor shape the rest of this function hydrates.
   if (!('version' in obj) && Array.isArray(obj.boxes)) {
-    if (!validateBentoConfig(obj).valid) return false;
-    return loadConfig(fromBentoConfig(obj as unknown as BentoConfig));
+    // Strip stale box types BEFORE validating: the Zod union only admits types
+    // this build still ships, so one leftover box would otherwise fail the
+    // whole config and hide every remaining box from its owner.
+    const boxes = dropUnknownBoxTypes(obj.boxes as Array<{ type: string }>);
+    const cleaned = boxes.length === obj.boxes.length ? obj : { ...obj, boxes };
+    if (!validateBentoConfig(cleaned).valid) return false;
+    return loadConfig(fromBentoConfig(cleaned as unknown as BentoConfig));
   }
 
   if (!('version' in obj)) return false;
 
   // Version 2: single boxes array
   if (obj.version === 2 && Array.isArray(obj.boxes)) {
+    const raw = obj.boxes as Array<{
+      type: string;
+      label: string;
+      config: Record<string, string>;
+      split?: string;
+      splitRatio?: number;
+    }>;
+    const hydrated = hydrateBoxes(raw);
+    // Every box was stale or malformed. Report failure instead of committing an
+    // empty layout: importJSON only alerts when loadConfig returns false, so
+    // writing [] here would wipe the user's boxes and look like a clean import.
+    if (raw.length > 0 && hydrated.length === 0) return false;
     setState((s) => {
-      s.boxes = hydrateBoxes(
-        obj.boxes as Array<{
-          type: string;
-          label: string;
-          config: Record<string, string>;
-          split?: string;
-          splitRatio?: number;
-        }>,
-      );
+      s.boxes = hydrated;
       if (typeof obj.showHeaders === 'boolean') s.showHeaders = obj.showHeaders;
       if (typeof obj.fontSize === 'number') s.fontSize = obj.fontSize;
       if (typeof obj.fontWeight === 'number') s.fontWeight = clampFontWeight(obj.fontWeight);
@@ -1080,8 +1072,12 @@ export function loadConfig(parsed: unknown): boolean {
     const dBoxes = Array.isArray(v1.D) ? v1.D : v1.D?.boxes;
     const pBoxes = Array.isArray(v1.P) ? v1.P : v1.P?.boxes;
     if (!Array.isArray(dBoxes) || !Array.isArray(pBoxes)) return false;
+    const raw = [...dBoxes, ...pBoxes];
+    const hydrated = hydrateBoxes(raw);
+    // Same silent-wipe guard as the version-2 branch above.
+    if (raw.length > 0 && hydrated.length === 0) return false;
     setState((s) => {
-      s.boxes = hydrateBoxes([...dBoxes, ...pBoxes]);
+      s.boxes = hydrated;
     });
     return true;
   }

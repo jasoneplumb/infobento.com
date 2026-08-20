@@ -32,7 +32,6 @@ export {
   type QuoteResult,
   type FetchQuoteOptions,
 } from './quote.js';
-export { fetchJoke, resolveJokeCategories, type JokeResult } from './joke.js';
 export { fetchHoroscope, VALID_ZODIAC_SIGNS, type HoroscopeResult } from './horoscope.js';
 export { fetchOnThisDay, VALID_ONTHISDAY_CATEGORIES, type OnThisDayResult } from './onthisday.js';
 export { fetchStocks, isValidStockSymbol, STOCK_RANGE_MAP, type StocksResult } from './stocks.js';

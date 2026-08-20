@@ -66,20 +66,6 @@ describe('toBentoBox / fromBentoBox round-trip', () => {
     expect(out.config).toMatchObject({ tags: 'wisdom, life' });
   });
 
-  it('joke: persists the categories filter (distinct from the returned category)', () => {
-    const out = roundTrip({
-      id: 42,
-      type: 'joke',
-      label: 'Joke',
-      config: {
-        content: 'A byte walks into a bar',
-        category: 'Programming',
-        categories: 'Programming, Pun',
-      },
-    });
-    expect(out.config).toMatchObject({ categories: 'Programming, Pun' });
-  });
-
   it('preserves split layout markers (side + non-default ratio)', () => {
     const out = roundTrip({
       id: 5,

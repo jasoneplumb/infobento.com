@@ -14,7 +14,7 @@ A solar-powered eInk bento dashboard that sits on your counter, desk, or shelf. 
 
 ## Product Overview
 
-InfoBento is a calm surface for the room. The information you check most often — weather, the next thing on your calendar, days until something you're looking forward to, air-quality status from cloud data — sits there in sharp eInk, visible at a glance from across the room. The display is a multi-box bento dashboard (up to 10 boxes, multi-column, with big glanceable numbers). Configure once on a web page; it sips light from the window and refreshes on its own.
+InfoBento is a calm surface for the room. The information you check most often — whether it's going to rain, air-quality status from cloud data, days until something you're looking forward to — sits there in sharp eInk, visible at a glance from across the room. The display is a multi-box bento dashboard (up to 10 boxes, multi-column, with big glanceable numbers). Configure once on a web page; it sips light from the window and refreshes on its own.
 
 Tidbyt and TRMNL are the ambient-display references. Against Tidbyt ($189), the contrast is the display itself: calm eInk rather than a glowing LED matrix. Against TRMNL ($139), also eInk and also battery-powered, the contrast is that InfoBento harvests its own power from window light instead of asking for a recharge every few months — on a smaller panel, at a lower price.
 
@@ -126,11 +126,11 @@ Priced against distributor listings on 2026-08-19: the panel is $26.82 at single
 | **Environment**   | Sunrise/sunset, air quality (AQI), moon phase    | Open-Meteo cloud data + local computation |
 | **Personal**      | Countdown, year progress, date                   | Local computation                         |
 | **Content**       | Quote, text                                      | quotable mirror (free) / user input       |
-| **Utility**       | QR code, calendar, habits                        | User input                                |
+| **Utility**       | QR code                                          | User input                                |
 | **Data**          | Stocks                                           | Yahoo Finance (free)                      |
-| **Entertainment** | Horoscope, joke, on this day                     | api-ninjas / JokeAPI / Wikipedia          |
+| **Entertainment** | Horoscope, on this day                           | api-ninjas / Wikipedia                    |
 
-The AQI box draws Open-Meteo cloud air-quality data — a cloud data box like weather, not a local sensor reading. All box types work without accounts, API keys, or subscriptions. The 5.76" panel hosts a multi-box bento dashboard (up to 10 boxes, multi-column) with big glanceable numbers. Quote, joke, and horoscope responses fall back to a bundled local set on upstream failure (≈50KB built-in).
+The AQI box draws Open-Meteo cloud air-quality data — a cloud data box like weather, not a local sensor reading. All box types work without accounts, API keys, or subscriptions. The 5.76" panel hosts a multi-box bento dashboard (up to 10 boxes, multi-column) with big glanceable numbers. Quote and horoscope responses fall back to a bundled local set on upstream failure (≈50KB built-in).
 
 ---
 

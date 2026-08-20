@@ -1,7 +1,7 @@
 /**
  * Intent: Render an "On This Day" bento box — year + category header, wrapped event text
  * Context: Called by the main render() dispatcher for boxes with type 'onthisday'
- * Pattern: Mirrors the quote/horoscope/joke layout — header line in light grey, body in dark
+ * Pattern: Mirrors the quote/horoscope layout — header line in light grey, body in dark
  */
 
 import type { FrameBuffer } from '../index.js';

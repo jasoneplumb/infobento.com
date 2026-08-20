@@ -34,7 +34,6 @@ function deps(overrides: Partial<HydrateDeps> = {}): HydrateDeps {
     fetchHoroscope: async () => null,
     fetchOnThisDay: async () => null,
     fetchQuote: async () => null,
-    fetchJoke: async () => null,
     ...overrides,
   };
 }
@@ -293,29 +292,6 @@ describe('hydrateConfig — text-bearing providers (keep baked text on failure)'
     const box = out.boxes[0];
     if (box?.type !== 'quote') throw new Error('unreachable');
     expect(box.config?.text).toBe('SEED');
-  });
-
-  it('re-fetches a random joke with the persisted categories filter', async () => {
-    let seenCategories: string | undefined;
-    const out = await hydrateConfig(
-      oneBox({
-        id: 'j',
-        type: 'joke',
-        config: { type: 'joke', text: 'SEED', categories: 'Programming' },
-      }),
-      deps({
-        fetchJoke: async (categories) => {
-          seenCategories = categories;
-          return { text: 'FRESH', category: 'Programming' };
-        },
-      }),
-    );
-    const box = out.boxes[0];
-    if (box?.type !== 'joke') throw new Error('unreachable');
-    expect(seenCategories).toBe('Programming');
-    expect(box.config?.text).toBe('FRESH');
-    expect(box.config?.category).toBe('Programming');
-    expect(box.config?.categories).toBe('Programming'); // request filter preserved
   });
 });
 
