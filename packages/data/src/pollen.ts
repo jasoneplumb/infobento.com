@@ -68,10 +68,14 @@ function dominantAllergen(current: OpenMeteoPollen['current']): PollenData | nul
   let sawReading = false;
 
   for (const species of SPECIES) {
-    const count = current[species.field];
-    if (count == null) continue;
+    const raw = current[species.field];
+    if (raw == null) continue;
     sawReading = true;
 
+    // Round BEFORE classifying. The box displays an integer count, so banding
+    // the raw float lets the two disagree at a boundary — 50.1 grains of
+    // ragweed would render as "50 Very High" when 50 is High.
+    const count = Math.round(raw);
     const band = bandIndex(count, species.bands);
     const ratio = count / species.bands[2];
     if (!best || band > best.band || (band === best.band && ratio > best.ratio)) {
@@ -82,13 +86,14 @@ function dominantAllergen(current: OpenMeteoPollen['current']): PollenData | nul
   // No species reported at all — out of coverage, not a quiet pollen day.
   if (!sawReading || !best) return null;
 
-  // In coverage but everything reads zero: say so plainly instead of naming an
-  // arbitrary species at zero grains.
+  // In coverage but nothing rounds above zero: say so plainly instead of naming
+  // an arbitrary species at zero grains. Tested against the rounded count, so a
+  // sub-0.5 trace reads as None rather than "Birch 0".
   if (best.count === 0) return { allergen: 'None', count: 0, level: 'Low' };
 
   return {
     allergen: best.species.label,
-    count: Math.round(best.count),
+    count: best.count,
     level: LEVELS[best.band] as string,
   };
 }

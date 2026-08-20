@@ -34,8 +34,8 @@ describe('fetchPollen', () => {
   });
 
   it('ranks by risk band, not by raw grain count', async () => {
-    // 50 grains of ragweed is Very High; 90 grains of birch is only Moderate.
-    // A naive max-count pick would wrongly surface birch here.
+    // 50 grains of ragweed is High (the band is ≤50); 90 grains of birch is
+    // only Moderate. A naive max-count pick would wrongly surface birch here.
     mockByUrl({ current: { birch_pollen: 90, ragweed_pollen: 50 } });
     expect(await fetchPollen('Berlin')).toEqual({
       allergen: 'Ragweed',
@@ -67,6 +67,24 @@ describe('fetchPollen', () => {
   it('returns null when the payload carries no pollen fields at all', async () => {
     mockByUrl({ current: {} });
     expect(await fetchPollen('Portland')).toBeNull();
+  });
+
+  it('bands the rounded count, not the raw float', async () => {
+    // 50.1 rounds to 50, which is High on the grass/weed scale (≤50).
+    // Banding the float would label it Very High while displaying 50.
+    mockByUrl({ current: { ragweed_pollen: 50.1 } });
+    expect(await fetchPollen('Berlin')).toEqual({
+      allergen: 'Ragweed',
+      count: 50,
+      level: 'High',
+    });
+  });
+
+  it('treats a sub-0.5 trace as None, not as a named species at zero', async () => {
+    // 0.3 is not === 0, so a strict zero check would let it through and emit
+    // "Birch 0 Low" — the arbitrary-species-at-zero case the guard prevents.
+    mockByUrl({ current: { birch_pollen: 0.3 } });
+    expect(await fetchPollen('Berlin')).toEqual({ allergen: 'None', count: 0, level: 'Low' });
   });
 
   it('rounds fractional grain counts', async () => {

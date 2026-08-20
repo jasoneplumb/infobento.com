@@ -727,10 +727,11 @@ function buildPollenForm(box: EditorBox): DocumentFragment {
       updatePollenData(box.id, data);
       statusEl.textContent = describe(data);
     } else {
-      // Distinct from a fetch failure: the upstream serves pollen for Europe
-      // during pollen season only, so a valid location can legitimately have
-      // no data. Saying so beats a bare "fetch failed".
-      statusEl.textContent = 'No pollen data — Europe only, during pollen season.';
+      // fetchPollen returns null for two different reasons — the location
+      // didn't geocode, or it geocoded but sits outside Europe / the season.
+      // The form can't tell them apart, so name both rather than asserting the
+      // coverage one and misleading someone who simply typo'd their city.
+      statusEl.textContent = 'No pollen data — location not found, or outside Europe / off-season.';
     }
   };
 
