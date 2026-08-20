@@ -186,6 +186,17 @@ const OnThisDayBoxConfigSchema = z.object({
   category: z.string().optional(),
 });
 
+const HolidayDataSchema = z.object({
+  name: z.string(),
+  date: z.string(),
+});
+
+const HolidaysBoxConfigSchema = z.object({
+  type: z.literal('holidays'),
+  countryCode: z.string().min(1, 'Country code is required'),
+  data: HolidayDataSchema.optional(),
+});
+
 // --- BentoBox schema ---
 
 const BentoBoxBaseSchema = z.object({
@@ -283,6 +294,11 @@ const OnThisDayBentoBoxSchema = BentoBoxBaseSchema.extend({
   config: OnThisDayBoxConfigSchema.optional(),
 });
 
+const HolidaysBentoBoxSchema = BentoBoxBaseSchema.extend({
+  type: z.literal('holidays'),
+  config: HolidaysBoxConfigSchema.optional(),
+});
+
 const BentoBoxSchema = z.discriminatedUnion('type', [
   TextBentoBoxSchema,
   WeatherBentoBoxSchema,
@@ -301,6 +317,7 @@ const BentoBoxSchema = z.discriminatedUnion('type', [
   StocksBentoBoxSchema,
   HoroscopeBentoBoxSchema,
   OnThisDayBentoBoxSchema,
+  HolidaysBentoBoxSchema,
 ]);
 
 // --- Full config schema ---

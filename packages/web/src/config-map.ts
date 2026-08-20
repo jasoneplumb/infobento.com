@@ -33,6 +33,7 @@ import type {
   HoroscopeConfig,
   OnThisDayConfig,
   StocksConfig,
+  HolidaysConfig,
 } from './state';
 import {
   getBoxes,
@@ -210,6 +211,14 @@ export function toBentoBox(editor: EditorBox): BentoBox {
         },
       };
     }
+    case 'holidays': {
+      const c = editor.config as HolidaysConfig;
+      return {
+        ...base,
+        type: 'holidays',
+        config: { type: 'holidays', countryCode: c.countryCode, data: c.data },
+      };
+    }
     default:
       return { ...base, type: editor.type, config: undefined } as BentoBox;
   }
@@ -359,6 +368,12 @@ export function fromBentoBox(box: BentoBox): ExportBox {
         duration: cfg?.['duration'] as StocksConfig['duration'],
         data: cfg?.['data'],
       } as StocksConfig;
+      break;
+    case 'holidays':
+      config = {
+        countryCode: str(cfg?.['countryCode']),
+        data: cfg?.['data'],
+      } as HolidaysConfig;
       break;
     default:
       config = { _placeholder: '' };

@@ -20,6 +20,7 @@ import type {
   HoroscopeConfig,
   OnThisDayConfig,
   StocksConfig,
+  HolidaysConfig,
 } from '../state';
 import {
   updateConfig,
@@ -31,6 +32,7 @@ import {
   updateUVData,
   updatePollenData,
   updateStocksData,
+  updateHolidaysData,
   getTempUnit,
 } from '../state';
 import type { StockDuration, UVData, PollenData } from '@infobento/core';
@@ -48,6 +50,7 @@ import {
   fetchPollen,
   fetchSunTimes,
   fetchAirQuality,
+  fetchNextPublicHoliday,
 } from '../api';
 
 // -- Validation rules -------------------------------------------------------
@@ -1012,6 +1015,53 @@ function buildStocksForm(box: EditorBox): DocumentFragment {
   return frag;
 }
 
+function buildHolidaysForm(box: EditorBox): DocumentFragment {
+  const frag = document.createDocumentFragment();
+  const cfg = box.config as HolidaysConfig;
+
+  const statusEl = document.createElement('div');
+  statusEl.className = 'weather-status';
+  if (cfg.data) {
+    statusEl.textContent = `Next: ${cfg.data.name} (${cfg.data.date})`;
+  }
+
+  const doFetch = async (): Promise<void> => {
+    const code = cfg.countryCode.trim().toUpperCase();
+    if (!code) return;
+    statusEl.textContent = 'Fetching…';
+    const data = await fetchNextPublicHoliday(code);
+    if (data) {
+      updateHolidaysData(box.id, data);
+      statusEl.textContent = `Next: ${data.name} (${data.date})`;
+    } else {
+      statusEl.textContent = 'Country code not found or no upcoming holidays.';
+    }
+  };
+
+  const codeInput = inputEl('text', cfg.countryCode, (v) => {
+    updateConfig(box.id, 'countryCode', v.toUpperCase());
+    debouncedFetch(box.id, doFetch);
+  });
+  codeInput.placeholder = 'e.g. GB, US, DE';
+  codeInput.maxLength = 2;
+
+  frag.appendChild(
+    makeField('Country Code (ISO 3166-1 alpha-2)', codeInput, validateRequired('a country code')),
+  );
+  frag.appendChild(statusEl);
+
+  const note = document.createElement('div');
+  note.className = 'field-hint';
+  note.textContent = 'Two-letter country code. ~100 countries supported via Nager.Date.';
+  frag.appendChild(note);
+
+  if (cfg.countryCode.trim() && !cfg.data) {
+    void doFetch();
+  }
+
+  return frag;
+}
+
 // -- Registry ---------------------------------------------------------------
 
 const formBuilders: Record<EditorBoxType, (box: EditorBox) => DocumentFragment> = {
@@ -1032,6 +1082,7 @@ const formBuilders: Record<EditorBoxType, (box: EditorBox) => DocumentFragment> 
   horoscope: buildHoroscopeForm,
   onthisday: buildOnThisDayForm,
   stocks: buildStocksForm,
+  holidays: buildHolidaysForm,
 };
 
 export function buildConfigForm(box: EditorBox): DocumentFragment {

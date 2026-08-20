@@ -36,6 +36,7 @@ function deps(overrides: Partial<HydrateDeps> = {}): HydrateDeps {
     fetchHoroscope: async () => null,
     fetchOnThisDay: async () => null,
     fetchQuote: async () => null,
+    fetchNextPublicHoliday: async () => null,
     ...overrides,
   };
 }

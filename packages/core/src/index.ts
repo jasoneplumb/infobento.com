@@ -34,6 +34,8 @@ export type {
   StocksBoxConfig,
   HoroscopeBoxConfig,
   OnThisDayBoxConfig,
+  HolidayData,
+  HolidaysBoxConfig,
   BoxConfig,
   BentoBoxType,
   BentoBox,

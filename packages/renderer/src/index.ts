@@ -31,6 +31,7 @@ import { renderProgressBox } from './boxes/progress.js';
 import { renderStocksBox } from './boxes/stocks.js';
 import { renderHoroscopeBox } from './boxes/horoscope.js';
 import { renderOnThisDayBox } from './boxes/onthisday.js';
+import { renderHolidaysBox } from './boxes/holidays.js';
 import type { FrameBuffer } from './types.js';
 import type { FontMetrics } from './font-metrics.js';
 import { computeFontMetrics } from './font-metrics.js';
@@ -104,6 +105,8 @@ function renderBox(
     renderHoroscopeBox(fb, layoutBox, box.config, metrics, showHeaders);
   } else if (box.type === 'onthisday' && box.config?.type === 'onthisday') {
     renderOnThisDayBox(fb, layoutBox, box.config, metrics, showHeaders);
+  } else if (box.type === 'holidays' && box.config?.type === 'holidays') {
+    renderHolidaysBox(fb, layoutBox, box.config, metrics, undefined, showHeaders);
   } else {
     renderPlaceholderBox(fb, layoutBox);
   }
@@ -225,6 +228,9 @@ function computeMinHeight(
     const want = box.config.days ?? 3;
     const n = Math.max(1, Math.min(want, box.config.entries?.length ?? want));
     return shell(n * rowH);
+  }
+  if (box.type === 'holidays') {
+    return shell(metrics.heroSize + 2 + metrics.bodySize);
   }
   // qr is sized by the layout engine itself (QR_HEIGHT_RATIO); no hint.
   return null;

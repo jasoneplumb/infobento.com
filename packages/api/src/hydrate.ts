@@ -24,6 +24,7 @@ import type {
   PollenData,
   StockData,
   StockDuration,
+  HolidayData,
 } from '@infobento/core';
 import {
   InMemoryCache,
@@ -39,6 +40,7 @@ import {
   fetchHoroscope as dataFetchHoroscope,
   fetchOnThisDay as dataFetchOnThisDay,
   fetchQuote as dataFetchQuote,
+  fetchNextPublicHoliday as dataFetchNextPublicHoliday,
   type Cache,
   type HoroscopeResult,
   type OnThisDayResult,
@@ -65,6 +67,7 @@ export interface HydrateDeps {
   readonly fetchHoroscope: (sign: string) => Promise<HoroscopeResult | null>;
   readonly fetchOnThisDay: (category: string) => Promise<OnThisDayResult | null>;
   readonly fetchQuote: (tags: string) => Promise<QuoteResult | null>;
+  readonly fetchNextPublicHoliday: (countryCode: string) => Promise<HolidayData | null>;
 }
 
 // Per-provider freshness ceilings (RFC 0001 §3). Each is scaled down to the
@@ -85,6 +88,9 @@ const STOCKS_TTL_MS = 15 * 60 * 1000;
 const HOROSCOPE_TTL_MS = 6 * 60 * 60 * 1000;
 const ONTHISDAY_TTL_MS = 6 * 60 * 60 * 1000;
 const QUOTE_TTL_MS = 6 * 60 * 60 * 1000;
+// Holidays are stable within a day; re-fetching sooner would return identical
+// data until the holiday passes and the provider's next entry advances.
+const HOLIDAYS_TTL_MS = 12 * 60 * 60 * 1000;
 // A location's UTC offset is stable across a pull cycle; cache it like sun times.
 // Deliberately NOT scaled by the refresh interval: it's location metadata (not
 // content the user expects to rotate) and sits on the rate-limited Nominatim path.
@@ -430,6 +436,23 @@ async function hydrateBox(
       if (!res) return box;
       return { ...box, config: { ...box.config, text: res.text, author: res.author } };
     }
+    case 'holidays': {
+      if (!box.config) return box;
+      const code = box.config.countryCode.trim().toUpperCase();
+      const data = code
+        ? await resolveCached<HolidayData>(
+            deps,
+            `holidays:${code}`,
+            // Not scaled by refresh interval: holiday data changes at most once
+            // per day when a holiday passes. A 12h TTL already refreshes twice
+            // daily without hammering the upstream.
+            HOLIDAYS_TTL_MS,
+            `holidays "${code}"`,
+            () => deps.fetchNextPublicHoliday(code),
+          )
+        : undefined;
+      return { ...box, config: { ...box.config, data } };
+    }
     default:
       // Non-live boxes (text/qr/date/moon/countdown/progress) hold
       // user-authored or clock-derived content — nothing to re-fetch.
@@ -461,5 +484,6 @@ export function defaultHydrateDeps(): HydrateDeps {
     fetchHoroscope: dataFetchHoroscope,
     fetchOnThisDay: dataFetchOnThisDay,
     fetchQuote: (tags) => dataFetchQuote({ tags }),
+    fetchNextPublicHoliday: dataFetchNextPublicHoliday,
   };
 }
