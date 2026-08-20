@@ -137,13 +137,17 @@ export async function selectDevice(deviceId: string): Promise<boolean> {
     // though pairing and Wi-Fi provisioning both succeeded.
     enterCloudMode(deviceId);
     // Report the selection as failed unless the seed was actually accepted.
-    // saveNow() returns false for a swallowed network error and for a 429 whose
-    // retry is merely scheduled — in both cases the device still has no config,
-    // so claiming success would leave the user staring at a setup screen while
-    // the UI says the device is live.
-    const seeded = await saveNow();
-    if (!seeded) {
-      exitToLocalMode();
+    // saveNow() reports `failed` for a swallowed network error and for a 429
+    // whose retry is merely scheduled — in both cases the device still has no
+    // config, so claiming success would leave the user staring at a setup screen
+    // while the UI says the device is live.
+    //
+    // `exited` means saveNow already dropped us to local mode (401/404); exiting
+    // again would re-run loadFromLocalStorage() and the render hook for a
+    // visible flash.
+    const outcome = await saveNow();
+    if (outcome !== 'saved') {
+      if (outcome === 'failed') exitToLocalMode();
       return false;
     }
     return true;
@@ -174,14 +178,24 @@ export async function signOut(): Promise<void> {
 }
 
 /**
+ * Outcome of a config push.
+ *
+ * `exited` exists so callers can tell "the save failed" from "the save failed
+ * AND I already dropped you to local mode". Collapsing the two into `false` made
+ * selectDevice call exitToLocalMode() a second time, re-running
+ * loadFromLocalStorage() and the render hook for a visible flash.
+ */
+type SaveOutcome = 'saved' | 'exited' | 'failed';
+
+/**
  * Push the current editor config to the active device.
- * Returns true only when the server accepted the write — callers that need to
- * report success to a user (selectDevice's initial push) must not treat a
+ * Returns `saved` only when the server accepted the write — callers that need
+ * to report success to a user (selectDevice's initial push) must not treat a
  * scheduled retry or a swallowed network error as a completed save.
  */
-async function saveNow(): Promise<boolean> {
+async function saveNow(): Promise<SaveOutcome> {
   const deviceId = getActiveDeviceId();
-  if (!deviceId) return false;
+  if (!deviceId) return 'failed';
   try {
     const res = await fetch(`/api/device/${encodeURIComponent(deviceId)}/config`, {
       method: 'PUT',
@@ -189,28 +203,28 @@ async function saveNow(): Promise<boolean> {
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify(toBentoConfig()),
     });
-    if (res.ok) return true;
+    if (res.ok) return 'saved';
     // The device can no longer accept this account's writes — session expired
     // (401), or the device is gone / no longer ours (opaque 404 from the
     // ownership check). Fall back to local mode so the user keeps editing
     // locally instead of silently losing writes.
     if (res.status === 401 || res.status === 404) {
       exitToLocalMode();
-      return false;
+      return 'exited';
     }
     // Rate limited (429) — retry the latest config after the server cooldown
     // rather than dropping this write. The retry re-reads current editor state.
     if (res.status === 429) {
       const retry = Number(res.headers.get('Retry-After'));
       const delayMs = Number.isFinite(retry) && retry > 0 ? retry * 1000 : 60_000;
-      if (_saveTimer) clearTimeout(_saveTimer);
+      cancelPendingSave();
       _saveTimer = setTimeout(() => void saveNow(), delayMs);
     }
     // Other 5xx: transient; the next edit reschedules a save.
-    return false;
+    return 'failed';
   } catch {
     // Network hiccup — the next edit reschedules a save.
-    return false;
+    return 'failed';
   }
 }
 

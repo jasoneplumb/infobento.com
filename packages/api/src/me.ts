@@ -26,12 +26,19 @@ interface DeviceSummary {
 }
 
 /**
- * Shared gate for every owner-scoped device route: session -> rate limit ->
- * ownership. Returns the device on success, or the Response to send back.
+ * Shared gate for the rate-limited, owner-scoped config routes: session ->
+ * rate limit -> ownership. Returns the device and the DB handle it resolved
+ * ownership against on success, or the Response to send back.
  *
- * Extracted because four handlers repeated this preamble verbatim, so any change
- * to it — a new status code, a rate-limit namespace, a Hono typing workaround —
- * had to be made in four places and could silently diverge in one.
+ * Used by the two config handlers (PUT and GET `/api/device/:id/config`), which
+ * repeated this preamble verbatim — so any change to it (a new status code, a
+ * rate-limit namespace, a Hono typing workaround) had to be made twice and
+ * could silently diverge in one.
+ *
+ * The unpair and forget handlers deliberately do NOT use this gate: neither is
+ * throttled, and calling it would consume a rate-limit token they are not meant
+ * to spend. Both scope ownership inside their SQL (`unclaimDevice` /
+ * `requestForget` take `accountId`) rather than checking it here.
  *
  * Order matters and is deliberate: the rate limit is consumed BEFORE the
  * ownership check, so probing ids you don't own costs tokens. Checking ownership
@@ -39,12 +46,17 @@ interface DeviceSummary {
  *
  * `bucket` namespaces the limiter. Reads use their own bucket so that opening
  * devices in the editor cannot exhaust the allowance for writes.
+ *
+ * The resolved `db` is returned rather than left for the caller to re-fetch:
+ * calling `getDb()` a second time would read and write through two separate
+ * call sites, which is non-atomic the moment `getDb` returns anything
+ * per-request rather than one shared connection.
  */
 function requireOwnedDevice(
   c: Context,
   getDb: () => DB,
   bucket: 'cfg' | 'cfgread',
-): { device: Device } | { response: Response } {
+): { device: Device; db: DB } | { response: Response } {
   const session = readSession(c);
   if (!session) return { response: c.json({ error: 'unauthenticated' }, 401) };
 
@@ -58,13 +70,14 @@ function requireOwnedDevice(
   const id = c.req.param('id');
   if (!id) return { response: c.json({ error: 'not_found' }, 404) };
 
-  const device = getDevice(getDb(), id);
+  const db = getDb();
+  const device = getDevice(db, id);
   // Opaque 404 for missing, unclaimed, and other-owner alike — never confirm
   // that a device id exists to a caller who doesn't own it.
   if (!device || device.owner_account_id !== session.accountId) {
     return { response: c.json({ error: 'not_found' }, 404) };
   }
-  return { device };
+  return { device, db };
 }
 
 /**
@@ -84,8 +97,9 @@ export function createPutDeviceConfigHandler(getDb: () => DB) {
   return async (c: Context): Promise<Response> => {
     const gate = requireOwnedDevice(c, getDb, 'cfg');
     if ('response' in gate) return gate.response;
+    // Reuse the handle the ownership check ran against — see requireOwnedDevice.
+    const { db } = gate;
     const id = gate.device.id;
-    const db = getDb();
 
     let body: unknown;
     try {

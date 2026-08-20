@@ -11,7 +11,13 @@
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { selectDevice } from './cloud.js';
-import { addBox, getPersistenceMode, setState, _resetPersistenceForTesting } from './state.js';
+import {
+  addBox,
+  getPersistenceMode,
+  onRender,
+  setState,
+  _resetPersistenceForTesting,
+} from './state.js';
 
 if (typeof globalThis.localStorage === 'undefined') {
   const store = new Map<string, string>();
@@ -122,5 +128,54 @@ describe('selectDevice failure paths (#204 review)', () => {
 
     expect(ok).toBe(false);
     expect(getPersistenceMode()).toBe('local');
+  });
+
+  // Round-2 review (#204): saveNow already calls exitToLocalMode() for 401/404,
+  // and selectDevice called it a second time on any falsy result. Each call
+  // re-runs loadFromLocalStorage() and the render hook, so the user saw the
+  // editor repaint twice — a visible flash. The render count IS the symptom.
+  it('drops to local mode exactly once when the seeding write is unauthorised', async () => {
+    for (const status of [401, 404]) {
+      _resetPersistenceForTesting();
+      calls = [];
+      let renders = 0;
+      onRender(() => {
+        renders++;
+      });
+
+      stubFetch((_url, init) =>
+        init?.method === 'PUT' ? json({ error: 'nope' }, status) : json({ config: null }),
+      );
+
+      const ok = await selectDevice('device-1');
+
+      expect(ok).toBe(false);
+      expect(getPersistenceMode()).toBe('local');
+      expect(renders, `status ${String(status)} should exit to local mode once`).toBe(1);
+    }
+  });
+
+  // The other falsy paths do NOT exit inside saveNow, so selectDevice must still
+  // do it — the fix must not swing the bug the other way and strand the user in
+  // cloud mode on a device that never accepted a config.
+  it('still drops to local mode when the seeding write fails without exiting', async () => {
+    _resetPersistenceForTesting();
+    let renders = 0;
+    onRender(() => {
+      renders++;
+    });
+
+    // 429: retry scheduled, device still unconfigured, saveNow did not exit.
+    stubFetch((_url, init) =>
+      init?.method === 'PUT'
+        ? new Response('{}', { status: 429, headers: { 'Retry-After': '60' } })
+        : json({ config: null }),
+    );
+
+    const ok = await selectDevice('device-1');
+
+    expect(ok).toBe(false);
+    expect(getPersistenceMode()).toBe('local');
+    expect(renders).toBe(1);
   });
 });
