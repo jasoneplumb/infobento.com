@@ -366,14 +366,15 @@ hook that still clears the margin the campaign needs.
 
 Shown in full, because the totals matter more than the prose:
 
-| Per unit                     |  $109 tier |  $129 tier | $239 pair (2 units) |
+| Per pledge                   |  $109 tier |  $129 tier | $239 pair (2 units) |
 | ---------------------------- | ---------: | ---------: | ------------------: |
 | Pledge                       |    $109.00 |    $129.00 |             $239.00 |
 | Platform + payment fees (8%) |     −$8.72 |    −$10.32 |             −$19.12 |
 | BOM                          |    −$46.40 |    −$46.40 |             −$92.80 |
 | Packaging                    |     −$3.00 |     −$3.00 |              −$6.00 |
 | Replacement allowance        |     −$5.00 |     −$5.00 |             −$10.00 |
-| **Net**                      | **$45.88** | **$64.28** |         **$111.08** |
+| **Net per pledge**           | **$45.88** | **$64.28** |         **$111.08** |
+| **Net per device**           | **$45.88** | **$64.28** |          **$55.54** |
 
 A 500/500 split across the two single-unit tiers yields about **$55k** — enough
 to absorb the one-time costs (injection-mould tooling, FCC/CE, UN38.3) that no

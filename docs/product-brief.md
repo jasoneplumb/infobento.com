@@ -181,7 +181,7 @@ The AQI box draws Open-Meteo cloud air-quality data — a cloud data box like we
 | **Account**    | App + account                                                    | Web page, no app; passkey/OAuth sign-in to claim       |
 | **Price**      | $189 Tidbyt Gen 2 / $139 TRMNL OG                                | $109–129 (Kickstarter)                                 |
 
-InfoBento is a calmer, solar take on the ambient-display category: no wall cable, no app, no plugin marketplace — just a glanceable 5.76" eInk bento dashboard that refreshes itself on window light. Every tier undercuts the table on a per-unit basis — $129 standard and $119.50 each in the gift pair, against TRMNL's $139 as the closest comparable — though note InfoBento's panel is the smaller of the two (5.76" vs 7.5"), which is the trade a buyer is making.
+InfoBento is a calmer, solar take on the ambient-display category: no wall cable, no app, no plugin marketplace — just a glanceable 5.76" eInk bento dashboard that refreshes itself on window light. Every tier undercuts the table on a per-unit basis — $109 early bird, $129 standard, and $119.50 each in the gift pair, against TRMNL's $139 as the closest comparable — though note InfoBento's panel is the smaller of the two (5.76" vs 7.5"), which is the trade a buyer is making.
 
 Solar is the durable differentiator, and it is narrower than it first appears: TRMNL is battery-powered and runs 3–6 months per charge, so the honest claim is _never recharge_ versus _recharge twice a year_, not _cable-free_ versus _tethered_. Worth noting the closest competitor also has no subscription, so "no subscription" is table stakes here rather than a differentiator.
 
