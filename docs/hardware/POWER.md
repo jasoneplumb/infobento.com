@@ -42,7 +42,7 @@ Wi-Fi is the dominant power cost per cloud-rendered refresh. With no always-on s
 
 ### Solar Harvesting
 
-A ≈70×100 mm solar panel (≈$3) on the upper back of the enclosure feeds an AEM10941 harvester (≈$4) that tops up the rechargeable LiPo. Because the only loads are 1–2 refreshes/day, the harvest target is modest and the solar margin is generous even in indoor light. Panel placement should favor the upper-back facet so a kickstand-tilted device still catches ambient light.
+A ≈70×100 mm solar panel (≈$3) on the upper back of the enclosure feeds an AEM10941 harvester (≈$4.40) that tops up the rechargeable LiPo. Because the only loads are 1–2 refreshes/day, the harvest target is modest and the solar margin is generous even in indoor light. Panel placement should favor the upper-back facet so a kickstand-tilted device still catches ambient light.
 
 ## Open Questions
 

@@ -323,7 +323,7 @@ Research across Tidbyt, Watchy, TRMNL, thermal printer art, and eInk phone acces
 
 ## 10. Cost and Pricing
 
-Total BOM is approximately **$46** at Kickstarter volume (qty ≈1k), dominated by
+Total BOM is approximately **$46.40** at Kickstarter volume (qty ≈1k), dominated by
 the 5.76" panel at over half the cost.
 
 | Component                 | Est. cost | Basis                                       |
@@ -332,7 +332,7 @@ the 5.76" panel at over half the cost.
 | ESP32-C3-MINI-1           | ≈$2.80    | $2.79 LCSC, $3.26 DigiKey                   |
 | ≈100 mAh LiPo             | ≈$2       | estimate                                    |
 | Solar panel               | ≈$3       | estimate                                    |
-| AEM10941 energy harvester | ≈$4       | ≈€4 direct                                  |
+| AEM10941 energy harvester | ≈$4.40    | €4 direct, at EUR/USD ≈1.10                 |
 | USB-C charge              | ≈$2       | estimate                                    |
 | PCB + passives            | ≈$3       | estimate                                    |
 | Housing                   | ≈$5       | estimate                                    |
@@ -349,12 +349,12 @@ the only line where that materially changes the total.
 
 The market was surveyed on 2026-08-19:
 
-| Product       | Price   | Display    | Power                        |
-| ------------- | ------- | ---------- | ---------------------------- |
-| TRMNL OG      | $139    | 7.5" eInk  | 1800 mAh battery, 3–6 months |
-| TRMNL X       | $219    | 10.3" eInk | battery, ≈6 months           |
-| Tidbyt Gen 2  | $189    | 64×32 LED  | mains                        |
-| LaMetric Time | $199.99 | LED        | mains                        |
+| Product       | Price   | Display    | Power                         |
+| ------------- | ------- | ---------- | ----------------------------- |
+| TRMNL OG      | $139    | 7.5" eInk  | 1800 mAh battery, 3–6 months  |
+| TRMNL X       | $219    | 10.3" eInk | battery (duty cycle unstated) |
+| Tidbyt Gen 2  | $189    | 64×32 LED  | mains                         |
+| LaMetric Time | $199.99 | LED        | mains                         |
 
 The category floor is **$139**, not the $129 previously assumed. That leaves
 headroom, but InfoBento's panel is the smallest in the set (5.76" against
@@ -364,10 +364,20 @@ hook that still clears the margin the campaign needs.
 
 ### Unit economics
 
-From the $46 BOM, deducting ≈8% platform and payment fees, packaging (≈$3), and
-a replacement allowance (≈$5), each unit nets roughly **$46 at $109** and **$65
-at $129**. A 500/500 split yields about **$55k** — enough to absorb the one-time
-costs (injection-mould tooling, FCC/CE, UN38.3) that no per-unit line covers.
+Shown in full, because the totals matter more than the prose:
+
+| Per unit                     |  $109 tier |  $129 tier | $239 pair (2 units) |
+| ---------------------------- | ---------: | ---------: | ------------------: |
+| Pledge                       |    $109.00 |    $129.00 |             $239.00 |
+| Platform + payment fees (8%) |     −$8.72 |    −$10.32 |             −$19.12 |
+| BOM                          |    −$46.40 |    −$46.40 |             −$92.80 |
+| Packaging                    |     −$3.00 |     −$3.00 |              −$6.00 |
+| Replacement allowance        |     −$5.00 |     −$5.00 |             −$10.00 |
+| **Net**                      | **$45.88** | **$64.28** |         **$111.08** |
+
+A 500/500 split across the two single-unit tiers yields about **$55k** — enough
+to absorb the one-time costs (injection-mould tooling, FCC/CE, UN38.3) that no
+per-unit line covers.
 
 The original $49–69 target was negative on the same inputs once ≈$15 of absorbed
 worldwide shipping was added: about **−$7 at $69** and **−$25 at $49**. No volume

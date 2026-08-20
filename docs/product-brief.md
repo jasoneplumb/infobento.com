@@ -18,7 +18,7 @@ InfoBento is a calm surface for the room. The information you check most often �
 
 Tidbyt and TRMNL are the ambient-display references. Against Tidbyt ($189), the contrast is the display itself: calm eInk rather than a glowing LED matrix. Against TRMNL ($139), also eInk and also battery-powered, the contrast is that InfoBento harvests its own power from window light instead of asking for a recharge every few months — on a smaller panel, at a lower price.
 
-**Target price:** $109 early bird / $129 standard (Kickstarter), shipping at cost
+**Target price:** $109 early bird (first 500) / $129 standard / $239 gift pair — $119.50 per unit (Kickstarter), shipping at cost
 **Distribution:** Kickstarter campaign
 
 ---
@@ -38,7 +38,7 @@ Tidbyt and TRMNL are the ambient-display references. Against Tidbyt ($189), the 
 | **Refresh time**   | 0.75s full / 0.3s partial; ≈1–2 refreshes/day                                                 |
 | **MCU**            | ESP32-C3-MINI-1, ≈$2.80, Wi-Fi + BLE (BLE reserved for a possible v2 bridge)                  |
 | **Battery**        | ≈100 mAh LiPo (≈$2); covers display + Wi-Fi only (no always-on sensors)                       |
-| **Solar**          | ≈70×100 mm amorphous-Si (≈$3) + AEM10941 harvester (≈$4, upper back)                          |
+| **Solar**          | ≈70×100 mm amorphous-Si (≈$3) + AEM10941 harvester (≈$4.40, upper back)                       |
 | **Charging**       | USB-C, ≈$2                                                                                    |
 | **PCB + passives** | ≈$3                                                                                           |
 | **Enclosure**      | ≈14 × 11 cm white monolithic housing (≈$5) sized to fit GDEH0576T81 closely; thin bezel ≤4 mm |
@@ -46,7 +46,7 @@ Tidbyt and TRMNL are the ambient-display references. Against Tidbyt ($189), the 
 | **Stand**          | Body-as-stand; fold-out kickstand angles it ≈12–15° if needed                                 |
 | **Connectivity**   | Wi-Fi direct, captive portal setup                                                            |
 
-**Total device BOM ≈ $46 at Kickstarter volume (qty ≈1k):** GDEH0576T81 panel ≈$24 (dominates), ESP32-C3-MINI-1 ≈$2.80, ≈100 mAh LiPo ≈$2, solar panel ≈$3, AEM10941 harvester ≈$4, USB-C charge ≈$2, PCB + passives ≈$3, housing ≈$5, 2× tilt switches ≈$0.20.
+**Total device BOM ≈ $46.40 at Kickstarter volume (qty ≈1k):** GDEH0576T81 panel ≈$24 (dominates), ESP32-C3-MINI-1 ≈$2.80, ≈100 mAh LiPo ≈$2, solar panel ≈$3, AEM10941 harvester ≈$4.40, USB-C charge ≈$2, PCB + passives ≈$3, housing ≈$5, 2× tilt switches ≈$0.20.
 
 Priced against distributor listings on 2026-08-19: the panel is $26.82 at single-unit retail from Good Display (list $29.80), with wholesale listings at $23–26, so ≈$24 is a reasonable qty-1k figure; ESP32-C3-MINI-1-N4 is $2.79 at LCSC and $3.26 at DigiKey; the AEM10941 is ≈€4. The panel, MCU, and harvester are now grounded in real listings; LiPo, solar cell, USB-C, PCB, housing, and switches remain estimates. **Still pending a manufacturer quote at volume** — the panel is the line that matters, since it is over half the BOM.
 
@@ -181,7 +181,7 @@ The AQI box draws Open-Meteo cloud air-quality data — a cloud data box like we
 | **Account**    | App + account                                                    | Web page, no app; passkey/OAuth sign-in to claim       |
 | **Price**      | $189 Tidbyt Gen 2 / $139 TRMNL OG                                | $109–129 (Kickstarter)                                 |
 
-InfoBento is a calmer, solar take on the ambient-display category: no wall cable, no app, no plugin marketplace — just a glanceable 5.76" eInk bento dashboard that refreshes itself on window light. At $129 it undercuts every product in the table, including TRMNL at $139, the closest comparable — though note InfoBento's panel is the smaller of the two (5.76" vs 7.5"), which is the trade a buyer is making.
+InfoBento is a calmer, solar take on the ambient-display category: no wall cable, no app, no plugin marketplace — just a glanceable 5.76" eInk bento dashboard that refreshes itself on window light. Every tier undercuts the table on a per-unit basis — $129 standard and $119.50 each in the gift pair, against TRMNL's $139 as the closest comparable — though note InfoBento's panel is the smaller of the two (5.76" vs 7.5"), which is the trade a buyer is making.
 
 Solar is the durable differentiator, and it is narrower than it first appears: TRMNL is battery-powered and runs 3–6 months per charge, so the honest claim is _never recharge_ versus _recharge twice a year_, not _cable-free_ versus _tethered_. Worth noting the closest competitor also has no subscription, so "no subscription" is table stakes here rather than a differentiator.
 
@@ -204,7 +204,7 @@ Solar is the durable differentiator, and it is narrower than it first appears: T
 - **Hardware validation** — Dev kit (ESP32-C3 + GDEH0576T81) on order. Validates grey rendering, refresh speed, viewing angle.
 - **Grey fallback** — If 2-bit grey looks bad on hardware, Floyd-Steinberg dithering to 1-bit as fallback (#56).
 - **Orientation auto-rotate** — Validate 2× ball-in-tube tilt switches drive reliable landscape/portrait detection.
-- **Price validation:** the ≈$46 BOM is grounded in distributor listings for the panel, MCU, and harvester, but no volume quote has been obtained. It is the input the $109/$129 pricing depends on — if the panel quotes above ≈$32, revisit the tiers rather than absorbing it.
+- **Price validation:** the ≈$46.40 BOM is grounded in distributor listings for the panel, MCU, and harvester, but no volume quote has been obtained. It is the input the $109/$129 pricing depends on — if the panel quotes above ≈$32, revisit the tiers rather than absorbing it.
 - **Certification + tooling NRE** — FCC/CE for a Wi-Fi device, UN38.3 for the lithium cell, and injection-mold tooling are unbudgeted. These are recovered from per-unit margin, which is why pricing at or near BOM does not work at any volume.
 - **Firmware:** Captive portal provisioning (#39), Wi-Fi connect, config poll, framebuffer write, deep sleep cycle.
 - **Enclosure:** SCAD model (#50) for ≈14×11 cm housing, ≤4 mm bezel, solar cavity, fold-out kickstand, pinhole reset.
