@@ -291,3 +291,42 @@ describe('loadConfig — configs naming a removed box type', () => {
     ).toBe(false);
   });
 });
+
+describe('loadConfig — malformed boxes arrays', () => {
+  beforeEach(() => {
+    setState((s) => {
+      s.boxes = [];
+    });
+  });
+
+  it('rejects null and primitive elements without throwing', () => {
+    // The pre-filter runs upstream of Zod, which used to absorb any element
+    // shape. Reading .type off null would throw past loadConfig's try/finally.
+    expect(() =>
+      loadConfig({
+        boxes: [null, 42, 'nope', undefined, { type: 'weather', label: 'W', config: {} }],
+        refreshesPerDay: 2,
+      }),
+    ).not.toThrow();
+  });
+
+  it('keeps the valid boxes alongside malformed elements', () => {
+    const ok = loadConfig({
+      boxes: [
+        null,
+        { id: 'a', type: 'quote', label: 'Q', config: { type: 'quote', text: 'hi' } },
+        { type: 'joke', label: 'J', config: { type: 'joke', text: 'ha' } },
+      ],
+      refreshesPerDay: 2,
+    });
+    expect(ok).toBe(true);
+    expect(getBoxes().map((b) => b.type)).toEqual(['quote']);
+  });
+
+  it('drops a box whose type is not a string', () => {
+    expect(() =>
+      loadConfig({ version: 2, boxes: [{ type: 7, label: 'x', config: {} }] }),
+    ).not.toThrow();
+    expect(getBoxes()).toHaveLength(0);
+  });
+});

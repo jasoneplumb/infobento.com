@@ -873,8 +873,23 @@ const KNOWN_BOX_TYPES: ReadonlySet<string> = new Set(Object.keys(BOX_TYPE_LABELS
  *   the localStorage path, so buildConfigForm throws. Dropping the stale box
  *   loses only that box.
  */
-export function dropUnknownBoxTypes<T extends { type: string }>(boxes: readonly T[]): T[] {
-  return boxes.filter((b) => KNOWN_BOX_TYPES.has(b.type));
+/**
+ * intent: Narrow one raw array element to something with a known box type
+ * method: Explicit object + string checks before the Set lookup
+ * why: The input is untrusted JSON (localStorage, a device's stored config, an
+ *   imported file), so an element can be null or a primitive. Reading `.type`
+ *   off those throws, and the BentoConfig call site sits upstream of Zod, which
+ *   used to absorb any element shape. A TypeScript cast would not help — it is
+ *   erased at runtime.
+ */
+function hasKnownBoxType(box: unknown): box is { type: string } {
+  if (typeof box !== 'object' || box === null) return false;
+  const type: unknown = (box as { type?: unknown }).type;
+  return typeof type === 'string' && KNOWN_BOX_TYPES.has(type);
+}
+
+export function dropUnknownBoxTypes<T extends { type: string }>(boxes: readonly unknown[]): T[] {
+  return boxes.filter(hasKnownBoxType) as T[];
 }
 
 function hydrateBoxes(
@@ -886,7 +901,11 @@ function hydrateBoxes(
     splitRatio?: number;
   }>,
 ): EditorBox[] {
-  const boxes: EditorBox[] = dropUnknownBoxTypes(raw).map((b) => {
+  // Runs for BOTH loadConfig paths. The version-2 path (localStorage restore,
+  // file import) reaches here directly and never passes the BentoConfig
+  // pre-filter, so this is the only guard standing between a stale box type and
+  // `formBuilders[type]` being undefined in buildConfigForm.
+  const boxes: EditorBox[] = dropUnknownBoxTypes<(typeof raw)[number]>(raw).map((b) => {
     // config comes from persisted JSON as a flat string map; the runtime shape
     // matches one of the EditorBoxConfig union members it was serialized from, so
     // narrow through `unknown` at this deserialization boundary.
