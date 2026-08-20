@@ -208,7 +208,7 @@ Solar is the durable differentiator, and it is narrower than it first appears: T
 - **Certification + tooling NRE** — FCC/CE for a Wi-Fi device, UN38.3 for the lithium cell, and injection-mold tooling are unbudgeted. These are recovered from per-unit margin, which is why pricing at or near BOM does not work at any volume.
 - **Firmware:** Captive portal provisioning (#39), Wi-Fi connect, config poll, framebuffer write, deep sleep cycle.
 - **Enclosure:** SCAD model (#50) for ≈14×11 cm housing, ≤4 mm bezel, solar cavity, fold-out kickstand, pinhole reset.
-- **Founder bio** — still to write; lock before Day 0 of the campaign
+- **Founder bio** — locked 2026-08-19. Career detail sourced from the founder's own resume; origin section built on minimal / simple / seamless.
 - **Content-aware layout:** Height allocation for all 18 box types — shipped in v0.13.0 via `computeMinHeight` per renderer.
 
 ---
