@@ -16,37 +16,39 @@ A solar-powered eInk bento dashboard that sits on your counter, desk, or shelf. 
 
 InfoBento is a calm surface for the room. The information you check most often — weather, the next thing on your calendar, days until something you're looking forward to, air-quality status from cloud data — sits there in sharp eInk, visible at a glance from across the room. The display is a multi-box bento dashboard (up to 10 boxes, multi-column, with big glanceable numbers). Configure once on a web page; it sips light from the window and refreshes on its own.
 
-Tidbyt and TRMNL are the ambient-display references. Against Tidbyt, the contrast is the display itself: calm eInk rather than a glowing LED matrix. Against TRMNL, also eInk, the contrast is power — InfoBento is designed to top itself up from window light rather than to be plugged in and left.
+Tidbyt and TRMNL are the ambient-display references. Against Tidbyt ($189), the contrast is the display itself: calm eInk rather than a glowing LED matrix. Against TRMNL ($139), also eInk and also battery-powered, the contrast is that InfoBento harvests its own power from window light instead of asking for a recharge every few months — on a smaller panel, at a lower price.
 
-**Target price:** $99 early bird / $129 standard (Kickstarter), shipping at cost
+**Target price:** $109 early bird / $129 standard (Kickstarter), shipping at cost
 **Distribution:** Kickstarter campaign
 
 ---
 
 ## Hardware Specifications
 
-| Spec               | Value                                                                                           |
-| ------------------ | ----------------------------------------------------------------------------------------------- |
-| **Display**        | Good Display GDEH0576T81 panel, ~$30                                                            |
-| **Size**           | 5.76" diagonal                                                                                  |
-| **Resolution**     | 920 × 680 pixels                                                                                |
-| **DPI**            | 198                                                                                             |
-| **Display tech**   | eInk (electrophoretic)                                                                          |
-| **Driver IC**      | SSD2677                                                                                         |
-| **Active area**    | 117.7 × 87.0 mm                                                                                 |
-| **Module size**    | 125.4 × 99.5 × 0.9 mm                                                                           |
-| **Refresh time**   | 0.75s full / 0.3s partial; ~1–2 refreshes/day                                                   |
-| **MCU**            | ESP32-C3, ~$2.50, Wi-Fi + BLE (BLE reserved for a possible v2 bridge)                           |
-| **Battery**        | ~~100 mAh LiPo (~~$2); covers display + Wi-Fi only (no always-on sensors)                       |
-| **Solar**          | ~~70×100 mm amorphous-Si (~~$3) + AEM10941 harvester (~$3, upper back)                          |
-| **Charging**       | USB-C, ~$2                                                                                      |
-| **PCB + passives** | ~$3                                                                                             |
-| **Enclosure**      | ~~14 × 11 cm white monolithic housing (~~$5) sized to fit GDEH0576T81 closely; thin bezel ≤4 mm |
-| **Orientation**    | 2× ball-in-tube tilt switches (~$0.20 total) drive orientation auto-rotate                      |
-| **Stand**          | Body-as-stand; fold-out kickstand angles it ~12–15° if needed                                   |
-| **Connectivity**   | Wi-Fi direct, captive portal setup                                                              |
+| Spec               | Value                                                                                         |
+| ------------------ | --------------------------------------------------------------------------------------------- |
+| **Display**        | Good Display GDEH0576T81 panel, ≈$24                                                          |
+| **Size**           | 5.76" diagonal                                                                                |
+| **Resolution**     | 920 × 680 pixels                                                                              |
+| **DPI**            | 198                                                                                           |
+| **Display tech**   | eInk (electrophoretic)                                                                        |
+| **Driver IC**      | SSD2677                                                                                       |
+| **Active area**    | 117.7 × 87.0 mm                                                                               |
+| **Module size**    | 125.4 × 99.5 × 0.9 mm                                                                         |
+| **Refresh time**   | 0.75s full / 0.3s partial; ≈1–2 refreshes/day                                                 |
+| **MCU**            | ESP32-C3-MINI-1, ≈$2.80, Wi-Fi + BLE (BLE reserved for a possible v2 bridge)                  |
+| **Battery**        | ≈100 mAh LiPo (≈$2); covers display + Wi-Fi only (no always-on sensors)                       |
+| **Solar**          | ≈70×100 mm amorphous-Si (≈$3) + AEM10941 harvester (≈$4, upper back)                          |
+| **Charging**       | USB-C, ≈$2                                                                                    |
+| **PCB + passives** | ≈$3                                                                                           |
+| **Enclosure**      | ≈14 × 11 cm white monolithic housing (≈$5) sized to fit GDEH0576T81 closely; thin bezel ≤4 mm |
+| **Orientation**    | 2× ball-in-tube tilt switches (≈$0.20 total) drive orientation auto-rotate                    |
+| **Stand**          | Body-as-stand; fold-out kickstand angles it ≈12–15° if needed                                 |
+| **Connectivity**   | Wi-Fi direct, captive portal setup                                                            |
 
-**Total device BOM ≈ $45–50 at Kickstarter volume (qty ~1k):** GDEH0576T81 panel ~$30 (dominates), ESP32-C3 ~$2.50, ~100 mAh LiPo ~$2, solar panel ~$3, AEM10941 harvester ~$3, USB-C charge ~$2, PCB + passives ~$3, housing ~$5, 2× tilt switches ~$0.20. Figures are estimates pending manufacturer quotes.
+**Total device BOM ≈ $46 at Kickstarter volume (qty ≈1k):** GDEH0576T81 panel ≈$24 (dominates), ESP32-C3-MINI-1 ≈$2.80, ≈100 mAh LiPo ≈$2, solar panel ≈$3, AEM10941 harvester ≈$4, USB-C charge ≈$2, PCB + passives ≈$3, housing ≈$5, 2× tilt switches ≈$0.20.
+
+Priced against distributor listings on 2026-08-19: the panel is $26.82 at single-unit retail from Good Display (list $29.80), with wholesale listings at $23–26, so ≈$24 is a reasonable qty-1k figure; ESP32-C3-MINI-1-N4 is $2.79 at LCSC and $3.26 at DigiKey; the AEM10941 is ≈€4. The panel, MCU, and harvester are now grounded in real listings; LiPo, solar cell, USB-C, PCB, housing, and switches remain estimates. **Still pending a manufacturer quote at volume** — the panel is the line that matters, since it is over half the BOM.
 
 ---
 
@@ -60,13 +62,13 @@ Tidbyt and TRMNL are the ambient-display references. Against Tidbyt, the contras
 |   198 DPI             |
 |                       |
 +-----------------------+
-       ^                    Back-upper: solar panel (~70x100mm)
-       | ~12-15 deg tilt    Back-lower: ESP32-C3 + LiPo + USB-C
+       ^                    Back-upper: solar panel (≈70x100mm)
+       | ≈12-15 deg tilt    Back-lower: ESP32-C3 + LiPo + USB-C
        | body-as-stand
 ```
 
 - Monolithic white housing, no hinge; fold-out kickstand to angle it
-- Fold-out kickstand angles the display ~12-15 deg toward a standing viewer
+- Fold-out kickstand angles the display ≈12-15 deg toward a standing viewer
 - Designed to survive a 4-foot drop (bumper layer, radiused corners, recessed display)
 - Solar panel on the upper back
 - USB-C charging port on bottom edge; recessed pinhole reset on back for recovery only (press 5s with paperclip)
@@ -128,7 +130,7 @@ Tidbyt and TRMNL are the ambient-display references. Against Tidbyt, the contras
 | **Data**          | Stocks                                           | Yahoo Finance (free)                      |
 | **Entertainment** | Horoscope, joke, on this day                     | api-ninjas / JokeAPI / Wikipedia          |
 
-The AQI box draws Open-Meteo cloud air-quality data — a cloud data box like weather, not a local sensor reading. All box types work without accounts, API keys, or subscriptions. The 5.76" panel hosts a multi-box bento dashboard (up to 10 boxes, multi-column) with big glanceable numbers. Quote, joke, and horoscope responses fall back to a bundled local set on upstream failure (~50KB built-in).
+The AQI box draws Open-Meteo cloud air-quality data — a cloud data box like weather, not a local sensor reading. All box types work without accounts, API keys, or subscriptions. The 5.76" panel hosts a multi-box bento dashboard (up to 10 boxes, multi-column) with big glanceable numbers. Quote, joke, and horoscope responses fall back to a bundled local set on upstream failure (≈50KB built-in).
 
 ---
 
@@ -151,12 +153,12 @@ The AQI box draws Open-Meteo cloud air-quality data — a cloud data box like we
 
 | Component                   | Active | Sleep    | Duty                       |
 | --------------------------- | ------ | -------- | -------------------------- |
-| eInk full refresh           | ~25 mA | 0 mA     | ~0.75s full, ~0.3s partial |
-| Wi-Fi connect + frame fetch | ~70 mA | ~10 µA   | ~10–20s, per refresh       |
-| MCU active (during refresh) | ~5 mA  | ~5–10 µA | ~15s, per refresh          |
+| eInk full refresh           | ≈25 mA | 0 mA     | ≈0.75s full, ≈0.3s partial |
+| Wi-Fi connect + frame fetch | ≈70 mA | ≈10 µA   | ≈10–20s, per refresh       |
+| MCU active (during refresh) | ≈5 mA  | ≈5–10 µA | ≈15s, per refresh          |
 | Tilt switches               | 0      | 0        | passive (orientation only) |
 
-**Battery sizing:** ~100 mAh LiPo plus solar harvest (5–15 mAh/day) easily covers the ~1–2 refreshes/day display budget. With no always-on sensors, the only meaningful draw is the ESP32 radio during a refresh, which the panel sleeps between.
+**Battery sizing:** ≈100 mAh LiPo plus solar harvest (5–15 mAh/day) easily covers the ≈1–2 refreshes/day display budget. With no always-on sensors, the only meaningful draw is the ESP32 radio during a refresh, which the panel sleeps between.
 
 ---
 
@@ -170,16 +172,18 @@ The AQI box draws Open-Meteo cloud air-quality data — a cloud data box like we
 
 ## Competitive Positioning
 
-|                | Tidbyt / TRMNL                 | InfoBento                                              |
-| -------------- | ------------------------------ | ------------------------------------------------------ |
-| **Display**    | LED matrix / e-paper           | Good Display GDEH0576T81, 5.76" eInk, 920×680, 198 DPI |
-| **MCU**        | ESP32 / ESP8266 / RP2040 class | ESP32-C3 controller                                    |
-| **Power**      | Wall outlet required           | Solar-powered, no cable                                |
-| **Plugin/box** | DIY scripts or app marketplace | 18-box multi-box bento dashboard, up to 10 boxes       |
-| **Account**    | App + account                  | Web page, no app; passkey/OAuth sign-in to claim       |
-| **Price**      | $179 / varies                  | $99–129 (Kickstarter)                                  |
+|                | Tidbyt / TRMNL                                                   | InfoBento                                              |
+| -------------- | ---------------------------------------------------------------- | ------------------------------------------------------ |
+| **Display**    | LED matrix / e-paper                                             | Good Display GDEH0576T81, 5.76" eInk, 920×680, 198 DPI |
+| **MCU**        | ESP32 / ESP8266 / RP2040 class                                   | ESP32-C3 controller                                    |
+| **Power**      | Mains (Tidbyt) / 1800 mAh battery, recharge every 3–6 mo (TRMNL) | Solar-harvesting; no scheduled recharge                |
+| **Plugin/box** | DIY scripts or app marketplace                                   | 18-box multi-box bento dashboard, up to 10 boxes       |
+| **Account**    | App + account                                                    | Web page, no app; passkey/OAuth sign-in to claim       |
+| **Price**      | $189 Tidbyt Gen 2 / $139 TRMNL OG                                | $109–129 (Kickstarter)                                 |
 
-InfoBento is a calmer, solar take on the ambient-display category: no wall cable, no app, no plugin marketplace — just a glanceable 5.76" eInk bento dashboard that refreshes itself on window light. Solar operation is the durable differentiator; see the table above for how the pricing compares.
+InfoBento is a calmer, solar take on the ambient-display category: no wall cable, no app, no plugin marketplace — just a glanceable 5.76" eInk bento dashboard that refreshes itself on window light. At $129 it undercuts every product in the table, including TRMNL at $139, the closest comparable — though note InfoBento's panel is the smaller of the two (5.76" vs 7.5"), which is the trade a buyer is making.
+
+Solar is the durable differentiator, and it is narrower than it first appears: TRMNL is battery-powered and runs 3–6 months per charge, so the honest claim is _never recharge_ versus _recharge twice a year_, not _cable-free_ versus _tethered_. Worth noting the closest competitor also has no subscription, so "no subscription" is table stakes here rather than a differentiator.
 
 ---
 
@@ -200,10 +204,10 @@ InfoBento is a calmer, solar take on the ambient-display category: no wall cable
 - **Hardware validation** — Dev kit (ESP32-C3 + GDEH0576T81) on order. Validates grey rendering, refresh speed, viewing angle.
 - **Grey fallback** — If 2-bit grey looks bad on hardware, Floyd-Steinberg dithering to 1-bit as fallback (#56).
 - **Orientation auto-rotate** — Validate 2× ball-in-tube tilt switches drive reliable landscape/portrait detection.
-- **Price validation:** the ~$45–50 BOM is an estimate pending manufacturer quotes. It is the input the $99/$129 pricing depends on — if the panel quote lands above ~$35, revisit the tiers rather than absorbing it.
+- **Price validation:** the ≈$46 BOM is grounded in distributor listings for the panel, MCU, and harvester, but no volume quote has been obtained. It is the input the $109/$129 pricing depends on — if the panel quotes above ≈$32, revisit the tiers rather than absorbing it.
 - **Certification + tooling NRE** — FCC/CE for a Wi-Fi device, UN38.3 for the lithium cell, and injection-mold tooling are unbudgeted. These are recovered from per-unit margin, which is why pricing at or near BOM does not work at any volume.
 - **Firmware:** Captive portal provisioning (#39), Wi-Fi connect, config poll, framebuffer write, deep sleep cycle.
-- **Enclosure:** SCAD model (#50) for ~14×11 cm housing, ≤4 mm bezel, solar cavity, fold-out kickstand, pinhole reset.
+- **Enclosure:** SCAD model (#50) for ≈14×11 cm housing, ≤4 mm bezel, solar cavity, fold-out kickstand, pinhole reset.
 - **Founder bio** — still to write; lock before Day 0 of the campaign
 - **Content-aware layout:** Height allocation for all 18 box types — shipped in v0.13.0 via `computeMinHeight` per renderer.
 

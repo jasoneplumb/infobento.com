@@ -21,9 +21,9 @@ InfoBento is a small, solar-powered eInk bento dashboard for counters, desks, an
 - **Positioning:** A lean, calm bento dashboard for counters, desks, and shelves.
 - **UI model:** Multi-box bento dashboard — up to 10 boxes (`MAX_BOXES=10`), multi-column.
 - **Display:** Good Display **GDEH0576T81**, 5.76" eInk, **920×680 px**, **198 DPI**, **SSD2677** driver IC, eInk. Framebuffer **156,400 bytes** (packed 2-bit, 4 levels per pixel). Refresh 1–2×/day, 0.75 s full / 0.3 s partial. Active area 117.7×87.0 mm; module 125.4×99.5×0.9 mm.
-- **Enclosure:** white monolithic housing ~14×11 cm sized to fit the GDEH0576T81 closely; thin bezel ≤4 mm; body-as-stand, with a fold-out kickstand to angle it ~12–15° if needed.
+- **Enclosure:** white monolithic housing ≈14×11 cm sized to fit the GDEH0576T81 closely; thin bezel ≤4 mm; body-as-stand, with a fold-out kickstand to angle it ≈12–15° if needed.
 - **MCU:** ESP32-C3 (Wi-Fi + BLE; BLE reserved for a possible v2 bridge). Captive-portal setup; no companion app v1; config via the infobento.com web editor.
-- **Power:** ~70×100 mm solar panel on the upper back + ~100 mAh LiPo + AEM10941 solar harvester; ~1–2 refreshes/day.
+- **Power:** ≈70×100 mm solar panel on the upper back + ≈100 mAh LiPo + AEM10941 solar harvester; ≈1–2 refreshes/day.
 - **Orientation:** two ball-in-tube tilt switches for orientation auto-rotate.
 - **Interaction:** zero device interaction — no buttons (a recessed pinhole reset exists for recovery only).
 
@@ -150,13 +150,13 @@ All box types use free data sources or local computation. Weather, forecast, sun
 
 > InfoBento is configured exclusively from a web browser. No native phone app required.
 
-The web editor at infobento.com is the only configuration surface. No companion iOS or Android app for v1. This removes ~6+ months of engineering scope and the iOS background BLE risk.
+The web editor at infobento.com is the only configuration surface. No companion iOS or Android app for v1. This removes ≈6+ months of engineering scope and the iOS background BLE risk.
 
 ### Solar-Powered Counter Display
 
 > A single monolithic body that stands on its own, with a fold-out kickstand to angle it if needed.
 
-White monolithic enclosure ~14×11 cm sized to fit the GDEH0576T81 (5.76", 920×680) closely, with a thin bezel (≤4 mm) and a fold-out kickstand for ~12–15° tilt. Solar panel on the upper back, with the AEM10941 harvester topping up the ~100 mAh LiPo. Two ball-in-tube tilt switches drive orientation auto-rotate.
+White monolithic enclosure ≈14×11 cm sized to fit the GDEH0576T81 (5.76", 920×680) closely, with a thin bezel (≤4 mm) and a fold-out kickstand for ≈12–15° tilt. Solar panel on the upper back, with the AEM10941 harvester topping up the ≈100 mAh LiPo. Two ball-in-tube tilt switches drive orientation auto-rotate.
 
 ---
 
@@ -170,10 +170,10 @@ White monolithic enclosure ~14×11 cm sized to fit the GDEH0576T81 (5.76", 920×
 | REQ-004 | 18 box types without user accounts, up to MAX_BOXES=10    | Must     |
 | REQ-005 | Web UI and API served from same port in production        | Must     |
 | REQ-006 | Config persists in localStorage with JSON export/import   | Must     |
-| REQ-007 | QR code gets ~half display height for scannability        | Must     |
+| REQ-007 | QR code gets ≈half display height for scannability        | Must     |
 | REQ-008 | Live PNG preview before syncing to device                 | Must     |
 | REQ-009 | V1 uses an eInk panel (display color capability TBD)      | Must     |
-| REQ-010 | Enclosure ~14x11cm, fits GDEH0576T81 panel closely        | Must     |
+| REQ-010 | Enclosure ≈14x11cm, fits GDEH0576T81 panel closely        | Must     |
 | REQ-011 | Display >=198 DPI, <=4mm visible bezel                    | Should   |
 | REQ-012 | Auto-rotate via two tilt switches, 4 orientations         | Must     |
 | REQ-013 | Zero device interaction — no buttons (pinhole reset only) | Must     |
@@ -213,7 +213,7 @@ Jordan buys an InfoBento for their friend who loves hiking. They configure 3 box
 
 ### Device Display
 
-Single eInk panel (Good Display GDEH0576T81, 5.76", 920×680, 198 DPI), enclosure ~14x11cm (fits the panel closely with a thin bezel). Tilt switches detect orientation -- layout auto-rotates.
+Single eInk panel (Good Display GDEH0576T81, 5.76", 920×680, 198 DPI), enclosure ≈14x11cm (fits the panel closely with a thin bezel). Tilt switches detect orientation -- layout auto-rotates.
 
 **Elements:**
 
@@ -278,7 +278,7 @@ Zod validation
 Layout engine (vertical stack + horizontal splits)
   - Configurable padding (0-10)
   - Content-aware height allocation
-  - QR boxes get ~50% display height
+  - QR boxes get ≈50% display height
     |
     v
 Box renderers (18 types)
@@ -323,37 +323,59 @@ Research across Tidbyt, Watchy, TRMNL, thermal printer art, and eInk phone acces
 
 ## 10. Cost and Pricing
 
-Total BOM is approximately **$45–50** at Kickstarter volume (qty ~1k), dominated by the 5.76" panel. Figures are estimates pending manufacturer quotes.
+Total BOM is approximately **$46** at Kickstarter volume (qty ≈1k), dominated by
+the 5.76" panel at over half the cost.
 
-| Component                 | Est. cost |
-| ------------------------- | --------- |
-| GDEH0576T81 panel         | ~$30      |
-| ESP32-C3                  | ~$2.50    |
-| ~100 mAh LiPo             | ~$2       |
-| Solar panel               | ~$3       |
-| AEM10941 energy harvester | ~$3       |
-| USB-C charge              | ~$2       |
-| PCB + passives            | ~$3       |
-| Housing                   | ~$5       |
-| Tilt switches             | ~$0.20    |
+| Component                 | Est. cost | Basis                                       |
+| ------------------------- | --------- | ------------------------------------------- |
+| GDEH0576T81 panel         | ≈$24      | $26.82 single-unit retail; $23–26 wholesale |
+| ESP32-C3-MINI-1           | ≈$2.80    | $2.79 LCSC, $3.26 DigiKey                   |
+| ≈100 mAh LiPo             | ≈$2       | estimate                                    |
+| Solar panel               | ≈$3       | estimate                                    |
+| AEM10941 energy harvester | ≈$4       | ≈€4 direct                                  |
+| USB-C charge              | ≈$2       | estimate                                    |
+| PCB + passives            | ≈$3       | estimate                                    |
+| Housing                   | ≈$5       | estimate                                    |
+| Tilt switches             | ≈$0.20    | estimate                                    |
 
-**Price target:** $99 early bird / $129 standard (Kickstarter), shipping charged
-at cost.
+Panel, MCU, and harvester were priced against distributor listings on 2026-08-19;
+the rest remain estimates. No volume quote has been obtained, and the panel is
+the only line where that materially changes the total.
 
-Working from the $47.50 BOM midpoint of the $45–50 range, and deducting ~~8%
-platform and payment fees, packaging (~~$3), and a replacement allowance (~$5),
-each unit nets roughly **$36 at $99** and **$63 at $129**. That remainder is what
-funds the one-time costs — injection-mould tooling, FCC/CE, UN38.3 — which no
-per-unit line item covers.
+**Price target:** $109 early bird (first 500) / $129 standard / $239 gift pair
+(Kickstarter), shipping charged at cost.
 
-The earlier $49–69 target was negative on the same inputs once ~$15 of absorbed
+### Where the tiers come from
+
+The market was surveyed on 2026-08-19:
+
+| Product       | Price   | Display    | Power                        |
+| ------------- | ------- | ---------- | ---------------------------- |
+| TRMNL OG      | $139    | 7.5" eInk  | 1800 mAh battery, 3–6 months |
+| TRMNL X       | $219    | 10.3" eInk | battery, ≈6 months           |
+| Tidbyt Gen 2  | $189    | 64×32 LED  | mains                        |
+| LaMetric Time | $199.99 | LED        | mains                        |
+
+The category floor is **$139**, not the $129 previously assumed. That leaves
+headroom, but InfoBento's panel is the smallest in the set (5.76" against
+TRMNL's 7.5"), so the standard tier is set to undercut the closest comparable
+rather than match it. $109 early bird is a 22% undercut of the floor — a real
+hook that still clears the margin the campaign needs.
+
+### Unit economics
+
+From the $46 BOM, deducting ≈8% platform and payment fees, packaging (≈$3), and
+a replacement allowance (≈$5), each unit nets roughly **$46 at $109** and **$65
+at $129**. A 500/500 split yields about **$55k** — enough to absorb the one-time
+costs (injection-mould tooling, FCC/CE, UN38.3) that no per-unit line covers.
+
+The original $49–69 target was negative on the same inputs once ≈$15 of absorbed
 worldwide shipping was added: about **−$7 at $69** and **−$25 at $49**. No volume
 fixed that, because the shortfall scaled with units sold.
 
 Two changes were needed, not one. Charging shipping at cost is necessary but not
-sufficient: without it, $69 clears only ~$8 and $49 is still ~$10 in the red. The
-price increase is what creates enough headroom to fund tooling and certification
-at a realistic unit count.
+sufficient: without it, $69 clears only ≈$8 and $49 is still ≈$10 in the red. The
+price increase is what creates the headroom.
 
 ---
 
