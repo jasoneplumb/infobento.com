@@ -9,6 +9,7 @@
 
 import type { UVData } from '@infobento/core';
 import { geocode } from './geocode.js';
+import { readCurrent } from './open-meteo.js';
 
 interface OpenMeteoUV {
   current: {
@@ -47,8 +48,10 @@ export async function fetchUvIndex(location: string): Promise<UVData | null> {
     const res = await fetch(url);
     if (!res.ok) return null;
 
-    const data = (await res.json()) as OpenMeteoUV;
-    const uv = data.current.uv_index;
+    const current = readCurrent<OpenMeteoUV['current']>(await res.json());
+    if (!current) return null;
+
+    const uv = current.uv_index;
     if (uv == null) return null;
 
     const rounded = Math.round(uv);

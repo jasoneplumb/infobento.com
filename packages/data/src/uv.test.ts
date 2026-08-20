@@ -63,4 +63,18 @@ describe('fetchUvIndex', () => {
     );
     expect(await fetchUvIndex('Nowhere')).toBeNull();
   });
+
+  // Open-Meteo answers a bad request with HTTP 200 and an error body, so `ok`
+  // is true and there is no `current` key. Dereferencing it threw a TypeError
+  // that the outer catch flattened to null — same result, but reached by a
+  // crash rather than a check.
+  it('returns null on a 200 error payload instead of throwing', async () => {
+    mockByUrl({ error: true, reason: "Parameter 'latitude' is invalid." });
+    expect(await fetchUvIndex('Portland')).toBeNull();
+  });
+
+  it('returns null when the response has no current block at all', async () => {
+    mockByUrl({});
+    expect(await fetchUvIndex('Portland')).toBeNull();
+  });
 });

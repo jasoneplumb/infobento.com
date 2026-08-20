@@ -109,20 +109,24 @@ function renderTwoLine(
   secondary: string,
   metrics: FontMetrics,
 ): void {
-  // drawTextWrapped returns the Y it advanced to. Assuming a single line
-  // overdraws the secondary line on top of a primary that wrapped — which is
-  // exactly what a multi-word city in a narrow split box does.
-  let cy = drawTextWrapped(
-    fb,
-    x,
-    y,
-    primary,
-    maxWidth,
-    maxY - y,
-    GRAY_LIGHT,
-    metrics.bodySize,
-    metrics.weight,
-  );
+  // drawTextWrapped returns the height it consumed, NOT an absolute row — so
+  // it has to be added to `y`. Assuming a single line overdraws the secondary
+  // line on top of a primary that wrapped, which is exactly what a multi-word
+  // city in a narrow split box does; using the delta as an absolute Y paints it
+  // into a different box entirely for any pollen box not anchored at y = 0.
+  let cy =
+    y +
+    drawTextWrapped(
+      fb,
+      x,
+      y,
+      primary,
+      maxWidth,
+      maxY - y,
+      GRAY_LIGHT,
+      metrics.bodySize,
+      metrics.weight,
+    );
   cy += 2;
 
   if (cy + metrics.bodySize > maxY) return;

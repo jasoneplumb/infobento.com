@@ -11,6 +11,7 @@
 
 import type { PollenData } from '@infobento/core';
 import { geocode } from './geocode.js';
+import { readCurrent } from './open-meteo.js';
 
 interface OpenMeteoPollen {
   current: Record<string, number | null | undefined>;
@@ -79,7 +80,9 @@ function dominantAllergen(current: OpenMeteoPollen['current']): PollenData | nul
   }
 
   // No species reported at all — out of coverage, not a quiet pollen day.
-  if (!sawReading || !best) return null;
+  // `sawReading` implies `best` was assigned: the same iteration that sets the
+  // flag also takes the `!best` branch below it.
+  if (!sawReading || best === undefined) return null;
 
   // In coverage but nothing rounds above zero: say so plainly instead of naming
   // an arbitrary species at zero grains. Tested against the rounded count, so a
@@ -112,8 +115,10 @@ export async function fetchPollen(location: string): Promise<PollenData | null> 
     const res = await fetch(url);
     if (!res.ok) return null;
 
-    const data = (await res.json()) as OpenMeteoPollen;
-    return dominantAllergen(data.current);
+    const current = readCurrent<OpenMeteoPollen['current']>(await res.json());
+    if (!current) return null;
+
+    return dominantAllergen(current);
   } catch {
     return null;
   }

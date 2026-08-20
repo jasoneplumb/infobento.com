@@ -99,4 +99,18 @@ describe('fetchPollen', () => {
     );
     expect(await fetchPollen('Nowhere')).toBeNull();
   });
+
+  // Open-Meteo answers a bad request with HTTP 200 and an error body, so `ok`
+  // is true and there is no `current` key. dominantAllergen then threw on
+  // `current[species.field]`, and the outer catch flattened it to null — same
+  // result, but reached by a crash rather than a check.
+  it('returns null on a 200 error payload instead of throwing', async () => {
+    mockByUrl({ error: true, reason: "Parameter 'latitude' is invalid." });
+    expect(await fetchPollen('Berlin')).toBeNull();
+  });
+
+  it('returns null when the response has no current block at all', async () => {
+    mockByUrl({});
+    expect(await fetchPollen('Berlin')).toBeNull();
+  });
 });

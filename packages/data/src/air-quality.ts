@@ -7,6 +7,7 @@
 
 import type { AQIData } from '@infobento/core';
 import { geocode } from './geocode.js';
+import { readCurrent } from './open-meteo.js';
 
 interface OpenMeteoAirQuality {
   current: {
@@ -70,8 +71,9 @@ export async function fetchAirQuality(location: string): Promise<AQIData | null>
     const res = await fetch(url);
     if (!res.ok) return null;
 
-    const data = (await res.json()) as OpenMeteoAirQuality;
-    const { current } = data;
+    const current = readCurrent<OpenMeteoAirQuality['current']>(await res.json());
+    if (!current) return null;
+
     const aqi = current.european_aqi;
     if (aqi == null) return null;
 

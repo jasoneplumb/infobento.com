@@ -10,11 +10,11 @@ const H = 120;
 const M = computeFontMetrics();
 const BYTE_W = Math.ceil(W / 4);
 
-function makeLayout(config: UVBoxConfig): LayoutBox {
+function makeLayout(config: UVBoxConfig, y = 0): LayoutBox {
   return {
     box: { id: 'uv-1', type: 'uv' as const, label: 'UV Index', config },
     x: 0,
-    y: 0,
+    y,
     width: W,
     height: H,
   };
@@ -40,10 +40,14 @@ function render(config: UVBoxConfig): Uint8Array {
   return fb.data;
 }
 
-/** Draw the primary line alone; returns the Y it ends at and its own buffer. */
+/**
+ * Draw the primary line alone; returns the absolute Y it ends at and its own
+ * buffer. `drawTextWrapped` returns the height it consumed, not a row, so the
+ * origin has to be added back on.
+ */
 function primaryAlone(text: string): { endY: number; data: Uint8Array } {
   const fb = createFrameBuffer({ widthPx: W, heightPx: H, deviceId: '' });
-  const endY = drawTextWrapped(
+  const usedHeight = drawTextWrapped(
     fb,
     M.pad,
     M.pad,
@@ -54,7 +58,7 @@ function primaryAlone(text: string): { endY: number; data: Uint8Array } {
     M.bodySize,
     M.weight,
   );
-  return { endY, data: fb.data };
+  return { endY: M.pad + usedHeight, data: fb.data };
 }
 
 describe('renderUVBox', () => {
@@ -72,7 +76,9 @@ describe('renderUVBox', () => {
     // single line draws "No data" back over that wrapped text, so the only ink
     // below where the city ended is the city's own tail. Placing it correctly
     // adds a whole line of ink down there.
-    const city = 'San Luis Obispo California';
+    // Two lines, not three — a taller wrap leaves no room for the secondary at
+    // this box height, and the box correctly suppresses it.
+    const city = 'Kuala Lumpur';
     const { endY, data: cityOnly } = primaryAlone(city);
     expect(endY).toBeGreaterThan(M.pad + M.bodySize + 2); // the city really wraps
 
@@ -82,5 +88,39 @@ describe('renderUVBox', () => {
   it('does not draw past the bottom of its box', () => {
     const data = render({ type: 'uv', city: 'A Very Long City Name Indeed Here' });
     expect(inkBelow(data, H)).toBe(0);
+  });
+
+  // Regression: renderPlaceholder assigned drawTextWrapped's return straight to
+  // `cy`. That return is a height delta, not a row, so a UV box anywhere below
+  // the top of the panel painted "No data" near row 0 — into whichever box
+  // actually occupies that space. A y = 0 fixture cannot catch it, because
+  // there `delta` and `y + delta` are the same number.
+  it('keeps the placeholder inside a box that is not at y = 0', () => {
+    const OFFSET = 200;
+    const TALL = OFFSET + H;
+    const byteW = Math.ceil(W / 4);
+
+    const inkIn = (data: Uint8Array, from: number, to: number): number => {
+      let n = 0;
+      for (let r = from; r < to; r++) {
+        for (let b = 0; b < byteW; b++) {
+          const v = data[r * byteW + b] ?? 0;
+          for (let shift = 0; shift < 8; shift += 2) {
+            if (((v >> shift) & 3) !== 0) n++;
+          }
+        }
+      }
+      return n;
+    };
+
+    // Must wrap to two lines and no more — at three the "No data" line is
+    // correctly suppressed for want of room, and since only that line was
+    // misplaced, a suppressed one would make this test vacuous.
+    const config: UVBoxConfig = { type: 'uv', city: 'Kuala Lumpur' };
+    const fb = createFrameBuffer({ widthPx: W, heightPx: TALL, deviceId: '' });
+    renderUVBox(fb, makeLayout(config, OFFSET), config, M, false);
+
+    expect(inkIn(fb.data, 0, OFFSET)).toBe(0);
+    expect(inkIn(fb.data, OFFSET, TALL)).toBeGreaterThan(0);
   });
 });
