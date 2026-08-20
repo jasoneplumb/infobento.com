@@ -1,5 +1,37 @@
 # Changelog
 
+## [0.36.0] - 2026-08-19
+
+### Removed
+
+- **The calendar, habit, and joke box types are gone (#210, #211).** A value-rating pass over all 18 box types put these three at the bottom, and the two lowest scores turned out to mark a structural weakness rather than a matter of taste: `calendar` and `habit` were the only box types with no data provider, so they could change only when their owner opened the web editor — close to inert on a panel that refreshes once or twice a day with no input device. `docs/hardware/CONNECTIVITY.md` had already flagged the calendar box as a known gap pending phone integration. `joke` was live but the lowest-rated of the live boxes, and carried an external API dependency plus a bundled fallback set. Removing them also retired the editor's generic list-editor machinery, which had no other consumers. The pitch copy in the README, product brief, and Kickstarter draft no longer leads with "what's next on your calendar".
+
+### Added
+
+- **Provider cache TTLs now scale to the configured refresh interval (#193, #194).** Fixed per-provider TTLs silently capped fast refresh settings — a device pulling every 15 minutes showed the same quote for six hours. Each provider's freshness ceiling is now scaled down to the device's own pull rate, so the Refresh interval in the editor governs how often boxes actually fetch new content.
+
+### Fixed
+
+- **Configs naming a removed box type still load (#211 review).** Three rounds of review on the removal each surfaced a real defect in the backward-compatibility guard, all fixed here. Stored device configs are stripped of unknown box types before Zod validation, so one stale box no longer fails the whole config and hides every remaining box from its owner. The same guard runs on the localStorage and file-import path, where an unknown type previously reached `buildConfigForm` with no matching form builder and threw. The filter narrows untrusted JSON safely, so a `null` or primitive element in a boxes array is dropped rather than throwing. And an import whose boxes are _all_ stale now reports failure instead of committing an empty layout — `importJSON` only alerts on a false return, so the previous behaviour wiped the user's boxes and looked like a clean import.
+
+### Security
+
+- **A live pair code was published and has been removed (#201).** The setup guide's example sticker image showed the real bench device's pair code and Device ID from a world-readable path on www.infobento.com. Replaced, with the practice documented so it cannot recur.
+- **Firmware TLS and bearer-secret exposure documented (#203).** Every sketch that speaks HTTPS calls `client.setInsecure()`, disabling certificate validation, while the device id travels as a bearer secret in the URL path. This documents the posture plainly rather than fixing it; #145 remains open.
+
+### Documentation
+
+- **Public-release corrections pass (#205).** Inaccurate and stale claims corrected ahead of going public.
+- **BOM and pricing set from researched figures (#207, #208).** Campaign pricing reworked to $109 early bird / $129 standard / $239 pair so it clears its own costs, with the bill of materials priced against real distributor listings rather than estimates.
+- **Founder bio locked (#209).**
+- **NOTICE file and npm package metadata added (#201).**
+- **README badges for website, licensing, TypeScript, and MCU.**
+
+### Changed
+
+- **The product model and campaign copy are no longer tracked (#206).**
+- **Dependency bumps:** production dependencies (#198), development dependencies (#196), and `actions/setup-node` 6 → 7 (#197).
+
 ## [0.35.1] - 2026-07-05
 
 ### Documentation
