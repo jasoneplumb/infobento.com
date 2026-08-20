@@ -76,6 +76,13 @@ const IPAddress AP_MASK(255, 255, 255, 0);
 static bool g_apMode = false;          // true while the captive portal is up
 static bool g_pinholeDown = false;     // true while the pinhole is held
 static unsigned long g_pressStart = 0; // millis() the pinhole went down
+// Cached <option> list for the network dropdown, built ONCE before the AP starts
+// (see startAP). We never scan while the AP is serving: on the ESP32 a single
+// radio is shared between the SoftAP and an STA scan, so scanning mid-session
+// makes the STA hop channels and KICKS the connected phone — the "joins then
+// drops after ~2 s" failure. Scanning before softAP() avoids that entirely, and
+// caching the markup means it survives the STA join attempt for the retry page.
+static String g_scanOptions;
 
 // ----- Identity -------------------------------------------------------------
 
@@ -160,20 +167,30 @@ String htmlEscape(const String& in) {
   return out;
 }
 
-// Build the setup form. `error` (optional) renders a retry banner after a failed
-// join. Reads the async scan results (kicked off in startAP) — no blocking scan
-// here — and renders them server-side so the dropdown needs no client JS.
-String setupPage(const String& error) {
-  // Read the ASYNC scan kicked off in startAP(); never scan synchronously here.
-  // A blocking WiFi.scanNetworks() stalls the event loop 2-4 s, during which DNS
-  // and HTTP go unanswered — captive-portal probes time out and the OS may never
-  // pop the setup browser. -1 = running, -2 = never started / cleared.
-  int n = WiFi.scanComplete();
-  if (n < 0) {
-    if (n == WIFI_SCAN_FAILED) WiFi.scanNetworks(true);  // (re)start; nothing yet
-    n = 0;
+// Scan once and cache the dropdown markup. MUST be called before softAP() — never
+// while a client is connected (an STA scan hops channels and drops the phone, see
+// g_scanOptions). Synchronous is fine here precisely because there's no AP/portal
+// to stall yet. Networks don't change during a setup session, so one snapshot is
+// enough and it survives the later join attempt.
+void buildScanOptions() {
+  int n = WiFi.scanNetworks();
+  g_scanOptions = "";
+  if (n <= 0) {
+    g_scanOptions = "<option value=''>(no networks found — use manual entry)</option>";
+  } else {
+    for (int i = 0; i < n; i++) {
+      String s = htmlEscape(WiFi.SSID(i));
+      g_scanOptions += "<option value='" + s + "'>" + s + " (" + String(WiFi.RSSI(i)) + " dBm)</option>";
+    }
   }
+  WiFi.scanDelete();
+  Serial.printf("[IB] scan: %d network(s) cached\n", n > 0 ? n : 0);
+}
 
+// Build the setup form. `error` (optional) renders a retry banner after a failed
+// join. Uses the dropdown cached by buildScanOptions() — never scans here, so the
+// connected phone is never kicked — and renders server-side (no client JS).
+String setupPage(const String& error) {
   String html = "<!doctype html><html><head><meta charset='utf-8'>"
                 "<meta name='viewport' content='width=device-width,initial-scale=1'>"
                 "<title>InfoBento setup</title>";
@@ -186,17 +203,8 @@ String setupPage(const String& error) {
   html += "<form method='POST' action='/save'>";
 
   html += "<label for='ssid'>Network</label><select id='ssid' name='ssid'>";
-  if (n <= 0) {
-    html += "<option value=''>(scanning… refresh, or use manual entry)</option>";
-  } else {
-    for (int i = 0; i < n; i++) {
-      String s = htmlEscape(WiFi.SSID(i));
-      html += "<option value='" + s + "'>" + s + " (" + String(WiFi.RSSI(i)) + " dBm)</option>";
-    }
-  }
+  html += g_scanOptions;  // cached pre-AP scan; reused on the retry page too
   html += "</select>";
-  // Keep the results cached (no scanDelete): the retry path and a quick refresh
-  // reuse them instantly instead of stalling on a fresh scan.
 
   html += "<label for='manual'>…or hidden network name</label>";
   html += "<input id='manual' name='manual' autocomplete='off' placeholder='leave blank to use the list'>";
@@ -330,6 +338,12 @@ void startAP() {
   Serial.printf("[IB] no creds -> AP mode, SSID '%s' (open)\n", ssid.c_str());
 
   WiFi.mode(WIFI_AP_STA);  // AP for the portal; STA so /save can test-join
+
+  // Scan BEFORE bringing the AP up: no phone is associated yet, so the channel
+  // hopping can't kick anyone. (Scanning after softAP would drop the connected
+  // client — the radio is shared.) Cache the dropdown for the whole session.
+  buildScanOptions();
+
   WiFi.softAPConfig(AP_IP, AP_IP, AP_MASK);
   WiFi.softAP(ssid.c_str());  // open network — the captive portal is the gate
   delay(100);
@@ -349,10 +363,6 @@ void startAP() {
   server.on("/connecttest.txt", HTTP_GET, redirectToPortal);      // Windows 10+
   server.onNotFound(redirectToPortal);  // anything else -> portal (captive catch-all)
   server.begin();
-
-  // Kick an async scan now so the dropdown is ready by the time the user loads
-  // the page, without ever blocking the DNS/HTTP loop (see setupPage).
-  WiFi.scanNetworks(true);
 
   g_apMode = true;
   Serial.println("[IB] captive portal up");
