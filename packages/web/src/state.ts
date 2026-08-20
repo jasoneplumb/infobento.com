@@ -865,15 +865,6 @@ function persistToLocalStorage(): void {
 const KNOWN_BOX_TYPES: ReadonlySet<string> = new Set(Object.keys(BOX_TYPE_LABELS));
 
 /**
- * intent: Drop boxes whose type this build no longer knows
- * method: Filter against KNOWN_BOX_TYPES
- * why: A config saved before a box type was removed still names it. Left in,
- *   one stale box takes down everything around it — Zod rejects the whole
- *   config on the device-config path, and `formBuilders[type]` is undefined on
- *   the localStorage path, so buildConfigForm throws. Dropping the stale box
- *   loses only that box.
- */
-/**
  * intent: Narrow one raw array element to something with a known box type
  * method: Explicit object + string checks before the Set lookup
  * why: The input is untrusted JSON (localStorage, a device's stored config, an
@@ -888,6 +879,15 @@ function hasKnownBoxType(box: unknown): box is { type: string } {
   return typeof type === 'string' && KNOWN_BOX_TYPES.has(type);
 }
 
+/**
+ * intent: Drop boxes whose type this build no longer knows
+ * method: Filter against KNOWN_BOX_TYPES via the hasKnownBoxType guard
+ * why: A config saved before a box type was removed still names it. Left in,
+ *   one stale box takes down everything around it — Zod rejects the whole
+ *   config on the device-config path, and `formBuilders[type]` is undefined on
+ *   the localStorage path, so buildConfigForm throws. Dropping the stale box
+ *   loses only that box.
+ */
 export function dropUnknownBoxTypes<T extends { type: string }>(boxes: readonly unknown[]): T[] {
   return boxes.filter(hasKnownBoxType) as T[];
 }
@@ -1033,16 +1033,20 @@ export function loadConfig(parsed: unknown): boolean {
 
   // Version 2: single boxes array
   if (obj.version === 2 && Array.isArray(obj.boxes)) {
+    const raw = obj.boxes as Array<{
+      type: string;
+      label: string;
+      config: Record<string, string>;
+      split?: string;
+      splitRatio?: number;
+    }>;
+    const hydrated = hydrateBoxes(raw);
+    // Every box was stale or malformed. Report failure instead of committing an
+    // empty layout: importJSON only alerts when loadConfig returns false, so
+    // writing [] here would wipe the user's boxes and look like a clean import.
+    if (raw.length > 0 && hydrated.length === 0) return false;
     setState((s) => {
-      s.boxes = hydrateBoxes(
-        obj.boxes as Array<{
-          type: string;
-          label: string;
-          config: Record<string, string>;
-          split?: string;
-          splitRatio?: number;
-        }>,
-      );
+      s.boxes = hydrated;
       if (typeof obj.showHeaders === 'boolean') s.showHeaders = obj.showHeaders;
       if (typeof obj.fontSize === 'number') s.fontSize = obj.fontSize;
       if (typeof obj.fontWeight === 'number') s.fontWeight = clampFontWeight(obj.fontWeight);
@@ -1068,8 +1072,12 @@ export function loadConfig(parsed: unknown): boolean {
     const dBoxes = Array.isArray(v1.D) ? v1.D : v1.D?.boxes;
     const pBoxes = Array.isArray(v1.P) ? v1.P : v1.P?.boxes;
     if (!Array.isArray(dBoxes) || !Array.isArray(pBoxes)) return false;
+    const raw = [...dBoxes, ...pBoxes];
+    const hydrated = hydrateBoxes(raw);
+    // Same silent-wipe guard as the version-2 branch above.
+    if (raw.length > 0 && hydrated.length === 0) return false;
     setState((s) => {
-      s.boxes = hydrateBoxes([...dBoxes, ...pBoxes]);
+      s.boxes = hydrated;
     });
     return true;
   }

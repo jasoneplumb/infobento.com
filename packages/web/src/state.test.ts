@@ -330,3 +330,54 @@ describe('loadConfig — malformed boxes arrays', () => {
     expect(getBoxes()).toHaveLength(0);
   });
 });
+
+describe('loadConfig — never silently wipes a layout', () => {
+  beforeEach(() => {
+    setState((s) => {
+      s.boxes = [];
+    });
+    addBox('weather');
+  });
+
+  it('reports failure and keeps existing boxes when a v2 import is all stale', () => {
+    // importJSON only alerts when loadConfig returns false. Returning true here
+    // would wipe the user's layout and look like a clean import.
+    const ok = loadConfig({
+      version: 2,
+      boxes: [
+        { type: 'joke', label: 'J', config: {} },
+        { type: 'habit', label: 'H', config: {} },
+      ],
+    });
+    expect(ok).toBe(false);
+    expect(getBoxes().map((b) => b.type)).toEqual(['weather']);
+  });
+
+  it('reports failure and keeps existing boxes when a v1 import is all stale', () => {
+    const ok = loadConfig({
+      version: 1,
+      D: [{ type: 'calendar', label: 'C', config: {} }],
+      P: [{ type: 'joke', label: 'J', config: {} }],
+    });
+    expect(ok).toBe(false);
+    expect(getBoxes().map((b) => b.type)).toEqual(['weather']);
+  });
+
+  it('still accepts a genuinely empty boxes array', () => {
+    // Distinct from "everything was stale" — nothing was dropped.
+    expect(loadConfig({ version: 2, boxes: [] })).toBe(true);
+    expect(getBoxes()).toHaveLength(0);
+  });
+
+  it('commits the survivors when a v2 import is only partly stale', () => {
+    const ok = loadConfig({
+      version: 2,
+      boxes: [
+        { type: 'joke', label: 'J', config: {} },
+        { type: 'date', label: 'D', config: {} },
+      ],
+    });
+    expect(ok).toBe(true);
+    expect(getBoxes().map((b) => b.type)).toEqual(['date']);
+  });
+});
