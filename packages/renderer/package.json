@@ -1,6 +1,6 @@
 {
   "name": "@infobento/renderer",
-  "version": "0.36.0",
+  "version": "0.37.0",
   "description": "InfoBento renderer: 2-bit grayscale eInk framebuffer generation with antialiased TTF text.",
   "keywords": [
     "infobento",
