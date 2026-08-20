@@ -25,6 +25,8 @@ import { renderDateBox } from './boxes/date.js';
 import { renderMoonBox } from './boxes/moon.js';
 import { renderSunBox } from './boxes/sun.js';
 import { renderAQIBox } from './boxes/aqi.js';
+import { renderUVBox } from './boxes/uv.js';
+import { renderPollenBox } from './boxes/pollen.js';
 import { renderProgressBox } from './boxes/progress.js';
 import { renderStocksBox } from './boxes/stocks.js';
 import { renderHoroscopeBox } from './boxes/horoscope.js';
@@ -90,6 +92,10 @@ function renderBox(
     renderSunBox(fb, layoutBox, box.config, metrics, showHeaders);
   } else if (box.type === 'aqi' && box.config?.type === 'aqi') {
     renderAQIBox(fb, layoutBox, box.config, metrics, showHeaders);
+  } else if (box.type === 'uv' && box.config?.type === 'uv') {
+    renderUVBox(fb, layoutBox, box.config, metrics, showHeaders);
+  } else if (box.type === 'pollen' && box.config?.type === 'pollen') {
+    renderPollenBox(fb, layoutBox, box.config, metrics, showHeaders);
   } else if (box.type === 'progress' && box.config?.type === 'progress') {
     renderProgressBox(fb, layoutBox, box.config, metrics, undefined, showHeaders);
   } else if (box.type === 'stocks' && box.config?.type === 'stocks') {
@@ -190,6 +196,14 @@ function computeMinHeight(
     return shell(3 * metrics.bodySize + 2 * metrics.rowGap);
   }
   if (box.type === 'aqi') {
+    return shell(metrics.heroSize + 2 + metrics.bodySize);
+  }
+  if (box.type === 'uv') {
+    return shell(metrics.heroSize + 2 + metrics.bodySize);
+  }
+  if (box.type === 'pollen') {
+    // The "None detected" and "No data" states are two body lines, not a hero
+    // row — but the hero form is the taller of the two, so it sets the minimum.
     return shell(metrics.heroSize + 2 + metrics.bodySize);
   }
   if (box.type === 'progress') {

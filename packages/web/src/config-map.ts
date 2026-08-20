@@ -27,6 +27,8 @@ import type {
   DateConfig,
   SunConfig,
   AQIConfig,
+  UVConfig,
+  PollenConfig,
   ProgressConfig,
   HoroscopeConfig,
   OnThisDayConfig,
@@ -138,6 +140,22 @@ export function toBentoBox(editor: EditorBox): BentoBox {
         ...base,
         type: 'aqi',
         config: { type: 'aqi', city: c.city, data: c.data },
+      };
+    }
+    case 'uv': {
+      const c = editor.config as UVConfig;
+      return {
+        ...base,
+        type: 'uv',
+        config: { type: 'uv', city: c.city, data: c.data },
+      };
+    }
+    case 'pollen': {
+      const c = editor.config as PollenConfig;
+      return {
+        ...base,
+        type: 'pollen',
+        config: { type: 'pollen', city: c.city, data: c.data },
       };
     }
     case 'progress': {
@@ -304,6 +322,12 @@ export function fromBentoBox(box: BentoBox): ExportBox {
       break;
     case 'aqi':
       config = { city: str(cfg?.['city']), data: cfg?.['data'] } as AQIConfig;
+      break;
+    case 'uv':
+      config = { city: str(cfg?.['city']), data: cfg?.['data'] } as UVConfig;
+      break;
+    case 'pollen':
+      config = { city: str(cfg?.['city']), data: cfg?.['data'] } as PollenConfig;
       break;
     case 'progress':
       config = {

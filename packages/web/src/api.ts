@@ -22,6 +22,8 @@ export {
   fetchForecast3D,
   fetchSunTimes,
   fetchAirQuality,
+  fetchUvIndex,
+  fetchPollen,
 } from '@infobento/data';
 
 export type { QuoteResult, HoroscopeResult, OnThisDayResult, StocksResult };

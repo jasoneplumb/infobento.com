@@ -12,6 +12,8 @@ import type {
   Forecast3DEntry,
   SunData,
   AQIData,
+  UVData,
+  PollenData,
   StockData,
   StockDuration,
 } from '@infobento/core';
@@ -83,6 +85,16 @@ export interface AQIConfig {
   data?: AQIData;
 }
 
+export interface UVConfig {
+  city: string;
+  data?: UVData;
+}
+
+export interface PollenConfig {
+  city: string;
+  data?: PollenData;
+}
+
 export interface ProgressConfig {
   progressLabel: string;
   startDate: string;
@@ -119,6 +131,8 @@ export type EditorBoxConfig =
   | MoonConfig
   | SunConfig
   | AQIConfig
+  | UVConfig
+  | PollenConfig
   | ProgressConfig
   | HoroscopeConfig
   | OnThisDayConfig
@@ -137,6 +151,8 @@ export type EditorBoxType = Extract<
   | 'moon'
   | 'sun'
   | 'aqi'
+  | 'uv'
+  | 'pollen'
   | 'progress'
   | 'horoscope'
   | 'onthisday'
@@ -193,6 +209,8 @@ const DEFAULTS: Record<EditorBoxType, () => EditorBoxConfig> = {
   moon: () => ({ _placeholder: '' }),
   sun: () => ({ city: '' }),
   aqi: () => ({ city: '' }),
+  uv: () => ({ city: '' }),
+  pollen: () => ({ city: '' }),
   progress: () => ({ progressLabel: 'Year', startDate: '', endDate: '' }),
   horoscope: () => ({ sign: '', content: '', date: '' }),
   onthisday: () => ({ content: '', category: 'events' }),
@@ -211,6 +229,8 @@ export const BOX_TYPE_LABELS: Record<EditorBoxType, string> = {
   moon: 'Moon Phase',
   sun: 'Sunrise/Sunset',
   aqi: 'Air Quality',
+  uv: 'UV Index',
+  pollen: 'Pollen',
   progress: 'Progress',
   horoscope: 'Horoscope',
   onthisday: 'On This Day',
@@ -225,7 +245,10 @@ export const CHIP_GROUPS: ReadonlyArray<{
   readonly label: string;
   readonly types: readonly EditorBoxType[];
 }> = [
-  { label: 'Weather & Sky', types: ['weather', 'forecast', 'forecast3d', 'aqi', 'moon', 'sun'] },
+  {
+    label: 'Weather & Sky',
+    types: ['weather', 'forecast', 'forecast3d', 'aqi', 'uv', 'pollen', 'moon', 'sun'],
+  },
   { label: 'Time & Dates', types: ['date', 'countdown', 'progress'] },
   { label: 'Markets', types: ['stocks'] },
   { label: 'Fun & Discovery', types: ['quote', 'horoscope', 'onthisday'] },
@@ -322,6 +345,8 @@ export const LOCATION_TYPES: ReadonlySet<EditorBoxType> = new Set([
   'forecast3d',
   'sun',
   'aqi',
+  'uv',
+  'pollen',
 ]);
 
 // Box types whose city is optional but still location-parameterized (#183).
@@ -671,6 +696,22 @@ export function updateSunData(id: number, data: SunData): void {
   const box = findBox(id);
   if (!box || box.type !== 'sun') return;
   (box.config as SunConfig).data = data;
+  persist();
+  renderPreview();
+}
+
+export function updateUVData(id: number, data: UVData): void {
+  const box = findBox(id);
+  if (!box || box.type !== 'uv') return;
+  (box.config as UVConfig).data = data;
+  persist();
+  renderPreview();
+}
+
+export function updatePollenData(id: number, data: PollenData): void {
+  const box = findBox(id);
+  if (!box || box.type !== 'pollen') return;
+  (box.config as PollenConfig).data = data;
   persist();
   renderPreview();
 }

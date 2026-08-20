@@ -30,6 +30,8 @@ function deps(overrides: Partial<HydrateDeps> = {}): HydrateDeps {
     fetchForecast3D: async () => null,
     fetchSunTimes: async () => null,
     fetchAirQuality: async () => null,
+    fetchUvIndex: async () => null,
+    fetchPollen: async () => null,
     fetchStocks: async () => null,
     fetchHoroscope: async () => null,
     fetchOnThisDay: async () => null,
@@ -259,6 +261,57 @@ describe('hydrateConfig — text-bearing providers (keep baked text on failure)'
     expect(box.config?.text).toBe('NEW');
     expect(box.config?.year).toBe('1990');
     expect(box.config?.category).toBe('births'); // request param preserved, not overwritten
+  });
+
+  it('hydrates a uv box from its city', async () => {
+    let seenCity: string | undefined;
+    const out = await hydrateConfig(
+      oneBox({ id: 'u', type: 'uv', config: { type: 'uv', city: 'Portland' } }),
+      deps({
+        fetchUvIndex: async (city) => {
+          seenCity = city;
+          return { uvIndex: 7, category: 'High' };
+        },
+      }),
+    );
+    const box = out.boxes[0];
+    if (box?.type !== 'uv') throw new Error('unreachable');
+    expect(seenCity).toBe('Portland');
+    expect(box.config?.data).toEqual({ uvIndex: 7, category: 'High' });
+  });
+
+  it('hydrates a pollen box from its city', async () => {
+    const out = await hydrateConfig(
+      oneBox({ id: 'p', type: 'pollen', config: { type: 'pollen', city: 'Berlin' } }),
+      deps({ fetchPollen: async () => ({ allergen: 'Birch', count: 240, level: 'High' }) }),
+    );
+    const box = out.boxes[0];
+    if (box?.type !== 'pollen') throw new Error('unreachable');
+    expect(box.config?.data).toEqual({ allergen: 'Birch', count: 240, level: 'High' });
+  });
+
+  it('leaves pollen data undefined outside coverage rather than inventing a zero', async () => {
+    const out = await hydrateConfig(
+      oneBox({ id: 'p', type: 'pollen', config: { type: 'pollen', city: 'Portland' } }),
+      deps({ fetchPollen: async () => null }),
+    );
+    const box = out.boxes[0];
+    if (box?.type !== 'pollen') throw new Error('unreachable');
+    expect(box.config?.data).toBeUndefined();
+  });
+
+  it('skips the fetch entirely when a location box has no city', async () => {
+    let called = false;
+    await hydrateConfig(
+      oneBox({ id: 'u', type: 'uv', config: { type: 'uv', city: '  ' } }),
+      deps({
+        fetchUvIndex: async () => {
+          called = true;
+          return { uvIndex: 3, category: 'Moderate' };
+        },
+      }),
+    );
+    expect(called).toBe(false);
   });
 
   it('re-fetches a random quote with the persisted tag filter, replacing the seed', async () => {

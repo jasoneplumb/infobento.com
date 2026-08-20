@@ -123,6 +123,33 @@ const AQIBoxConfigSchema = z.object({
   data: AQIDataSchema.optional(),
 });
 
+const UVDataSchema = z.object({
+  uvIndex: z.number(),
+  category: z.string(),
+});
+
+const UVBoxConfigSchema = z.object({
+  type: z.literal('uv'),
+  city: z.string().min(1, 'City is required'),
+  lat: z.number().optional(),
+  lon: z.number().optional(),
+  data: UVDataSchema.optional(),
+});
+
+const PollenDataSchema = z.object({
+  allergen: z.string(),
+  count: z.number(),
+  level: z.string(),
+});
+
+const PollenBoxConfigSchema = z.object({
+  type: z.literal('pollen'),
+  city: z.string().min(1, 'City is required'),
+  lat: z.number().optional(),
+  lon: z.number().optional(),
+  data: PollenDataSchema.optional(),
+});
+
 const ProgressBoxConfigSchema = z.object({
   type: z.literal('progress'),
   label: z.string().optional(),
@@ -226,6 +253,16 @@ const AQIBentoBoxSchema = BentoBoxBaseSchema.extend({
   config: AQIBoxConfigSchema.optional(),
 });
 
+const UVBentoBoxSchema = BentoBoxBaseSchema.extend({
+  type: z.literal('uv'),
+  config: UVBoxConfigSchema.optional(),
+});
+
+const PollenBentoBoxSchema = BentoBoxBaseSchema.extend({
+  type: z.literal('pollen'),
+  config: PollenBoxConfigSchema.optional(),
+});
+
 const ProgressBentoBoxSchema = BentoBoxBaseSchema.extend({
   type: z.literal('progress'),
   config: ProgressBoxConfigSchema.optional(),
@@ -258,6 +295,8 @@ const BentoBoxSchema = z.discriminatedUnion('type', [
   MoonBentoBoxSchema,
   SunBentoBoxSchema,
   AQIBentoBoxSchema,
+  UVBentoBoxSchema,
+  PollenBentoBoxSchema,
   ProgressBentoBoxSchema,
   StocksBentoBoxSchema,
   HoroscopeBentoBoxSchema,
