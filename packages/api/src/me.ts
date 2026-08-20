@@ -14,6 +14,7 @@ import type { Context } from 'hono';
 import { validateBentoConfig, BentoConfigSchema } from '@infobento/core';
 import type { DB } from './db.js';
 import { getDevice, getDevicesForAccount, requestForget, setConfig, unclaimDevice } from './db.js';
+import type { Device } from './db.js';
 import { readSession } from './auth/session.js';
 import { consumeToken } from './rate-limit.js';
 
@@ -22,6 +23,61 @@ interface DeviceSummary {
   readonly id: string;
   readonly pairCode: string;
   readonly hasConfig: boolean;
+}
+
+/**
+ * Shared gate for the rate-limited, owner-scoped config routes: session ->
+ * rate limit -> ownership. Returns the device and the DB handle it resolved
+ * ownership against on success, or the Response to send back.
+ *
+ * Used by the two config handlers (PUT and GET `/api/device/:id/config`), which
+ * repeated this preamble verbatim — so any change to it (a new status code, a
+ * rate-limit namespace, a Hono typing workaround) had to be made twice and
+ * could silently diverge in one.
+ *
+ * The unpair and forget handlers deliberately do NOT use this gate: neither is
+ * throttled, and calling it would consume a rate-limit token they are not meant
+ * to spend. Both scope ownership inside their SQL (`unclaimDevice` /
+ * `requestForget` take `accountId`) rather than checking it here.
+ *
+ * Order matters and is deliberate: the rate limit is consumed BEFORE the
+ * ownership check, so probing ids you don't own costs tokens. Checking ownership
+ * first would let an authenticated caller enumerate device ids for free.
+ *
+ * `bucket` namespaces the limiter. Reads use their own bucket so that opening
+ * devices in the editor cannot exhaust the allowance for writes.
+ *
+ * The resolved `db` is returned rather than left for the caller to re-fetch:
+ * calling `getDb()` a second time would read and write through two separate
+ * call sites, which is non-atomic the moment `getDb` returns anything
+ * per-request rather than one shared connection.
+ */
+function requireOwnedDevice(
+  c: Context,
+  getDb: () => DB,
+  bucket: 'cfg' | 'cfgread',
+): { device: Device; db: DB } | { response: Response } {
+  const session = readSession(c);
+  if (!session) return { response: c.json({ error: 'unauthenticated' }, 401) };
+
+  if (!consumeToken(`${bucket}:${session.accountId}`)) {
+    return { response: c.json({ error: 'rate_limited' }, 429, { 'Retry-After': '60' }) };
+  }
+
+  // Unreachable at runtime — Hono always populates :id for these routes — but
+  // c.req.param('id') is typed `string | undefined`, so the guard is required
+  // for type-safety, not defensiveness. Deleting it fails the build (TS2345).
+  const id = c.req.param('id');
+  if (!id) return { response: c.json({ error: 'not_found' }, 404) };
+
+  const db = getDb();
+  const device = getDevice(db, id);
+  // Opaque 404 for missing, unclaimed, and other-owner alike — never confirm
+  // that a device id exists to a caller who doesn't own it.
+  if (!device || device.owner_account_id !== session.accountId) {
+    return { response: c.json({ error: 'not_found' }, 404) };
+  }
+  return { device, db };
 }
 
 /**
@@ -39,26 +95,11 @@ interface DeviceSummary {
  */
 export function createPutDeviceConfigHandler(getDb: () => DB) {
   return async (c: Context): Promise<Response> => {
-    const session = readSession(c);
-    if (!session) return c.json({ error: 'unauthenticated' }, 401);
-
-    // Throttle per account, namespaced disjoint from the `pair:` and device-id
-    // buckets so a chatty editor can't starve the pairing or pull limiters.
-    if (!consumeToken(`cfg:${session.accountId}`)) {
-      return c.json({ error: 'rate_limited' }, 429, { 'Retry-After': '60' });
-    }
-
-    // c.req.param('id') is typed string | undefined here, so this guard is
-    // required for type-safety (Hono provides it at runtime, but TS can't know).
-    const id = c.req.param('id');
-    if (!id) return c.json({ error: 'not_found' }, 404);
-    const db = getDb();
-    const device = getDevice(db, id);
-    // Opaque 404 for missing, unclaimed, and other-owner alike — don't reveal
-    // that a device id exists to a caller who doesn't own it.
-    if (!device || device.owner_account_id !== session.accountId) {
-      return c.json({ error: 'not_found' }, 404);
-    }
+    const gate = requireOwnedDevice(c, getDb, 'cfg');
+    if ('response' in gate) return gate.response;
+    // Reuse the handle the ownership check ran against — see requireOwnedDevice.
+    const { db } = gate;
+    const id = gate.device.id;
 
     let body: unknown;
     try {
@@ -77,6 +118,47 @@ export function createPutDeviceConfigHandler(getDb: () => DB) {
     // Safe to parse: validateBentoConfig just succeeded on the same input.
     setConfig(db, id, JSON.stringify(BentoConfigSchema.parse(body)));
     return c.json({ ok: true });
+  };
+}
+
+/**
+ * Build the `GET /api/me/device/:id/config` handler — the SESSION-gated read of
+ * a device's stored config, for the web editor.
+ *
+ * Why this exists (#116): the editor previously read config through the
+ * firmware-facing `GET /api/device/:id/config`, where the device id alone is
+ * the bearer secret. That worked only because the id came from the
+ * ownership-gated `/api/me/devices` list, which mixed two auth models in one
+ * flow and made the editor's safety depend on where it happened to get the id.
+ * This handler mirrors `createPutDeviceConfigHandler` exactly, so read and
+ * write share one ownership check.
+ *
+ * Responses:
+ *   401 — no valid session.
+ *   429 — too many reads for this account.
+ *   404 — missing, unclaimed, or owned by someone else (opaque, deliberately).
+ *   200 — `{ config }`, where config is null when nothing is stored yet.
+ */
+export function createGetDeviceConfigHandler(getDb: () => DB) {
+  return (c: Context): Response => {
+    // Read-scoped bucket: opening devices in the editor must not eat into the
+    // write allowance, and selecting a fresh device costs a read AND a write.
+    const gate = requireOwnedDevice(c, getDb, 'cfgread');
+    if ('response' in gate) return gate.response;
+    const { device } = gate;
+
+    // A claimed device with no config yet is a 200 with null, NOT a 404. The
+    // caller must be able to tell "you don't own this" from "nothing stored
+    // yet" — conflating them is what made #191 hard to reason about.
+    if (!device.config_json) return c.json({ config: null });
+
+    try {
+      return c.json({ config: JSON.parse(device.config_json) as unknown });
+    } catch {
+      // Stored config is corrupt; report it as absent rather than 500ing, so
+      // the editor can overwrite it on the next save.
+      return c.json({ config: null });
+    }
   };
 }
 

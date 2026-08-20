@@ -666,6 +666,40 @@ export function updateConfig(id: number, key: string, value: string | number | b
   // Remember the latest location so newly-added location rows can default to it.
   if (key === 'city' && typeof value === 'string' && value.trim()) lastKnownLocation = value;
   renderPreview();
+  // Must persist: this is the path every in-row field edit takes (checkboxes,
+  // text inputs, selects). Without it the preview updated but the value never
+  // reached localStorage or the device — the config came back from the server
+  // with the key simply absent (#192). Cloud saves are debounced in cloud.ts,
+  // so calling this per keystroke schedules one PUT, not one per character.
+  persist();
+}
+
+/** In-row list edits — does not rebuild the form (keeps input focus). */
+export function updateConfigList<T>(id: number, key: string, items: T[]): void {
+  const box = findBox(id);
+  if (!box) return;
+  (box.config as unknown as Record<string, T[]>)[key] = items;
+  renderPreview();
+  persist(); // same silent-drop bug as updateConfig (#192)
+}
+
+/** Add/remove rows — uses setState so the form rebuilds with the new row count. */
+export function appendToConfigList<T>(id: number, key: string, item: T): void {
+  setState(() => {
+    const box = findBox(id);
+    if (!box) return;
+    const list = (box.config as unknown as Record<string, T[]>)[key];
+    if (Array.isArray(list)) list.push(item);
+  });
+}
+
+export function removeFromConfigList(id: number, key: string, idx: number): void {
+  setState(() => {
+    const box = findBox(id);
+    if (!box) return;
+    const list = (box.config as unknown as Record<string, unknown[]>)[key];
+    if (Array.isArray(list) && idx >= 0 && idx < list.length) list.splice(idx, 1);
+  });
 }
 
 export function updateWeatherData(id: number, data: WeatherData): void {
@@ -737,6 +771,10 @@ export function updateLabel(id: number, value: string): void {
   if (!box) return;
   box.label = value;
   renderPreview();
+  // Third instance of the #192 silent-drop bug: renaming a box and changing
+  // nothing else lost the rename on reload. A sweep of every exported mutator
+  // confirms this was the last one missing persistence.
+  persist();
 }
 
 export function getShowHeaders(): boolean {
