@@ -702,7 +702,6 @@ export function removeFromConfigList(id: number, key: string, idx: number): void
   });
 }
 
-
 export function updateWeatherData(id: number, data: WeatherData): void {
   const box = findBox(id);
   if (!box || box.type !== 'weather') return;
