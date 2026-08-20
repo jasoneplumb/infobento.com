@@ -31,24 +31,6 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-describe('GET /api/joke', () => {
-  it('returns the upstream joke when available', async () => {
-    mockFetch(() => ({ ok: true, body: { error: false, joke: 'ha', category: 'Pun' } }));
-    const res = await app.request('/api/joke?categories=pun');
-    expect(res.status).toBe(200);
-    expect(await res.json()).toEqual({ text: 'ha', category: 'Pun' });
-  });
-
-  it('falls back to the bundled set when upstream is down', async () => {
-    mockFetchDown();
-    const res = await app.request('/api/joke');
-    expect(res.status).toBe(200);
-    const body = (await res.json()) as { text: string; fallback?: boolean };
-    expect(body.fallback).toBe(true);
-    expect(body.text.length).toBeGreaterThan(0);
-  });
-});
-
 describe('GET /api/quote', () => {
   it('maps the upstream quote into the q/a shape', async () => {
     mockFetch(() => ({

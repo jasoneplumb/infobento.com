@@ -297,7 +297,7 @@ export function getDevicesForAccount(db: DB, accountId: string): readonly Device
  * `paired_at`, AND `config_json` so the device is pristine for a future re-pair.
  * Clearing the config is a privacy measure: a device re-paired by a *different*
  * account must not serve the previous owner's config (which can carry personal
- * text, calendar events, etc.) to the new owner's firmware. Scoped to
+ * text, countdown targets, etc.) to the new owner's firmware. Scoped to
  * `accountId` so a caller can only unpair a device it owns — returns false if
  * the device is missing or owned by someone else.
  */

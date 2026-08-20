@@ -183,48 +183,12 @@ export interface StocksBoxConfig {
   readonly data?: StockData;
 }
 
-/** Pre-fetched calendar event data */
-export interface CalendarEvent {
-  readonly title: string;
-  readonly time?: string; // e.g. '14:00' or 'All day'
-}
-
-export interface CalendarBoxConfig {
-  readonly type: 'calendar';
-  readonly events?: readonly CalendarEvent[];
-}
-
-/** Habit tracking entry with streak info */
-export interface HabitEntry {
-  readonly name: string;
-  readonly streak: number; // consecutive days
-  readonly completedToday: boolean;
-}
-
-export interface HabitBoxConfig {
-  readonly type: 'habit';
-  readonly habits: readonly HabitEntry[];
-}
-
 /** Pre-fetched "On This Day" entry from Wikipedia */
 export interface OnThisDayBoxConfig {
   readonly type: 'onthisday';
   readonly text: string;
   readonly year?: string; // empty for holidays
   readonly category?: string; // events | births | deaths | holidays | all
-}
-
-/** Pre-fetched joke text from a category-filtered API */
-export interface JokeBoxConfig {
-  readonly type: 'joke';
-  readonly text: string; // the joke body (single-line; multi-line jokes normalized server-side)
-  readonly category?: string; // the API-returned category (e.g. 'Programming', 'Pun')
-  /**
-   * Comma-separated category request filter (e.g. "Programming, Pun") persisted
-   * so pull-time hydration can re-fetch a fresh random joke with the same filter.
-   * Distinct from `category`, which is the API-*returned* category for display.
-   */
-  readonly categories?: string;
 }
 
 /** Pre-fetched horoscope reading for a single zodiac sign */
@@ -250,10 +214,7 @@ export type BoxConfig =
   | AQIBoxConfig
   | ProgressBoxConfig
   | StocksBoxConfig
-  | CalendarBoxConfig
-  | HabitBoxConfig
   | HoroscopeBoxConfig
-  | JokeBoxConfig
   | OnThisDayBoxConfig;
 
 // --- Core types ---
@@ -263,7 +224,6 @@ export type BentoBoxType =
   | 'weather'
   | 'forecast'
   | 'forecast3d'
-  | 'calendar'
   | 'quote'
   | 'countdown'
   | 'stocks'
@@ -274,9 +234,7 @@ export type BentoBoxType =
   | 'sun'
   | 'aqi'
   | 'progress'
-  | 'habit'
   | 'horoscope'
-  | 'joke'
   | 'onthisday';
 
 /** Base fields shared by all bento boxes */
@@ -370,28 +328,10 @@ interface StocksBentoBox extends BentoBoxBase {
   readonly config?: StocksBoxConfig;
 }
 
-/** Calendar box with typed config */
-interface CalendarBentoBox extends BentoBoxBase {
-  readonly type: 'calendar';
-  readonly config?: CalendarBoxConfig;
-}
-
-/** Habit box with typed config */
-interface HabitBentoBox extends BentoBoxBase {
-  readonly type: 'habit';
-  readonly config?: HabitBoxConfig;
-}
-
 /** Horoscope box with typed config */
 interface HoroscopeBentoBox extends BentoBoxBase {
   readonly type: 'horoscope';
   readonly config?: HoroscopeBoxConfig;
-}
-
-/** Joke box with typed config */
-interface JokeBentoBox extends BentoBoxBase {
-  readonly type: 'joke';
-  readonly config?: JokeBoxConfig;
 }
 
 /** On This Day box with typed config */
@@ -417,10 +357,7 @@ interface UnconfiguredBentoBox extends BentoBoxBase {
     | 'aqi'
     | 'progress'
     | 'stocks'
-    | 'calendar'
-    | 'habit'
     | 'horoscope'
-    | 'joke'
     | 'onthisday'
   >;
   readonly config?: undefined;
@@ -444,10 +381,7 @@ export type BentoBox =
   | AQIBentoBox
   | ProgressBentoBox
   | StocksBentoBox
-  | CalendarBentoBox
-  | HabitBentoBox
   | HoroscopeBentoBox
-  | JokeBentoBox
   | OnThisDayBentoBox
   | UnconfiguredBentoBox;
 

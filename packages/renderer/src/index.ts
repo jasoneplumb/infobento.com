@@ -27,10 +27,7 @@ import { renderSunBox } from './boxes/sun.js';
 import { renderAQIBox } from './boxes/aqi.js';
 import { renderProgressBox } from './boxes/progress.js';
 import { renderStocksBox } from './boxes/stocks.js';
-import { renderCalendarBox } from './boxes/calendar.js';
-import { renderHabitBox } from './boxes/habit.js';
 import { renderHoroscopeBox } from './boxes/horoscope.js';
-import { renderJokeBox } from './boxes/joke.js';
 import { renderOnThisDayBox } from './boxes/onthisday.js';
 import type { FrameBuffer } from './types.js';
 import type { FontMetrics } from './font-metrics.js';
@@ -97,14 +94,8 @@ function renderBox(
     renderProgressBox(fb, layoutBox, box.config, metrics, undefined, showHeaders);
   } else if (box.type === 'stocks' && box.config?.type === 'stocks') {
     renderStocksBox(fb, layoutBox, box.config, metrics, showHeaders);
-  } else if (box.type === 'calendar' && box.config?.type === 'calendar') {
-    renderCalendarBox(fb, layoutBox, box.config, metrics, showHeaders);
-  } else if (box.type === 'habit' && box.config?.type === 'habit') {
-    renderHabitBox(fb, layoutBox, box.config, metrics, showHeaders);
   } else if (box.type === 'horoscope' && box.config?.type === 'horoscope') {
     renderHoroscopeBox(fb, layoutBox, box.config, metrics, showHeaders);
-  } else if (box.type === 'joke' && box.config?.type === 'joke') {
-    renderJokeBox(fb, layoutBox, box.config, metrics, showHeaders);
   } else if (box.type === 'onthisday' && box.config?.type === 'onthisday') {
     renderOnThisDayBox(fb, layoutBox, box.config, metrics, showHeaders);
   } else {
@@ -174,9 +165,6 @@ function computeMinHeight(
   if (box.type === 'horoscope' && box.config?.type === 'horoscope') {
     return shell(wrap(box.config.text) * lineH);
   }
-  if (box.type === 'joke' && box.config?.type === 'joke') {
-    return shell(wrap(box.config.text) * lineH);
-  }
   if (box.type === 'onthisday' && box.config?.type === 'onthisday') {
     return shell(wrap(box.config.text) * lineH);
   }
@@ -223,15 +211,6 @@ function computeMinHeight(
     const want = box.config.days ?? 3;
     const n = Math.max(1, Math.min(want, box.config.entries?.length ?? want));
     return shell(n * rowH);
-  }
-  if (box.type === 'calendar') {
-    const c = box.config?.type === 'calendar' ? box.config : undefined;
-    const n = Math.max(1, c?.events?.length ?? 1);
-    return shell(n * rowH);
-  }
-  if (box.type === 'habit' && box.config?.type === 'habit') {
-    const n = Math.max(1, box.config.habits.length);
-    return shell(n * lineH);
   }
   // qr is sized by the layout engine itself (QR_HEIGHT_RATIO); no hint.
   return null;

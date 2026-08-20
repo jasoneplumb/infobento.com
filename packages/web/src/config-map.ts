@@ -29,11 +29,8 @@ import type {
   AQIConfig,
   ProgressConfig,
   HoroscopeConfig,
-  JokeConfig,
   OnThisDayConfig,
   StocksConfig,
-  CalendarConfig,
-  HabitConfig,
 } from './state';
 import {
   getBoxes,
@@ -169,19 +166,6 @@ export function toBentoBox(editor: EditorBox): BentoBox {
         },
       };
     }
-    case 'joke': {
-      const c = editor.config as JokeConfig;
-      return {
-        ...base,
-        type: 'joke',
-        config: {
-          type: 'joke',
-          text: c.content,
-          category: c.category || undefined,
-          categories: c.categories || undefined,
-        },
-      };
-    }
     case 'onthisday': {
       const c = editor.config as OnThisDayConfig;
       return {
@@ -206,22 +190,6 @@ export function toBentoBox(editor: EditorBox): BentoBox {
           ...(c.duration ? { duration: c.duration } : {}),
           data: c.data,
         },
-      };
-    }
-    case 'calendar': {
-      const c = editor.config as CalendarConfig;
-      return {
-        ...base,
-        type: 'calendar',
-        config: { type: 'calendar', events: c.events },
-      };
-    }
-    case 'habit': {
-      const c = editor.config as HabitConfig;
-      return {
-        ...base,
-        type: 'habit',
-        config: { type: 'habit', habits: c.habits },
       };
     }
     default:
@@ -351,13 +319,6 @@ export function fromBentoBox(box: BentoBox): ExportBox {
         date: str(cfg?.['date']),
       } as HoroscopeConfig;
       break;
-    case 'joke':
-      config = {
-        content: str(cfg?.['text']),
-        category: cfg?.['category'] as string | undefined,
-        categories: cfg?.['categories'] as string | undefined,
-      } as JokeConfig;
-      break;
     case 'onthisday':
       config = {
         content: str(cfg?.['text']),
@@ -374,16 +335,6 @@ export function fromBentoBox(box: BentoBox): ExportBox {
         duration: cfg?.['duration'] as StocksConfig['duration'],
         data: cfg?.['data'],
       } as StocksConfig;
-      break;
-    case 'calendar':
-      config = { events: (cfg?.['events'] as CalendarConfig['events']) ?? [] } as CalendarConfig;
-      break;
-    case 'habit':
-      config = {
-        habits: (cfg?.['habits'] as HabitConfig['habits']) ?? [
-          { name: '', streak: 0, completedToday: false },
-        ],
-      } as HabitConfig;
       break;
     default:
       config = { _placeholder: '' };

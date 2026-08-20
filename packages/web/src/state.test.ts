@@ -73,7 +73,7 @@ describe('serializeBoxes (export/persist round-trip)', () => {
 
 describe('changeBoxType', () => {
   it('replaces type and resets config to the new defaults', () => {
-    addBox('joke');
+    addBox('horoscope');
     const id = getBoxes()[0]!.id;
     changeBoxType(id, 'quote');
     const box = getBoxes()[0]!;
@@ -82,15 +82,15 @@ describe('changeBoxType', () => {
   });
 
   it('overwrites the label when it still matches the old default', () => {
-    addBox('joke');
+    addBox('horoscope');
     const id = getBoxes()[0]!.id;
-    expect(getBoxes()[0]!.label).toBe(BOX_TYPE_LABELS.joke);
+    expect(getBoxes()[0]!.label).toBe(BOX_TYPE_LABELS.horoscope);
     changeBoxType(id, 'quote');
     expect(getBoxes()[0]!.label).toBe(BOX_TYPE_LABELS.quote);
   });
 
   it('preserves a user-customized label across a type switch', () => {
-    addBox('joke');
+    addBox('horoscope');
     const id = getBoxes()[0]!.id;
     updateLabel(id, 'My favorite');
     changeBoxType(id, 'quote');
@@ -228,7 +228,7 @@ describe('persistence mode (local vs cloud, issue #76)', () => {
       version: 2,
       boxes: [
         { type: 'quote', label: 'Q', config: { content: 'hi', author: '' } },
-        { type: 'joke', label: 'J', config: { content: 'ha' } },
+        { type: 'onthisday', label: 'O', config: { content: 'ha', category: 'events' } },
       ],
     });
     expect(getBoxes()).toHaveLength(2);

@@ -11,11 +11,11 @@
 [![Node](https://img.shields.io/badge/node-%3E%3D20-brightgreen.svg)](package.json)
 [![ESP32-C3](https://img.shields.io/badge/MCU-ESP32--C3-grey.svg)](firmware)
 
-A small, solar-powered eInk decorator that lives on a counter, shelf, or windowsill. Configure once on a web page; it sips light from the window and shows what matters most — weather, 8-hour forecast, 8-day forecast, calendar, quote, countdown, stocks, QR code, text, date, moon phase, sunrise/sunset, air quality, year progress, habits, horoscope, joke, on this day — for months on its own.
+A small, solar-powered eInk decorator that lives on a counter, shelf, or windowsill. Configure once on a web page; it sips light from the window and shows what matters most — weather, 8-hour forecast, 8-day forecast, air quality, quote, countdown, stocks, QR code, text, date, moon phase, sunrise/sunset, year progress, horoscope, on this day — for months on its own.
 
 ## Overview
 
-InfoBento is a small calm surface for the room. The information you check most often — weather, the next thing on your calendar, days until something you're looking forward to — sits there in crisp eInk, visible at a glance from across the room. One-time Wi-Fi and sign-in setup, then no batteries to swap and nothing to fiddle with day to day.
+InfoBento is a small calm surface for the room. The information you check most often — whether it's going to rain, whether the air is clear enough to open the windows, days until something you're looking forward to — sits there in crisp eInk, visible at a glance from across the room. One-time Wi-Fi and sign-in setup, then no batteries to swap and nothing to fiddle with day to day.
 
 Building a layout in the web editor needs no account — it saves to your browser.
 Binding a device to that layout does: you claim it with a passkey or a Google/Apple

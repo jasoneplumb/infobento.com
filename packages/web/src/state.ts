@@ -14,8 +14,6 @@ import type {
   AQIData,
   StockData,
   StockDuration,
-  CalendarEvent,
-  HabitEntry,
 } from '@infobento/core';
 import { DEFAULT_STOCK_DURATION, DEVICE_PROFILES, DEFAULT_PROFILE_ID } from '@infobento/core';
 import { DEFAULT_REFRESHES_PER_DAY, MAX_REFRESHES_PER_DAY } from '@infobento/core';
@@ -97,12 +95,6 @@ export interface HoroscopeConfig {
   date: string;
 }
 
-export interface JokeConfig {
-  content: string;
-  category?: string;
-  categories?: string; // user's CSV input filter
-}
-
 export interface OnThisDayConfig {
   content: string;
   year?: string;
@@ -113,14 +105,6 @@ export interface StocksConfig {
   symbol: string;
   duration?: StockDuration;
   data?: StockData;
-}
-
-export interface CalendarConfig {
-  events: CalendarEvent[];
-}
-
-export interface HabitConfig {
-  habits: HabitEntry[];
 }
 
 export type EditorBoxConfig =
@@ -137,11 +121,8 @@ export type EditorBoxConfig =
   | AQIConfig
   | ProgressConfig
   | HoroscopeConfig
-  | JokeConfig
   | OnThisDayConfig
-  | StocksConfig
-  | CalendarConfig
-  | HabitConfig;
+  | StocksConfig;
 
 export type EditorBoxType = Extract<
   BentoBoxType,
@@ -158,11 +139,8 @@ export type EditorBoxType = Extract<
   | 'aqi'
   | 'progress'
   | 'horoscope'
-  | 'joke'
   | 'onthisday'
   | 'stocks'
-  | 'calendar'
-  | 'habit'
 >;
 
 export interface EditorBox {
@@ -217,11 +195,8 @@ const DEFAULTS: Record<EditorBoxType, () => EditorBoxConfig> = {
   aqi: () => ({ city: '' }),
   progress: () => ({ progressLabel: 'Year', startDate: '', endDate: '' }),
   horoscope: () => ({ sign: '', content: '', date: '' }),
-  joke: () => ({ content: '' }),
   onthisday: () => ({ content: '', category: 'events' }),
   stocks: () => ({ symbol: '', duration: DEFAULT_STOCK_DURATION }),
-  calendar: () => ({ events: [] }),
-  habit: () => ({ habits: [{ name: '', streak: 0, completedToday: false }] }),
 };
 
 export const BOX_TYPE_LABELS: Record<EditorBoxType, string> = {
@@ -238,11 +213,8 @@ export const BOX_TYPE_LABELS: Record<EditorBoxType, string> = {
   aqi: 'Air Quality',
   progress: 'Progress',
   horoscope: 'Horoscope',
-  joke: 'Joke',
   onthisday: 'On This Day',
   stocks: 'Stocks',
-  calendar: 'Calendar',
-  habit: 'Habits',
 };
 
 /**
@@ -254,9 +226,9 @@ export const CHIP_GROUPS: ReadonlyArray<{
   readonly types: readonly EditorBoxType[];
 }> = [
   { label: 'Weather & Sky', types: ['weather', 'forecast', 'forecast3d', 'aqi', 'moon', 'sun'] },
-  { label: 'Time & Dates', types: ['date', 'countdown', 'progress', 'calendar'] },
-  { label: 'Personal', types: ['habit', 'stocks'] },
-  { label: 'Fun & Discovery', types: ['quote', 'joke', 'horoscope', 'onthisday'] },
+  { label: 'Time & Dates', types: ['date', 'countdown', 'progress'] },
+  { label: 'Markets', types: ['stocks'] },
+  { label: 'Fun & Discovery', types: ['quote', 'horoscope', 'onthisday'] },
   { label: 'Utility', types: ['text', 'qr'] },
 ];
 
@@ -669,33 +641,6 @@ export function updateConfig(id: number, key: string, value: string | number | b
   // Remember the latest location so newly-added location rows can default to it.
   if (key === 'city' && typeof value === 'string' && value.trim()) lastKnownLocation = value;
   renderPreview();
-}
-
-/** In-row list edits — does not rebuild the form (keeps input focus). */
-export function updateConfigList<T>(id: number, key: string, items: T[]): void {
-  const box = findBox(id);
-  if (!box) return;
-  (box.config as unknown as Record<string, T[]>)[key] = items;
-  renderPreview();
-}
-
-/** Add/remove rows — uses setState so the form rebuilds with the new row count. */
-export function appendToConfigList<T>(id: number, key: string, item: T): void {
-  setState(() => {
-    const box = findBox(id);
-    if (!box) return;
-    const list = (box.config as unknown as Record<string, T[]>)[key];
-    if (Array.isArray(list)) list.push(item);
-  });
-}
-
-export function removeFromConfigList(id: number, key: string, idx: number): void {
-  setState(() => {
-    const box = findBox(id);
-    if (!box) return;
-    const list = (box.config as unknown as Record<string, unknown[]>)[key];
-    if (Array.isArray(list) && idx >= 0 && idx < list.length) list.splice(idx, 1);
-  });
 }
 
 export function updateWeatherData(id: number, data: WeatherData): void {

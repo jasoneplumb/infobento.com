@@ -12,13 +12,7 @@ import type { StockDuration } from '@infobento/core';
 // Proxy-fetcher result shapes are single-sourced in @infobento/data (the API's
 // proxy routes return exactly these). Imported for the local annotations below
 // and re-exported, so the two packages never drift apart.
-import type {
-  QuoteResult,
-  JokeResult,
-  HoroscopeResult,
-  OnThisDayResult,
-  StocksResult,
-} from '@infobento/data';
+import type { QuoteResult, HoroscopeResult, OnThisDayResult, StocksResult } from '@infobento/data';
 
 // Location-based fetchers — re-exported from the shared data package. Geocoding
 // (Nominatim) + weather/AQI (Open-Meteo) are keyless and browser-safe.
@@ -30,7 +24,7 @@ export {
   fetchAirQuality,
 } from '@infobento/data';
 
-export type { QuoteResult, JokeResult, HoroscopeResult, OnThisDayResult, StocksResult };
+export type { QuoteResult, HoroscopeResult, OnThisDayResult, StocksResult };
 
 // -- Quote (via Hono API proxy) ---------------------------------------------
 
@@ -85,26 +79,6 @@ export async function fetchOnThisDay(category?: string): Promise<OnThisDayResult
     const data = (await res.json()) as { text?: string; year?: string; category?: string };
     if (!data.text) return null;
     return { text: data.text, year: data.year ?? '', category: data.category ?? '' };
-  } catch {
-    return null;
-  }
-}
-
-/**
- * Fetch a fresh joke from the /api/joke proxy. Optional `categories`
- * (comma-separated) filters by JokeAPI category. Returns null on
- * network/API failure or no match.
- */
-export async function fetchJoke(categories?: string): Promise<JokeResult | null> {
-  try {
-    const params = new URLSearchParams();
-    if (categories && categories.trim()) params.set('categories', categories.trim());
-    const qs = params.toString();
-    const res = await fetch(`/api/joke${qs ? `?${qs}` : ''}`);
-    if (!res.ok) return null;
-    const data = (await res.json()) as { text?: string; category?: string };
-    if (!data.text) return null;
-    return { text: data.text, category: data.category ?? '' };
   } catch {
     return null;
   }
