@@ -704,6 +704,7 @@ export function updateUVData(id: number, data: UVData): void {
   const box = findBox(id);
   if (!box || box.type !== 'uv') return;
   (box.config as UVConfig).data = data;
+  persist();
   renderPreview();
 }
 
@@ -711,6 +712,7 @@ export function updatePollenData(id: number, data: PollenData): void {
   const box = findBox(id);
   if (!box || box.type !== 'pollen') return;
   (box.config as PollenConfig).data = data;
+  persist();
   renderPreview();
 }
 

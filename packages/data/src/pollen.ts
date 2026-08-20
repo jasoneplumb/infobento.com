@@ -19,7 +19,7 @@ interface OpenMeteoPollen {
 /**
  * European Aeroallergen Network risk bands, in grains/m³. Trees and
  * grasses/weeds get different scales because their allergenicity differs — 50
- * grains of ragweed is a Very High day, 50 grains of birch is only Moderate.
+ * grains of ragweed is a High day, 50 grains of birch is only Moderate.
  * Each array is the inclusive upper bound of Low / Moderate / High; anything
  * above the last entry is Very High.
  */
@@ -49,11 +49,6 @@ function bandIndex(count: number, bands: readonly [number, number, number]): num
   if (count <= bands[1]) return 1;
   if (count <= bands[2]) return 2;
   return 3;
-}
-
-/** Human-readable risk level for a count on a given species' band scale. */
-export function pollenLevel(count: number, bands: readonly [number, number, number]): string {
-  return LEVELS[bandIndex(count, bands)] as string;
 }
 
 /**

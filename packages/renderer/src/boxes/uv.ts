@@ -80,20 +80,21 @@ function renderPlaceholder(
   city: string,
   metrics: FontMetrics,
 ): void {
-  let cy = y;
-
-  drawTextWrapped(
+  // drawTextWrapped returns the Y it advanced to. Assuming a single line
+  // overdraws "No data" on top of a city name that wrapped — which is exactly
+  // what a multi-word city in a narrow split box does.
+  let cy = drawTextWrapped(
     fb,
     x,
-    cy,
+    y,
     city,
     maxWidth,
-    maxY - cy,
+    maxY - y,
     GRAY_LIGHT,
     metrics.bodySize,
     metrics.weight,
   );
-  cy += metrics.bodySize + 2;
+  cy += 2;
 
   if (cy + metrics.bodySize > maxY) return;
 
