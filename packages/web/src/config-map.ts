@@ -325,7 +325,7 @@ export function fromBentoBox(box: BentoBox): ExportBox {
         year: cfg?.['year'] as string | undefined,
         // Preserve absent category as undefined (don't inject 'events'), so a
         // round-trip through cloud storage doesn't persist a category the user
-        // never set — mirrors the joke case above.
+        // never set.
         category: cfg?.['category'] as string | undefined,
       } as OnThisDayConfig;
       break;

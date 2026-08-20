@@ -858,6 +858,25 @@ function persistToLocalStorage(): void {
   }
 }
 
+/**
+ * Box types this build knows how to render and edit. Derived from
+ * BOX_TYPE_LABELS so it can never drift from the editor's own type list.
+ */
+const KNOWN_BOX_TYPES: ReadonlySet<string> = new Set(Object.keys(BOX_TYPE_LABELS));
+
+/**
+ * intent: Drop boxes whose type this build no longer knows
+ * method: Filter against KNOWN_BOX_TYPES
+ * why: A config saved before a box type was removed still names it. Left in,
+ *   one stale box takes down everything around it — Zod rejects the whole
+ *   config on the device-config path, and `formBuilders[type]` is undefined on
+ *   the localStorage path, so buildConfigForm throws. Dropping the stale box
+ *   loses only that box.
+ */
+export function dropUnknownBoxTypes<T extends { type: string }>(boxes: readonly T[]): T[] {
+  return boxes.filter((b) => KNOWN_BOX_TYPES.has(b.type));
+}
+
 function hydrateBoxes(
   raw: Array<{
     type: string;
@@ -867,7 +886,7 @@ function hydrateBoxes(
     splitRatio?: number;
   }>,
 ): EditorBox[] {
-  const boxes: EditorBox[] = raw.map((b) => {
+  const boxes: EditorBox[] = dropUnknownBoxTypes(raw).map((b) => {
     // config comes from persisted JSON as a flat string map; the runtime shape
     // matches one of the EditorBoxConfig union members it was serialized from, so
     // narrow through `unknown` at this deserialization boundary.
@@ -982,8 +1001,13 @@ export function loadConfig(parsed: unknown): boolean {
   // config_json stores): no `version` field but a boxes array. Validate it, then
   // convert to the version-2 editor shape the rest of this function hydrates.
   if (!('version' in obj) && Array.isArray(obj.boxes)) {
-    if (!validateBentoConfig(obj).valid) return false;
-    return loadConfig(fromBentoConfig(obj as unknown as BentoConfig));
+    // Strip stale box types BEFORE validating: the Zod union only admits types
+    // this build still ships, so one leftover box would otherwise fail the
+    // whole config and hide every remaining box from its owner.
+    const boxes = dropUnknownBoxTypes(obj.boxes as Array<{ type: string }>);
+    const cleaned = boxes.length === obj.boxes.length ? obj : { ...obj, boxes };
+    if (!validateBentoConfig(cleaned).valid) return false;
+    return loadConfig(fromBentoConfig(cleaned as unknown as BentoConfig));
   }
 
   if (!('version' in obj)) return false;

@@ -241,3 +241,53 @@ describe('persistence mode (local vs cloud, issue #76)', () => {
     expect(getBoxes()[0]!.type).toBe('weather');
   });
 });
+
+describe('loadConfig — configs naming a removed box type', () => {
+  beforeEach(() => {
+    setState((s) => {
+      s.boxes = [];
+    });
+  });
+
+  it('loads the surviving boxes from a device config that still names a removed type', () => {
+    // A device paired before #210 has `joke` sitting in its stored config_json.
+    // Zod no longer admits that type, so without the pre-filter the whole
+    // config is rejected and the owner sees none of their boxes.
+    const ok = loadConfig({
+      boxes: [
+        { id: 'a', type: 'quote', label: 'Q', config: { type: 'quote', text: 'hi' } },
+        { id: 'b', type: 'joke', label: 'J', config: { type: 'joke', text: 'ha' } },
+        { id: 'c', type: 'weather', label: 'W', config: { type: 'weather', city: 'Reno' } },
+      ],
+      refreshesPerDay: 2,
+    });
+
+    expect(ok).toBe(true);
+    expect(getBoxes().map((b) => b.type)).toEqual(['quote', 'weather']);
+  });
+
+  it('drops a removed type from a version-2 editor config', () => {
+    // formBuilders has no entry for 'habit' any more, so leaving it in would
+    // make buildConfigForm throw rather than degrade.
+    const ok = loadConfig({
+      version: 2,
+      boxes: [
+        { type: 'habit', label: 'H', config: { habits: [] } },
+        { type: 'date', label: 'D', config: {} },
+      ],
+    });
+
+    expect(ok).toBe(true);
+    expect(getBoxes().map((b) => b.type)).toEqual(['date']);
+  });
+
+  it('reports failure when every box names a removed type', () => {
+    // Nothing loadable is left; the caller keeps whatever it had.
+    expect(
+      loadConfig({
+        boxes: [{ id: 'a', type: 'calendar', label: 'C', config: { type: 'calendar' } }],
+        refreshesPerDay: 2,
+      }),
+    ).toBe(false);
+  });
+});
