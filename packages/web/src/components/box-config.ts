@@ -14,6 +14,8 @@ import type {
   WeatherConfig,
   SunConfig,
   AQIConfig,
+  UVConfig,
+  PollenConfig,
   ProgressConfig,
   HoroscopeConfig,
   OnThisDayConfig,
@@ -26,10 +28,12 @@ import {
   updateWeatherData,
   updateSunData,
   updateAQIData,
+  updateUVData,
+  updatePollenData,
   updateStocksData,
   getTempUnit,
 } from '../state';
-import type { StockDuration } from '@infobento/core';
+import type { StockDuration, UVData, PollenData } from '@infobento/core';
 import { STOCK_DURATIONS, DEFAULT_STOCK_DURATION } from '@infobento/core';
 import { propagateLocationToEmptyBoxes, detectLocationByIP } from '../geolocation.js';
 import {
@@ -40,6 +44,8 @@ import {
   fetchHoroscope,
   fetchOnThisDay,
   fetchStocks,
+  fetchUvIndex,
+  fetchPollen,
   fetchSunTimes,
   fetchAirQuality,
 } from '../api';
@@ -657,6 +663,103 @@ function buildAQIForm(box: EditorBox): DocumentFragment {
   return frag;
 }
 
+function buildUVForm(box: EditorBox): DocumentFragment {
+  const frag = document.createDocumentFragment();
+  const cfg = box.config as UVConfig;
+
+  const statusEl = document.createElement('div');
+  statusEl.className = 'weather-status';
+  const describe = (data: UVData): string => `UV ${String(data.uvIndex)} (${data.category})`;
+  if (cfg.data) statusEl.textContent = describe(cfg.data);
+
+  const doFetch = async (): Promise<void> => {
+    const city = cfg.city;
+    if (!city.trim()) return;
+    statusEl.textContent = 'Fetching UV index…';
+    const data = await fetchUvIndex(city);
+    if (data) {
+      updateUVData(box.id, data);
+      statusEl.textContent = describe(data);
+    } else {
+      statusEl.textContent = 'Location not found or fetch failed.';
+    }
+  };
+
+  const cityInput = inputEl('text', cfg.city, (v) => {
+    updateConfig(box.id, 'city', v);
+    debouncedFetch(box.id, doFetch);
+  });
+  cityInput.placeholder = 'e.g. Portland, OR';
+
+  frag.appendChild(
+    makeLocationField(cityInput, (city) => {
+      updateConfig(box.id, 'city', city);
+      void doFetch();
+    }),
+  );
+  frag.appendChild(statusEl);
+
+  if (cfg.city.trim() && !cfg.data) {
+    void doFetch();
+  }
+
+  return frag;
+}
+
+function buildPollenForm(box: EditorBox): DocumentFragment {
+  const frag = document.createDocumentFragment();
+  const cfg = box.config as PollenConfig;
+
+  const statusEl = document.createElement('div');
+  statusEl.className = 'weather-status';
+  const describe = (data: PollenData): string =>
+    data.allergen === 'None'
+      ? 'No pollen detected today'
+      : `${data.allergen} ${String(data.count)} grains/m³ (${data.level})`;
+  if (cfg.data) statusEl.textContent = describe(cfg.data);
+
+  const doFetch = async (): Promise<void> => {
+    const city = cfg.city;
+    if (!city.trim()) return;
+    statusEl.textContent = 'Fetching pollen…';
+    const data = await fetchPollen(city);
+    if (data) {
+      updatePollenData(box.id, data);
+      statusEl.textContent = describe(data);
+    } else {
+      // Distinct from a fetch failure: the upstream serves pollen for Europe
+      // during pollen season only, so a valid location can legitimately have
+      // no data. Saying so beats a bare "fetch failed".
+      statusEl.textContent = 'No pollen data — Europe only, during pollen season.';
+    }
+  };
+
+  const cityInput = inputEl('text', cfg.city, (v) => {
+    updateConfig(box.id, 'city', v);
+    debouncedFetch(box.id, doFetch);
+  });
+  cityInput.placeholder = 'e.g. Berlin, Germany';
+
+  frag.appendChild(
+    makeLocationField(cityInput, (city) => {
+      updateConfig(box.id, 'city', city);
+      void doFetch();
+    }),
+  );
+  frag.appendChild(statusEl);
+
+  const note = document.createElement('div');
+  note.className = 'field-hint';
+  note.textContent = 'Pollen data covers Europe during pollen season.';
+  frag.appendChild(note);
+
+  if (cfg.city.trim() && !cfg.data) {
+    void doFetch();
+  }
+
+  return frag;
+}
+
 function buildProgressForm(box: EditorBox): DocumentFragment {
   const frag = document.createDocumentFragment();
   const cfg = box.config as ProgressConfig;
@@ -922,6 +1025,8 @@ const formBuilders: Record<EditorBoxType, (box: EditorBox) => DocumentFragment> 
   moon: buildMoonForm,
   sun: buildSunForm,
   aqi: buildAQIForm,
+  uv: buildUVForm,
+  pollen: buildPollenForm,
   progress: buildProgressForm,
   horoscope: buildHoroscopeForm,
   onthisday: buildOnThisDayForm,

@@ -120,17 +120,17 @@ Priced against distributor listings on 2026-08-19: the panel is $26.82 at single
 
 ## Box Types (18 total)
 
-| Category          | Types                                            | Data Source                               |
-| ----------------- | ------------------------------------------------ | ----------------------------------------- |
-| **Weather**       | Current weather, 8-hour forecast, 8-day forecast | Open-Meteo (free, no key)                 |
-| **Environment**   | Sunrise/sunset, air quality (AQI), moon phase    | Open-Meteo cloud data + local computation |
-| **Personal**      | Countdown, year progress, date                   | Local computation                         |
-| **Content**       | Quote, text                                      | quotable mirror (free) / user input       |
-| **Utility**       | QR code                                          | User input                                |
-| **Data**          | Stocks                                           | Yahoo Finance (free)                      |
-| **Entertainment** | Horoscope, on this day                           | api-ninjas / Wikipedia                    |
+| Category          | Types                                                           | Data Source                               |
+| ----------------- | --------------------------------------------------------------- | ----------------------------------------- |
+| **Weather**       | Current weather, 8-hour forecast, 8-day forecast                | Open-Meteo (free, no key)                 |
+| **Environment**   | Sunrise/sunset, air quality (AQI), UV index, pollen, moon phase | Open-Meteo cloud data + local computation |
+| **Personal**      | Countdown, year progress, date                                  | Local computation                         |
+| **Content**       | Quote, text                                                     | quotable mirror (free) / user input       |
+| **Utility**       | QR code                                                         | User input                                |
+| **Data**          | Stocks                                                          | Yahoo Finance (free)                      |
+| **Entertainment** | Horoscope, on this day                                          | api-ninjas / Wikipedia                    |
 
-The AQI box draws Open-Meteo cloud air-quality data — a cloud data box like weather, not a local sensor reading. All box types work without accounts, API keys, or subscriptions. The 5.76" panel hosts a multi-box bento dashboard (up to 10 boxes, multi-column) with big glanceable numbers. Quote and horoscope responses fall back to a bundled local set on upstream failure (≈50KB built-in).
+The AQI, UV, and pollen boxes draw Open-Meteo cloud data — cloud data boxes like weather, not local sensor readings. Pollen is the one box with a regional limit: the upstream serves it for Europe during pollen season, and the box shows "No data" elsewhere rather than a misleading zero. All box types work without accounts, API keys, or subscriptions. The 5.76" panel hosts a multi-box bento dashboard (up to 10 boxes, multi-column) with big glanceable numbers. Quote and horoscope responses fall back to a bundled local set on upstream failure (≈50KB built-in).
 
 ---
 

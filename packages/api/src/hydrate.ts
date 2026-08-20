@@ -20,6 +20,8 @@ import type {
   Forecast3DEntry,
   SunData,
   AQIData,
+  UVData,
+  PollenData,
   StockData,
   StockDuration,
 } from '@infobento/core';
@@ -31,6 +33,8 @@ import {
   fetchForecast3D as dataFetchForecast3D,
   fetchSunTimes as dataFetchSunTimes,
   fetchAirQuality as dataFetchAirQuality,
+  fetchUvIndex as dataFetchUvIndex,
+  fetchPollen as dataFetchPollen,
   fetchStocks as dataFetchStocks,
   fetchHoroscope as dataFetchHoroscope,
   fetchOnThisDay as dataFetchOnThisDay,
@@ -55,6 +59,8 @@ export interface HydrateDeps {
   ) => Promise<readonly Forecast3DEntry[] | null>;
   readonly fetchSunTimes: (location: string) => Promise<SunData | null>;
   readonly fetchAirQuality: (location: string) => Promise<AQIData | null>;
+  readonly fetchUvIndex: (location: string) => Promise<UVData | null>;
+  readonly fetchPollen: (location: string) => Promise<PollenData | null>;
   readonly fetchStocks: (symbol: string, duration: StockDuration) => Promise<StockData | null>;
   readonly fetchHoroscope: (sign: string) => Promise<HoroscopeResult | null>;
   readonly fetchOnThisDay: (category: string) => Promise<OnThisDayResult | null>;
@@ -71,6 +77,10 @@ const FORECAST_TTL_MS = 30 * 60 * 1000;
 const FORECAST3D_TTL_MS = 3 * 60 * 60 * 1000;
 const SUN_TTL_MS = 6 * 60 * 60 * 1000;
 const AQI_TTL_MS = 30 * 60 * 1000;
+const UV_TTL_MS = 30 * 60 * 1000;
+// Pollen is a daily-resolution forecast upstream; a tighter TTL would just
+// re-fetch identical numbers.
+const POLLEN_TTL_MS = 3 * 60 * 60 * 1000;
 const STOCKS_TTL_MS = 15 * 60 * 1000;
 const HOROSCOPE_TTL_MS = 6 * 60 * 60 * 1000;
 const ONTHISDAY_TTL_MS = 6 * 60 * 60 * 1000;
@@ -168,7 +178,9 @@ function firstLocatedCity(boxes: readonly BentoBox[]): string | undefined {
       box.type === 'forecast' ||
       box.type === 'forecast3d' ||
       box.type === 'sun' ||
-      box.type === 'aqi'
+      box.type === 'aqi' ||
+      box.type === 'uv' ||
+      box.type === 'pollen'
     ) {
       const city = box.config?.city.trim();
       if (city) return city;
@@ -327,6 +339,34 @@ async function hydrateBox(
         : undefined;
       return { ...box, config: { ...box.config, data } };
     }
+    case 'uv': {
+      if (!box.config) return box;
+      const city = box.config.city.trim();
+      const data = city
+        ? await resolveCached<UVData>(
+            deps,
+            `uv:${city.toLowerCase()}`,
+            ttlOf(UV_TTL_MS),
+            `uv "${city}"`,
+            () => deps.fetchUvIndex(city),
+          )
+        : undefined;
+      return { ...box, config: { ...box.config, data } };
+    }
+    case 'pollen': {
+      if (!box.config) return box;
+      const city = box.config.city.trim();
+      const data = city
+        ? await resolveCached<PollenData>(
+            deps,
+            `pollen:${city.toLowerCase()}`,
+            ttlOf(POLLEN_TTL_MS),
+            `pollen "${city}"`,
+            () => deps.fetchPollen(city),
+          )
+        : undefined;
+      return { ...box, config: { ...box.config, data } };
+    }
     case 'stocks': {
       if (!box.config) return box;
       const symbol = box.config.symbol.trim();
@@ -415,6 +455,8 @@ export function defaultHydrateDeps(): HydrateDeps {
     fetchForecast3D: (location, days) => dataFetchForecast3D(location, days, 'F'),
     fetchSunTimes: dataFetchSunTimes,
     fetchAirQuality: dataFetchAirQuality,
+    fetchUvIndex: dataFetchUvIndex,
+    fetchPollen: dataFetchPollen,
     fetchStocks: dataFetchStocks,
     fetchHoroscope: dataFetchHoroscope,
     fetchOnThisDay: dataFetchOnThisDay,

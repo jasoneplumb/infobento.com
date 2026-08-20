@@ -129,6 +129,38 @@ export interface AQIBoxConfig {
   readonly data?: AQIData;
 }
 
+/** Pre-fetched UV index reading. `category` is a WHO Global Solar UV Index band. */
+export interface UVData {
+  readonly uvIndex: number;
+  readonly category: string; // Low | Moderate | High | Very High | Extreme
+}
+
+export interface UVBoxConfig {
+  readonly type: 'uv';
+  readonly city: string;
+  readonly lat?: number;
+  readonly lon?: number;
+  readonly data?: UVData;
+}
+
+/**
+ * Pre-fetched pollen reading for the single worst-risk allergen at a location.
+ * `count` is grains/m³; `level` is the EAN risk band for that species.
+ */
+export interface PollenData {
+  readonly allergen: string; // e.g. 'Birch', 'Grass', 'Ragweed'
+  readonly count: number; // grains/m³
+  readonly level: string; // Low | Moderate | High | Very High
+}
+
+export interface PollenBoxConfig {
+  readonly type: 'pollen';
+  readonly city: string;
+  readonly lat?: number;
+  readonly lon?: number;
+  readonly data?: PollenData;
+}
+
 export interface ProgressBoxConfig {
   readonly type: 'progress';
   readonly label?: string;
@@ -212,6 +244,8 @@ export type BoxConfig =
   | MoonBoxConfig
   | SunBoxConfig
   | AQIBoxConfig
+  | UVBoxConfig
+  | PollenBoxConfig
   | ProgressBoxConfig
   | StocksBoxConfig
   | HoroscopeBoxConfig
@@ -233,6 +267,8 @@ export type BentoBoxType =
   | 'moon'
   | 'sun'
   | 'aqi'
+  | 'uv'
+  | 'pollen'
   | 'progress'
   | 'horoscope'
   | 'onthisday';
@@ -316,6 +352,18 @@ interface AQIBentoBox extends BentoBoxBase {
   readonly config?: AQIBoxConfig;
 }
 
+/** UV index box with typed config */
+interface UVBentoBox extends BentoBoxBase {
+  readonly type: 'uv';
+  readonly config?: UVBoxConfig;
+}
+
+/** Pollen box with typed config */
+interface PollenBentoBox extends BentoBoxBase {
+  readonly type: 'pollen';
+  readonly config?: PollenBoxConfig;
+}
+
 /** Progress box with typed config */
 interface ProgressBentoBox extends BentoBoxBase {
   readonly type: 'progress';
@@ -355,6 +403,8 @@ interface UnconfiguredBentoBox extends BentoBoxBase {
     | 'moon'
     | 'sun'
     | 'aqi'
+    | 'uv'
+    | 'pollen'
     | 'progress'
     | 'stocks'
     | 'horoscope'
@@ -379,6 +429,8 @@ export type BentoBox =
   | MoonBentoBox
   | SunBentoBox
   | AQIBentoBox
+  | UVBentoBox
+  | PollenBentoBox
   | ProgressBentoBox
   | StocksBentoBox
   | HoroscopeBentoBox

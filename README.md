@@ -11,7 +11,7 @@
 [![Node](https://img.shields.io/badge/node-%3E%3D20-brightgreen.svg)](package.json)
 [![ESP32-C3](https://img.shields.io/badge/MCU-ESP32--C3-grey.svg)](firmware)
 
-A small, solar-powered eInk decorator that lives on a counter, shelf, or windowsill. Configure once on a web page; it sips light from the window and shows what matters most — weather, 8-hour forecast, 8-day forecast, air quality, quote, countdown, stocks, QR code, text, date, moon phase, sunrise/sunset, year progress, horoscope, on this day — for months on its own.
+A small, solar-powered eInk decorator that lives on a counter, shelf, or windowsill. Configure once on a web page; it sips light from the window and shows what matters most — weather, 8-hour forecast, 8-day forecast, air quality, UV index, pollen, quote, countdown, stocks, QR code, text, date, moon phase, sunrise/sunset, year progress, horoscope, on this day — for months on its own.
 
 ## Overview
 
