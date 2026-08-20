@@ -37,3 +37,6 @@ export {
 export { fetchHoroscope, VALID_ZODIAC_SIGNS, type HoroscopeResult } from './horoscope.js';
 export { fetchOnThisDay, VALID_ONTHISDAY_CATEGORIES, type OnThisDayResult } from './onthisday.js';
 export { fetchStocks, isValidStockSymbol, STOCK_RANGE_MAP, type StocksResult } from './stocks.js';
+
+// SSRF-safe fetch guard (Node-only — uses dns resolution; see safe-fetch.ts header)
+export { safeFetch, SsrfError, type SafeFetchOptions, type SafeFetchResult } from './safe-fetch.js';
