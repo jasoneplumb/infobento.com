@@ -77,4 +77,33 @@ describe('fetchNextPublicHoliday', () => {
     expect(await fetchNextPublicHoliday('')).toBeNull();
     expect(await fetchNextPublicHoliday('  ')).toBeNull();
   });
+
+  // `web` imports this function and calls it directly from the browser, so the
+  // API's Zod layer is not on that path — the URL-safety check has to live here
+  // too. A code containing path characters would otherwise be interpolated
+  // verbatim and reach a different endpoint on date.nager.at.
+  it.each(['GB/../../v2/Other', 'GB/', '../etc/passwd', 'GB?x=1', 'G.B', 'G', 'GBR', 'G1', 'G B'])(
+    'refuses to fetch with the unsafe country code %o',
+    async (bad) => {
+      const spy = vi.fn();
+      vi.stubGlobal('fetch', spy);
+      expect(await fetchNextPublicHoliday(bad)).toBeNull();
+      expect(spy).not.toHaveBeenCalled();
+    },
+  );
+
+  it('builds the request URL from the two-letter code only', async () => {
+    const spy = vi.fn(
+      async () =>
+        ({
+          ok: true,
+          json: async () => [{ date: '2026-12-25', localName: 'Christmas', name: 'Christmas' }],
+        }) as unknown as Response,
+    );
+    vi.stubGlobal('fetch', spy);
+    await fetchNextPublicHoliday('gb');
+    expect((spy.mock.calls[0] as string[])[0]).toBe(
+      'https://date.nager.at/api/v3/NextPublicHolidays/GB',
+    );
+  });
 });

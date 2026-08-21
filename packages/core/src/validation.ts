@@ -188,12 +188,21 @@ const OnThisDayBoxConfigSchema = z.object({
 
 const HolidayDataSchema = z.object({
   name: z.string(),
-  date: z.string(),
+  // Constrained to ISO YYYY-MM-DD: an unconstrained string lets a crafted
+  // payload store "not-a-date", which the renderer turns into a NaN countdown.
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Must be an ISO date (YYYY-MM-DD)'),
 });
 
 const HolidaysBoxConfigSchema = z.object({
   type: z.literal('holidays'),
-  countryCode: z.string().min(1, 'Country code is required'),
+  // Exactly two ASCII letters. The code is interpolated into the Nager.Date
+  // request path, so anything permitting '/', '.' or '?' allows traversal to
+  // an unintended upstream endpoint. Case-insensitive because every consumer
+  // (data fetcher, API hydrate) already uppercases before use — rejecting
+  // "gb" would buy no safety while breaking direct API callers.
+  countryCode: z
+    .string()
+    .regex(/^[A-Za-z]{2}$/, 'Must be a 2-letter ISO 3166-1 alpha-2 country code'),
   data: HolidayDataSchema.optional(),
 });
 

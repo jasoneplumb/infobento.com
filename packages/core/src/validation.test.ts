@@ -96,3 +96,58 @@ describe('validateBentoConfig', () => {
     }
   });
 });
+
+describe('holidays box config', () => {
+  function holidaysConfig(config: Record<string, unknown>) {
+    return {
+      boxes: [{ id: '1', type: 'holidays', label: 'Holidays', config }],
+      refreshesPerDay: 1,
+    };
+  }
+
+  const withData = (date: string) => ({
+    type: 'holidays',
+    countryCode: 'GB',
+    data: { name: 'Christmas Day', date },
+  });
+
+  it('accepts a well-formed holidays box', () => {
+    const result = validateBentoConfig(holidaysConfig(withData('2026-12-25')));
+    expect(result.valid).toBe(true);
+    expect(result.errors).toHaveLength(0);
+  });
+
+  it('accepts a holidays box with no fetched data yet', () => {
+    expect(validateBentoConfig(holidaysConfig({ type: 'holidays', countryCode: 'GB' })).valid).toBe(
+      true,
+    );
+  });
+
+  // A non-ISO date survives the fetcher's truthy-only guard, reaches the DB,
+  // and makes the renderer's countdown NaN. Reject it at the schema layer.
+  it.each(['not-a-date', '2026/12/25', '25-12-2026', '2026-12-25T00:00:00Z', ''])(
+    'rejects the malformed date %o',
+    (date) => {
+      const result = validateBentoConfig(holidaysConfig(withData(date)));
+      expect(result.valid).toBe(false);
+      expect(result.errors.some((e) => e.path.endsWith('data.date'))).toBe(true);
+    },
+  );
+
+  // countryCode is interpolated into the Nager.Date request path, so anything
+  // containing '/', '.' or '?' can steer the request to a different endpoint.
+  it.each(['GB/../../v2/Other', 'GB/', '../etc', 'G', 'GBR', '', 'G1', 'gb?x=1', 'G B'])(
+    'rejects the unsafe or malformed country code %o',
+    (countryCode) => {
+      const result = validateBentoConfig(holidaysConfig({ type: 'holidays', countryCode }));
+      expect(result.valid).toBe(false);
+      expect(result.errors.some((e) => e.path.endsWith('countryCode'))).toBe(true);
+    },
+  );
+
+  // Case-insensitive by design: every consumer uppercases before use, so
+  // rejecting "gb" would break direct API callers without buying any safety.
+  it.each(['GB', 'gb', 'Gb'])('accepts the 2-letter country code %o', (countryCode) => {
+    expect(validateBentoConfig(holidaysConfig({ type: 'holidays', countryCode })).valid).toBe(true);
+  });
+});

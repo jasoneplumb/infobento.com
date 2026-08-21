@@ -53,6 +53,65 @@ describe('daysUntilHoliday', () => {
     const now = new Date('2026-09-01T00:00:00');
     expect(daysUntilHoliday('2026-08-31', now)).toBe(0);
   });
+
+  // Regression: `Math.max(0, NaN)` is NaN, not 0 — NaN propagates through
+  // Math.max instead of comparing as less-than-zero. Without an explicit guard
+  // a malformed date reaches renderHolidaysBox and draws the string "NaN".
+  it.each(['not-a-date', '', '2026/12/25', '2026-99-99', 'Dec 25 2026'])(
+    'returns 0 (never NaN) for the malformed date %o',
+    (bad) => {
+      const days = daysUntilHoliday(bad, new Date('2026-08-20T12:00:00'));
+      expect(Number.isNaN(days)).toBe(false);
+      expect(days).toBe(0);
+    },
+  );
+
+  // Regression: DST fall-back. Both operands are local-midnight timestamps, so
+  // the night the clocks go back spans 25 wall-clock hours and
+  // Math.ceil(25/24) === 2 — a holiday one day away would display as "2 days".
+  // Math.round(25/24) === 1. The test pins TZ itself so it is deterministic
+  // regardless of the machine's zone.
+  describe('across DST transitions', () => {
+    const withTz = (tz: string, fn: () => void): void => {
+      const prev = process.env['TZ'];
+      process.env['TZ'] = tz;
+      try {
+        fn();
+      } finally {
+        if (prev === undefined) delete process.env['TZ'];
+        else process.env['TZ'] = prev;
+      }
+    };
+
+    // Fall-back happens at 02:00 *on* 2026-11-01, so the 25-hour night is the
+    // one from local midnight Nov 1 to local midnight Nov 2 (verified 25 h).
+    // Math.ceil(25/24) = 2; the correct answer is 1.
+    it('counts a 25-hour night as 1 day, not 2 (fall back)', () => {
+      withTz('America/New_York', () => {
+        const now = new Date(2026, 10, 1, 12, 0, 0); // Sun 2026-11-01 local
+        expect(daysUntilHoliday('2026-11-02', now)).toBe(1);
+      });
+    });
+
+    // Spring-forward at 02:00 on 2026-03-08 makes Mar 8 -> Mar 9 a 23 h night.
+    // Both ceil and round answer 1 here, so this does not catch the original
+    // bug — it pins the other DST direction so a future "fix" that swaps in
+    // Math.floor (which would answer 0) cannot pass.
+    it('counts a 23-hour night as 1 day (spring forward)', () => {
+      withTz('America/New_York', () => {
+        const now = new Date(2026, 2, 8, 12, 0, 0); // Sun 2026-03-08 local
+        expect(daysUntilHoliday('2026-03-09', now)).toBe(1);
+      });
+    });
+
+    it('stays exact across a multi-week span containing a fall-back', () => {
+      withTz('America/New_York', () => {
+        // 769 h apart (32 days + the extra fall-back hour): ceil gives 33.
+        const now = new Date(2026, 9, 25, 8, 0, 0); // 2026-10-25
+        expect(daysUntilHoliday('2026-11-26', now)).toBe(32); // Thanksgiving
+      });
+    });
+  });
 });
 
 describe('renderHolidaysBox', () => {
@@ -80,6 +139,39 @@ describe('renderHolidaysBox', () => {
       now,
     );
     expect(inkIn(data, 0, H)).toBeGreaterThan(0);
+  });
+
+  // A malformed date must not reach drawHeroText as the literal string "NaN".
+  // Rendering at a non-zero y so any height/overdraw regression surfaces too.
+  it('renders the "Today" state rather than "NaN" for a malformed date', () => {
+    const config: HolidaysBoxConfig = {
+      type: 'holidays',
+      countryCode: 'GB',
+      data: { name: 'Broken Holiday', date: 'not-a-date' },
+    };
+    const OFFSET = 200;
+    const TALL = OFFSET + H;
+    const fb = createFrameBuffer({ widthPx: W, heightPx: TALL, deviceId: '' });
+    renderHolidaysBox(fb, makeLayout(config, OFFSET), config, M, undefined, false);
+
+    // Same pixels as the genuine 0-day "Today" render — i.e. the NaN branch was
+    // never taken. A String(NaN) hero would differ.
+    const today: HolidaysBoxConfig = {
+      type: 'holidays',
+      countryCode: 'GB',
+      data: { name: 'Broken Holiday', date: '2026-08-31' },
+    };
+    const ref = createFrameBuffer({ widthPx: W, heightPx: TALL, deviceId: '' });
+    renderHolidaysBox(
+      ref,
+      makeLayout(today, OFFSET),
+      today,
+      M,
+      new Date('2026-08-31T09:00:00'),
+      false,
+    );
+
+    expect(Array.from(fb.data)).toEqual(Array.from(ref.data));
   });
 
   it('renders the no-data placeholder', () => {

@@ -15,13 +15,23 @@ import { drawBoxHeader } from './header.js';
 
 /**
  * Days from today (midnight-to-midnight) until an ISO date. Returns 0 when
- * the date is today or in the past.
+ * the date is today or in the past, and 0 for an unparseable date.
+ *
+ * Both operands are local-midnight timestamps, so their distance is a whole
+ * number of days *except* across a DST transition, where consecutive local
+ * midnights are 23 h or 25 h apart. `Math.round` recovers the true day count
+ * in both directions; `Math.ceil` would report 2 days for the 25 h case.
+ *
+ * The NaN guard is load-bearing: `Math.max(0, NaN)` is `NaN`, not 0 — NaN
+ * propagates through `Math.max` rather than comparing as less-than-zero — so
+ * without it a malformed date reaches the caller and renders as "NaN".
  */
 export function daysUntilHoliday(isoDate: string, now: Date = new Date()): number {
   const target = new Date(isoDate + 'T00:00:00');
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   const diffMs = target.getTime() - today.getTime();
-  return Math.max(0, Math.ceil(diffMs / (1000 * 60 * 60 * 24)));
+  if (Number.isNaN(diffMs)) return 0;
+  return Math.max(0, Math.round(diffMs / (1000 * 60 * 60 * 24)));
 }
 
 /**

@@ -65,6 +65,21 @@ function validateRequired(fieldName: string): ValidationRule {
   };
 }
 
+/**
+ * Mirrors the API's `countryCode` schema (`/^[A-Za-z]{2}$/`) so the form can
+ * never report a value as valid that the server would reject.
+ */
+function validateCountryCode(): ValidationRule {
+  return {
+    validate: (value: string) => {
+      const v = value.trim();
+      if (v === '') return 'Please enter a country code';
+      if (!/^[A-Za-z]{2}$/.test(v)) return 'Use a 2-letter country code, e.g. GB';
+      return null;
+    },
+  };
+}
+
 function validateUrl(): ValidationRule {
   return {
     validate: (value: string) => {
@@ -1038,15 +1053,23 @@ function buildHolidaysForm(box: EditorBox): DocumentFragment {
     }
   };
 
+  // Strip anything that is not a letter as it is typed. `maxLength` alone lets
+  // through values like "G1" or "//", which the API schema rejects — sanitising
+  // at the source keeps the editor incapable of producing an invalid config.
   const codeInput = inputEl('text', cfg.countryCode, (v) => {
-    updateConfig(box.id, 'countryCode', v.toUpperCase());
+    const code = v
+      .replace(/[^A-Za-z]/g, '')
+      .toUpperCase()
+      .slice(0, 2);
+    if (code !== v) codeInput.value = code;
+    updateConfig(box.id, 'countryCode', code);
     debouncedFetch(box.id, doFetch);
   });
   codeInput.placeholder = 'e.g. GB, US, DE';
   codeInput.maxLength = 2;
 
   frag.appendChild(
-    makeField('Country Code (ISO 3166-1 alpha-2)', codeInput, validateRequired('a country code')),
+    makeField('Country Code (ISO 3166-1 alpha-2)', codeInput, validateCountryCode()),
   );
   frag.appendChild(statusEl);
 
