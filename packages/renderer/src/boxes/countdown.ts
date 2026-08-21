@@ -10,18 +10,15 @@ import type { LayoutBox, CountdownBoxConfig } from '@infobento/core';
 import type { FontMetrics } from '../font-metrics.js';
 import { drawText, drawHeroText, GRAY_DARK, GRAY_LIGHT } from '../draw.js';
 import { drawBoxHeader } from './header.js';
+import { daysUntilLocalMidnight } from '../days-until.js';
 
 /**
  * intent: Calculate the number of whole days between today and a target date
- * method: Parse ISO date, diff in milliseconds, convert to days (floored)
+ * method: Delegates to the shared local-midnight helper (see days-until.ts)
  * effect: Returns 0 for past dates and today
  */
 export function daysUntil(targetDate: string, now: Date = new Date()): number {
-  const target = new Date(targetDate + 'T00:00:00');
-  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const diffMs = target.getTime() - today.getTime();
-  const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
-  return Math.max(0, diffDays);
+  return daysUntilLocalMidnight(targetDate, now);
 }
 
 /**

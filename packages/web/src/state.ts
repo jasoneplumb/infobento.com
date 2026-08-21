@@ -16,6 +16,7 @@ import type {
   PollenData,
   StockData,
   StockDuration,
+  HolidayData,
 } from '@infobento/core';
 import { DEFAULT_STOCK_DURATION, DEVICE_PROFILES, DEFAULT_PROFILE_ID } from '@infobento/core';
 import { DEFAULT_REFRESHES_PER_DAY, MAX_REFRESHES_PER_DAY } from '@infobento/core';
@@ -119,6 +120,11 @@ export interface StocksConfig {
   data?: StockData;
 }
 
+export interface HolidaysConfig {
+  countryCode: string;
+  data?: HolidayData;
+}
+
 export type EditorBoxConfig =
   | TextConfig
   | CountdownConfig
@@ -136,7 +142,8 @@ export type EditorBoxConfig =
   | ProgressConfig
   | HoroscopeConfig
   | OnThisDayConfig
-  | StocksConfig;
+  | StocksConfig
+  | HolidaysConfig;
 
 export type EditorBoxType = Extract<
   BentoBoxType,
@@ -157,6 +164,7 @@ export type EditorBoxType = Extract<
   | 'horoscope'
   | 'onthisday'
   | 'stocks'
+  | 'holidays'
 >;
 
 export interface EditorBox {
@@ -215,6 +223,7 @@ const DEFAULTS: Record<EditorBoxType, () => EditorBoxConfig> = {
   horoscope: () => ({ sign: '', content: '', date: '' }),
   onthisday: () => ({ content: '', category: 'events' }),
   stocks: () => ({ symbol: '', duration: DEFAULT_STOCK_DURATION }),
+  holidays: () => ({ countryCode: '' }),
 };
 
 export const BOX_TYPE_LABELS: Record<EditorBoxType, string> = {
@@ -235,6 +244,7 @@ export const BOX_TYPE_LABELS: Record<EditorBoxType, string> = {
   horoscope: 'Horoscope',
   onthisday: 'On This Day',
   stocks: 'Stocks',
+  holidays: 'Public Holidays',
 };
 
 /**
@@ -249,7 +259,7 @@ export const CHIP_GROUPS: ReadonlyArray<{
     label: 'Weather & Sky',
     types: ['weather', 'forecast', 'forecast3d', 'aqi', 'uv', 'pollen', 'moon', 'sun'],
   },
-  { label: 'Time & Dates', types: ['date', 'countdown', 'progress'] },
+  { label: 'Time & Dates', types: ['date', 'countdown', 'progress', 'holidays'] },
   { label: 'Markets', types: ['stocks'] },
   { label: 'Fun & Discovery', types: ['quote', 'horoscope', 'onthisday'] },
   { label: 'Utility', types: ['text', 'qr'] },
@@ -762,6 +772,14 @@ export function updateStocksData(id: number, data: StockData): void {
   const box = findBox(id);
   if (!box || box.type !== 'stocks') return;
   (box.config as StocksConfig).data = data;
+  persist();
+  renderPreview();
+}
+
+export function updateHolidaysData(id: number, data: HolidayData): void {
+  const box = findBox(id);
+  if (!box || box.type !== 'holidays') return;
+  (box.config as HolidaysConfig).data = data;
   persist();
   renderPreview();
 }

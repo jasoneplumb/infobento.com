@@ -231,6 +231,18 @@ export interface HoroscopeBoxConfig {
   readonly date?: string; // ISO date the reading is for
 }
 
+/** Pre-fetched next public holiday for a country */
+export interface HolidayData {
+  readonly name: string; // e.g. 'Summer Bank Holiday'
+  readonly date: string; // ISO date, e.g. '2026-08-31'
+}
+
+export interface HolidaysBoxConfig {
+  readonly type: 'holidays';
+  readonly countryCode: string; // ISO 3166 alpha-2, e.g. 'GB', 'US'
+  readonly data?: HolidayData;
+}
+
 /** Discriminated union of all box-specific configurations */
 export type BoxConfig =
   | TextBoxConfig
@@ -249,7 +261,8 @@ export type BoxConfig =
   | ProgressBoxConfig
   | StocksBoxConfig
   | HoroscopeBoxConfig
-  | OnThisDayBoxConfig;
+  | OnThisDayBoxConfig
+  | HolidaysBoxConfig;
 
 // --- Core types ---
 
@@ -271,7 +284,8 @@ export type BentoBoxType =
   | 'pollen'
   | 'progress'
   | 'horoscope'
-  | 'onthisday';
+  | 'onthisday'
+  | 'holidays';
 
 /** Base fields shared by all bento boxes */
 interface BentoBoxBase {
@@ -388,6 +402,12 @@ interface OnThisDayBentoBox extends BentoBoxBase {
   readonly config?: OnThisDayBoxConfig;
 }
 
+/** Public holidays box with typed config */
+interface HolidaysBentoBox extends BentoBoxBase {
+  readonly type: 'holidays';
+  readonly config?: HolidaysBoxConfig;
+}
+
 /** Box types that don't have a config yet (placeholder) */
 interface UnconfiguredBentoBox extends BentoBoxBase {
   readonly type: Exclude<
@@ -409,6 +429,7 @@ interface UnconfiguredBentoBox extends BentoBoxBase {
     | 'stocks'
     | 'horoscope'
     | 'onthisday'
+    | 'holidays'
   >;
   readonly config?: undefined;
 }
@@ -435,6 +456,7 @@ export type BentoBox =
   | StocksBentoBox
   | HoroscopeBentoBox
   | OnThisDayBentoBox
+  | HolidaysBentoBox
   | UnconfiguredBentoBox;
 
 /**

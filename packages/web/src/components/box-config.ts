@@ -20,6 +20,7 @@ import type {
   HoroscopeConfig,
   OnThisDayConfig,
   StocksConfig,
+  HolidaysConfig,
 } from '../state';
 import {
   updateConfig,
@@ -31,6 +32,7 @@ import {
   updateUVData,
   updatePollenData,
   updateStocksData,
+  updateHolidaysData,
   getTempUnit,
 } from '../state';
 import type { StockDuration, UVData, PollenData } from '@infobento/core';
@@ -48,6 +50,7 @@ import {
   fetchPollen,
   fetchSunTimes,
   fetchAirQuality,
+  fetchNextPublicHoliday,
 } from '../api';
 
 // -- Validation rules -------------------------------------------------------
@@ -59,6 +62,21 @@ interface ValidationRule {
 function validateRequired(fieldName: string): ValidationRule {
   return {
     validate: (value: string) => (value.trim() === '' ? `Please enter ${fieldName}` : null),
+  };
+}
+
+/**
+ * Mirrors the API's `countryCode` schema (`/^[A-Za-z]{2}$/`) so the form can
+ * never report a value as valid that the server would reject.
+ */
+function validateCountryCode(): ValidationRule {
+  return {
+    validate: (value: string) => {
+      const v = value.trim();
+      if (v === '') return 'Please enter a country code';
+      if (!/^[A-Za-z]{2}$/.test(v)) return 'Use a 2-letter country code, e.g. GB';
+      return null;
+    },
   };
 }
 
@@ -1012,6 +1030,68 @@ function buildStocksForm(box: EditorBox): DocumentFragment {
   return frag;
 }
 
+function buildHolidaysForm(box: EditorBox): DocumentFragment {
+  const frag = document.createDocumentFragment();
+  const cfg = box.config as HolidaysConfig;
+
+  const statusEl = document.createElement('div');
+  statusEl.className = 'weather-status';
+  if (cfg.data) {
+    statusEl.textContent = `Next: ${cfg.data.name} (${cfg.data.date})`;
+  }
+
+  const doFetch = async (): Promise<void> => {
+    const code = cfg.countryCode.trim().toUpperCase();
+    // Require a complete code: a half-typed "G" would otherwise fetch, come
+    // back null, and show "Country code not found" next to the field
+    // validator's "Use a 2-letter country code" — two contradictory messages.
+    if (code.length !== 2) return;
+    statusEl.textContent = 'Fetching…';
+    const data = await fetchNextPublicHoliday(code);
+    // Debouncing cancels the pending timer but not an in-flight request, so a
+    // slow response for a previous code can land after a newer one. Drop it if
+    // the field has moved on rather than writing the wrong country's holiday.
+    if (cfg.countryCode.trim().toUpperCase() !== code) return;
+    if (data) {
+      updateHolidaysData(box.id, data);
+      statusEl.textContent = `Next: ${data.name} (${data.date})`;
+    } else {
+      statusEl.textContent = 'Country code not found or no upcoming holidays.';
+    }
+  };
+
+  // Strip anything that is not a letter as it is typed. `maxLength` alone lets
+  // through values like "G1" or "//", which the API schema rejects — sanitising
+  // at the source keeps the editor incapable of producing an invalid config.
+  const codeInput = inputEl('text', cfg.countryCode, (v) => {
+    const code = v
+      .replace(/[^A-Za-z]/g, '')
+      .toUpperCase()
+      .slice(0, 2);
+    if (code !== v) codeInput.value = code;
+    updateConfig(box.id, 'countryCode', code);
+    debouncedFetch(box.id, doFetch);
+  });
+  codeInput.placeholder = 'e.g. GB, US, DE';
+  codeInput.maxLength = 2;
+
+  frag.appendChild(
+    makeField('Country Code (ISO 3166-1 alpha-2)', codeInput, validateCountryCode()),
+  );
+  frag.appendChild(statusEl);
+
+  const note = document.createElement('div');
+  note.className = 'field-hint';
+  note.textContent = 'Two-letter country code. ~100 countries supported via Nager.Date.';
+  frag.appendChild(note);
+
+  if (cfg.countryCode.trim().length === 2 && !cfg.data) {
+    void doFetch();
+  }
+
+  return frag;
+}
+
 // -- Registry ---------------------------------------------------------------
 
 const formBuilders: Record<EditorBoxType, (box: EditorBox) => DocumentFragment> = {
@@ -1032,6 +1112,7 @@ const formBuilders: Record<EditorBoxType, (box: EditorBox) => DocumentFragment> 
   horoscope: buildHoroscopeForm,
   onthisday: buildOnThisDayForm,
   stocks: buildStocksForm,
+  holidays: buildHolidaysForm,
 };
 
 export function buildConfigForm(box: EditorBox): DocumentFragment {

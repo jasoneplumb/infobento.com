@@ -96,3 +96,79 @@ describe('validateBentoConfig', () => {
     }
   });
 });
+
+describe('holidays box config', () => {
+  function holidaysConfig(config: Record<string, unknown>) {
+    return {
+      boxes: [{ id: '1', type: 'holidays', label: 'Holidays', config }],
+      refreshesPerDay: 1,
+    };
+  }
+
+  const withData = (date: string) => ({
+    type: 'holidays',
+    countryCode: 'GB',
+    data: { name: 'Christmas Day', date },
+  });
+
+  it('accepts a well-formed holidays box', () => {
+    const result = validateBentoConfig(holidaysConfig(withData('2026-12-25')));
+    expect(result.valid).toBe(true);
+    expect(result.errors).toHaveLength(0);
+  });
+
+  it('accepts a holidays box with no fetched data yet', () => {
+    expect(validateBentoConfig(holidaysConfig({ type: 'holidays', countryCode: 'GB' })).valid).toBe(
+      true,
+    );
+  });
+
+  // A non-ISO date survives the fetcher's truthy-only guard, reaches the DB,
+  // and makes the renderer's countdown NaN. Reject it at the schema layer.
+  // The ISO *shape* alone is not enough: "2026-13-99" matches it but parses to
+  // Invalid Date (a permanent "Today" hero), and "2026-02-30" silently rolls
+  // over to March 2 and counts down to the wrong day.
+  it.each(['2026-13-99', '2026-02-30', '2026-00-10', '2026-01-32', '2026-02-31'])(
+    'rejects the ISO-shaped but non-calendar date %o',
+    (date) => {
+      const result = validateBentoConfig(holidaysConfig(withData(date)));
+      expect(result.valid).toBe(false);
+      expect(result.errors.some((e) => e.path.endsWith('data.date'))).toBe(true);
+    },
+  );
+
+  // Years 0-99 exercise the legacy `new Date(year, …)` two-digit rule, which
+  // would map 0050 to 1950 and reject a perfectly valid ISO date.
+  it.each(['2026-12-25', '2024-02-29', '2026-01-01', '2026-12-31', '0050-01-01', '0001-01-01'])(
+    'accepts the real calendar date %o',
+    (date) => {
+      expect(validateBentoConfig(holidaysConfig(withData(date))).valid).toBe(true);
+    },
+  );
+
+  it.each(['not-a-date', '2026/12/25', '25-12-2026', '2026-12-25T00:00:00Z', ''])(
+    'rejects the malformed date %o',
+    (date) => {
+      const result = validateBentoConfig(holidaysConfig(withData(date)));
+      expect(result.valid).toBe(false);
+      expect(result.errors.some((e) => e.path.endsWith('data.date'))).toBe(true);
+    },
+  );
+
+  // countryCode is interpolated into the Nager.Date request path, so anything
+  // containing '/', '.' or '?' can steer the request to a different endpoint.
+  it.each(['GB/../../v2/Other', 'GB/', '../etc', 'G', 'GBR', '', 'G1', 'gb?x=1', 'G B'])(
+    'rejects the unsafe or malformed country code %o',
+    (countryCode) => {
+      const result = validateBentoConfig(holidaysConfig({ type: 'holidays', countryCode }));
+      expect(result.valid).toBe(false);
+      expect(result.errors.some((e) => e.path.endsWith('countryCode'))).toBe(true);
+    },
+  );
+
+  // Case-insensitive by design: every consumer uppercases before use, so
+  // rejecting "gb" would break direct API callers without buying any safety.
+  it.each(['GB', 'gb', 'Gb'])('accepts the 2-letter country code %o', (countryCode) => {
+    expect(validateBentoConfig(holidaysConfig({ type: 'holidays', countryCode })).valid).toBe(true);
+  });
+});

@@ -306,6 +306,23 @@ const SRC_ICONS: Record<string, readonly number[]> = {
     0b00000000000000,
     0b00000000000000,
   ],
+  // holidays: Wrapped gift box with a bow (the vertical ribbon reads as a gap)
+  holidays: [
+    0b00110000001100,
+    0b01111000011110,
+    0b00000111100000,
+    0b01111111111110,
+    0b01111111111110,
+    0b00111100111100,
+    0b00111100111100,
+    0b00111100111100,
+    0b00111100111100,
+    0b00111100111100,
+    0b00111100111100,
+    0b00111100111100,
+    0b00111100111100,
+    0b00111111111100,
+  ],
 };
 
 /** Expand 14x14 source icons to 28x28 native resolution */

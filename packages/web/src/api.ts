@@ -24,6 +24,7 @@ export {
   fetchAirQuality,
   fetchUvIndex,
   fetchPollen,
+  fetchNextPublicHoliday,
 } from '@infobento/data';
 
 export type { QuoteResult, HoroscopeResult, OnThisDayResult, StocksResult };
