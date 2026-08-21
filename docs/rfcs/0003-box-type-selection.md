@@ -29,14 +29,14 @@ require an API key it is not sending.
 
 ## Decisions
 
-| #   | Question                   | Recommendation                                                                                                                                                                                                                                       |
-| --- | -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 1   | What qualifies a box type? | **Six gates, all mandatory** (below). The load-bearing three are the ones that removed `calendar`/`habit` (must have a live provider), `worldclock`/`joke` (must be truthful at the refresh rate), and `tasks` (must not duplicate an existing box). |
-| 2   | Next box to build          | **Currency / FX**, on ECB data via Frankfurter. It is the only candidate whose upstream cadence _equals_ the device's refresh cadence, and it is 83 bytes on the wire.                                                                               |
-| 3   | Highest-value box          | **RSS headlines** — one box type covers dozens of use cases and is keyless by construction. Gated on the SSRF work in Decision 5; do not ship it as a naive `fetch(userUrl)`.                                                                        |
-| 4   | Location-specific boxes    | Ship **carbon intensity** (UK) and **marine** (coastal) as explicitly regional. `FALLBACK_LOCATION` is already `London, UK`, so a UK-first energy box is aligned rather than arbitrary. Aurora is deferred — the audience is too thin.               |
-| 5   | User-supplied URLs         | Requires a **fetch guard** before any box accepts a URL: scheme allowlist, private-range blocking, redirect capping, response size cap, timeout. No provider does this today because none needed it.                                                 |
-| 6   | Provider durability        | Treat **api-ninjas** (`horoscope`) and **Yahoo** (`stocks`) as at-risk dependencies and monitor them. Neither is a documented free tier.                                                                                                             |
+| #   | Question                   | Recommendation                                                                                                                                                                                                                                                           |
+| --- | -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 1   | What qualifies a box type? | **Six gates, all mandatory** (below). The load-bearing three are the ones that removed `calendar`/`habit` (must have a live provider), `worldclock`/`joke` (must be truthful at the refresh rate), and `tasks` (must not duplicate an existing box).                     |
+| 2   | Next box to build          | **Currency / FX**, on ECB data via Frankfurter. It is the only candidate whose upstream cadence _equals_ the device's refresh cadence, and it is 83 bytes on the wire.                                                                                                   |
+| 3   | Highest-value box          | **RSS headlines** — one box type covers dozens of use cases and is keyless by construction. Gated on the SSRF work in Decision 5; do not ship it as a naive `fetch(userUrl)`.                                                                                            |
+| 4   | Location-specific boxes    | Ship **carbon intensity** (UK) and **marine** (coastal) as explicitly regional. `FALLBACK_LOCATION` is already `London, UK`, so a UK-first energy box is aligned rather than arbitrary. Aurora is deferred — the audience is too thin.                                   |
+| 5   | User-supplied URLs         | Requires a **fetch guard** before any box accepts a URL: scheme allowlist, private-range blocking, redirect capping, response size cap, timeout. Shipped as `safeFetch()` (#225, closing #224); no provider calls it yet because none fetches a user-supplied URL today. |
+| 6   | Provider durability        | Treat **api-ninjas** (`horoscope`), **Yahoo** (`stocks`), and **kurokeita's quotable mirror** (`quote`) as at-risk dependencies and monitor them. None is a documented free tier or official source.                                                                     |
 
 ## Motivation
 
@@ -168,19 +168,19 @@ and the clearest argument for keeping it current.
 
 ### Applying it to what shipped
 
-| Type     | 1 Live | 2 Truthful        | 3 Glanceable               | 4 Not covered              | 5 Durable     | 6 Cheap | Verdict   |
-| -------- | ------ | ----------------- | -------------------------- | -------------------------- | ------------- | ------- | --------- |
-| `uv`     | ✅     | ✅ daily cycle    | ✅ number + WHO band       | ✅ `aqi` carried it hidden | ✅ Open-Meteo | ✅      | **Holds** |
-| `pollen` | ✅     | ✅ daily forecast | ✅ count + allergen + band | ✅                         | ✅ Open-Meteo | ✅      | **Holds** |
+| Type     | 1 Live | 2 Truthful        | 3 Glanceable               | 4 Not covered                 | 5 Durable     | 6 Cheap | Verdict   |
+| -------- | ------ | ----------------- | -------------------------- | ----------------------------- | ------------- | ------- | --------- |
+| `uv`     | ✅     | ✅ daily cycle    | ✅ number + WHO band       | ✅ `aqi`'s dim secondary line | ✅ Open-Meteo | ✅      | **Holds** |
+| `pollen` | ✅     | ✅ daily forecast | ✅ count + allergen + band | ✅                            | ✅ Open-Meteo | ✅      | **Holds** |
 
 Both pass cleanly, which is a useful sanity check: a standard that retroactively
 condemned the things just shipped would be suspect.
 
 Gate 4 is worth a note for `uv`. It arguably _was_ already covered — `AQIData`
-carried a `uvIndex` field — but carried invisibly, surfaced only as a secondary
-line inside a box about pollutants. The gate asks whether an existing box does
-the job **adequately**, not whether the datum exists somewhere in the codebase.
-It did not, so `uv` passes.
+carried a `uvIndex` field — but only as a secondary `UV:N` line inside the `aqi`
+box, styled in a lighter shade rather than surfaced as its own reading. The gate
+asks whether an existing box does the job **adequately**, not whether the datum
+exists somewhere in the codebase. It did not, so `uv` passes.
 
 `uv` is worth noting as the ideal shape of an addition. `air-quality.ts` was
 _already requesting_ `uv_index` and parking it, half-surfaced, on `AQIData`. The
@@ -305,7 +305,7 @@ that framing, not as a raw number.
 
 Checked specifically: **no current provider fetches a user-supplied URL.** Every
 one targets a hardcoded domain — Open-Meteo, Nominatim, Wikimedia, Yahoo,
-api-ninjas, quotable. The RSS box would be the first, and it makes the API server
+api-ninjas, quotable, ipapi.co. The RSS box would be the first, and it makes the API server
 a request proxy on behalf of an authenticated user.
 
 That is a real SSRF surface, and it matters more here than in a typical web app
@@ -327,9 +327,16 @@ This belongs in one shared helper in `@infobento/data`, written once and tested
 directly, rather than inline in a provider. It is the reason RSS is recommended
 _and_ sequenced behind the other two.
 
+This has since shipped as `safeFetch()` in `packages/data/src/safe-fetch.ts`
+(#225, closing #224) — ahead of the RSS box itself, since the guard is
+independently valuable infrastructure. It is not yet called by any provider;
+none of the domains above go through it, since none fetch a user-supplied URL
+today. It exists so the RSS box has it on day one.
+
 ## Provider durability audit
 
-Two shipped boxes rest on foundations that are not documented free tiers.
+Three shipped boxes rest on foundations that are not official, documented
+sources.
 
 **`horoscope` → api-ninjas.** `packages/data/src/horoscope.ts` sends no
 `X-Api-Key` header, yet api-ninjas documents that header as required. The
@@ -344,8 +351,16 @@ indistinguishable from a genuine absence, which is the same class of defect the
 endpoint with no stability guarantee. It has been reliable for years; that is
 not the same as being supported.
 
-Neither needs action today. Both should be listed as at-risk, and neither should
-be treated as precedent for adding a third.
+**`quote` → kurokeita's quotable mirror.** `packages/data/src/quote.ts` fetches
+`api.quotable.kurokeita.dev`, a community-maintained mirror of the defunct
+quotable.io. This is exactly the "community wrapper" tier gate 5 ranks below an
+official publisher — durable enough to have shipped, but with no
+organisation obligated to keep it running.
+
+None needs action today. All three should be listed as at-risk. The `quote`
+provider is already the community-wrapper case gate 5 warns about, so the
+right reading is not "no precedent exists" but "one already does — do not add
+a fourth without mitigations."
 
 ## Rollout / phasing
 
@@ -391,7 +406,9 @@ predictable shape.
    one-off pass. An annual re-score would catch a provider decaying into
    uselessness before a user notices.
 4. **RSS item count** — one headline or three? Three is more useful and costs
-   height in a layout capped at `MAX_BOXES` 10.
+   height in a layout whose row count is capped by `MAX_ROWS`, a value
+   `packages/core/src/layout.ts` derives from display height and font size
+   (clamped between 4 and 10) — not a fixed constant.
 
 ## Testing
 
@@ -406,7 +423,11 @@ and reinforced by the v0.37.0 fixes:
   TTL. Every new provider gets that test.
 - Renderer tests must place the box at a **non-zero `y`**. The `y = 0` fixture
   masked a real overdraw bug in both new boxes through three review rounds, and
-  two pre-existing tests were passing _because_ of it (see #218).
+  two pre-existing tests were passing _because_ of it (see #218). The rule is
+  not yet enforced: 11 existing renderer test files still use `y: 0`
+  (`qr`, `sun`, `moon`, `date`, `onthisday`, `horoscope`, `countdown`,
+  `stocks`, `progress`, `aqi`, `quote`). `aqi` is tracked in #218; the other 10
+  are tracked in #227.
 - The fetch guard gets direct adversarial tests: redirect-to-localhost,
   DNS-rebinding shape, oversized body, slow-loris timeout.
 
