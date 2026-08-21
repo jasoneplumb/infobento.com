@@ -25,7 +25,11 @@ export function isIsoDateString(s: string): boolean {
   const year = Number(yy);
   const month = Number(mm);
   const day = Number(dd);
-  const parsed = new Date(year, month - 1, day);
+  // Not `new Date(year, …)`: the legacy two-digit rule maps a year of 0-99 to
+  // 1900 + year, so "0050-01-01" would round-trip to 1950 and be rejected.
+  // setFullYear has no such rule and still surfaces rollovers (Feb 30 -> Mar 2).
+  const parsed = new Date(0);
+  parsed.setFullYear(year, month - 1, day);
   return (
     parsed.getFullYear() === year && parsed.getMonth() === month - 1 && parsed.getDate() === day
   );

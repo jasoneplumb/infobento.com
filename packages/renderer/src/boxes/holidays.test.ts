@@ -196,6 +196,41 @@ describe('renderHolidaysBox', () => {
     expect(Array.from(fb.data)).toEqual(Array.from(ref.data));
   });
 
+  // When the box is too short for the hero, the hero is skipped — but the
+  // holiday name must still render. Advancing cy past the (undrawn) hero would
+  // push it beyond contentEnd and silently drop the name as well, leaving a
+  // box that is short but not empty rendering nothing at all.
+  it('still draws the holiday name when the hero does not fit', () => {
+    const config: HolidaysBoxConfig = {
+      type: 'holidays',
+      countryCode: 'GB',
+      data: { name: 'Christmas Day', date: '2026-12-25' },
+    };
+    const OFFSET = 40;
+    // Sized into the window where the hero cannot fit but a body line can:
+    // the hero needs pad*2 + heroSize, the name only pad*2 + bodySize.
+    const heroNeeds = M.pad * 2 + M.heroSize;
+    const nameNeeds = M.pad * 2 + M.bodySize;
+    const SHORT = nameNeeds + 8;
+    expect(SHORT).toBeGreaterThanOrEqual(nameNeeds); // the name fits
+    expect(SHORT).toBeLessThan(heroNeeds); // the hero does not
+    const TALL = OFFSET + SHORT + 80;
+
+    const fb = createFrameBuffer({ widthPx: W, heightPx: TALL, deviceId: '' });
+    renderHolidaysBox(
+      fb,
+      { ...makeLayout(config, OFFSET), height: SHORT },
+      config,
+      M,
+      new Date('2026-08-20T00:00:00'),
+      false,
+    );
+
+    expect(inkIn(fb.data, OFFSET, OFFSET + SHORT)).toBeGreaterThan(0); // name drawn
+    expect(inkIn(fb.data, OFFSET + SHORT, TALL)).toBe(0); // still in bounds
+    expect(inkIn(fb.data, 0, OFFSET)).toBe(0);
+  });
+
   it('renders the no-data placeholder', () => {
     expect(inkIn(render({ type: 'holidays', countryCode: 'GB' }), 0, H)).toBeGreaterThan(0);
   });

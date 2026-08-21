@@ -117,7 +117,9 @@ export function renderHolidaysBox(
       drawText(fb, sideX, cy + 4, 'days', sideMaxW, GRAY_LIGHT, metrics.bodySize, metrics.weight);
     }
   }
-  cy += metrics.heroSize + 2;
+  // Only advance past the hero if one was drawn; otherwise this would push cy
+  // beyond contentEnd and skip the name too, defeating the fall-through above.
+  if (heroFits) cy += metrics.heroSize + 2;
 
   if (cy + metrics.bodySize > contentEnd) return;
 
