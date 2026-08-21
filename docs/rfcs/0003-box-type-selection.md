@@ -41,7 +41,7 @@ require an API key it is not sending.
 ## Motivation
 
 Three box-set changes have now landed on undocumented reasoning, and the set has
-been as large as 18 and as small as 15 without a written account of why.
+been as large as 20 and as small as 15 without a written account of why.
 
 **#84 removed two types.** Its reasoning was the sharpest of the three and the
 least visible, buried in a PR body whose title leads with an unrelated renderer
@@ -342,10 +342,11 @@ sources.
 `X-Api-Key` header, yet api-ninjas documents that header as required. The
 endpoint returned 200 keyless on 2026-08-20, so the box works today — but this
 looks like an unintentional allowance rather than a free tier. If it closes, the
-provider returns non-OK, the resolver returns `null`, and the box degrades
-silently to "No data" with nothing in the logs to say why. That failure is
-indistinguishable from a genuine absence, which is the same class of defect the
-`readCurrent` guard fixed for Open-Meteo in v0.37.0.
+provider returns non-OK, the resolver returns `null`, and the API route falls
+back silently to a bundled evergreen reading (`pickFallbackHoroscope()`, marked
+`fallback: true`) with nothing in the logs to say why. That failure is subtler
+than a genuine absence: the box keeps showing plausible content, so the upstream
+outage is invisible to the user rather than surfacing as "No data".
 
 **`stocks` → Yahoo.** `query1.finance.yahoo.com` is an undocumented internal
 endpoint with no stability guarantee. It has been reliable for years; that is
@@ -367,8 +368,9 @@ a fourth without mitigations."
 1. **Currency / FX.** Self-contained, no new infrastructure, highest
    cadence-fit. Good first proof of the rubric.
 2. **Public holidays.** Also self-contained; can run in parallel.
-3. **Fetch guard.** The shared SSRF helper, with its own tests. Independently
-   valuable — anything user-configurable later needs it.
+3. **Fetch guard.** ✅ Shipped as `safeFetch()` in `packages/data/src/safe-fetch.ts`
+   (#225, closing #224) — the shared SSRF helper with its own adversarial
+   tests, independently valuable enough to land ahead of RSS.
 4. **RSS headlines.** Depends on 3.
 5. **Regional boxes** — carbon intensity, marine — as demand justifies.
 
