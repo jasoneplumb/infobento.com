@@ -1048,6 +1048,10 @@ function buildHolidaysForm(box: EditorBox): DocumentFragment {
     if (code.length !== 2) return;
     statusEl.textContent = 'Fetching…';
     const data = await fetchNextPublicHoliday(code);
+    // Debouncing cancels the pending timer but not an in-flight request, so a
+    // slow response for a previous code can land after a newer one. Drop it if
+    // the field has moved on rather than writing the wrong country's holiday.
+    if (cfg.countryCode.trim().toUpperCase() !== code) return;
     if (data) {
       updateHolidaysData(box.id, data);
       statusEl.textContent = `Next: ${data.name} (${data.date})`;

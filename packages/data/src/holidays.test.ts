@@ -68,6 +68,21 @@ describe('fetchNextPublicHoliday', () => {
     expect(await fetchNextPublicHoliday('ZZ')).toBeNull();
   });
 
+  // An entry with an empty localName would otherwise be dropped, caching a null
+  // for the whole 12 h window and showing "No data" despite a usable name.
+  it('falls back to the English name when localName is empty', async () => {
+    mockFetch([{ date: '2026-12-25', localName: '', name: 'Christmas Day' }]);
+    expect(await fetchNextPublicHoliday('GB')).toEqual({
+      name: 'Christmas Day',
+      date: '2026-12-25',
+    });
+  });
+
+  it('returns null when both localName and name are empty', async () => {
+    mockFetch([{ date: '2026-12-25', localName: '', name: '' }]);
+    expect(await fetchNextPublicHoliday('GB')).toBeNull();
+  });
+
   it('returns null when the first entry lacks a date', async () => {
     mockFetch([{ localName: 'Mystery Holiday', name: 'Mystery Holiday' }]);
     expect(await fetchNextPublicHoliday('GB')).toBeNull();

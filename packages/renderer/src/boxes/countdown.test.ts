@@ -25,6 +25,32 @@ describe('daysUntil', () => {
     const now = new Date('2026-06-01T23:59:00');
     expect(daysUntil('2026-06-02', now)).toBe(1);
   });
+
+  // countdown carried its own copy of this calculation with Math.ceil and no
+  // NaN guard until it was folded into the shared days-until helper. Both bugs
+  // are pinned here so the two boxes cannot drift apart again.
+  it.each(['not-a-date', '', '2026/06/11'])('returns 0 (never NaN) for %o', (bad) => {
+    const days = daysUntil(bad, new Date('2026-06-01T12:00:00'));
+    expect(Number.isNaN(days)).toBe(false);
+    expect(days).toBe(0);
+  });
+
+  it('counts a 25-hour DST fall-back night as 1 day, not 2', (ctx) => {
+    const prev = process.env['TZ'];
+    process.env['TZ'] = 'America/New_York';
+    try {
+      // Skip where the TZ override does not take effect (small-icu builds):
+      // every night would be 24 h and the assertion would be vacuous.
+      if (new Date(2026, 0, 15).getTimezoneOffset() === new Date(2026, 6, 15).getTimezoneOffset()) {
+        ctx.skip('TZ override did not take effect on this host');
+        return;
+      }
+      expect(daysUntil('2026-11-02', new Date(2026, 10, 1, 12, 0, 0))).toBe(1);
+    } finally {
+      if (prev === undefined) delete process.env['TZ'];
+      else process.env['TZ'] = prev;
+    }
+  });
 });
 
 describe('renderCountdownBox', () => {

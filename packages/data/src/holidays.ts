@@ -44,14 +44,17 @@ export async function fetchNextPublicHoliday(countryCode: string): Promise<Holid
     if (!Array.isArray(data) || data.length === 0) return null;
 
     const first = data[0] as NagerHoliday;
-    if (!first.date || !first.localName) return null;
+    // Fall back to `name` rather than dropping the holiday: an entry with an
+    // empty localName would otherwise cache a null for the full 12 h window and
+    // show "No data" even though the English name is right there.
+    if (!first.date || (!first.localName && !first.name)) return null;
     // Validate the upstream date rather than trusting it, using the same check
     // as HolidayDataSchema so this boundary and the schema cannot drift. A
     // shape-only test would admit "2026-13-99", which parses to Invalid Date
     // and pins the box to a permanent "Today" for the whole 12 h cache window.
     if (!isIsoDateString(first.date)) return null;
 
-    return { name: first.localName, date: first.date };
+    return { name: first.localName || first.name, date: first.date };
   } catch {
     return null;
   }

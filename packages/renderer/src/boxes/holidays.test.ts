@@ -33,10 +33,21 @@ function inkIn(data: Uint8Array, from: number, to: number): number {
   return n;
 }
 
+/**
+ * Render into a buffer taller than the box and return just the box's rows.
+ *
+ * The offset is the point: at y = 0 a bug that uses a relative delta where an
+ * absolute coordinate belongs is invisible, because `delta === y + delta`.
+ * Slicing back to H rows keeps the `inkIn(data, 0, H)` calls below unchanged.
+ */
+const Y_OFFSET = 40;
+
 function render(config: HolidaysBoxConfig, now?: Date): Uint8Array {
-  const fb = createFrameBuffer({ widthPx: W, heightPx: H, deviceId: '' });
-  renderHolidaysBox(fb, makeLayout(config), config, M, now, false);
-  return fb.data;
+  const fb = createFrameBuffer({ widthPx: W, heightPx: Y_OFFSET + H, deviceId: '' });
+  renderHolidaysBox(fb, makeLayout(config, Y_OFFSET), config, M, now, false);
+  // Nothing may be drawn above the box.
+  expect(inkIn(fb.data, 0, Y_OFFSET)).toBe(0);
+  return fb.data.slice(Y_OFFSET * BYTE_W);
 }
 
 describe('daysUntilHoliday', () => {
@@ -277,26 +288,11 @@ describe('renderHolidaysBox', () => {
   it('keeps the placeholder inside a box that is not at y = 0', () => {
     const OFFSET = 200;
     const TALL = OFFSET + H;
-    const tallByteW = Math.ceil(W / 4);
-
-    const inkAbove = (data: Uint8Array, row: number): number => {
-      let n = 0;
-      for (let r = 0; r < row; r++) {
-        for (let b = 0; b < tallByteW; b++) {
-          const v = data[r * tallByteW + b] ?? 0;
-          for (let shift = 0; shift < 8; shift += 2) {
-            if (((v >> shift) & 3) !== 0) n++;
-          }
-        }
-      }
-      return n;
-    };
-
     const config: HolidaysBoxConfig = { type: 'holidays', countryCode: 'GB' };
     const fb = createFrameBuffer({ widthPx: W, heightPx: TALL, deviceId: '' });
     renderHolidaysBox(fb, makeLayout(config, OFFSET), config, M, undefined, false);
 
-    expect(inkAbove(fb.data, OFFSET)).toBe(0);
+    expect(inkIn(fb.data, 0, OFFSET)).toBe(0);
     expect(inkIn(fb.data, OFFSET, TALL)).toBeGreaterThan(0);
   });
 });

@@ -12,26 +12,23 @@ import type { LayoutBox, HolidaysBoxConfig } from '@infobento/core';
 import type { FontMetrics } from '../font-metrics.js';
 import { drawText, drawTextWrapped, drawHeroText, GRAY_DARK, GRAY_LIGHT } from '../draw.js';
 import { drawBoxHeader } from './header.js';
+import { daysUntilLocalMidnight } from '../days-until.js';
 
 /**
- * Days from today (midnight-to-midnight) until an ISO date. Returns 0 when
- * the date is today or in the past, and 0 for an unparseable date.
+ * Days from today until an ISO date, 0 when today, past, or unparseable.
  *
- * Both operands are local-midnight timestamps, so their distance is a whole
- * number of days *except* across a DST transition, where consecutive local
- * midnights are 23 h or 25 h apart. `Math.round` recovers the true day count
- * in both directions; `Math.ceil` would report 2 days for the 25 h case.
+ * Kept as a named re-export: the countdown box needs the identical calculation,
+ * so the implementation lives in days-until.js to stop the two from drifting
+ * (they already had — this one rounded, countdown's floored via ceil).
  *
- * The NaN guard is load-bearing: `Math.max(0, NaN)` is `NaN`, not 0 — NaN
- * propagates through `Math.max` rather than comparing as less-than-zero — so
- * without it a malformed date reaches the caller and renders as "NaN".
+ * Timezone limitation: both midnights are server-local. Rendering happens on
+ * the API host, so on a UTC server a device in New York sees "Today" from about
+ * 7 pm the previous evening. The date box takes an explicit UTC offset in its
+ * config; holidays does not yet. Fixing it means threading utcOffsetMinutes
+ * through HolidaysBoxConfig and shifting `target` to device-local midnight.
  */
 export function daysUntilHoliday(isoDate: string, now: Date = new Date()): number {
-  const target = new Date(isoDate + 'T00:00:00');
-  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const diffMs = target.getTime() - today.getTime();
-  if (Number.isNaN(diffMs)) return 0;
-  return Math.max(0, Math.round(diffMs / (1000 * 60 * 60 * 24)));
+  return daysUntilLocalMidnight(isoDate, now);
 }
 
 /**
@@ -84,9 +81,9 @@ export function renderHolidaysBox(
   // not fit and let the name below still render.
   const heroFits = cy + metrics.heroSize <= contentEnd;
 
-  if (!heroFits) {
-    // Not enough room for the hero; fall through to the name below.
-  } else if (days === 0) {
+  // When the hero does not fit it is skipped entirely (drawHeroText has no
+  // maxHeight and blits unconditionally); the name below still renders.
+  if (heroFits && days === 0) {
     drawHeroText(
       fb,
       cx,
@@ -97,7 +94,7 @@ export function renderHolidaysBox(
       metrics.heroSize,
       metrics.headingWeight,
     );
-  } else {
+  } else if (heroFits) {
     const daysStr = String(days);
     drawHeroText(
       fb,
@@ -110,6 +107,10 @@ export function renderHolidaysBox(
       metrics.headingWeight,
     );
 
+    // Approximation: assumes every digit is heroAdvance wide, so a wide-glyph
+    // count (e.g. "127") can tuck the "days" label against the last digit. The
+    // other hero boxes with a side label share this; drawHeroText would need to
+    // return its true advance width to do better.
     const heroWidth = daysStr.length * metrics.heroAdvance;
     const sideX = cx + heroWidth + metrics.pad;
     const sideMaxW = contentWidth - heroWidth - metrics.pad;
@@ -123,7 +124,9 @@ export function renderHolidaysBox(
 
   if (cy + metrics.bodySize > contentEnd) return;
 
-  drawText(fb, cx, cy, config.data.name, contentWidth, undefined, metrics.bodySize, metrics.weight);
+  // GRAY_DARK, not the drawText default of GRAY_BLACK: the default renders the
+  // name darker than the GRAY_DARK hero above it, inverting the hierarchy.
+  drawText(fb, cx, cy, config.data.name, contentWidth, GRAY_DARK, metrics.bodySize, metrics.weight);
 }
 
 /**
