@@ -7,6 +7,30 @@
 import { z } from 'zod';
 import { MAX_REFRESHES_PER_DAY } from './types.js';
 
+/**
+ * True when `s` is a real calendar date in ISO `YYYY-MM-DD` form.
+ *
+ * A shape-only regex is not sufficient: `2026-13-99` matches it but parses to
+ * `Invalid Date`, and `2026-02-30` silently rolls over to March 2. Stored
+ * either way, the first renders a permanent "Today" hero and the second counts
+ * down to the wrong day. Round-tripping the parsed components rejects both.
+ *
+ * Shared with @infobento/data so the fetch boundary and the schema cannot drift.
+ */
+export function isIsoDateString(s: string): boolean {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s);
+  if (!m) return false;
+  const [, yy, mm, dd] = m;
+  if (yy === undefined || mm === undefined || dd === undefined) return false;
+  const year = Number(yy);
+  const month = Number(mm);
+  const day = Number(dd);
+  const parsed = new Date(year, month - 1, day);
+  return (
+    parsed.getFullYear() === year && parsed.getMonth() === month - 1 && parsed.getDate() === day
+  );
+}
+
 // --- Box config schemas ---
 
 const TextBoxConfigSchema = z.object({
@@ -188,9 +212,10 @@ const OnThisDayBoxConfigSchema = z.object({
 
 const HolidayDataSchema = z.object({
   name: z.string(),
-  // Constrained to ISO YYYY-MM-DD: an unconstrained string lets a crafted
-  // payload store "not-a-date", which the renderer turns into a NaN countdown.
-  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Must be an ISO date (YYYY-MM-DD)'),
+  // Real calendar date, not just the ISO shape: an unconstrained string lets a
+  // crafted payload store "not-a-date" (NaN countdown), and the shape alone
+  // still admits "2026-13-99" (Invalid Date -> a permanent "Today" hero).
+  date: z.string().refine(isIsoDateString, 'Must be a real ISO date (YYYY-MM-DD)'),
 });
 
 const HolidaysBoxConfigSchema = z.object({

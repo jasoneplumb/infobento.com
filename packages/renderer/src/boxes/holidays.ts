@@ -61,13 +61,32 @@ export function renderHolidaysBox(
   if (contentWidth <= 0) return;
 
   if (!config.data) {
-    renderPlaceholder(fb, cx, cy, contentWidth, contentEnd, config.countryCode, metrics);
+    // Uppercase here: the schema accepts "gb" (every consumer normalises before
+    // use), so without this the placeholder is the one place a lowercase code
+    // would be shown to the user verbatim.
+    renderPlaceholder(
+      fb,
+      cx,
+      cy,
+      contentWidth,
+      contentEnd,
+      config.countryCode.toUpperCase(),
+      metrics,
+    );
     return;
   }
 
   const days = daysUntilHoliday(config.data.date, now);
 
-  if (days === 0) {
+  // drawHeroText takes a maxWidth but no maxHeight — it blits unconditionally —
+  // so the caller has to bound it. Without this a box shorter than heroSize
+  // paints the hero over whatever sits beneath it. Skip the hero when it will
+  // not fit and let the name below still render.
+  const heroFits = cy + metrics.heroSize <= contentEnd;
+
+  if (!heroFits) {
+    // Not enough room for the hero; fall through to the name below.
+  } else if (days === 0) {
     drawHeroText(
       fb,
       cx,
@@ -119,6 +138,11 @@ function renderPlaceholder(
   countryCode: string,
   metrics: FontMetrics,
 ): void {
+  // drawTextWrapped blits its first line before testing the height bound, so a
+  // box with no room for even one line still gets painted. Guard at the call
+  // site — the shared helper's behaviour is relied on by every other box type.
+  if (y + metrics.bodySize > maxY) return;
+
   let cy =
     y +
     drawTextWrapped(

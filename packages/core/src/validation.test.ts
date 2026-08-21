@@ -125,6 +125,25 @@ describe('holidays box config', () => {
 
   // A non-ISO date survives the fetcher's truthy-only guard, reaches the DB,
   // and makes the renderer's countdown NaN. Reject it at the schema layer.
+  // The ISO *shape* alone is not enough: "2026-13-99" matches it but parses to
+  // Invalid Date (a permanent "Today" hero), and "2026-02-30" silently rolls
+  // over to March 2 and counts down to the wrong day.
+  it.each(['2026-13-99', '2026-02-30', '2026-00-10', '2026-01-32', '0000-01-01'])(
+    'rejects the ISO-shaped but non-calendar date %o',
+    (date) => {
+      const result = validateBentoConfig(holidaysConfig(withData(date)));
+      expect(result.valid).toBe(false);
+      expect(result.errors.some((e) => e.path.endsWith('data.date'))).toBe(true);
+    },
+  );
+
+  it.each(['2026-12-25', '2024-02-29', '2026-01-01', '2026-12-31'])(
+    'accepts the real calendar date %o',
+    (date) => {
+      expect(validateBentoConfig(holidaysConfig(withData(date))).valid).toBe(true);
+    },
+  );
+
   it.each(['not-a-date', '2026/12/25', '25-12-2026', '2026-12-25T00:00:00Z', ''])(
     'rejects the malformed date %o',
     (date) => {

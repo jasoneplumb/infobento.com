@@ -68,5 +68,5 @@ export { DEFAULT_REFRESHES_PER_DAY, MAX_REFRESHES_PER_DAY } from './types.js';
 export { calculateLayout } from './layout.js';
 
 // Re-export validation
-export { validateBentoConfig, BentoConfigSchema } from './validation.js';
+export { validateBentoConfig, BentoConfigSchema, isIsoDateString } from './validation.js';
 export type { ValidationError, ValidationResult } from './validation.js';

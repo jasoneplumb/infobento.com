@@ -8,12 +8,10 @@
  */
 
 import type { HolidayData } from '@infobento/core';
+import { isIsoDateString } from '@infobento/core';
 
 /** ISO 3166-1 alpha-2: exactly two ASCII letters, no URL-significant characters. */
 const COUNTRY_CODE_RE = /^[A-Z]{2}$/;
-
-/** Matches HolidayDataSchema in @infobento/core, so a payload that parses here also validates there. */
-const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
 interface NagerHoliday {
   date: string;
@@ -47,10 +45,11 @@ export async function fetchNextPublicHoliday(countryCode: string): Promise<Holid
 
     const first = data[0] as NagerHoliday;
     if (!first.date || !first.localName) return null;
-    // Shape-check the upstream date rather than trusting it. A non-ISO string
-    // would otherwise be stored, render as a silent 0-day countdown, and then
-    // fail Zod on the next config write — a confusing failure far from here.
-    if (!ISO_DATE_RE.test(first.date)) return null;
+    // Validate the upstream date rather than trusting it, using the same check
+    // as HolidayDataSchema so this boundary and the schema cannot drift. A
+    // shape-only test would admit "2026-13-99", which parses to Invalid Date
+    // and pins the box to a permanent "Today" for the whole 12 h cache window.
+    if (!isIsoDateString(first.date)) return null;
 
     return { name: first.localName, date: first.date };
   } catch {

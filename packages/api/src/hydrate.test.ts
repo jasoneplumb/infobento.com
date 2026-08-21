@@ -549,3 +549,58 @@ describe('sun TTL is not refresh-scaled (#194 review finding)', () => {
     expect(ttls.get('sun:portland')).toBe(6 * HOUR);
   });
 });
+
+describe('hydrateConfig — holidays', () => {
+  const HOLIDAY = { name: 'Christmas Day', date: '2026-12-25' } as const;
+
+  const holidaysBox = (countryCode: string, data?: unknown) => ({
+    id: 'h',
+    type: 'holidays',
+    label: 'Holidays',
+    config: { type: 'holidays', countryCode, data },
+  });
+
+  it('fills in the fetched holiday', async () => {
+    const out = await hydrateConfig(
+      oneBox(holidaysBox('GB')),
+      deps({ fetchNextPublicHoliday: async () => HOLIDAY }),
+    );
+    const box = out.boxes[0];
+    if (box?.type !== 'holidays') throw new Error('unreachable');
+    expect(box.config?.data).toEqual(HOLIDAY);
+  });
+
+  it('trims and uppercases the country code before fetching', async () => {
+    const spy = vi.fn(async () => HOLIDAY);
+    await hydrateConfig(oneBox(holidaysBox('  gb  ')), deps({ fetchNextPublicHoliday: spy }));
+    expect(spy).toHaveBeenCalledWith('GB');
+  });
+
+  it('reuses the cached holiday across boxes instead of refetching', async () => {
+    const spy = vi.fn(async () => HOLIDAY);
+    const config = {
+      boxes: [holidaysBox('GB'), { ...holidaysBox('gb'), id: 'h2' }],
+      refreshesPerDay: 2,
+    } as unknown as BentoConfig;
+
+    const out = await hydrateConfig(config, deps({ fetchNextPublicHoliday: spy }));
+    // One upstream call for two boxes: the cache key is the *normalised* code,
+    // so "GB" and "gb" collapse instead of fetching the same country twice.
+    expect(spy).toHaveBeenCalledTimes(1);
+    for (const box of out.boxes) {
+      if (box.type !== 'holidays') throw new Error('unreachable');
+      expect(box.config?.data).toEqual(HOLIDAY);
+    }
+  });
+
+  it('leaves data undefined when the provider fails', async () => {
+    const out = await hydrateConfig(
+      oneBox(holidaysBox('GB', HOLIDAY)),
+      deps({ fetchNextPublicHoliday: async () => null }),
+    );
+    const box = out.boxes[0];
+    if (box?.type !== 'holidays') throw new Error('unreachable');
+    // Never keep a stale baked payload — the countdown would drift.
+    expect(box.config?.data).toBeUndefined();
+  });
+});
