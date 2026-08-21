@@ -76,6 +76,19 @@ describe('daysUntilHoliday', () => {
       const prev = process.env['TZ'];
       process.env['TZ'] = tz;
       try {
+        // Guard against a vacuous pass. A mid-process TZ mutation is not
+        // guaranteed to flush the ICU timezone cache (notably on small-icu Node
+        // builds). If it silently no-ops on a UTC host, every night below is
+        // exactly 24 h, Math.round and Math.ceil agree, and these tests would
+        // stay green even with the bug reintroduced. Assert the zone actually
+        // took effect so such a host fails loudly instead of lying.
+        const winter = new Date(2026, 0, 15).getTimezoneOffset();
+        const summer = new Date(2026, 6, 15).getTimezoneOffset();
+        expect(
+          winter !== summer,
+          `TZ=${tz} did not take effect (no seasonal offset shift): ` +
+            `DST assertions would be vacuous on this host`,
+        ).toBe(true);
         fn();
       } finally {
         if (prev === undefined) delete process.env['TZ'];
@@ -83,11 +96,17 @@ describe('daysUntilHoliday', () => {
       }
     };
 
+    /** Wall-clock hours between two consecutive local midnights. */
+    const nightLength = (y: number, m: number, d: number, next: string): number =>
+      (new Date(next + 'T00:00:00').getTime() - new Date(y, m, d).getTime()) / 3_600_000;
+
     // Fall-back happens at 02:00 *on* 2026-11-01, so the 25-hour night is the
     // one from local midnight Nov 1 to local midnight Nov 2 (verified 25 h).
     // Math.ceil(25/24) = 2; the correct answer is 1.
     it('counts a 25-hour night as 1 day, not 2 (fall back)', () => {
       withTz('America/New_York', () => {
+        // Pin the premise: this really is the 25 h night, not a 24 h one.
+        expect(nightLength(2026, 10, 1, '2026-11-02')).toBe(25);
         const now = new Date(2026, 10, 1, 12, 0, 0); // Sun 2026-11-01 local
         expect(daysUntilHoliday('2026-11-02', now)).toBe(1);
       });
@@ -99,6 +118,7 @@ describe('daysUntilHoliday', () => {
     // Math.floor (which would answer 0) cannot pass.
     it('counts a 23-hour night as 1 day (spring forward)', () => {
       withTz('America/New_York', () => {
+        expect(nightLength(2026, 2, 8, '2026-03-09')).toBe(23);
         const now = new Date(2026, 2, 8, 12, 0, 0); // Sun 2026-03-08 local
         expect(daysUntilHoliday('2026-03-09', now)).toBe(1);
       });

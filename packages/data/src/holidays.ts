@@ -12,6 +12,9 @@ import type { HolidayData } from '@infobento/core';
 /** ISO 3166-1 alpha-2: exactly two ASCII letters, no URL-significant characters. */
 const COUNTRY_CODE_RE = /^[A-Z]{2}$/;
 
+/** Matches HolidayDataSchema in @infobento/core, so a payload that parses here also validates there. */
+const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+
 interface NagerHoliday {
   date: string;
   localName: string;
@@ -31,6 +34,9 @@ export async function fetchNextPublicHoliday(countryCode: string): Promise<Holid
   if (!COUNTRY_CODE_RE.test(code)) return null;
 
   try {
+    // COUNTRY_CODE_RE above is the security guard, not this encode: [A-Z]{2}
+    // contains nothing percent-encodable, so the call is a no-op today. Kept as
+    // a second line of defence if that pattern is ever widened.
     const res = await fetch(
       `https://date.nager.at/api/v3/NextPublicHolidays/${encodeURIComponent(code)}`,
     );
@@ -41,6 +47,10 @@ export async function fetchNextPublicHoliday(countryCode: string): Promise<Holid
 
     const first = data[0] as NagerHoliday;
     if (!first.date || !first.localName) return null;
+    // Shape-check the upstream date rather than trusting it. A non-ISO string
+    // would otherwise be stored, render as a silent 0-day countdown, and then
+    // fail Zod on the next config write — a confusing failure far from here.
+    if (!ISO_DATE_RE.test(first.date)) return null;
 
     return { name: first.localName, date: first.date };
   } catch {

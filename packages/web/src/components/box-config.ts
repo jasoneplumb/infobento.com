@@ -1042,7 +1042,10 @@ function buildHolidaysForm(box: EditorBox): DocumentFragment {
 
   const doFetch = async (): Promise<void> => {
     const code = cfg.countryCode.trim().toUpperCase();
-    if (!code) return;
+    // Require a complete code: a half-typed "G" would otherwise fetch, come
+    // back null, and show "Country code not found" next to the field
+    // validator's "Use a 2-letter country code" — two contradictory messages.
+    if (code.length !== 2) return;
     statusEl.textContent = 'Fetching…';
     const data = await fetchNextPublicHoliday(code);
     if (data) {
@@ -1078,7 +1081,7 @@ function buildHolidaysForm(box: EditorBox): DocumentFragment {
   note.textContent = 'Two-letter country code. ~100 countries supported via Nager.Date.';
   frag.appendChild(note);
 
-  if (cfg.countryCode.trim() && !cfg.data) {
+  if (cfg.countryCode.trim().length === 2 && !cfg.data) {
     void doFetch();
   }
 

@@ -92,6 +92,17 @@ describe('fetchNextPublicHoliday', () => {
     },
   );
 
+  // The upstream date is stored verbatim and must satisfy HolidayDataSchema,
+  // so a non-ISO value has to be rejected here rather than surfacing later as
+  // a silent 0-day countdown plus a Zod failure on the next config write.
+  it.each(['25-12-2026', '2026/12/25', 'not-a-date', '2026-12-25T00:00:00Z'])(
+    'returns null when the upstream date is %o',
+    async (date) => {
+      mockFetch([{ date, localName: 'Christmas', name: 'Christmas' }]);
+      expect(await fetchNextPublicHoliday('GB')).toBeNull();
+    },
+  );
+
   it('builds the request URL from the two-letter code only', async () => {
     const spy = vi.fn(
       async () =>
