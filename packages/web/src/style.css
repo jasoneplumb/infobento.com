@@ -593,44 +593,7 @@ button {
   gap: 4px;
 }
 
-/* Each chip is the add button plus a hover × to hide it from the palette. */
-.chip-wrap {
-  position: relative;
-  display: inline-flex;
-}
-
-.chip-hide {
-  position: absolute;
-  top: 50%;
-  right: 3px;
-  transform: translateY(-50%);
-  width: 15px;
-  height: 15px;
-  padding: 0;
-  display: none;
-  align-items: center;
-  justify-content: center;
-  font-size: 13px;
-  line-height: 1;
-  border: none;
-  border-radius: 50%;
-  background: var(--surface);
-  color: var(--muted);
-  cursor: pointer;
-}
-
-.chip-wrap:hover .chip-hide {
-  display: flex;
-}
-
-.chip-wrap:hover .btn-add-chip {
-  padding-right: 20px;
-}
-
-.chip-hide:hover {
-  color: var(--danger);
-}
-
+/* One chip = one button. The whole control adds the box in a single click. */
 .btn-add-chip {
   font-size: 11px;
   padding: 3px 9px;
@@ -649,52 +612,6 @@ button {
   color: var(--accent);
   border-color: var(--accent);
   background: rgba(37, 99, 235, 0.05);
-}
-
-/* Collapsible "Hidden (N)" list of chips the user removed from the palette. */
-.chips-hidden > summary {
-  font-size: 10px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--muted);
-  cursor: pointer;
-  padding: 2px 0;
-  list-style: none;
-}
-
-.chips-hidden > summary::-webkit-details-marker {
-  display: none;
-}
-
-.chips-hidden > summary::before {
-  content: '▸ ';
-}
-
-.chips-hidden[open] > summary::before {
-  content: '▾ ';
-}
-
-.chips-hidden > .chip-group-chips {
-  margin-top: 4px;
-}
-
-.btn-restore-chip {
-  font-size: 11px;
-  padding: 3px 9px;
-  background: transparent;
-  color: var(--muted);
-  border: 1px dashed var(--border);
-  border-radius: 10px;
-  cursor: pointer;
-  transition:
-    color 0.1s,
-    border-color 0.1s;
-}
-
-.btn-restore-chip:hover {
-  color: var(--accent);
-  border-color: var(--accent);
 }
 
 /* -- Box list -------------------------------------------------------------- */
