@@ -1,5 +1,27 @@
 # Changelog
 
+## [0.38.0] - 2026-08-21
+
+### Added
+
+- **Public-holidays box type (#221, #223, #226).** Takes the set to 18. Sourced from Nager.Date — free, no API key, ~100 countries — and the first box built from the RFC 0003 rubric rather than picked ad hoc. It shows the next public holiday for a country with a day countdown derived at render time, so a payload cached for its full 12-hour TTL never displays a stale "in N days". The country code is constrained to two ASCII letters at both the schema and the fetch boundary: it is interpolated into the Nager.Date request path, and `GB/../../v2/Other` would otherwise have traversed to an unintended upstream endpoint. Case-insensitive deliberately, because every consumer already uppercases and rejecting `"gb"` from an API caller buys no security.
+- **Shared SSRF fetch guard for user-supplied URLs (#225).** `safeFetch()` in `@infobento/data`, added ahead of the RSS headline box (#4) so no user-configurable URL source can proxy requests through the API server. HTTPS only; DNS resolved and then filtered against loopback, RFC1918, link-local (including cloud metadata at 169.254.169.254), the IPv6 equivalents, and IPv4-mapped IPv6 in both dotted and hex form. Redirects are followed manually so scheme and address are re-checked at every hop, under a hop cap. The response body is streamed against a size ceiling rather than trusting `Content-Length`, the whole request is bounded by an `AbortController` timeout, and the outbound request carries only a `User-Agent` — no cookies, auth, or caller-derived headers. 30 adversarial tests cover DNS rebinding, redirect-to-private, oversized bodies with a lying `Content-Length`, and slow-loris. Requires `node:dns/promises`, so this one module is Node-only; the rest of `@infobento/data` stays edge-safe.
+
+### Fixed
+
+- **The countdown box reported the wrong day count across a DST fall-back, and could render "NaN" (#226 review).** `countdown.ts` carried the identical arithmetic to the new holidays box in already-shipped code, found only because the review of the new box prompted a check of its sibling. Both operands are local-midnight timestamps, so a fall-back night spans 25 wall-clock hours and `Math.ceil(25/24)` reported 2 days for a holiday 1 day away. Separately, `Math.max(0, NaN)` is `NaN` — it propagates rather than comparing as less-than-zero — so a malformed date drew the literal string "NaN" as hero text. Both boxes now share `days-until.ts`, and both suites pin the shared helper so neither can regress alone.
+- **Invalid dates are rejected by calendar validity, not just shape (#226 review).** A `YYYY-MM-DD` regex accepts `2026-13-99` and `2026-02-30`. The first produced an `Invalid Date` that the new NaN guard turned into a countdown pinned at "Today" for the full 12-hour cache window; the second rolled silently over to March 2 and counted down to the wrong day. A shared `isIsoDateString` in core checks shape and then round-trips the components, and the data fetcher reuses it so the schema and the fetch boundary cannot drift apart.
+- **The holidays box no longer paints outside its own bounds (#226 review).** Its overdraw test was `inkIn(data, H, H)` — a loop that never executes — and could not have worked as written, since `render()` allocates a buffer exactly `H` tall and leaves no rows past the box to inspect. Rewriting it honestly against an undersized box surfaced two real defects: `drawHeroText` takes a `maxWidth` but no `maxHeight` and blits unconditionally, and `drawTextWrapped` blits its first line _before_ testing its height bound. Guarded at this box's call sites only — the same pattern is present in every hero box, and changing shared `draw.ts` semantics for all of them is tracked in #229.
+- **The editor's country-code field no longer contradicts itself mid-typing.** A single letter passed the `if (!code) return` guard, hit the API, and reported "Country code not found or no upcoming holidays" — implying the code had been queried and rejected — while the field validator simultaneously said the input was incomplete.
+
+### Documentation
+
+- **RFC 0003 — box-type selection rubric and candidate evaluation (#220, #221).** A five-gate rubric for deciding which box types earn a place, applied to a slate of candidates, so the set grows by argument rather than by whichever integration was easiest that week. Writing it forced a durability audit of the existing providers and turned up several claims in the repo that no longer matched the code: the layout cap is a `MAX_ROWS` local derived from display height, not a `MAX_BOXES` constant; the `quote` provider already fetches a community mirror, which the audit's own gate-5 criteria had concluded no precedent existed for; UV is drawn as visible `UV:N` body text in the AQI box rather than carried invisibly; and `ipapi.co` was missing from the enumerated network footprint. Follow-ups filed for the eleven renderer fixtures still pinned at `y: 0` (#227) and a stale JSDoc claim in `horoscope.ts` (#228).
+
+### Chore
+
+- **Removed a stray `.ghost-prompt` committed to the repo root by #226.** An autonomous clone's worktree is its own repo root, so the existing `clones/` ignore rule did not cover a prompt file sitting at that root and a broad `git add` from inside the worktree swept it in. The prompt artifacts are now ignored by name. No secrets were exposed — the file held a task description only.
+
 ## [0.37.0] - 2026-08-20
 
 ### Added
