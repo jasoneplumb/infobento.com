@@ -1,6 +1,6 @@
 {
   "name": "infobento.com",
-  "version": "0.38.1",
+  "version": "0.38.2",
   "private": true,
   "description": "Solar-powered eInk bento dashboard for the counter, desk, or shelf — weather, forecast, calendar, countdown and more, configured once in a browser.",
   "keywords": [
