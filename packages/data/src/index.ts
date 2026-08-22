@@ -39,5 +39,10 @@ export { fetchOnThisDay, VALID_ONTHISDAY_CATEGORIES, type OnThisDayResult } from
 export { fetchStocks, isValidStockSymbol, STOCK_RANGE_MAP, type StocksResult } from './stocks.js';
 export { fetchNextPublicHoliday } from './holidays.js';
 
-// SSRF-safe fetch guard (Node-only — uses dns resolution; see safe-fetch.ts header)
-export { safeFetch, SsrfError, type SafeFetchOptions, type SafeFetchResult } from './safe-fetch.js';
+// The SSRF fetch guard is deliberately NOT re-exported here. It imports
+// `node:dns/promises`, and this barrel is consumed by `web` — re-exporting it
+// pulls a Node-only module into the browser graph, where Vite externalizes
+// `node:dns/promises` and rollup then fails on the named `resolve4` import.
+// Import it from '@infobento/data/safe-fetch' instead; that subpath is the
+// package's one Node-only entry point and the rest of this barrel stays
+// browser- and edge-safe. See #231.

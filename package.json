@@ -32,7 +32,7 @@
     "packages/*"
   ],
   "scripts": {
-    "build": "tsc -b && node scripts/post-build.mjs",
+    "build": "tsc -b && node scripts/post-build.mjs && npm run build -w @infobento/web",
     "gen-stickers": "tsx scripts/generate-stickers.ts",
     "typecheck": "tsc -b && npm run typecheck -w @infobento/web",
     "test": "vitest run",

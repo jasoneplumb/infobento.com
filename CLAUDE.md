@@ -76,8 +76,9 @@ import { splitLeftFraction } from './constants.js';
 import { splitLeftFraction } from './constants';
 ```
 
-**Cross-package** imports use the bare package specifier. Each workspace package
-defines only `"."` in its `exports` map, so a subpath import throws
+**Cross-package** imports use the bare package specifier. Every workspace package
+declares `"."` in its `exports` map and nothing else, with a single deliberate
+exception (below), so an undeclared subpath import throws
 `ERR_PACKAGE_PATH_NOT_EXPORTED`.
 
 ```typescript
@@ -87,6 +88,19 @@ import { render } from '@infobento/renderer';
 // Wrong — subpath is not exported
 import { render } from '@infobento/renderer/index.js';
 ```
+
+**The one declared subpath is `@infobento/data/safe-fetch`.** The SSRF guard
+imports `node:dns/promises`, so it cannot live in the `@infobento/data` barrel —
+`web` consumes that barrel, and a Node-only module in the browser graph breaks
+the Vite build (#231). Keep it out of the barrel and import it by subpath:
+
+```typescript
+// Correct — Node-only guard, imported by its own subpath
+import { safeFetch } from '@infobento/data/safe-fetch';
+```
+
+Anything else added to `data` must stay browser- and edge-safe, or get the same
+treatment.
 
 **Exception:** The `web` package uses Vite's bundler (`moduleResolution: "bundler"`) and does NOT require `.js` extensions.
 

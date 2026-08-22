@@ -30,11 +30,10 @@ jobs:
         run: npm ci
 
       - name: Build
+        # The root build script builds the packages and then the web bundle
+        # (including the setup-guide PDF into packages/web/dist). Keeping it
+        # as one script means CI and deploy cannot drift apart — see #231.
         run: npm run build
-
-      - name: Build web bundle
-        # Via the package script so the setup-guide PDF is generated into dist/
-        run: npm run build -w @infobento/web
 
       - name: Create deployment package
         run: |
