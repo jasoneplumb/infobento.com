@@ -28,6 +28,10 @@
     ".": {
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
+    },
+    "./safe-fetch": {
+      "types": "./dist/safe-fetch.d.ts",
+      "default": "./dist/safe-fetch.js"
     }
   },
   "files": [

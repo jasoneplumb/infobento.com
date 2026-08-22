@@ -29,6 +29,14 @@ jobs:
       - name: Build
         run: npm run build
 
+      # The root build is `tsc -b` only, so it never exercises the browser
+      # bundle. Without this step a Node-only import reaching `web` compiles,
+      # typechecks and tests clean, then fails in deploy.yml at tag time —
+      # which is exactly how #231 shipped. Build the bundle here so it fails
+      # the PR instead.
+      - name: Build web bundle
+        run: npm run build -w @infobento/web
+
       - name: Typecheck
         run: npm run typecheck
 
