@@ -18,7 +18,7 @@ import {
 } from '../state';
 import { buildConfigForm } from './box-config';
 
-/** Editor type-switcher options sorted by display label, matching the Add Box dropdown. */
+/** Editor type-switcher options sorted by display label, matching the Add palette. */
 const TYPE_OPTIONS: ReadonlyArray<{ value: EditorBoxType; label: string }> = (
   Object.entries(BOX_TYPE_LABELS) as Array<[EditorBoxType, string]>
 )
@@ -191,7 +191,7 @@ export function renderBoxList(containerId: string): void {
     const p = document.createElement('p');
     p.textContent = 'No boxes yet.';
     const small = document.createElement('small');
-    small.textContent = 'Use "Add Box" above to get started.';
+    small.textContent = 'Pick a box type below to get started.';
     empty.appendChild(p);
     empty.appendChild(small);
     list.appendChild(empty);

@@ -12,9 +12,6 @@ import {
   addBox,
   BOX_TYPE_LABELS,
   CHIP_GROUPS,
-  getHiddenChips,
-  hideChip,
-  restoreChip,
   exportJSON,
   LOCATION_TYPES,
   getCornerRadius,
@@ -73,10 +70,8 @@ function initEditor(): void {
   // -- Add chips (grouped by theme; every chip stays available; hide/restore) --
 
   /** Build one add-chip: "+ Label" plus a hover × to hide it from the palette. */
+  /** One palette chip. The whole control is the add action — a single click. */
   function makeChip(type: EditorBoxType): HTMLElement {
-    const wrap = document.createElement('div');
-    wrap.className = 'chip-wrap';
-
     const add = document.createElement('button');
     add.type = 'button';
     add.className = 'btn-add-chip';
@@ -86,29 +81,16 @@ function initEditor(): void {
       // Location rows auto-detect (IP-based) when no location is known yet.
       if (LOCATION_TYPES.has(type)) void ensureLocationDefault();
     });
-
-    const hide = document.createElement('button');
-    hide.type = 'button';
-    hide.className = 'chip-hide';
-    hide.textContent = '×';
-    hide.title = `Hide ${BOX_TYPE_LABELS[type]}`;
-    hide.setAttribute('aria-label', `Hide ${BOX_TYPE_LABELS[type]}`);
-    hide.addEventListener('click', () => hideChip(type));
-
-    wrap.append(add, hide);
-    return wrap;
+    return add;
   }
 
   function renderAddChips(): void {
     const addChips = document.getElementById('add-chips');
     if (!addChips) return;
     addChips.innerHTML = '';
-    const hidden = new Set(getHiddenChips());
 
     // Grouped, always-available chips (a box type can be added more than once).
     for (const group of CHIP_GROUPS) {
-      const visible = group.types.filter((t) => !hidden.has(t));
-      if (visible.length === 0) continue;
       const section = document.createElement('div');
       section.className = 'chip-group';
       const label = document.createElement('div');
@@ -116,31 +98,9 @@ function initEditor(): void {
       label.textContent = group.label;
       const chips = document.createElement('div');
       chips.className = 'chip-group-chips';
-      for (const type of visible) chips.appendChild(makeChip(type));
+      for (const type of group.types) chips.appendChild(makeChip(type));
       section.append(label, chips);
       addChips.appendChild(section);
-    }
-
-    // Collapsible "Hidden (N)" list — click a chip to restore it to its group.
-    const hiddenList = getHiddenChips();
-    if (hiddenList.length > 0) {
-      const details = document.createElement('details');
-      details.className = 'chips-hidden';
-      const summary = document.createElement('summary');
-      summary.textContent = `Hidden (${String(hiddenList.length)})`;
-      const chips = document.createElement('div');
-      chips.className = 'chip-group-chips';
-      for (const type of hiddenList) {
-        const btn = document.createElement('button');
-        btn.type = 'button';
-        btn.className = 'btn-restore-chip';
-        btn.textContent = BOX_TYPE_LABELS[type];
-        btn.title = `Restore ${BOX_TYPE_LABELS[type]}`;
-        btn.addEventListener('click', () => restoreChip(type));
-        chips.appendChild(btn);
-      }
-      details.append(summary, chips);
-      addChips.appendChild(details);
     }
   }
 

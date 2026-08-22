@@ -294,6 +294,58 @@ describe('loadConfig — configs naming a removed box type', () => {
   });
 });
 
+describe('loadConfig — legacy hiddenChips key (#233)', () => {
+  beforeEach(() => {
+    setState((s) => {
+      s.boxes = [];
+    });
+  });
+
+  it('loads a stored config that still carries hiddenChips, ignoring the key', () => {
+    // Anyone who used the editor before #233 has `hiddenChips` in their stored
+    // config. The palette no longer hides chips, so the key is meaningless —
+    // but it must not fail the load and cost them their layout.
+    const ok = loadConfig({
+      version: 2,
+      boxes: [
+        { type: 'date', label: 'D', config: {} },
+        { type: 'quote', label: 'Q', config: { text: 'hi' } },
+      ],
+      hiddenChips: ['weather', 'moon'],
+    });
+
+    expect(ok).toBe(true);
+    expect(getBoxes().map((b) => b.type)).toEqual(['date', 'quote']);
+  });
+
+  it('does not write hiddenChips back out when persisting', () => {
+    // The discriminating check: before #233 the key round-tripped into the
+    // stored payload, so a stale hidden set outlived the feature that set it.
+    loadConfig({
+      version: 2,
+      boxes: [{ type: 'date', label: 'D', config: {} }],
+      hiddenChips: ['weather'],
+    });
+
+    const stored = localStorage.getItem('infobento-config');
+    expect(stored).not.toBeNull();
+    expect(Object.keys(JSON.parse(stored ?? '{}') as object)).not.toContain('hiddenChips');
+  });
+
+  it('tolerates a malformed hiddenChips value', () => {
+    // The old loader type-filtered this array; nothing reads it now, so even a
+    // non-array must pass straight through rather than throw.
+    const ok = loadConfig({
+      version: 2,
+      boxes: [{ type: 'date', label: 'D', config: {} }],
+      hiddenChips: 'not-an-array',
+    });
+
+    expect(ok).toBe(true);
+    expect(getBoxes().map((b) => b.type)).toEqual(['date']);
+  });
+});
+
 describe('loadConfig — malformed boxes arrays', () => {
   beforeEach(() => {
     setState((s) => {

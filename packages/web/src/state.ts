@@ -192,8 +192,6 @@ export interface EditorState {
   tempUnit: 'F' | 'C';
   /** True when location rows were filled with the UTC+0 fallback guess (#183). */
   locationIsFallback: boolean;
-  /** Box-type chips the user has hidden from the Add palette. */
-  hiddenChips: EditorBoxType[];
 }
 
 // -- UID generator ----------------------------------------------------------
@@ -345,7 +343,6 @@ const state: EditorState = {
   profileId: DEFAULT_PROFILE_ID,
   tempUnit: 'F',
   locationIsFallback: false,
-  hiddenChips: [],
 };
 
 // Location-dependent rows share one location; a new one defaults to it.
@@ -899,25 +896,6 @@ export function setLocationFallback(value: boolean): void {
   persist();
 }
 
-/** Box-type chips the user has hidden from the Add palette. */
-export function getHiddenChips(): EditorBoxType[] {
-  return state.hiddenChips;
-}
-
-/** Hide a chip from the Add palette (still restorable from the Hidden list). */
-export function hideChip(type: EditorBoxType): void {
-  setState((s) => {
-    if (!s.hiddenChips.includes(type)) s.hiddenChips.push(type);
-  });
-}
-
-/** Restore a previously hidden chip to its group in the Add palette. */
-export function restoreChip(type: EditorBoxType): void {
-  setState((s) => {
-    s.hiddenChips = s.hiddenChips.filter((t) => t !== type);
-  });
-}
-
 // -- LocalStorage persistence -----------------------------------------------
 
 const STORAGE_KEY = 'infobento-config';
@@ -947,7 +925,6 @@ function persistToLocalStorage(): void {
       profileId: state.profileId,
       tempUnit: state.tempUnit,
       locationIsFallback: state.locationIsFallback,
-      hiddenChips: state.hiddenChips,
     };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
   } catch {
@@ -1066,12 +1043,8 @@ function loadFromLocalStorage(): boolean {
       if (typeof obj.locationIsFallback === 'boolean') {
         state.locationIsFallback = obj.locationIsFallback;
       }
-      if (Array.isArray(obj.hiddenChips)) {
-        const valid = new Set(Object.keys(BOX_TYPE_LABELS));
-        state.hiddenChips = (obj.hiddenChips as unknown[]).filter(
-          (t): t is EditorBoxType => typeof t === 'string' && valid.has(t),
-        );
-      }
+      // `hiddenChips` from before #233 is intentionally ignored: the palette
+      // no longer hides chips, and an unknown key must not fail the load.
       return true;
     }
 
