@@ -46,6 +46,13 @@ dist
 # Clones (worktrees)
 clones/
 
+# Autonomous-clone task prompts. A ghost/droid worktree is its own repo root,
+# so `clones/` does not cover these — they must be ignored by name or they get
+# swept into a commit from inside the worktree (as happened in #226).
+.ghost-prompt
+.droid-prompt
+.explore-plan.md
+
 # Claude Code
 .claude/settings.local.json
 
