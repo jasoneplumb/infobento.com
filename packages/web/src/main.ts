@@ -57,7 +57,6 @@ function initEditor(): void {
 
   function render(): void {
     renderBoxList('box-list');
-    renderAddChips();
     renderAllPreviews();
   }
 
@@ -67,9 +66,8 @@ function initEditor(): void {
   // indicator showing which boxes rendered vs. were dropped (don't fit the panel).
   onRenderedBoxIds(decorateBoxList);
 
-  // -- Add chips (grouped by theme; every chip stays available; hide/restore) --
+  // -- Add chips (grouped by theme; every chip stays available) --------------
 
-  /** Build one add-chip: "+ Label" plus a hover × to hide it from the palette. */
   /** One palette chip. The whole control is the add action — a single click. */
   function makeChip(type: EditorBoxType): HTMLElement {
     const add = document.createElement('button');
@@ -325,6 +323,10 @@ function initEditor(): void {
   if (versionEl) versionEl.textContent = `v${__APP_VERSION__}`;
 
   // -- Initial render (after consent) ---------------------------------------
+
+  // The chip palette is derived entirely from the static CHIP_GROUPS constant,
+  // so it is built once here rather than torn down and rebuilt on every render.
+  renderAddChips();
 
   // Render once so the editor is visible behind the dialog (greyed by overlay),
   // then await consent before the user can interact.
