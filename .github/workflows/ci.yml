@@ -20,22 +20,19 @@ jobs:
 
       - uses: actions/setup-node@v7
         with:
-          node-version: '20'
+          node-version: '22'
           cache: 'npm'
 
       - name: Install dependencies
         run: npm ci
 
+      # The root build now includes the web bundle, so a Node-only import
+      # reaching `web` fails here instead of at tag time in deploy.yml —
+      # which is how #231 shipped. Folding it into the root script rather
+      # than adding a CI-only step means any future workflow gets the same
+      # coverage without having to remember it.
       - name: Build
         run: npm run build
-
-      # The root build is `tsc -b` only, so it never exercises the browser
-      # bundle. Without this step a Node-only import reaching `web` compiles,
-      # typechecks and tests clean, then fails in deploy.yml at tag time —
-      # which is exactly how #231 shipped. Build the bundle here so it fails
-      # the PR instead.
-      - name: Build web bundle
-        run: npm run build -w @infobento/web
 
       - name: Typecheck
         run: npm run typecheck

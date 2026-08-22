@@ -30,8 +30,10 @@
       "default": "./dist/index.js"
     },
     "./safe-fetch": {
-      "types": "./dist/safe-fetch.d.ts",
-      "node": "./dist/safe-fetch.js"
+      "node": {
+        "types": "./dist/safe-fetch.d.ts",
+        "default": "./dist/safe-fetch.js"
+      }
     }
   },
   "files": [
