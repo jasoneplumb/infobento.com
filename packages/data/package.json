@@ -31,7 +31,7 @@
     },
     "./safe-fetch": {
       "types": "./dist/safe-fetch.d.ts",
-      "default": "./dist/safe-fetch.js"
+      "node": "./dist/safe-fetch.js"
     }
   },
   "files": [
