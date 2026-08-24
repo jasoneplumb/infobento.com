@@ -500,7 +500,7 @@ app.post('/api/device/:id/forget', createForgetWifiHandler(getDb));
 // Both endpoints are keyed by device id; the device id is the bearer secret
 // (no auth header — long opaque token, treat like an API key).
 // Rate-limited per device id to 10/min as a misbehaving-firmware guard;
-// normal traffic is 1-2/day per device.
+// normal traffic is 1-3/day per device.
 
 app.get('/api/device/:id/config', (c) => {
   const id = c.req.param('id');

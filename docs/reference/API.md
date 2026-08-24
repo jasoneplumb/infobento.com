@@ -4,7 +4,7 @@ The InfoBento API is a **Hono** HTTP server. The rendering endpoints below are s
 
 ## Design Principles
 
-These describe the five rendering endpoints documented below, not the API as a whole:
+These describe the five endpoints documented below — three rendering endpoints (validate, render, preview) plus health and box-types — not the API as a whole:
 
 1. **Pure functions** — Same input always produces same output
 2. **No server state on the render path** — the config is supplied in the request body, not read from a database. This does **not** hold API-wide: the auth, pairing, and device-config endpoints added by epic #77 are backed by SQLite.
@@ -29,7 +29,7 @@ npm start -w @infobento/api       # Hono on :4000
 
 Health check endpoint.
 
-**Response:** `{ status: "ok", version: "<package version>" }` — e.g. `"0.35.1"`.
+**Response:** `{ status: "ok", version: "<package version>" }` — e.g. `"0.38.3"`.
 
 The version is read at **server startup**, not at build time: `server.ts` resolves
 `../package.json` relative to the compiled entrypoint and `readFileSync`s it. A
@@ -38,16 +38,18 @@ at startup rather than falling back to a default.
 
 ### GET /api/box-types
 
-List available bento box types and their configuration options.
+List available bento box types.
 
-**Response:** Array of `{ type, label, requiresAuth }` objects
+**Response:** Array of `{ type, label, requiresAuth }` objects. Currently returns a
+hardcoded subset — 8 of the 18 box types — with no configuration options; the
+drift is tracked in #240.
 
 ### POST /api/validate
 
 Validate a bento config without rendering.
 
 **Request:** `BentoConfig` JSON
-**Response:** `{ valid: boolean, errors: string[] }`
+**Response:** `{ valid: boolean, errors: { path, message }[] }`
 
 ### POST /api/render
 
@@ -59,18 +61,21 @@ Render a bento config into a binary frame buffer.
 
 ### POST /api/preview
 
-Render a bento config into a PNG preview image. Supports optional `scale` query parameter for upscaling (default: 1).
+Render a bento config into a PNG preview image. Supports an optional `scale` query parameter for upscaling (default: 3). `scale` must be an integer from 1 to 8 — anything else is a 400.
 
 **Request:** `BentoConfig` JSON
-**Query:** `?scale=N` (integer, optional)
+**Query:** `?scale=N` (integer 1–8, optional, default 3); `?dual=1` (optional)
 **Response:** PNG image (`image/png`)
+
+With `?dual=1` the response is JSON instead of a PNG: `{ landscape, portrait, landscapeIds, portraitIds }` — both orientations as base64-encoded PNGs plus the box ids rendered in each.
 
 ---
 
 ## Endpoint coverage
 
 ⚠️ **This reference documents 5 of the API's 28 routes.** The five above are the stateless
-rendering endpoints. Undocumented, all added after this file was written:
+endpoints — three rendering endpoints plus health and box-types. Undocumented, all added
+after this file was written:
 
 | Group                    | Routes                                                                                                   |
 | ------------------------ | -------------------------------------------------------------------------------------------------------- |
@@ -78,7 +83,7 @@ rendering endpoints. Undocumented, all added after this file was written:
 | Auth — OAuth             | `GET /api/auth/oauth/:provider/{start,callback}`                                                         |
 | Auth — session           | `GET /api/auth/session`, `POST /api/auth/signout`                                                        |
 | Pairing                  | `POST /api/pair`                                                                                         |
-| Account                  | `GET /api/me/devices`, `DELETE /api/device/:id/owner`                                                    |
+| Account                  | `GET /api/me/devices`, `GET /api/me/device/:id/config` (session-gated), `DELETE /api/device/:id/owner`   |
 | Device (firmware-facing) | `GET /api/device/:id/{config,frame,frames}`, `PUT /api/device/:id/config`, `POST /api/device/:id/forget` |
 | Rendering                | `POST /api/render-dual`                                                                                  |
 | Data proxies             | `GET /api/{quote,horoscope,stocks,onthisday,geolocate}`                                                  |

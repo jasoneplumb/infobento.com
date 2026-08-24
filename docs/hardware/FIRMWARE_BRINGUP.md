@@ -2,11 +2,11 @@
 
 > _Path to a first working firmware: prove the full loop on the reTerminal E1001 dev hardware, then port to the production GDEH0576T81._
 
-**Status (2026-06-29):** **Phases 0–6 are ✅ bench-verified on the reTerminal E1001** — the first-working-flash milestone (end of Phase 4) plus resilience (Phase 5) and captive-portal provisioning (Phase 6). Only Phase 7 (production GDEH0576T81 + ESP32-C3) remains, gated on the dev-kit order (**#57**). Authoritative per-phase sketch status, serial traces, and the bench power snapshot live in [`firmware/README.md`](../../firmware/README.md#phase-status); operator bench checklists in [PHASE4_BENCH_CHECKLIST.md](PHASE4_BENCH_CHECKLIST.md) and the [E1001 walkthrough](walkthrough-E1001-hw-setup.md).
+**Status (2026-08):** **Phases 0–6 are ✅ bench-verified on the reTerminal E1001** — the first-working-flash milestone (end of Phase 4) plus resilience (Phase 5) and captive-portal provisioning (Phase 6) — and **Phase 7 has ✅ shipped as the merged integrated build** (`firmware/integrated/`, PR #174, issue #173): provisioning + dual-orientation deep-sleep pull + green-button orientation flip + two-white-button factory reset in one sketch. What remains is porting to the production GDEH0576T81 + ESP32-C3 once the panel is sourced (**#57** is closed — 4-level gray is proven on the E1001). Authoritative per-phase sketch status, serial traces, and the bench power snapshot live in [`firmware/README.md`](../../firmware/README.md#phase-status); operator bench checklists in [PHASE4_BENCH_CHECKLIST.md](PHASE4_BENCH_CHECKLIST.md) and the [E1001 walkthrough](walkthrough-E1001-hw-setup.md).
 
 ## Why dev-first
 
-The production panel (Good Display GDEH0576T81, 5.76" 920×680, SSD2677) is **not yet sourced** — its purchase is deferred (see [DISPLAY.md](DISPLAY.md)). The Seeed reTerminal E1001 (7.5" 800×480, ESP32-S3, 4-level grayscale) is in hand and maps 1:1 onto the renderer's 2-bit output. The cloud-side contract (`/api/device/:id/frame` + `/config`) is identical for both panels, so everything proven on the reTerminal ports directly. We bring up firmware on the reTerminal, then swap panel + MCU for production.
+The production panel (Good Display GDEH0576T81, 5.76" 920×680, SSD2677) is **not yet sourced** — its purchase is deferred (see [DISPLAY.md](DISPLAY.md)). The Seeed reTerminal E1001 (7.5" 800×480, ESP32-S3, 4-level grayscale) is in hand and maps 1:1 onto the renderer's 2-bit output. The cloud-side contract (`/api/device/:id/frames` + `/frame` + `/config`) is identical for both panels, so everything proven on the reTerminal ports directly. We bring up firmware on the reTerminal, then swap panel + MCU for production.
 
 ## What the firmware talks to (already built)
 
@@ -14,6 +14,7 @@ The cloud half of the contract is implemented and stable — firmware can be wri
 
 - `GET /api/device/:id/config` — config JSON, `If-Modified-Since`/`304`, `Last-Modified` (`packages/api/src/server.ts:607`)
 - `GET /api/device/:id/frame?orientation=landscape|portrait` — raw 2-bit framebuffer (`application/octet-stream`), `X-Frame-Width` / `X-Frame-Height` headers, `If-Modified-Since`/`304` (`server.ts:629`)
+- `GET /api/device/:id/frames` — **both** orientation framebuffers in one response (portrait pre-rotated server-side); this is the endpoint the current integrated firmware pulls
 - Device id **is** the bearer secret (opaque token, no auth header). Rate limit 10/min per device.
 - Framebuffer format: 2-bit packed, 4 px/byte, `ceil(width/4) * height` bytes (`packages/core/src/constants.ts:15`). reTerminal: `ceil(800/4)*480 = 96,000` bytes. Production: `ceil(920/4)*680 = 156,400` bytes.
 
@@ -64,7 +65,7 @@ Each phase is independently verifiable on the bench. Do not advance until the pr
 
 ### Phase 4 — Deep sleep + RTC wake (cadence) ✅ bench-verified
 
-- After refresh, enter deep sleep with an RTC timer wake. **Production cadence is 1–2×/day** ([POWER.md](POWER.md)); a 6h (4×/day) cadence is acceptable for a mains-powered dev unit but should be a config/build constant, not hardcoded, so production can dial it back.
+- After refresh, enter deep sleep with an RTC timer wake. **Production cadence is 1–3×/day (default 3, ≈8 h between wakes)** ([POWER.md](POWER.md)); a 6h (4×/day) cadence is acceptable for a mains-powered dev unit but should be a config/build constant, not hardcoded, so production can dial it back.
 - Cache last `Last-Modified` + framebuffer in flash so a failed fetch shows stale content (`CONNECTIVITY.md:53`).
 - Handle clock drift / NTP resync across sleep windows.
 - **Done when:** device wakes on schedule, fetches, refreshes only on change, returns to deep sleep; survives power-cycle showing the last good frame.
@@ -82,11 +83,15 @@ Each phase is independently verifiable on the bench. Do not advance until the pr
 - Replace hardcoded Wi-Fi + device id with AP-mode first-boot: SSID `InfoBento-XXXX`, captive portal, NVS storage, OS auto-launch responses, pinhole reset, optional custom-server-URL field (#80).
 - Display the device id during setup so the buyer can pair from the web (#80).
 - **Done when:** a factory-reset device can be set up end-to-end from a phone with no hardcoded secrets.
-- **Status:** ✅ bench-verified on the E1001 (`firmware/provisioning/`, PR #133; bench-verified + E1001 pinhole pin **GPIO2** in PR #134). The full out-of-box flow was walked on serial: first boot → AP mode + captive portal → phone auto-launch → scan/join → NVS persist → reboot into provisioned. Web-side "forget Wi-Fi" (`POST /api/device/:id/forget`) merged in PR #132. Remaining provisioning UX polish + the custom-server-URL self-host hatch tracked in **#39**.
+- **Status:** ✅ bench-verified on the E1001 (`firmware/provisioning/`, PR #133; bench-verified + E1001 pinhole pin **GPIO2** in PR #134). The full out-of-box flow was walked on serial: first boot → AP mode + captive portal → phone auto-launch → scan/join → NVS persist → reboot into provisioned. Web-side "forget Wi-Fi" (`POST /api/device/:id/forget`) merged in PR #132. Remaining provisioning UX polish + the custom-server-URL self-host hatch tracked in **#39**. (The later integrated build remapped factory reset from the pinhole to holding the **two white buttons** for 5 s — #171/#172; the GPIO2 pinhole remains on this provisioning-era sketch.)
 
-### Phase 7 — Port to production (GDEH0576T81 + ESP32-C3) ⬜ blocked on dev kit (#57)
+### Phase 7 — Integrated build ✅ merged (PR #174, issue #173)
 
-- Order the dev kit and validate grayscale on the real panel (issue **#57** — ESP32-L (C02) kit + GDEH0576T81, GxEPD2 `GxEPD2_576_GDEH0576T81`).
+- `firmware/integrated/integrated.ino` folds the proven pieces into one sketch: captive-portal provisioning, the dual-orientation deep-sleep pull (`GET /api/device/:id/frames`), the green-button (GPIO3, ext1 wake) orientation flip, and factory reset via the two white buttons held 5 s (#171/#172).
+
+### Remaining — Port to production (GDEH0576T81 + ESP32-C3)
+
+- Grayscale validation on real hardware is done — issue **#57** is closed, with 4-level gray proven on the E1001; the production GDEH0576T81 panel is not yet sourced.
 - Swap panel dimensions (920×680), confirm framebuffer translation holds at the new size, re-measure refresh + deep-sleep current against the [power budget](POWER.md).
 - Move to ESP32-C3 for production deep-sleep savings (#57 notes ~40% lower sleep current).
 - **Done when:** the same loop runs on production hardware within the documented power budget.
@@ -98,14 +103,14 @@ Phase 0 (mint device, API up)  ──► Phase 1 (blink) ──► Phase 2 (stat
    ──► Phase 3 (Wi-Fi pull loop)  ──► Phase 4 (deep sleep cadence)
    = first working firmware on dev hardware
 Phases 5–6 = ship-ready (resilience + provisioning)
-Phase 7 = production hardware (gated on #57 dev-kit order + panel sourcing)
+Phase 7 = integrated build (✅ merged PR #174); production port remains, gated on GDEH0576T81 sourcing
 ```
 
-The earliest "it works" milestone — **end of Phase 4 on the reTerminal** — is **reached**, and Phases 0–6 are all bench-verified (resilience and provisioning included). The remaining long pole is Production (Phase 7), gated on ordering the GDEH0576T81 dev kit (#57).
+The earliest "it works" milestone — **end of Phase 4 on the reTerminal** — is **reached**, Phases 0–6 are all bench-verified (resilience and provisioning included), and Phase 7 shipped as the integrated build (PR #174). The remaining long pole is the production port, gated on sourcing the GDEH0576T81 panel (#57 closed — gray rendering proven on the E1001).
 
 ## Related issues
 
-- **#57** — order dev kit + validate grey rendering on GDEH0576T81 (gates Phase 7) — _open, long pole_
+- **#57** — dev kit + validate grey rendering — ✅ closed (4-level gray proven on the E1001); production GDEH0576T81 panel sourcing remains the long pole
 - **#39** — captive-portal provisioning UX polish (Phase 6 sketch bench-verified; #39 tracks the remainder) — _open_
 - **#74** — `/api/pair` route + claim flow — ✅ done (PR #112)
 - **#80 / #79** — device sticker + production spec (physical pairing bridge) — _open_; QR generator #78 ✅ done (PR #121)

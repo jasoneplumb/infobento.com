@@ -1,12 +1,12 @@
 # RFC 0001 — Server-side fresh-on-pull data resolution
 
-|                          |                                                                           |
-| ------------------------ | ------------------------------------------------------------------------- |
-| **Status**               | Draft                                                                     |
-| **Issue**                | [#135](https://github.com/jasoneplumb/infobento.com/issues/135)           |
-| **Author**               | jasoneplumb                                                               |
-| **Created**              | 2026-06-19                                                                |
-| **Supersedes / relates** | client-side fetching #55, #58; fresh-on-fetch box types #62 (#59/#60/#61) |
+|                          |                                                                                  |
+| ------------------------ | -------------------------------------------------------------------------------- |
+| **Status**               | Implemented — shipped as `@infobento/data` + pull-time hydration (PRs #138–#151) |
+| **Issue**                | [#135](https://github.com/jasoneplumb/infobento.com/issues/135)                  |
+| **Author**               | jasoneplumb                                                                      |
+| **Created**              | 2026-06-19                                                                       |
+| **Supersedes / relates** | client-side fetching #55, #58; fresh-on-fetch box types #62 (#59/#60/#61)        |
 
 ## Summary
 

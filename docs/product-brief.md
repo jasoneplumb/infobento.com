@@ -14,7 +14,7 @@ A solar-powered eInk bento dashboard that sits on your counter, desk, or shelf. 
 
 ## Product Overview
 
-InfoBento is a calm surface for the room. The information you check most often — whether it's going to rain, air-quality status from cloud data, days until something you're looking forward to — sits there in sharp eInk, visible at a glance from across the room. The display is a multi-box bento dashboard (up to 10 boxes, multi-column, with big glanceable numbers). Configure once on a web page; it sips light from the window and refreshes on its own.
+InfoBento is a calm surface for the room. The information you check most often — whether it's going to rain, air-quality status from cloud data, days until something you're looking forward to — sits there in sharp eInk, visible at a glance from across the room. The display is a multi-box bento dashboard (up to 10 boxes — the row cap is derived from panel height and font size, with a minimum of 4 rows — multi-column, with big glanceable numbers). Configure once on a web page; it sips light from the window and refreshes on its own.
 
 Tidbyt and TRMNL are the ambient-display references. Against Tidbyt ($189), the contrast is the display itself: calm eInk rather than a glowing LED matrix. Against TRMNL ($139), also eInk and also battery-powered, the contrast is that InfoBento harvests its own power from window light instead of asking for a recharge every few months — on a smaller panel, at a lower price.
 
@@ -35,7 +35,7 @@ Tidbyt and TRMNL are the ambient-display references. Against Tidbyt ($189), the 
 | **Driver IC**      | SSD2677                                                                                       |
 | **Active area**    | 117.7 × 87.0 mm                                                                               |
 | **Module size**    | 125.4 × 99.5 × 0.9 mm                                                                         |
-| **Refresh time**   | 0.75s full / 0.3s partial; ≈1–2 refreshes/day                                                 |
+| **Refresh time**   | 0.75s full / 0.3s partial (datasheet); 1–3 refreshes/day (default 3)                          |
 | **MCU**            | ESP32-C3-MINI-1, ≈$2.80, Wi-Fi + BLE (BLE reserved for a possible v2 bridge)                  |
 | **Battery**        | ≈100 mAh LiPo (≈$2); covers display + Wi-Fi only (no always-on sensors)                       |
 | **Solar**          | ≈70×100 mm amorphous-Si (≈$3) + AEM10941 harvester (≈$4.40, upper back)                       |
@@ -71,7 +71,7 @@ Priced against distributor listings on 2026-08-19: the panel is $26.82 at single
 - Fold-out kickstand angles the display ≈12-15 deg toward a standing viewer
 - Designed to survive a 4-foot drop (bumper layer, radiused corners, recessed display)
 - Solar panel on the upper back
-- USB-C charging port on bottom edge; recessed pinhole reset on back for recovery only (press 5s with paperclip)
+- USB-C charging port on bottom edge; factory reset by holding the two white buttons for 5s (the recessed pinhole reset survives only on the provisioning-era sketch)
 
 ---
 
@@ -120,17 +120,18 @@ Priced against distributor listings on 2026-08-19: the panel is $26.82 at single
 
 ## Box Types (18 total)
 
-| Category          | Types                                                           | Data Source                               |
-| ----------------- | --------------------------------------------------------------- | ----------------------------------------- |
-| **Weather**       | Current weather, 8-hour forecast, 8-day forecast                | Open-Meteo (free, no key)                 |
-| **Environment**   | Sunrise/sunset, air quality (AQI), UV index, pollen, moon phase | Open-Meteo cloud data + local computation |
-| **Personal**      | Countdown, year progress, date                                  | Local computation                         |
-| **Content**       | Quote, text                                                     | quotable mirror (free) / user input       |
-| **Utility**       | QR code                                                         | User input                                |
-| **Data**          | Stocks                                                          | Yahoo Finance (free)                      |
-| **Entertainment** | Horoscope, on this day                                          | api-ninjas / Wikipedia                    |
+| Category          | Types                                                            | Data Source                               |
+| ----------------- | ---------------------------------------------------------------- | ----------------------------------------- |
+| **Weather**       | Current weather, hourly forecast (1–24h), daily forecast (1–20d) | Open-Meteo (free, no key)                 |
+| **Environment**   | Sunrise/sunset, air quality (AQI), UV index, pollen, moon phase  | Open-Meteo cloud data + local computation |
+| **Personal**      | Countdown, year progress, date                                   | Local computation                         |
+| **Content**       | Quote, text                                                      | quotable mirror (free) / user input       |
+| **Utility**       | QR code                                                          | User input                                |
+| **Data**          | Stocks                                                           | Yahoo Finance (free)                      |
+| **Entertainment** | Horoscope, on this day                                           | api-ninjas / Wikipedia                    |
+| **Calendar**      | Public holidays                                                  | Nager.Date (free, no key)                 |
 
-The AQI, UV, and pollen boxes draw Open-Meteo cloud data — cloud data boxes like weather, not local sensor readings. Pollen is the one box with a regional limit: the upstream serves it for Europe during pollen season, and the box shows "No data" elsewhere rather than a misleading zero. All box types work without accounts, API keys, or subscriptions. The 5.76" panel hosts a multi-box bento dashboard (up to 10 boxes, multi-column) with big glanceable numbers. Quote and horoscope responses fall back to a bundled local set on upstream failure (≈50KB built-in).
+The AQI, UV, and pollen boxes draw Open-Meteo cloud data — cloud data boxes like weather, not local sensor readings. Pollen is the one box with a regional limit: the upstream serves it for Europe during pollen season, and the box shows "No data" elsewhere rather than a misleading zero. All box types work without accounts, API keys, or subscriptions. The 5.76" panel hosts a multi-box bento dashboard (up to 10 boxes, depending on font size; multi-column) with big glanceable numbers. The hourly forecast is configurable from 1 to 24 hours and the daily forecast from 1 to 20 days (both default to 3). Quote and horoscope responses fall back to a bundled local set on upstream failure (≈50KB built-in).
 
 ---
 
@@ -158,7 +159,7 @@ The AQI, UV, and pollen boxes draw Open-Meteo cloud data — cloud data boxes li
 | MCU active (during refresh) | ≈5 mA  | ≈5–10 µA | ≈15s, per refresh          |
 | Tilt switches               | 0      | 0        | passive (orientation only) |
 
-**Battery sizing:** ≈100 mAh LiPo plus solar harvest (5–15 mAh/day) easily covers the ≈1–2 refreshes/day display budget. With no always-on sensors, the only meaningful draw is the ESP32 radio during a refresh, which the panel sleeps between.
+**Battery sizing:** ≈100 mAh LiPo plus solar harvest (5–15 mAh/day) covers the 1–3 refreshes/day display budget (default 3). With no always-on sensors, the only meaningful draw is the ESP32 radio during a refresh, which the panel sleeps between.
 
 ---
 
@@ -189,8 +190,8 @@ Solar is the durable differentiator, and it is narrower than it first appears: T
 
 ## Key Design Principles
 
-1. **Multi-Box Bento Dashboard** — The 5.76" panel hosts a multi-box dashboard (up to 10 boxes, multi-column) with big glanceable numbers.
-2. **Zero Device Interaction** — No buttons, no taps, no gestures. The only control is a recessed pinhole reset for recovery. Configure once at the web editor; the device just shows what matters.
+1. **Multi-Box Bento Dashboard** — The 5.76" panel hosts a multi-box dashboard (up to 10 boxes, depending on font size; multi-column) with big glanceable numbers.
+2. **Minimal Device Interaction** — No taps, no gestures, no screens to configure. The shipped firmware keeps two controls: the green button flips orientation, and holding the two white buttons for 5s factory-resets. Configure once at the web editor; the device just shows what matters.
 3. **Pure Function Architecture** — Rendering is a pure function: same config in, same frame out (`POST /api/render`). ⚠️ Superseded in part by epic #77 — the API as a whole is no longer stateless; accounts, device pairings, and per-device config live in SQLite, and the device-facing path renders from stored config given only a device id.
 4. **Free by Default** — All 18 dashboard box types work without accounts or API keys.
 5. **Visual Restraint** — Four shades used with intention. Hero data, body text, and metadata each earn their contrast level.
@@ -201,13 +202,13 @@ Solar is the durable differentiator, and it is narrower than it first appears: T
 
 ## Open Items
 
-- **Hardware validation** — Dev kit (ESP32-C3 + GDEH0576T81) on order. Validates grey rendering, refresh speed, viewing angle.
+- **Hardware validation** — Dev kit acquired and bench-proven (#57 closed): 4-level grey rendering validated on the reTerminal E1001. Remaining hardware step is sourcing the production GDEH0576T81 panel.
 - **Grey fallback** — If 2-bit grey looks bad on hardware, Floyd-Steinberg dithering to 1-bit as fallback (#56).
 - **Orientation auto-rotate** — Validate 2× ball-in-tube tilt switches drive reliable landscape/portrait detection.
 - **Price validation:** the ≈$46.40 BOM is grounded in distributor listings for the panel, MCU, and harvester, but no volume quote has been obtained. It is the input the $109/$129 pricing depends on — if the panel quotes above ≈$32, revisit the tiers rather than absorbing it.
 - **Certification + tooling NRE** — FCC/CE for a Wi-Fi device, UN38.3 for the lithium cell, and injection-mold tooling are unbudgeted. These are recovered from per-unit margin, which is why pricing at or near BOM does not work at any volume.
-- **Firmware:** Captive portal provisioning (#39), Wi-Fi connect, config poll, framebuffer write, deep sleep cycle.
-- **Enclosure:** SCAD model (#50) for ≈14×11 cm housing, ≤4 mm bezel, solar cavity, fold-out kickstand, pinhole reset.
+- **Firmware:** Captive portal provisioning, Wi-Fi connect, config poll, framebuffer write, and the deep-sleep cycle are all bench-verified — shipped as the integrated sketch (Phases 3–7, PR #174), including dual-orientation frame pull and the two-white-button factory reset.
+- **Enclosure:** SCAD model (#199) for ≈14×11 cm housing, ≤4 mm bezel, solar cavity, fold-out kickstand.
 - **Founder bio** — locked 2026-08-19. Career detail sourced from the founder's own resume; origin section built on minimal / simple / seamless.
 - **Content-aware layout:** Height allocation for all 18 box types — shipped in v0.13.0 via `computeMinHeight` per renderer.
 
@@ -224,8 +225,8 @@ infobento.com/
   packages/web/       Vite web editor (vanilla TS, no framework)
 ```
 
-**Current version:** v0.35.1
-**Tests:** 53 test files across `packages/*/src/**/*.test.ts`
+**Current version:** v0.38.3
+**Tests:** 58 test files across `packages/*/src/**/*.test.ts`
 **Quality gate:** `npm run build && npm test && npm run lint && npm run format:check`
 
 ---

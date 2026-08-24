@@ -2,7 +2,7 @@
 
 |                          |                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
 | ------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Status**               | Draft                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| **Status**               | Partially implemented (rollout in progress)                                                                                                                                                                                                                                                                                                                                                                                                                       |
 | **Issue**                | [#221](https://github.com/jasoneplumb/infobento.com/issues/221)                                                                                                                                                                                                                                                                                                                                                                                                   |
 | **Author**               | jasoneplumb                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
 | **Created**              | 2026-08-20                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
@@ -74,7 +74,7 @@ is worth looking at.
 - A rubric that would have produced both #84's and #211's outcomes, stated
   before the next change rather than after it.
 - Retroactive justification for all five removals and both additions in the same
-  terms, so the current 17 are defensible as a set and not just individually.
+  terms, so the current 18 are defensible as a set and not just individually.
 - A ranked, evidence-backed candidate list, with the rejections argued as
   explicitly as the acceptances.
 - Surface the security and dependency work that the candidate list implies.
@@ -367,7 +367,7 @@ a fourth without mitigations."
 
 1. **Currency / FX.** Self-contained, no new infrastructure, highest
    cadence-fit. Good first proof of the rubric.
-2. **Public holidays.** Also self-contained; can run in parallel.
+2. **Public holidays.** ✅ Shipped (#226). Also self-contained; ran in parallel.
 3. **Fetch guard.** ✅ Shipped as `safeFetch()` in `packages/data/src/safe-fetch.ts`
    (#225, closing #224) — the shared SSRF helper with its own adversarial
    tests, independently valuable enough to land ahead of RSS.

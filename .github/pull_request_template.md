@@ -14,4 +14,4 @@
 
 - [ ] Conventional commit messages (`feat:`, `fix:`, `docs:`, `chore:`, …)
 - [ ] Docs / `CHANGELOG.md` updated if behavior changed
-- [ ] `.js` extensions on imports in `core`/`renderer`/`api` (Node16 resolution)
+- [ ] `.js` extensions on imports in `core`/`data`/`renderer`/`api` (Node16 resolution)

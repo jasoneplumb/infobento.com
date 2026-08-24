@@ -22,7 +22,7 @@ Use at the top of each module to explain its purpose:
  * Intent: Convert bento box layouts into eInk-compatible frame buffers
  * Context: Called by @infobento/api to generate display data sent to the device
  * Pattern: Pure functions — all rendering is deterministic with no side effects
- * Future: Add bitmap font rendering, icon set, Floyd-Steinberg dithering
+ * Future: Add partial refresh and per-box refresh cadence
  */
 ```
 
@@ -45,7 +45,7 @@ Use for complex functions or non-obvious design decisions:
 /**
  * intent: Create an empty (white) frame buffer for the target display
  * method: Allocates a Uint8Array sized for 2-bit-per-pixel packing (4 pixels/byte)
- * effect: (width * height) / 8 bytes — 156,400 bytes for 920x680
+ * effect: (width * height) / 4 bytes — 156,400 bytes for 920x680
  */
 ```
 
@@ -63,7 +63,7 @@ Use for tradeoffs and constraints:
 
 ```typescript
 // tradeoff: 2-bit (4 levels) for minimal power draw during refresh
-// constraint: BLE MTU limits frame transfer to ~244 bytes per packet
+// constraint: frame is 156,400 bytes; the device pulls it over HTTPS in one GET
 // future: add partial refresh to update only changed bento boxes
 ```
 

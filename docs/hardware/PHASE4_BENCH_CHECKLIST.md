@@ -21,7 +21,7 @@ Those are the items only you can sign off.
 - [ ] **USB inline power meter** (or PSU mA readout / Nordic PPK2) between USB and
       the board — this is the one instrument that proves Phase 4 worked.
 - [ ] `IB_SLEEP_SECONDS` is the bench default (~30 s) so you aren't waiting the
-      production ~12 h between wakes.
+      production ~8 h between wakes (default 3 refreshes/day).
 
 ## B. Functional checks (serial-observable)
 
@@ -52,7 +52,7 @@ Those are the items only you can sign off.
       floor is NOT single-digit µA** — the board carries a USB-UART bridge and other
       peripherals. You're confirming a clear, repeatable **active → sleep drop**, not
       an absolute number. The production single-digit-µA target is an ESP32-C3
-      measurement verified in Phase 7, not here.
+      measurement verified in the production port, not here.
 - [ ] **Wake spike is brief:** current rises only for the fetch/draw window each
       cycle, then settles back to the floor.
 
