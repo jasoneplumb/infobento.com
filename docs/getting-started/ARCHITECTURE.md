@@ -2,7 +2,7 @@
 
 ## System Overview
 
-InfoBento is a small, solar-powered eInk decorator that lives on a counter, shelf, or windowsill. Configure once on the web; the device fetches server-rendered frames from the cloud API and shows what matters most — weather, air quality, a countdown, a quote — refreshing once or twice a day on solar power alone.
+InfoBento is a small, solar-powered eInk decorator that lives on a counter, shelf, or windowsill. Configure once on the web; the device fetches server-rendered frames from the cloud API and shows what matters most — weather, air quality, a countdown, a quote — refreshing a few times a day (default 3, configurable) on solar power alone.
 
 ```
 ┌──────────────┐    Wi-Fi     ┌─────────────┐
@@ -22,7 +22,7 @@ Device makes outbound HTTPS calls to the cloud API. No companion phone app; the 
 
 ### Operating Profile
 
-Single mode: counter-standing. Refreshes 1–2× per day on solar power. There is no phone-mounted mode. Native phone apps + BLE bridge are deferred to a possible v2 (see `docs/hardware/CONNECTIVITY.md`'s "v2 path" section).
+Single mode: counter-standing. Refreshes 1–3× per day (default 3) on solar power. There is no phone-mounted mode. Native phone apps + BLE bridge are deferred to a possible v2 (see `docs/hardware/CONNECTIVITY.md`'s "v2 path" section).
 
 ### Data Flow
 

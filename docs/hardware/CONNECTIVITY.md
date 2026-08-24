@@ -6,7 +6,7 @@ InfoBento v1 ships **Wi-Fi direct + web-only** (a plain SPA — no PWA manifest 
 
 ### Why
 
-The box types InfoBento ships (weather, countdown, quote, holidays, qr, among 18 types) all work fine at 1-2 refreshes per day. There is no real-time latency requirement, so the entire native-app stack stays off v1's critical path.
+The box types InfoBento ships (weather, countdown, quote, holidays, qr, among 18 types) all work fine at 1–3 refreshes per day (default 3, configurable). There is no real-time latency requirement, so the entire native-app stack stays off v1's critical path.
 
 This walks back two earlier-considered options:
 
@@ -76,12 +76,12 @@ A web-side "forget Wi-Fi" command from the editor is also possible (`infobento.c
 
 ## Power profile (for reference)
 
-See `docs/hardware/POWER.md` for the full breakdown. Summary at 1-2 refreshes/day on Wi-Fi:
+See `docs/hardware/POWER.md` for the full breakdown. Summary per refresh on Wi-Fi:
 
 - ~70 mA active for ~10-20s during Wi-Fi connect + frame fetch
 - Per-refresh budget: ~1.5-2.5 mAh
-- Daily budget: ~3.5 mAh
-- Comfortably inside the solar harvest budget (5-15 mAh/day from indirect window light)
+- Daily budget: ~4.5-7.5 mAh at the default 3 refreshes/day (~3.5 mAh at 2/day)
+- Inside the solar harvest budget (5-15 mAh/day from indirect window light), with less margin in low-light placements
 
 ## v2 path (post-Kickstarter, if funded)
 

@@ -20,10 +20,10 @@ InfoBento is a small, solar-powered eInk bento dashboard for counters, desks, an
 
 - **Positioning:** A lean, calm bento dashboard for counters, desks, and shelves.
 - **UI model:** Multi-box bento dashboard — up to 10 boxes (no fixed constant: the layout engine derives the row cap as `min(10, max(4, floor(height / (fontSize × 3))))`), multi-column.
-- **Display:** Good Display **GDEH0576T81**, 5.76" eInk, **920×680 px**, **198 DPI**, **SSD2677** driver IC, eInk. Framebuffer **156,400 bytes** (packed 2-bit, 4 levels per pixel). Refresh 1–2×/day, 0.75 s full / 0.3 s partial. Active area 117.7×87.0 mm; module 125.4×99.5×0.9 mm.
+- **Display:** Good Display **GDEH0576T81**, 5.76" eInk, **920×680 px**, **198 DPI**, **SSD2677** driver IC, eInk. Framebuffer **156,400 bytes** (packed 2-bit, 4 levels per pixel). Refresh 1–3×/day (default 3); 0.75 s full / 0.3 s partial (datasheet). Active area 117.7×87.0 mm; module 125.4×99.5×0.9 mm.
 - **Enclosure:** white monolithic housing ≈14×11 cm sized to fit the GDEH0576T81 closely; thin bezel ≤4 mm; body-as-stand, with a fold-out kickstand to angle it ≈12–15° if needed.
 - **MCU:** ESP32-C3 (Wi-Fi + BLE; BLE reserved for a possible v2 bridge). Captive-portal setup; no companion app v1; config via the infobento.com web editor.
-- **Power:** ≈70×100 mm solar panel on the upper back + ≈100 mAh LiPo + AEM10941 solar harvester; ≈1–2 refreshes/day.
+- **Power:** ≈70×100 mm solar panel on the upper back + ≈100 mAh LiPo + AEM10941 solar harvester; 1–3 refreshes/day (default 3).
 - **Orientation:** two ball-in-tube tilt switches for orientation auto-rotate.
 - **Interaction:** minimal device interaction — two controls in the shipped firmware: a green button flips orientation, and holding the two white buttons for 5s factory-resets.
 
@@ -162,21 +162,21 @@ White monolithic enclosure ≈14×11 cm sized to fit the GDEH0576T81 (5.76", 920
 
 ## 4. Requirements
 
-| ID      | Statement                                                 | Priority |
-| ------- | --------------------------------------------------------- | -------- |
-| REQ-001 | User can configure up to 10 bento boxes via web interface | Must     |
-| REQ-002 | Device syncs via Wi-Fi direct, no companion phone app     | Must     |
-| REQ-003 | Display refreshes 1-2x/day on solar power alone           | Must     |
-| REQ-004 | 18 box types without user accounts; derived cap of 10     | Must     |
-| REQ-005 | Web UI and API served from same port in production        | Must     |
-| REQ-006 | Config persists in localStorage with JSON export/import   | Must     |
-| REQ-007 | QR code gets ≈half display height for scannability        | Must     |
-| REQ-008 | Live PNG preview before syncing to device                 | Must     |
-| REQ-009 | V1 uses an eInk panel (display color capability TBD)      | Must     |
-| REQ-010 | Enclosure ≈14x11cm, fits GDEH0576T81 panel closely        | Must     |
-| REQ-011 | Display >=198 DPI, <=4mm visible bezel                    | Should   |
-| REQ-012 | Auto-rotate via two tilt switches, 4 orientations         | Must     |
-| REQ-013 | Minimal interaction — orientation + factory reset buttons | Must     |
+| ID      | Statement                                                                 | Priority |
+| ------- | ------------------------------------------------------------------------- | -------- |
+| REQ-001 | User can configure up to 10 bento boxes via web interface                 | Must     |
+| REQ-002 | Device syncs via Wi-Fi direct, no companion phone app                     | Must     |
+| REQ-003 | Display refreshes 1–3x/day on solar power alone (default 3, configurable) | Must     |
+| REQ-004 | 18 box types without user accounts; derived cap of 10                     | Must     |
+| REQ-005 | Web UI and API served from same port in production                        | Must     |
+| REQ-006 | Config persists in localStorage with JSON export/import                   | Must     |
+| REQ-007 | QR code gets ≈half display height for scannability                        | Must     |
+| REQ-008 | Live PNG preview before syncing to device                                 | Must     |
+| REQ-009 | V1 uses an eInk panel (display color capability TBD)                      | Must     |
+| REQ-010 | Enclosure ≈14x11cm, fits GDEH0576T81 panel closely                        | Must     |
+| REQ-011 | Display >=198 DPI, <=4mm visible bezel                                    | Should   |
+| REQ-012 | Auto-rotate via two tilt switches, 4 orientations                         | Must     |
+| REQ-013 | Minimal interaction — orientation + factory reset buttons                 | Must     |
 
 ---
 

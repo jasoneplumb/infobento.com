@@ -1,6 +1,6 @@
 /**
  * Intent: Per-device-id token-bucket rate limiter for the device-pull endpoints.
- * Context: Issue #75 — firmware refreshes 1-2x/day in normal operation; the
+ * Context: Issue #75 — firmware refreshes 1-3x/day (default 3) in normal operation; the
  *   limiter is a guard against a misbehaving device hammering the server, not
  *   a fairness mechanism. In-memory only — restarts reset all buckets, which
  *   is acceptable for the threat model.

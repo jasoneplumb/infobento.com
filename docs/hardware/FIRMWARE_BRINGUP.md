@@ -65,7 +65,7 @@ Each phase is independently verifiable on the bench. Do not advance until the pr
 
 ### Phase 4 — Deep sleep + RTC wake (cadence) ✅ bench-verified
 
-- After refresh, enter deep sleep with an RTC timer wake. **Production cadence is 1–2×/day** ([POWER.md](POWER.md)); a 6h (4×/day) cadence is acceptable for a mains-powered dev unit but should be a config/build constant, not hardcoded, so production can dial it back.
+- After refresh, enter deep sleep with an RTC timer wake. **Production cadence is 1–3×/day (default 3, ≈8 h between wakes)** ([POWER.md](POWER.md)); a 6h (4×/day) cadence is acceptable for a mains-powered dev unit but should be a config/build constant, not hardcoded, so production can dial it back.
 - Cache last `Last-Modified` + framebuffer in flash so a failed fetch shows stale content (`CONNECTIVITY.md:53`).
 - Handle clock drift / NTP resync across sleep windows.
 - **Done when:** device wakes on schedule, fetches, refreshes only on change, returns to deep sleep; survives power-cycle showing the last good frame.

@@ -1,6 +1,6 @@
 // InfoBento firmware — Phase 4: deep sleep + RTC wake (reTerminal E1001).
 //
-// This is the "first working firmware" milestone — it makes the 1–2 refreshes/day
+// This is the "first working firmware" milestone — it makes the scheduled (1–3/day) refreshes
 // solar/battery budget real. The whole device lifecycle is ONE wake cycle:
 //
 //   power-on / RTC-timer wake

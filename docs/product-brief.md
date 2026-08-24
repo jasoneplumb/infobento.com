@@ -35,7 +35,7 @@ Tidbyt and TRMNL are the ambient-display references. Against Tidbyt ($189), the 
 | **Driver IC**      | SSD2677                                                                                       |
 | **Active area**    | 117.7 × 87.0 mm                                                                               |
 | **Module size**    | 125.4 × 99.5 × 0.9 mm                                                                         |
-| **Refresh time**   | 0.75s full / 0.3s partial; ≈1–2 refreshes/day                                                 |
+| **Refresh time**   | 0.75s full / 0.3s partial (datasheet); 1–3 refreshes/day (default 3)                          |
 | **MCU**            | ESP32-C3-MINI-1, ≈$2.80, Wi-Fi + BLE (BLE reserved for a possible v2 bridge)                  |
 | **Battery**        | ≈100 mAh LiPo (≈$2); covers display + Wi-Fi only (no always-on sensors)                       |
 | **Solar**          | ≈70×100 mm amorphous-Si (≈$3) + AEM10941 harvester (≈$4.40, upper back)                       |
@@ -159,7 +159,7 @@ The AQI, UV, and pollen boxes draw Open-Meteo cloud data — cloud data boxes li
 | MCU active (during refresh) | ≈5 mA  | ≈5–10 µA | ≈15s, per refresh          |
 | Tilt switches               | 0      | 0        | passive (orientation only) |
 
-**Battery sizing:** ≈100 mAh LiPo plus solar harvest (5–15 mAh/day) easily covers the ≈1–2 refreshes/day display budget. With no always-on sensors, the only meaningful draw is the ESP32 radio during a refresh, which the panel sleeps between.
+**Battery sizing:** ≈100 mAh LiPo plus solar harvest (5–15 mAh/day) covers the 1–3 refreshes/day display budget (default 3). With no always-on sensors, the only meaningful draw is the ESP32 radio during a refresh, which the panel sleeps between.
 
 ---
 
