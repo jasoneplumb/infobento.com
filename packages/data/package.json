@@ -1,6 +1,6 @@
 {
   "name": "@infobento/data",
-  "version": "0.38.2",
+  "version": "0.38.3",
   "description": "InfoBento data: pure, edge-safe box-data providers (weather, air quality, quote, …) with caching.",
   "keywords": [
     "infobento",

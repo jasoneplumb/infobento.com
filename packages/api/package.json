@@ -1,6 +1,6 @@
 {
   "name": "@infobento/api",
-  "version": "0.38.2",
+  "version": "0.38.3",
   "description": "InfoBento API: Hono server rendering device framebuffers, plus passkey/OAuth auth and device pairing.",
   "keywords": [
     "infobento",
