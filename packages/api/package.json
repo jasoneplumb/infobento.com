@@ -42,14 +42,14 @@
     "mint": "node dist/mint-cli.js"
   },
   "dependencies": {
-    "@hono/node-server": "^1.19.15",
+    "@hono/node-server": "^1.19.17",
     "@infobento/core": "*",
     "@infobento/data": "*",
     "@infobento/renderer": "*",
     "@simplewebauthn/server": "^13.3.2",
     "better-sqlite3": "^12.11.1",
-    "hono": "^4.12.32",
-    "jose": "^6.2.4"
+    "hono": "^4.13.3",
+    "jose": "^6.2.9"
   },
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.13"
