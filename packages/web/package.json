@@ -1,6 +1,6 @@
 {
   "name": "@infobento/web",
-  "version": "0.38.3",
+  "version": "0.38.4",
   "private": true,
   "description": "InfoBento web: the vanilla-TS + Vite configuration interface and live preview.",
   "keywords": [
