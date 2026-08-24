@@ -2,7 +2,7 @@
 
 ## System Overview
 
-InfoBento is a small, solar-powered eInk decorator that lives on a counter, shelf, or windowsill. Configure once on the web; the device fetches server-rendered frames from the cloud API and shows what matters most — weather, your next event, a countdown, a quote — refreshing once or twice a day on solar power alone.
+InfoBento is a small, solar-powered eInk decorator that lives on a counter, shelf, or windowsill. Configure once on the web; the device fetches server-rendered frames from the cloud API and shows what matters most — weather, air quality, a countdown, a quote — refreshing once or twice a day on solar power alone.
 
 ```
 ┌──────────────┐    Wi-Fi     ┌─────────────┐
@@ -18,7 +18,7 @@ InfoBento is a small, solar-powered eInk decorator that lives on a counter, shel
                                 └───────────┘
 ```
 
-Device makes outbound HTTPS calls to the cloud API. No companion phone app; the web editor at `infobento.com` is the only configuration surface. First-time setup uses a captive-portal Wi-Fi pairing flow; recovery via a recessed pinhole reset on the back of the device. See `docs/hardware/CONNECTIVITY.md`.
+Device makes outbound HTTPS calls to the cloud API. No companion phone app; the web editor at `infobento.com` is the only configuration surface. First-time setup uses a captive-portal Wi-Fi pairing flow; recovery via a factory reset (hold both white buttons for 5 seconds). See `docs/hardware/CONNECTIVITY.md`.
 
 ### Operating Profile
 
@@ -36,11 +36,11 @@ Single mode: counter-standing. Refreshes 1–2× per day on solar power. There i
 ### Key Design Decisions
 
 - **Pure-function rendering** — `POST /api/render` is config in, frame buffer out, with no state involved. The device-facing path is not stateless: since epic #77 the server stores accounts, device pairings, and per-device config in SQLite, and renders from that.
-- **eInk rendering** — eInk panel driven via SSD2677 partial-refresh waveforms.
+- **eInk rendering** — production target is the GDEH0576T81 panel driven via SSD2677 partial-refresh waveforms (panel not yet sourced); bench-verified today on the reTerminal E1001.
 - **Solar-only power** — refresh budget sized to the solar harvest budget for moderate indoor light; USB-C tops up the battery when needed.
 - **Wi-Fi direct + web-only config** — no native phone app for v1. Captive-portal setup, web editor handles configuration.
-- **Zero device interaction** — no buttons. Configure once via web, glance forever. The only physical affordance is a recessed pinhole reset for Wi-Fi recovery.
-- **Drop survival** — designed for a 4-foot drop onto a hard surface (bumper layer, edge-radiused corners, recessed display, pinhole instead of clickable button).
+- **Minimal device interaction** — configure once via web, glance forever. The only physical affordances are the green button (orientation flip) and the two white buttons (held 5 s, factory reset for Wi-Fi recovery); day-to-day use needs none of them.
+- **Drop survival** — designed for a 4-foot drop onto a hard surface (bumper layer, edge-radiused corners, recessed display).
 
 ## Package Architecture
 
@@ -55,7 +55,9 @@ Single mode: counter-standing. Refreshes 1–2× per day on solar power. There i
 Dependencies flow strictly downward in that table — nothing depends on a package
 listed below it, and there are no cycles.
 
-- **data** is browser- and edge-safe: pure `fetch`, no DOM or `window`
+- **data** is browser- and edge-safe: pure `fetch`, no DOM or `window` — that
+  holds for the barrel; the `@infobento/data/safe-fetch` subpath (the SSRF
+  guard) is Node-only and deliberately kept out of the barrel
 - **web** reaches `api` over HTTP and never imports it directly
 - **web** does **not** depend on `renderer`: the editor previews by calling
   `POST /api/preview`, so nothing is rasterized in the browser

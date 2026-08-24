@@ -12,6 +12,15 @@ npm run typecheck    # Type-check only (no emit)
 Packages build in dependency order: core -> data -> renderer -> api.
 The web package builds separately via Vite.
 
+### Running the app
+
+```bash
+npm run dev -w @infobento/api    # Hono API on :4000 (tsx watch)
+npm run dev -w @infobento/web    # Vite HMR on :5173, proxies /api to :4000
+```
+
+Run both (two terminals) and open http://localhost:5173.
+
 ### Testing
 
 ```bash
@@ -41,8 +50,10 @@ imports fail at runtime:
 import { splitLeftFraction } from './constants.js';
 ```
 
-**Cross-package** imports use the bare specifier. Each package exports only `"."`,
-so a subpath import throws `ERR_PACKAGE_PATH_NOT_EXPORTED`:
+**Cross-package** imports use the bare specifier. Each package exports only `"."`
+— with one deliberate exception: `@infobento/data` also exports `./safe-fetch`,
+the Node-only SSRF guard kept out of the browser-safe barrel. Any other subpath
+import throws `ERR_PACKAGE_PATH_NOT_EXPORTED`:
 
 ```typescript
 import type { BentoBox } from '@infobento/core';

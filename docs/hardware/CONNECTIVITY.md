@@ -2,18 +2,18 @@
 
 ## Decision (locked 2026-04-22)
 
-InfoBento v1 ships **Wi-Fi direct + PWA-only**. No native phone app. The web editor at `infobento.com` is the only configuration surface. Native apps and BLE bridging are deferred to a possible v2 if backers fund them.
+InfoBento v1 ships **Wi-Fi direct + web-only** (a plain SPA — no PWA manifest or service worker). No native phone app. The web editor at `infobento.com` is the only configuration surface. Native apps and BLE bridging are deferred to a possible v2 if backers fund them.
 
 ### Why
 
-The box types InfoBento ships (text, countdown, weather, 3hr forecast, qr, quote) all work fine at 1-2 refreshes per day. There is no real-time latency requirement, so the entire native-app stack stays off v1's critical path.
+The box types InfoBento ships (weather, countdown, quote, holidays, qr, among 18 types) all work fine at 1-2 refreshes per day. There is no real-time latency requirement, so the entire native-app stack stays off v1's critical path.
 
 This walks back two earlier-considered options:
 
 - **Phone-bridged BLE** would require iOS + Android companion apps, carry iOS background-BLE risk, and add ~6+ months of engineering before launch
 - **Hybrid (BLE when phone present, Wi-Fi when not)** would require both stacks plus the dual-platform native app investment
 
-Pure Wi-Fi-direct + PWA cuts the engineering scope to something a solo founder can ship pre-Kickstarter, while still meeting all the user needs the box types actually serve.
+Pure Wi-Fi-direct + web app cuts the engineering scope to something a solo founder can ship pre-Kickstarter, while still meeting all the user needs the box types actually serve.
 
 ### What this means concretely
 
@@ -37,7 +37,7 @@ Standard pattern, well-trod in IoT (every smart bulb does this):
 5. The device serves a small HTML setup page from its onboard web server. The page scans for nearby Wi-Fi networks, presents a dropdown, accepts a password.
 6. User selects their home Wi-Fi, types the password, hits Connect.
 7. Device saves credentials to NVS, joins the home network, AP mode shuts down.
-8. Setup page redirects to `infobento.com/onboard?device=<id>` for box configuration.
+8. The portal's success page shows the Device ID; the user then signs in at `www.infobento.com` and pairs the device at `www.infobento.com/pair/<code>`. (The shipped firmware still prints a dead `/onboard` URL on this page — the sketch-side fix is tracked in #241.)
 
 The captive-portal HTML is part of the firmware — small enough to fit in flash without bloat.
 
@@ -56,11 +56,11 @@ The device does not render locally. On each refresh cycle it sends only its devi
 
 - **Wi-Fi credentials, device id, server URL:** ESP32 NVS (survives deep sleep and power loss; cleared by factory reset)
 - **Config:** server-side only — stored against the device row in SQLite, never written to NVS
-- **Last framebuffer:** flash (survives deep sleep and power loss; overwritten on each successful fetch)
+- **Last framebuffer:** none — the eInk panel itself retains the last image with no power, so no flash frame cache is needed; only `Last-Modified` and a boot counter persist across sleeps, in RTC slow memory
 
 ## Recovery (pinhole reset)
 
-The device has no buttons. The pinhole reset is the only physical recovery affordance.
+The shipped device has three buttons: a green orientation-flip button and two white buttons that, held together for 5 seconds, perform the factory reset (#171/#172). The pinhole reset described below remains on the provisioning-era sketch (GPIO2 on the E1001) and as the original design rationale.
 
 - **Location:** back-lower (grip area), centered, ~2mm diameter, recessed
 - **Action:** press with paperclip for 5 seconds
@@ -100,7 +100,5 @@ None of this changes the v1 device. It's a firmware update + companion app, both
 - BLE pairing flow
 - Calendar / next-event box (no source-of-truth without phone integration)
 - Real-time push from phone to device
-- Multi-device sync via cloud account
-- User accounts of any kind
 
-These were all considered and consciously deferred to v2.
+These were all considered and consciously deferred to v2. (User accounts, originally deferred here too, have since shipped — epic #77: passkey + Google/Apple OAuth sign-in, device claiming, and a per-account Devices list, with each device's config stored server-side against the account that claimed it.)

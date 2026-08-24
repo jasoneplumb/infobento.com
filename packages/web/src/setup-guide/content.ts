@@ -179,8 +179,8 @@ export const GUIDE_STEPS: readonly GuideStep[] = [
         place: 'device',
         text:
           'The panel updates on its refresh schedule, not instantly. On battery and solar ' +
-          'the default is one or two refreshes per day, so your changes appear at the next ' +
-          'scheduled refresh.',
+          'the default is three refreshes a day (configurable), so your changes appear at ' +
+          'the next scheduled refresh.',
       },
     ],
     tip:

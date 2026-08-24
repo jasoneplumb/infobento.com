@@ -1,12 +1,12 @@
 # RFC 0002 — Manual orientation toggle on the E1001 (cache both frames, redraw locally)
 
-|                          |                                                                            |
-| ------------------------ | -------------------------------------------------------------------------- |
-| **Status**               | Draft                                                                      |
-| **Issue**                | [#160](https://github.com/jasoneplumb/infobento.com/issues/160)            |
-| **Author**               | jasoneplumb                                                                |
-| **Created**              | 2026-06-30                                                                 |
-| **Supersedes / relates** | shared enabler for auto-rotate #49; tilt hardware #48; Phase 7 C3 port #57 |
+|                          |                                                                                                               |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------- |
+| **Status**               | Implemented — `/frames` endpoint (#163/#164), firmware toggle (#165), folded into the integrated build (#174) |
+| **Issue**                | [#160](https://github.com/jasoneplumb/infobento.com/issues/160)                                               |
+| **Author**               | jasoneplumb                                                                                                   |
+| **Created**              | 2026-06-30                                                                                                    |
+| **Supersedes / relates** | shared enabler for auto-rotate #49; tilt hardware #48; Phase 7 C3 port #57                                    |
 
 ## Summary
 
@@ -34,6 +34,13 @@ for the production board) are marked for the Phase 7 ESP32-C3 port (#57). The
 reset **pinhole** keeps its own GPIO2-vs-GPIO9 split
 (`firmware/provisioning/provisioning.ino`); the toggle button is a **separate**
 input from the pinhole on both boards.
+
+> **Post-implementation note.** The bench-confirm items resolved as: green button
+> on **GPIO3**, ext1 deep-sleep wake, flashed with the 8 MB `default_8MB`
+> partition scheme — documented in `firmware/README.md`. Separately, the later
+> integrated build (#171/#172) moved factory reset from the GPIO2 pinhole to
+> holding the **two white buttons** for 5 s; the "factory reset stays GPIO2-only"
+> statements throughout this RFC describe the state at the time of writing.
 
 ## Motivation
 
@@ -248,7 +255,7 @@ meanings.
   RTC-capability must be read from Seeed's reTerminal E1001 schematic / pinout and
   verified at the bench before implementation. Firmware should name it via an
   `IB_DEV_E1001` constant (mirroring the existing pinhole split), not a magic
-  number.
+  number. _(Resolved at bench: GPIO3, ext1 wake — see `firmware/README.md`.)_
 
 ### MCU-specific (mark for Phase 7 C3 port #57)
 
@@ -374,11 +381,14 @@ Everything _between_ the trigger and the panel is shared:
   currently flashed partition table? Is there room to add a ≥512 KB LittleFS data
   partition (there should be, but the active `partitions.csv` / Arduino partition
   scheme must reserve it)? Confirm via `ESP.getFlashChipSize()` at the bench.
+  _(Resolved: flashed with `FlashSize=8M` + the `default_8MB` partition scheme —
+  see `firmware/README.md`.)_
 - **Green-button GPIO (bench-only):** which GPIO is the E1001 green user button
   on, what is its idle polarity, and is it RTC-capable (GPIO0–21 on the S3) so it
   can be an ext1 deep-sleep wake source? If it is **not** RTC-capable we need a
   fallback (alternate pin, or a non-deep-sleep poll) — confirm from Seeed's
-  schematic and at the bench before implementation.
+  schematic and at the bench before implementation. _(Resolved: GPIO3,
+  RTC-capable, ext1 wake — see `firmware/README.md`.)_
 - **Inverted orientations:** derive on-device via 180° rotation (keep the 2-frame
   `/frames` contract) vs. have the API return all four? (Affects #49; recommend
   on-device rotation.)

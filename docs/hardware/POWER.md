@@ -8,7 +8,7 @@ InfoBento runs on a small rechargeable LiPo battery topped up by a solar panel o
 - **MCU:** ESP32-C3 (Wi-Fi for config + frame fetch; BLE reserved for v2)
 - **Power source:** rechargeable ≈100 mAh LiPo + solar panel (≈70×100 mm, upper back) via an AEM10941 harvester
 - **Display:** Good Display GDEH0576T81, 5.76" eInk, 920×680, 198 DPI, SSD2677 driver. ≈0.75 s full refresh, ≈0.3 s partial refresh, 1–2 refreshes/day. Exact refresh energy is unmeasured (TBD), but a full-panel refresh dominates the daily display energy at 1–2×/day.
-- **Interaction:** none. The device has no buttons, sensors, or indicators — it wakes on a schedule, fetches a frame, refreshes, and returns to deep sleep. A tilt switch is the only mechanical input, used to detect the fold-out kickstand orientation.
+- **Interaction:** minimal. Three buttons — a green orientation-flip button and two white buttons whose 5-second combined hold performs a factory reset — plus two tilt switches that detect landscape vs portrait for auto-rotate. Otherwise the device wakes on a schedule, fetches a frame, refreshes, and returns to deep sleep.
 - **Connectivity:** Wi-Fi direct (locked 2026-04-22 — see `docs/hardware/CONNECTIVITY.md`); BLE reserved for v2
 
 ## Daily Budget Summary
@@ -49,7 +49,6 @@ A ≈70×100 mm solar panel (≈$3) on the upper back of the enclosure feeds an 
 - Final battery + solar capacity for ESP32-C3 + GDEH0576T81 5.76" panel under the calm 1–2×/day profile
 - Measured full-panel and partial refresh energy for the GDEH0576T81 (SSD2677) under the current render pipeline
 - How much daily margin the ≈100 mAh LiPo + solar harvest leaves after the refresh + Wi-Fi budget
-- Wi-Fi setup UX for first-time pairing (captive portal vs QR code containing network credentials), given there is no button
 - Cold-start behavior when the battery is fully depleted (especially in low-light placements)
 - Refresh-time tolerance — if the device is in shade for a week, does it skip refreshes silently or surface a low-power state?
 - Deep-sleep RTC alarm cadence and whether to align refreshes to solar-favorable hours

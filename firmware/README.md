@@ -6,8 +6,9 @@ one capability on the dev hardware before the next builds on it.
 
 - **Dev board:** Seeed reTerminal E1001 — ESP32-S3, 7.5" 800×480 grayscale panel
   driven by a UC8179 controller.
-- **Production target (not yet sourced):** GDEH0576T81 5.76" 920×680 + ESP32-C3,
-  gated on the dev-kit order (#57). Phase 7 ports to it.
+- **Production target (not yet sourced):** GDEH0576T81 5.76" 920×680 + ESP32-C3
+  (#57 closed — 4-level gray proven on the E1001; panel sourcing remains). The
+  production port re-points the integrated build to it.
 
 The reTerminal maps 1:1 onto the renderer's 2-bit output and hits the **identical**
 cloud endpoints, so everything proven here ports directly to production.
@@ -30,17 +31,18 @@ moves to the native USB port (`/dev/cu.usbmodem*`) and bridge-port prints vanish
 
 ## Phase status
 
-| Phase | Sketch                                           | Proves                                                                                                                                        | Status                      |
-| ----- | ------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------- |
-| 0     | (server) `scripts/mint-device.ts`                | mint device, `/frame` returns 200                                                                                                             | ✅ done (PR #109)           |
-| 1     | [`blink/`](blink/blink.ino)                      | toolchain + boot + serial, no panel                                                                                                           | ✅ bench-verified           |
-| 2     | [`static-frame/`](static-frame/static-frame.ino) | framebuffer-translation path: native 2bpp → UC8179 two-plane upload (4-band gray ramp)                                                        | ✅ bench-verified           |
-| 3     | [`device-pull/`](device-pull/device-pull.ino)    | Wi-Fi + `GET /api/device/<id>/frame` poll loop with `If-Modified-Since`/304 skip                                                              | ✅ bench-verified           |
-| 4     | [`deep-sleep/`](deep-sleep/deep-sleep.ino)       | deep sleep + RTC wake; RTC-persisted `Last-Modified` so a 304 wake skips the refresh                                                          | ✅ bench-verified           |
-| 5     | [`resilient/`](resilient/resilient.ino)          | resilience: graceful 404/429/5xx/Wi-Fi-fail handling, brownout recovery, clean draw-abort                                                     | ✅ bench-verified           |
-| 6     | [`provisioning/`](provisioning/provisioning.ino) | captive-portal provisioning: AP-mode first boot, Wi-Fi scan/entry → NVS, OS auto-launch probes, pinhole factory reset → #39                   | ✅ bench-verified           |
-| 7     | —                                                | port to production GDEH0576T81 + ESP32-C3 → #57                                                                                               | ⬜ (blocked on dev kit)     |
-| ★     | [`orientation/`](orientation/orientation.ino)    | manual orientation toggle → #160: `GET /frames` caches BOTH orientations in LittleFS, green button (GPIO3, ext1) flips locally with Wi-Fi off | 🟡 drafted — awaiting bench |
+| Phase | Sketch                                           | Proves                                                                                                                                                          | Status                              |
+| ----- | ------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------- |
+| 0     | (server) `scripts/mint-device.ts`                | mint device, `/frame` returns 200                                                                                                                               | ✅ done (PR #109)                   |
+| 1     | [`blink/`](blink/blink.ino)                      | toolchain + boot + serial, no panel                                                                                                                             | ✅ bench-verified                   |
+| 2     | [`static-frame/`](static-frame/static-frame.ino) | framebuffer-translation path: native 2bpp → UC8179 two-plane upload (4-band gray ramp)                                                                          | ✅ bench-verified                   |
+| 3     | [`device-pull/`](device-pull/device-pull.ino)    | Wi-Fi + `GET /api/device/<id>/frame` poll loop with `If-Modified-Since`/304 skip                                                                                | ✅ bench-verified                   |
+| 4     | [`deep-sleep/`](deep-sleep/deep-sleep.ino)       | deep sleep + RTC wake; RTC-persisted `Last-Modified` so a 304 wake skips the refresh                                                                            | ✅ bench-verified                   |
+| 5     | [`resilient/`](resilient/resilient.ino)          | resilience: graceful 404/429/5xx/Wi-Fi-fail handling, brownout recovery, clean draw-abort                                                                       | ✅ bench-verified                   |
+| 6     | [`provisioning/`](provisioning/provisioning.ino) | captive-portal provisioning: AP-mode first boot, Wi-Fi scan/entry → NVS, OS auto-launch probes, pinhole factory reset → #39                                     | ✅ bench-verified                   |
+| 7     | [`integrated/`](integrated/integrated.ino)       | integrated build → #173: provisioning + dual-orientation deep-sleep pull (`GET /frames`) + green-button flip + two-white-button (5 s) factory reset (#171/#172) | ✅ merged (PR #174)                 |
+| —     | —                                                | port to production GDEH0576T81 + ESP32-C3 (#57 closed — gray proven on the E1001; panel not yet sourced)                                                        | ⬜ (awaiting panel)                 |
+| ★     | [`orientation/`](orientation/orientation.ino)    | manual orientation toggle → #160: `GET /frames` caches BOTH orientations in LittleFS, green button (GPIO3, ext1) flips locally with Wi-Fi off                   | ✅ folded into `integrated/` (#174) |
 
 "Bench-verified" = run on real E1001 hardware. Phase 3 evidence lives in the
 (gitignored) `dev/serial.log`: a live run shows `GET → 200`, `drew frame in
@@ -82,7 +84,7 @@ Still open: that floor is **below this meter's 10 mA resolution**, so the real
 instrument on the **battery/supply line** (not USB): the reTerminal dev board
 reads higher than the ~10 µA production target because of its always-on
 peripherals + USB-UART bridge, so the definitive number is an ESP32-C3
-measurement deferred to Phase 7.
+measurement deferred to the production port.
 
 **Phase 5 bench-verified on the E1001** (`IB_SLEEP_SECONDS` = 30 s bench cadence). A
 live run walked all five cases on serial; in every failure case the panel kept its
@@ -147,8 +149,11 @@ sketch has NO `secrets.h` (it has no creds to begin with). Watch serial at
   the portal). If it doesn't auto-open, browse to `http://192.168.4.1`.
 - **Scan + join:** the network dropdown is populated server-side (no JS). Pick
   your home Wi-Fi, type the password, **Connect** → `joining '<ssid>' ...` →
-  `joined, IP …` → `provisioned -> creds saved` → the success page shows
-  `infobento.com/onboard?device=<id>` → `rebooting into provisioned mode`.
+  `joined, IP …` → `provisioned -> creds saved` → the success page shows the
+  Device ID → `rebooting into provisioned mode`. (Pairing actually happens at
+  `www.infobento.com/pair/<code>` after sign-in; the sketch still prints a dead
+  `infobento.com/onboard?device=<id>` URL here — the sketch-side fix is tracked
+  in #241.)
 - **Wrong password:** the portal must re-render with a retry banner and NOT
   persist the bad creds (`join FAILED`, no `creds saved`).
 - **Returning boot (creds saved):** after the reboot, `provisioned=1` → it
@@ -164,14 +169,18 @@ sketch has NO `secrets.h` (it has no creds to begin with). Watch serial at
   external assets — comfortably inside the <30 KB-gzipped target.
 
 `PINHOLE_GPIO` and the AP/NVS specifics are marked MCU-specific in the sketch for
-the Phase 7 ESP32-C3 port. Production uses **GPIO9** (the C3 strapping pin with a
+the ESP32-C3 production port. Production uses **GPIO9** (the C3 strapping pin with a
 natural pull-up — the reason #39 picked it); the `IB_DEV_E1001` branch swaps in
 **GPIO2** for bench bring-up because on the E1001 dev board GPIO9 is the panel SPI
 MOSI line (and GPIO0/BOOT is tied to the USB-serial auto-reset), so neither can
-serve as the pinhole there.
+serve as the pinhole there. Note the later `integrated/` build (#171/#172) moved
+factory reset off the pinhole entirely: holding the **two white buttons** for 5 s
+(GPIO4+GPIO5) is now the reset gesture; the pinhole story above applies to this
+provisioning-era sketch.
 
-**Orientation toggle (`orientation/`, #160 / RFC 0002) — drafted, awaiting bench.**
-Extends the Phase 4 deep-sleep pull: each network wake fetches BOTH orientations in
+**Orientation toggle (`orientation/`, #160 / RFC 0002).** This behavior now lives
+in the integrated sketch (`integrated/`, PR #174); the notes below cover the
+standalone bench sketch. Extends the Phase 4 deep-sleep pull: each network wake fetches BOTH orientations in
 one `GET /api/device/<id>/frames` and stores them to a LittleFS partition; a green-
 button press (GPIO3, ext1 deep-sleep wake) redraws the other cached orientation with
 the radio off. The server delivers both frames in the panel's landscape raster
@@ -211,7 +220,7 @@ portrait`, `drew frame` — **with no `GET`** (radio stays off). Press again →
 - **Reset pinhole unaffected:** the GPIO2 pinhole still factory-resets via the
   provisioning sketch; the toggle button (GPIO3) never clears creds.
 
-MCU-specific for the Phase 7 ESP32-C3 port (#57): the green-button GPIO and the ext1
+MCU-specific for the ESP32-C3 production port: the green-button GPIO and the ext1
 wake API (C3 uses `esp_deep_sleep_enable_gpio_wakeup`) are re-mapped; the toggle logic
 is otherwise identical.
 
@@ -316,15 +325,21 @@ obtains them from the user, so it compiles and runs with nothing pre-baked.
 3. **Phase 6 — captive portal (#39).** ✅ bench-verified (`provisioning/`).
    AP mode on first boot, on-device no-JS setup
    page (server-side Wi-Fi scan → creds + optional custom server URL self-host
-   hatch), NVS storage, OS auto-launch probes, and a GPIO9 pinhole factory
-   reset. Creds persist only after a confirmed join, so a wrong password never
+   hatch), NVS storage, OS auto-launch probes, and a pinhole factory
+   reset (GPIO2 on the E1001; GPIO9 is the production-C3 pin — see the Phase 6
+   bench check above; the later `integrated/` build moved factory reset to the
+   two white buttons held 5 s, #171/#172). Creds persist only after a confirmed join, so a wrong password never
    strands un-joinable creds in NVS; a returning device with un-joinable saved
    creds falls back to AP for re-provisioning. The web-side "forget Wi-Fi"
    counterpart (`POST /api/device/:id/forget`, same effect as the pinhole) is
    the server half, merged separately (#39). This is the gate to a shippable
    out-of-box flow.
-4. **Phase 7 — production hardware (#57).** Re-point pins/dimensions to GDEH0576T81
-   (920×680, 156,400-byte frame) on ESP32-C3 once the dev kit arrives.
+4. **Phase 7 — integrated build (#173).** ✅ merged (PR #174, `integrated/`):
+   provisioning + dual-orientation deep-sleep pull + green-button flip +
+   two-white-button factory reset in one sketch.
+5. **Production port.** Re-point pins/dimensions to GDEH0576T81
+   (920×680, 156,400-byte frame) on ESP32-C3 once the panel is sourced
+   (#57 closed — gray rendering proven on the E1001).
 
 ### Shared UC8179 driver — extraction deferred (decision)
 

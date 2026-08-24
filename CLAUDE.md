@@ -123,7 +123,7 @@ InfoBento is a bento-box-sized countertop eInk display:
 - **Display:** Good Display GDEH0576T81, 5.76" eInk, 920x680 pixels, 198 DPI (SSD2677 driver) — production target
 - **Dev hardware:** prototyping on the Seeed reTerminal E1001 (7.5", 800×480); the web simulator switches resolutions (see `docs/hardware/DISPLAY.md`)
 - **Active area:** 117.7 × 87.0 mm (module: 125.4 × 99.5 × 0.9 mm)
-- **Power:** Rechargeable battery + solar panel, 1-2 refreshes per day
+- **Power:** Rechargeable battery + solar panel; refreshes 1–3× per day (default 3, configurable)
 - **Connectivity:** Wi-Fi (ESP32); configure once via web UI
 - **Form factor:** ~14×11cm enclosure (sized to fit GDEH0576T81 panel closely), solar panel on upper back, body-as-stand with a fold-out kickstand for ~12-15° tilt
 

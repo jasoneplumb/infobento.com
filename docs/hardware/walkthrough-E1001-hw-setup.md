@@ -246,4 +246,6 @@ a `200 → frame OK → drew frame in 4486 ms` (full 4-gray eInk redraw), settli
 to `304`. Wi-Fi join, `200`-draw, and `If-Modified-Since` → `304`-skip paths all
 confirmed end-to-end.
 
-## Phase 4+ — _to be filled in as we go_
+## Phase 4+
+
+This walkthrough intentionally stops at Phase 3. Phases 4–7 (deep sleep, resilience, captive-portal provisioning, and the merged integrated build) have since landed and are documented in [FIRMWARE_BRINGUP.md](FIRMWARE_BRINGUP.md) and [`firmware/README.md`](../../firmware/README.md).

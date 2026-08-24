@@ -11,7 +11,7 @@
 [![Node](https://img.shields.io/badge/node-%3E%3D20-brightgreen.svg)](package.json)
 [![ESP32-C3](https://img.shields.io/badge/MCU-ESP32--C3-grey.svg)](firmware)
 
-A small, solar-powered eInk decorator that lives on a counter, shelf, or windowsill. Configure once on a web page; it sips light from the window and shows what matters most — weather, 8-hour forecast, 8-day forecast, air quality, UV index, pollen, quote, countdown, stocks, QR code, text, date, moon phase, sunrise/sunset, year progress, horoscope, on this day — for months on its own.
+A small, solar-powered eInk decorator that lives on a counter, shelf, or windowsill. Configure once on a web page; it sips light from the window and shows what matters most — weather, hourly and daily forecasts (configurable, 3 periods by default), air quality, UV index, pollen, quote, countdown, stocks, QR code, text, date, moon phase, sunrise/sunset, year progress, horoscope, on this day, holidays — for months on its own.
 
 ## Overview
 
@@ -26,11 +26,11 @@ Set it on a kitchen counter, a desk, or a shelf. The body is its own stand, with
 ### Hardware
 
 - **Display:** Good Display GDEH0576T81, 5.76" eInk, 920x680 pixels, 198 DPI, SSD2677 driver
-- **Renderer:** eInk framebuffer with antialiased TTF fonts (Inter via opentype.js), SDF-based rounded box borders, configurable corner radius (0-10) and padding (0-10), font size slider (8-42px)
+- **Renderer:** eInk framebuffer with antialiased TTF fonts (Inter via opentype.js), SDF-based rounded box borders, configurable corner radius (0-7) and padding (0-10), font size stepper (8-42px)
 - **MCU:** ESP32-C3 (Wi-Fi 4 + BLE 5; BLE radio reserved for a possible v2 bridge mode)
 - **Power:** ~100 mAh LiPo + AEM10941 solar harvester
 - **Solar panel:** mounted on the upper portion of the back side, ~70×100 mm
-- **Connectivity:** Wi-Fi direct + captive-portal setup; no companion phone app. Web editor at `infobento.com` is the only configuration surface. See `docs/hardware/CONNECTIVITY.md`.
+- **Connectivity:** Wi-Fi direct + captive-portal setup; no companion phone app. Web editor at `www.infobento.com` is the only configuration surface. See `docs/hardware/CONNECTIVITY.md`.
 - **Recovery:** recessed pinhole reset (~2mm) on the back-lower grip area; press with paperclip for 5s = factory reset.
 - **Form factor:** monolithic body, no hinge. The body stands on its own, with a fold-out kickstand to angle the display if needed.
 - **Orientation:** two ball-in-tube tilt switches mounted at 90° on GPIO interrupts; firmware auto-rotates the layout across landscape, portrait, and inverted variants. Zero standby current, ~$0.10 BOM.
@@ -67,7 +67,7 @@ Set it on a kitchen counter, a desk, or a shelf. The body is its own stand, with
                                    └───────────┘
 ```
 
-Rendering is a pure function of config: `POST /api/render` takes a BentoConfig and returns a frame buffer, and the web editor's preview uses exactly that path. The device never sends a config — it identifies itself with its device id and the server renders from the config it holds for that device. If Wi-Fi is unavailable the panel keeps showing its last frame (stale display, not blank) — that is eInk holding its image, not a cached copy in flash. First-time setup via captive portal; on each refresh the device polls `infobento.com/api/device/{device-id}/frames` for a freshly rendered frame (both orientations in one response), using its device id as a bearer secret. The web editor is where you set up your boxes; configuration lives in browser localStorage, and once a device is paired to an account it is also stored server-side and pushed via `PUT /api/device/{device-id}/config`.
+Rendering is a pure function of config: `POST /api/render` takes a BentoConfig and returns a frame buffer, and the web editor's preview uses exactly that path. The device never sends a config — it identifies itself with its device id and the server renders from the config it holds for that device. If Wi-Fi is unavailable the panel keeps showing its last frame (stale display, not blank) — that is eInk holding its image, not a cached copy in flash. First-time setup via captive portal; on each refresh the device polls `www.infobento.com/api/device/{device-id}/frames` for a freshly rendered frame (both orientations in one response), using its device id as a bearer secret. The web editor is where you set up your boxes; configuration lives in browser localStorage, and once a device is paired to an account it is also stored server-side and pushed via `PUT /api/device/{device-id}/config`.
 
 ## Quick Start
 
@@ -81,6 +81,10 @@ npm install
 npm run build
 npm test
 npm run lint
+
+# Run the dev servers (two terminals)
+npm run dev -w @infobento/api    # Hono API on :4000
+npm run dev -w @infobento/web    # Vite editor on :5173, proxies /api to :4000
 ```
 
 ## Monorepo Structure
@@ -103,8 +107,8 @@ the following env vars at runtime:
 | ---------------------- | ------------------------------------------------------------------------------------ |
 | `SESSION_SECRET`       | HMAC key for session + challenge cookies. Required. ≥16 chars, generate randomly.    |
 | `RP_ID`                | WebAuthn Relying Party ID — your domain (e.g. `infobento.com`).                      |
-| `RP_ORIGIN`            | Origin(s) the browser will use, comma-separated (e.g. `https://infobento.com`).      |
-| `OAUTH_REDIRECT_BASE`  | Base URL for OAuth callbacks (e.g. `https://infobento.com/api/auth/oauth`).          |
+| `RP_ORIGIN`            | Origin(s) the browser will use, comma-separated (e.g. `https://www.infobento.com`).  |
+| `OAUTH_REDIRECT_BASE`  | Base URL for OAuth callbacks (e.g. `https://www.infobento.com/api/auth/oauth`).      |
 | `GOOGLE_CLIENT_ID`     | Google OAuth client ID. Get from console.cloud.google.com → Credentials.             |
 | `GOOGLE_CLIENT_SECRET` | Google OAuth client secret.                                                          |
 | `APPLE_CLIENT_ID`      | Apple "Service ID" identifier (e.g. `com.example.signin`).                           |
@@ -178,4 +182,4 @@ E Plumb and InfoBento contributors.
 
 ## Status
 
-Active development (v0.35.1). Renderer produces framebuffers with 18 box types. Web editor at localhost:5173 for configuration. Passkey + Apple/Google OAuth and the SaaS device-pairing flow are shipped in `@infobento/api` (epic #77 complete). Firmware bring-up is dev-first on the reTerminal E1001: Phases 0–6 are bench-verified (epic #106) — blink, static-frame, Wi-Fi device-pull, deep-sleep, resilience, and captive-portal provisioning. Only Phase 7, the port to the production GDEH0576T81 panel + ESP32-C3, remains, gated on the dev-kit order (#57). Per-phase status lives in [`firmware/README.md`](firmware/README.md#phase-status).
+Active development. Renderer produces framebuffers with 18 box types. Web editor at localhost:5173 for configuration. Passkey + Apple/Google OAuth and the SaaS device-pairing flow are shipped in `@infobento/api` (epic #77 complete). Firmware bring-up is dev-first on the reTerminal E1001: Phases 0–7 are bench-verified (epic #106) — blink, static-frame, Wi-Fi device-pull, deep-sleep, resilience, captive-portal provisioning, and the integrated firmware ([`firmware/integrated/integrated.ino`](firmware/integrated/integrated.ino), #174). The remaining production-hardware step is sourcing the GDEH0576T81 panel + ESP32-C3 (dev work continues on the E1001). Per-phase status lives in [`firmware/README.md`](firmware/README.md#phase-status).

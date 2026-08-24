@@ -50,7 +50,7 @@ describe('myFunction', () => {
 - **Core:** Layout calculations, type validation, config parsing
 - **Data:** Provider fetch/parse logic, cache behavior, upstream error handling
 - **Renderer:** Frame buffer generation, pixel correctness, boundary conditions
-- **API:** Endpoint handlers (pure functions), validation, error cases
+- **API:** Pure render endpoints (`/api/render`, `/api/preview`, `/api/validate`) as input → output; the stateful auth/pairing/config surface against in-memory SQLite — `createDb(':memory:')` per test, as in `packages/api/src/db.test.ts`
 - **Web:** Component behavior (not implementation details), user workflows
 
 ### Testing Pure Functions
