@@ -17,8 +17,11 @@ jobs:
   # Full quality gate against the exact release commit (#247). Tag pushes do
   # not trigger ci.yml, so there is no CI run for this SHA to depend on —
   # the gate has to run here. Mirrors ci.yml step-for-step; keep them in sync.
+  # timeout-minutes bounds a hung run so it can't hold the deploy-production
+  # concurrency slot for GitHub's 6-hour default (review finding on #249).
   quality-gate:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v7
 
@@ -46,28 +49,12 @@ jobs:
       - name: Format check
         run: npm run format:check
 
-  deploy:
-    needs: quality-gate
-    runs-on: ubuntu-latest
-    environment: production
-    steps:
-      - uses: actions/checkout@v7
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v7
-        with:
-          node-version: '22'
-          cache: 'npm'
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Build
-        # The root build script builds the packages and then the web bundle
-        # (including the setup-guide PDF into packages/web/dist). Keeping it
-        # as one script means CI and deploy cannot drift apart — see #231.
-        run: npm run build
-
+      # The package is built and uploaded here — by the same job whose build
+      # the tests just exercised — and the deploy job ships that exact
+      # artifact instead of rebuilding. An independent rebuild would not be
+      # bit-for-bit identical (the setup-guide PDF embeds a creation
+      # timestamp), so "ship what you tested" requires handing the artifact
+      # over rather than trusting a second build (review finding on #249).
       - name: Create deployment package
         run: |
           # Package everything needed for production:
@@ -94,6 +81,29 @@ jobs:
             package-lock.json \
             packages/ \
             deploy/
+
+      - name: Upload deployment package
+        uses: actions/upload-artifact@v7
+        with:
+          name: infobento-deploy
+          path: infobento-deploy.tar.gz
+          if-no-files-found: error
+          retention-days: 7
+
+  deploy:
+    needs: quality-gate
+    runs-on: ubuntu-latest
+    environment: production
+    timeout-minutes: 15
+    steps:
+      # Checkout only for scripts/ and the package.json version read below —
+      # the shipped code comes exclusively from the tested artifact.
+      - uses: actions/checkout@v7
+
+      - name: Download deployment package
+        uses: actions/download-artifact@v8
+        with:
+          name: infobento-deploy
 
       - name: Setup SSH key
         run: |
