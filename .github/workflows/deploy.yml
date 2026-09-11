@@ -94,7 +94,10 @@ jobs:
     needs: quality-gate
     runs-on: ubuntu-latest
     environment: production
-    timeout-minutes: 15
+    # Generous bound: a real deploy takes a few minutes, and hung SSH
+    # connections already self-terminate (ServerAliveInterval). This keeps
+    # the concurrency slot bounded without risking a mid-deploy kill.
+    timeout-minutes: 30
     steps:
       # Checkout only for scripts/ and the package.json version read below —
       # the shipped code comes exclusively from the tested artifact.
