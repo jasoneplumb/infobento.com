@@ -9,9 +9,13 @@
 [![Docs: CC-BY-4.0](https://img.shields.io/badge/docs-CC--BY--4.0-blue.svg)](docs/LICENSE)
 [![TypeScript](https://img.shields.io/badge/TypeScript-Node16-blue.svg)](tsconfig.base.json)
 [![Node](https://img.shields.io/badge/node-%3E%3D20-brightgreen.svg)](package.json)
-[![ESP32-C3](https://img.shields.io/badge/MCU-ESP32--C3-grey.svg)](firmware)
+[![MCU: ESP32-C3 target](<https://img.shields.io/badge/MCU-ESP32--C3%20(target)-grey.svg>)](firmware)
+[![Bench: reTerminal E1001](https://img.shields.io/badge/bench-reTerminal%20E1001%20%2F%20ESP32--S3-grey.svg)](firmware/README.md#phase-status)
+[![Status: prototype](https://img.shields.io/badge/status-prototype-orange.svg)](#status)
 
-A small, solar-powered eInk decorator that lives on a counter, shelf, or windowsill. Configure once on a web page; it sips light from the window and shows what matters most — weather, hourly and daily forecasts (configurable, 3 periods by default), air quality, UV index, pollen, quote, countdown, stocks, QR code, text, date, moon phase, sunrise/sunset, year progress, horoscope, on this day, holidays — for months on its own.
+A small, solar-powered eInk decorator that lives on a counter, shelf, or windowsill. Configure once on a web page; it shows what matters most — weather, hourly and daily forecasts (configurable, 3 periods by default), air quality, UV index, pollen, quote, countdown, stocks, QR code, text, date, moon phase, sunrise/sunset, year progress, horoscope, on this day, holidays.
+
+**Prototype, not a shipping product.** Firmware is bench-verified on a Seeed reTerminal E1001 (ESP32-S3) development board; the production ESP32-C3 hardware, the solar harvester, and the unattended run time that follows from them are design targets that have not been built or measured. Everything below marked _(target)_ is a specification, not an observed result. The product description is the design intent; [Status](#status) is what exists today.
 
 ## Overview
 
@@ -21,14 +25,14 @@ Building a layout in the web editor needs no account — it saves to your browse
 Binding a device to that layout does: you claim it with a passkey or a Google/Apple
 sign-in, so the server knows whose config to render for it.
 
-Set it on a kitchen counter, a desk, or a shelf. The body is its own stand, with a fold-out kickstand to angle the display toward you if needed. The upper portion of the back is a solar panel that charges the device from indirect light through a window. It refreshes a few times a day, which is plenty for the things you actually look at it for. Via Kickstarter: $109 early bird (first 500), $129 standard, or $239 for a pair — $119.50 each (≈ $46.40 BOM at volume; the 5.76" panel is over half of it).
+Set it on a kitchen counter, a desk, or a shelf. The body is its own stand, with a fold-out kickstand to angle the display toward you if needed. The upper portion of the back is a solar panel intended to charge the device from indirect light through a window _(target; no energy balance has been measured)_. It refreshes a few times a day, which is plenty for the things you actually look at it for. Planned Kickstarter pricing: $109 early bird (first 500), $129 standard, or $239 for a pair — $119.50 each (≈ $46.40 BOM at volume; the 5.76" panel is over half of it).
 
 ### Hardware
 
 - **Display:** Good Display GDEH0576T81, 5.76" eInk, 920x680 pixels, 198 DPI, SSD2677 driver
 - **Renderer:** eInk framebuffer with antialiased TTF fonts (Inter via opentype.js), SDF-based rounded box borders, configurable corner radius (0-7) and padding (0-10), font size stepper (8-42px)
-- **MCU:** ESP32-C3 (Wi-Fi 4 + BLE 5; BLE radio reserved for a possible v2 bridge mode)
-- **Power:** ~100 mAh LiPo + AEM10941 solar harvester
+- **MCU:** ESP32-C3 _(target)_ (Wi-Fi 4 + BLE 5; BLE radio reserved for a possible v2 bridge mode). Firmware bring-up runs on a reTerminal E1001 (ESP32-S3) bench board; the C3 port is pending.
+- **Power:** ~100 mAh LiPo + AEM10941 solar harvester _(target)_. Deep-sleep current is still unmeasured: the bench USB meter resolves 10 mA and reads 0.00 A asleep, which cannot confirm a µA-class floor. Unattended run time follows from that measurement and is not yet claimed.
 - **Solar panel:** mounted on the upper portion of the back side, ~70×100 mm
 - **Connectivity:** Wi-Fi direct + captive-portal setup; no companion phone app. Web editor at `www.infobento.com` is the only configuration surface. See `docs/hardware/CONNECTIVITY.md`.
 - **Recovery:** recessed pinhole reset (~2mm) on the back-lower grip area; press with paperclip for 5s = factory reset.
@@ -67,7 +71,7 @@ Set it on a kitchen counter, a desk, or a shelf. The body is its own stand, with
                                    └───────────┘
 ```
 
-Rendering is a pure function of config: `POST /api/render` takes a BentoConfig and returns a frame buffer, and the web editor's preview uses exactly that path. The device never sends a config — it identifies itself with its device id and the server renders from the config it holds for that device. If Wi-Fi is unavailable the panel keeps showing its last frame (stale display, not blank) — that is eInk holding its image, not a cached copy in flash. First-time setup via captive portal; on each refresh the device polls `www.infobento.com/api/device/{device-id}/frames` for a freshly rendered frame (both orientations in one response), using its device id as a bearer secret. The web editor is where you set up your boxes; configuration lives in browser localStorage, and once a device is paired to an account it is also stored server-side and pushed via `PUT /api/device/{device-id}/config`.
+Rendering is a pure function of config: `POST /api/render` takes a BentoConfig and returns a frame buffer, and the web editor's preview uses exactly that path. The device never sends a config — it identifies itself with its device id and the server renders from the config it holds for that device. If Wi-Fi is unavailable the panel keeps showing its last frame (stale display, not blank) — eInk holds its image with no power and no redraw. First-time setup via captive portal; on each refresh the device polls `www.infobento.com/api/device/{device-id}/frames` for a freshly rendered frame (both orientations in one response), using its device id as a bearer secret. Both orientations are written to a LittleFS partition so the green button can redraw the other one locally with the radio off ([firmware README](firmware/README.md)); that cache serves the flip, not a fallback render — the device never renders a frame itself. The web editor is where you set up your boxes; configuration lives in browser localStorage, and once a device is paired to an account it is also stored server-side and pushed via `PUT /api/device/{device-id}/config`.
 
 ## Quick Start
 
@@ -179,6 +183,16 @@ this design**:
 
 See [LICENSING.md](LICENSING.md) for the full breakdown. Copyright © 2026 Jason
 E Plumb and InfoBento contributors.
+
+## Evidence
+
+|                  |                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| ---------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Contribution** | Sole author of the renderer, web service, device-pairing flow, and firmware sketches, AI-assisted under CI and bench verification. Third-party: the Seeed reTerminal E1001 bench board, Good Display panel, AEM10941 harvester, and the box-data providers' upstream APIs.                                                                                                                                                                                                                                           |
+| **Status**       | Prototype. Firmware bench-verified on a reTerminal E1001 (ESP32-S3); production ESP32-C3 hardware not built. No manufacturing, no Kickstarter launched, no users.                                                                                                                                                                                                                                                                                                                                                    |
+| **Evidence**     | Firmware phases 0–7 bench-verified on the E1001 (epic #106): blink, static frame, Wi-Fi device pull, deep sleep, resilience, captive-portal provisioning, and the integrated build — including `304 -> skip` conditional-refresh behavior, dual-orientation LittleFS caching with radio-off button flip, empty-store guard, and factory reset. Per-phase records in [`firmware/README.md`](firmware/README.md#phase-status).                                                                                         |
+| **Reproduction** | Web service: see Quick Start. Firmware: the per-phase procedures in `firmware/README.md` on a reTerminal E1001. Power figures need µA-grade instrumentation the bench does not have.                                                                                                                                                                                                                                                                                                                                 |
+| **Limitations**  | Deep-sleep current is unmeasured — the bench USB meter resolves 10 mA and reads 0.00 A asleep, which cannot distinguish ~50 µA from a hidden ~10 mA, and the E1001's always-on peripherals read higher than the C3 target regardless. Solar autonomy and unattended run time are therefore design targets, not results. The firmware's TLS certificate validation gap is a known production-readiness defect (see `firmware/README.md`). Pricing and BOM figures are estimates for hardware that has not been built. |
 
 ## Status
 

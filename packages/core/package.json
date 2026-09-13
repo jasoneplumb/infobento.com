@@ -18,7 +18,7 @@
   "bugs": {
     "url": "https://github.com/jasoneplumb/infobento.com/issues"
   },
-  "author": "Jason E Plumb",
+  "author": "Jason E. Plumb",
   "license": "Apache-2.0",
   "type": "module",
   "main": "dist/index.js",
