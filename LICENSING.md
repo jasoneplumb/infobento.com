@@ -29,5 +29,5 @@ License texts:
 - **CC-BY-4.0** (docs) lets you reuse and adapt the documentation as long as you
   give appropriate credit.
 
-Attribution for all parts: **Copyright © 2026 Jason E Plumb and InfoBento
+Attribution for all parts: **Copyright © 2026 Jason E. Plumb and InfoBento
 contributors.** When in doubt, credit "InfoBento (https://infobento.com)".
