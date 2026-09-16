@@ -41,7 +41,7 @@ moves to the native USB port (`/dev/cu.usbmodem*`) and bridge-port prints vanish
 | 5     | [`resilient/`](resilient/resilient.ino)          | resilience: graceful 404/429/5xx/Wi-Fi-fail handling, brownout recovery, clean draw-abort                                                                       | ✅ bench-verified                   |
 | 6     | [`provisioning/`](provisioning/provisioning.ino) | captive-portal provisioning: AP-mode first boot, Wi-Fi scan/entry → NVS, OS auto-launch probes, pinhole factory reset → #39                                     | ✅ bench-verified                   |
 | 7     | [`integrated/`](integrated/integrated.ino)       | integrated build → #173: provisioning + dual-orientation deep-sleep pull (`GET /frames`) + green-button flip + two-white-button (5 s) factory reset (#171/#172) | ✅ merged (PR #174)                 |
-| -     | -                                                | port to production GDEH0576T81 + ESP32-C3 (#57 closed; gray proven on the E1001; panel not yet sourced)                                                         | ⬜ (awaiting panel)                 |
+| N/A   | N/A                                              | port to production GDEH0576T81 + ESP32-C3 (#57 closed; gray proven on the E1001; panel not yet sourced)                                                         | ⬜ (awaiting panel)                 |
 | ★     | [`orientation/`](orientation/orientation.ino)    | manual orientation toggle → #160: `GET /frames` caches BOTH orientations in LittleFS, green button (GPIO3, ext1) flips locally with Wi-Fi off                   | ✅ folded into `integrated/` (#174) |
 
 "Bench-verified" = run on real E1001 hardware. Phase 3 evidence lives in the
