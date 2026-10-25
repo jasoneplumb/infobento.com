@@ -48,8 +48,8 @@
     "@infobento/renderer": "*",
     "@simplewebauthn/server": "^13.3.3",
     "better-sqlite3": "^12.11.1",
-    "hono": "^4.13.7",
-    "jose": "^6.2.12"
+    "hono": "^4.13.13",
+    "jose": "^6.2.13"
   },
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.13"
