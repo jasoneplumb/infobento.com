@@ -7,6 +7,8 @@
  * Pattern: Pure `fetch`; returns null on any failure.
  */
 
+import { USER_AGENT_PRODUCT } from './user-agent.js';
+
 export interface StocksResult {
   readonly price: number;
   readonly change: number;
@@ -64,7 +66,7 @@ export async function fetchStocks(
   try {
     const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?interval=${ri.interval}&range=${ri.range}`;
     const res = await fetch(url, {
-      headers: { 'User-Agent': 'Mozilla/5.0 (compatible; InfoBento/1.0)' },
+      headers: { 'User-Agent': `Mozilla/5.0 (compatible; ${USER_AGENT_PRODUCT})` },
     });
     if (!res.ok) return null;
 

@@ -7,6 +7,7 @@
  */
 
 import { RateLimitedQueue } from './nominatim-queue.js';
+import { USER_AGENT } from './user-agent.js';
 
 export interface GeocodeResult {
   readonly latitude: number;
@@ -57,7 +58,7 @@ async function requestGeocode(query: string): Promise<GeocodeResult | null> {
     const res = await fetch(url, {
       headers: {
         'Accept-Language': 'en',
-        'User-Agent': 'InfoBento/1.0 (https://github.com/jasoneplumb/infobento.com)',
+        'User-Agent': USER_AGENT,
       },
     });
     if (!res.ok) return null;

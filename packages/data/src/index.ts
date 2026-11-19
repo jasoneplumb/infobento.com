@@ -25,7 +25,8 @@ export {
 export { fetchAirQuality } from './air-quality.js';
 export { fetchUvIndex, uvCategory } from './uv.js';
 export { fetchPollen } from './pollen.js';
-export { fetchIpLocation, type IpLocationResult } from './ip-location.js';
+export { fetchIpLocation, type IpLocationOptions, type IpLocationResult } from './ip-location.js';
+export { USER_AGENT, USER_AGENT_PRODUCT } from './user-agent.js';
 
 // Proxy-provider fetchers (logic formerly inside api/src/server.ts handlers)
 export {
