@@ -27,6 +27,7 @@ import { DISPLAY_WIDTH, DISPLAY_HEIGHT } from '@infobento/core';
 import { pickFallbackQuote, pickFallbackHoroscope } from './fallback/index.js';
 import {
   fetchIpLocation,
+  USER_AGENT,
   fetchQuote,
   fetchHoroscope,
   fetchStocks,
@@ -263,7 +264,8 @@ app.get('/api/geolocate', async (c) => {
     return c.json(hit.value);
   }
 
-  const loc = await fetchIpLocation(ip);
+  // ipapi.co rejects Node's default User-Agent with 429 "RateLimited" (#278).
+  const loc = await fetchIpLocation(ip, { userAgent: USER_AGENT });
   const value = { city: loc?.city ?? null, countryCode: loc?.countryCode ?? null };
   if (loc) {
     // Blunt cap so an XFF-spoofing client can't grow the map without bound.

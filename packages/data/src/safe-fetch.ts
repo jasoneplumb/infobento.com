@@ -9,6 +9,7 @@
  */
 
 import { resolve4, resolve6 } from 'node:dns/promises';
+import { USER_AGENT_PRODUCT } from './user-agent.js';
 
 export class SsrfError extends Error {
   constructor(message: string) {
@@ -196,7 +197,7 @@ export async function safeFetch(url: string, opts?: SafeFetchOptions): Promise<S
         response = await fetch(currentUrl, {
           redirect: 'manual',
           signal: controller.signal,
-          headers: { 'User-Agent': 'InfoBento/1.0' },
+          headers: { 'User-Agent': USER_AGENT_PRODUCT },
         });
       } catch (err: unknown) {
         if (err instanceof Error && err.name === 'AbortError') {
