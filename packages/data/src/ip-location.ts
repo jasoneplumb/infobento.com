@@ -16,14 +16,30 @@ export interface IpLocationResult {
   readonly countryCode: string | null;
 }
 
+export interface IpLocationOptions {
+  /**
+   * `User-Agent` to send. Server callers MUST set one: ipapi.co answers
+   * Node's default (`node`) with 429 "RateLimited" whatever the real request
+   * volume (#278). Browser callers leave it unset — the browser supplies its
+   * own, and Firefox would send a custom value, turning this simple CORS
+   * request into a preflighted one.
+   */
+  readonly userAgent?: string;
+}
+
 /**
  * Look up the location of `ip`, or of the caller's own egress IP when `ip`
  * is omitted (ipapi.co resolves the requesting address).
  */
-export async function fetchIpLocation(ip?: string): Promise<IpLocationResult | null> {
+export async function fetchIpLocation(
+  ip?: string,
+  options: IpLocationOptions = {},
+): Promise<IpLocationResult | null> {
   const url = ip ? `https://ipapi.co/${encodeURIComponent(ip)}/json/` : 'https://ipapi.co/json/';
   try {
-    const res = await fetch(url);
+    const res = options.userAgent
+      ? await fetch(url, { headers: { 'User-Agent': options.userAgent } })
+      : await fetch(url);
     if (!res.ok) return null;
     const data = (await res.json()) as {
       city?: string;

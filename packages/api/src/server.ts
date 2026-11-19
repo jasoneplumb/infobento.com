@@ -235,6 +235,8 @@ function isPrivateIp(ip: string): boolean {
 // stores whatever the fetcher returns, including those transient failures.
 const GEOLOCATE_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 const GEOLOCATE_CACHE_MAX_ENTRIES = 10_000;
+// ipapi.co rejects Node's default User-Agent with 429 "RateLimited" (#278).
+const GEOLOCATE_USER_AGENT = 'InfoBento/1.0 (https://github.com/jasoneplumb/infobento.com)';
 const geolocateCache = new Map<
   string,
   { value: { city: string | null; countryCode: string | null }; storedAtMs: number }
@@ -263,7 +265,7 @@ app.get('/api/geolocate', async (c) => {
     return c.json(hit.value);
   }
 
-  const loc = await fetchIpLocation(ip);
+  const loc = await fetchIpLocation(ip, { userAgent: GEOLOCATE_USER_AGENT });
   const value = { city: loc?.city ?? null, countryCode: loc?.countryCode ?? null };
   if (loc) {
     // Blunt cap so an XFF-spoofing client can't grow the map without bound.

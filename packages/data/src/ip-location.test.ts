@@ -28,6 +28,20 @@ describe('fetchIpLocation', () => {
     expect(fetchMock).toHaveBeenCalledWith('https://ipapi.co/8.8.8.8/json/');
   });
 
+  it('sends the given User-Agent, and no headers at all without one (#278)', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(jsonResponse({ city: 'London' }));
+    vi.stubGlobal('fetch', fetchMock);
+
+    await fetchIpLocation('8.8.8.8', { userAgent: 'Test/1.0' });
+    expect(fetchMock).toHaveBeenLastCalledWith('https://ipapi.co/8.8.8.8/json/', {
+      headers: { 'User-Agent': 'Test/1.0' },
+    });
+
+    // Browser path: a bare call keeps the request a simple CORS request.
+    await fetchIpLocation();
+    expect(fetchMock).toHaveBeenLastCalledWith('https://ipapi.co/json/');
+  });
+
   it('returns null on API error flag, missing city, non-OK status, and network failure', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse({ error: true })));
     expect(await fetchIpLocation()).toBeNull();

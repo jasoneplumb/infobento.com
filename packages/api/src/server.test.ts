@@ -314,7 +314,10 @@ describe('GET /api/geolocate (#183)', () => {
     });
     expect(res.status).toBe(200);
     expect(await res.json()).toEqual({ city: 'Detroit, Michigan', countryCode: 'US' });
-    expect(fetchMock).toHaveBeenCalledWith('https://ipapi.co/8.8.8.8/json/');
+    // Node's default UA is rate-limited by ipapi.co (#278).
+    expect(fetchMock).toHaveBeenCalledWith('https://ipapi.co/8.8.8.8/json/', {
+      headers: { 'User-Agent': expect.stringMatching(/^InfoBento\//) },
+    });
   });
 
   it('uses an ip-less lookup for private/loopback client addresses', async () => {
@@ -327,7 +330,9 @@ describe('GET /api/geolocate (#183)', () => {
       headers: { 'x-forwarded-for': '192.168.1.10' },
     });
     expect(await res.json()).toEqual({ city: 'London', countryCode: 'GB' });
-    expect(fetchMock).toHaveBeenCalledWith('https://ipapi.co/json/');
+    expect(fetchMock).toHaveBeenCalledWith('https://ipapi.co/json/', {
+      headers: { 'User-Agent': expect.stringMatching(/^InfoBento\//) },
+    });
   });
 
   it('returns 200 with nulls when the upstream lookup fails (absence is normal)', async () => {
