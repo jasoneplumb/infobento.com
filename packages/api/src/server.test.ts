@@ -7,6 +7,7 @@
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { app, _resetGeolocateCacheForTesting } from './server.js';
+import { USER_AGENT } from '@infobento/data';
 import {
   _resetSingletonForTesting,
   getDb,
@@ -316,7 +317,7 @@ describe('GET /api/geolocate (#183)', () => {
     expect(await res.json()).toEqual({ city: 'Detroit, Michigan', countryCode: 'US' });
     // Node's default UA is rate-limited by ipapi.co (#278).
     expect(fetchMock).toHaveBeenCalledWith('https://ipapi.co/8.8.8.8/json/', {
-      headers: { 'User-Agent': expect.stringMatching(/^InfoBento\//) },
+      headers: { 'User-Agent': USER_AGENT },
     });
   });
 
@@ -331,7 +332,7 @@ describe('GET /api/geolocate (#183)', () => {
     });
     expect(await res.json()).toEqual({ city: 'London', countryCode: 'GB' });
     expect(fetchMock).toHaveBeenCalledWith('https://ipapi.co/json/', {
-      headers: { 'User-Agent': expect.stringMatching(/^InfoBento\//) },
+      headers: { 'User-Agent': USER_AGENT },
     });
   });
 

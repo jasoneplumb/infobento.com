@@ -22,7 +22,7 @@ export interface IpLocationOptions {
    * Node's default (`node`) with 429 "RateLimited" whatever the real request
    * volume (#278). Browser callers leave it unset — the browser supplies its
    * own, and Firefox would send a custom value, turning this simple CORS
-   * request into a preflighted one.
+   * request into a preflighted one. An empty string counts as unset.
    */
   readonly userAgent?: string;
 }
