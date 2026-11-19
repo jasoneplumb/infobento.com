@@ -1,5 +1,28 @@
 # Changelog
 
+## [0.38.5] - 2026-11-19
+
+### Fixed
+
+- **Location detection returned nothing for every visitor (#278, #279).** `GET /api/geolocate` answered `{"city":null,"countryCode":null}` on every request in production, so the editor fell through to a direct browser call to ipapi.co (which Firefox Enhanced Tracking Protection and adblockers block) and then to the London fallback. The cause: ipapi.co answers Node's default `User-Agent` with `429 RateLimited` whatever the real request volume, and the server-side lookup sent none. `fetchIpLocation` now takes an optional `userAgent` and the route passes an identifying one. The browser fallback stays header-free so it remains a simple, non-preflighted CORS request.
+- **A release could deploy without passing tests (#247, #249).** The deploy workflow built and shipped on its own, with no dependency on CI. It now runs the full quality gate (build, typecheck, test, lint, format check) against the exact release commit, and the deploy job waits on it.
+
+### Security
+
+- **Workflow actions pinned to commit SHAs, and deploys verify the host key (#251).** Every `uses:` reference in the CI, deploy and review workflows is pinned to a full commit SHA. The deploy no longer trusts whatever `ssh-keyscan` returns at run time: it loads a pre-verified host key and connects with `StrictHostKeyChecking=yes`, so a host-key mismatch fails the deploy.
+- **`jose` 6.2.9 → 6.2.15 and `@simplewebauthn/server` 13.3.2 → 13.3.3 (#245, #274).** Patch updates to the token and passkey libraries the auth and pairing flows depend on.
+
+### Changed
+
+- **User-Agent strings have one source (#279).** The four server-side `User-Agent` literals (`geocode.ts`, `safe-fetch.ts`, `stocks.ts`, the geolocate route) now derive from `packages/data/src/user-agent.ts`. The values sent on the wire are unchanged.
+- **Prod dependency bumps (#245, #274).** `hono` 4.13.3 → 4.13.16, `@hono/node-server` 1.19.17 → 1.19.18, `zod` 4.4.3 → 4.6.7.
+- **Dev dependency and workflow-action bumps (#252, #263, #264, #265, #272, #273).** `vite` 6.4.3 → 6.4.5, `prettier` 3.9.6 → 3.9.10, `typescript-eslint` 8.67.0 → 8.72.1, `tsx` 4.23.12 → 4.23.15, `pdfkit` 0.19.1 → 0.20.2, `@types/node` 22.20.1 → 22.20.5, `@types/pdfkit` 0.17.6 → 0.17.7; `actions/setup-node`, `actions/upload-artifact`, `actions/download-artifact` and `anthropics/claude-code-action`. Toolchain only.
+
+### Documentation
+
+- **README separates bench-verified behavior from design targets (#253).** A prototype banner, `(target)` markers on the MCU, solar harvester and pricing, and deep-sleep current stated as unmeasured. Firmware is verified on the reTerminal E1001 (ESP32-S3); the production ESP32-C3 hardware does not exist yet.
+- **Plain punctuation in the public READMEs (#255, #256).** Em-dashes in prose replaced across `README.md` and `firmware/README.md`, and the `Evidence` heading renamed to `Results`. No facts changed.
+
 ## [0.38.4] - 2026-08-23
 
 ### Documentation
