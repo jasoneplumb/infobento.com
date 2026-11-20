@@ -8,7 +8,7 @@ InfoBento runs on a small rechargeable LiPo battery topped up by a solar panel o
 - **MCU:** ESP32-C3 (Wi-Fi for config + frame fetch; BLE reserved for v2)
 - **Power source:** rechargeable ≈100 mAh LiPo + solar panel (≈70×100 mm, upper back) via an AEM10941 harvester
 - **Display:** Good Display GDEH0576T81, 5.76" eInk, 920×680, 198 DPI, SSD2677 driver. ≈0.75 s full refresh, ≈0.3 s partial refresh, 1–3 refreshes/day (default 3). Exact refresh energy is unmeasured (TBD), but a full-panel refresh dominates the daily display energy at that cadence.
-- **Interaction:** minimal. Three buttons — a green orientation-flip button and two white buttons whose 5-second combined hold performs a factory reset — plus two tilt switches that detect landscape vs portrait for auto-rotate. Otherwise the device wakes on a schedule, fetches a frame, refreshes, and returns to deep sleep.
+- **Interaction:** minimal. Three buttons — a green button (a tap flips orientation; a 5-second hold refreshes now) and two white buttons whose 5-second combined hold performs a factory reset — plus two tilt switches that detect landscape vs portrait for auto-rotate. Otherwise the device wakes on a schedule, fetches a frame, refreshes, and returns to deep sleep.
 - **Connectivity:** Wi-Fi direct (locked 2026-04-22 — see `docs/hardware/CONNECTIVITY.md`); BLE reserved for v2
 
 ## Daily Budget Summary

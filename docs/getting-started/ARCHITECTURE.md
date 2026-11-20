@@ -39,7 +39,7 @@ Single mode: counter-standing. Refreshes 1–3× per day (default 3) on solar po
 - **eInk rendering** — production target is the GDEH0576T81 panel driven via SSD2677 partial-refresh waveforms (panel not yet sourced); bench-verified today on the reTerminal E1001.
 - **Solar-only power** — refresh budget sized to the solar harvest budget for moderate indoor light; USB-C tops up the battery when needed.
 - **Wi-Fi direct + web-only config** — no native phone app for v1. Captive-portal setup, web editor handles configuration.
-- **Minimal device interaction** — configure once via web, glance forever. The only physical affordances are the green button (orientation flip) and the two white buttons (held 5 s, factory reset for Wi-Fi recovery); day-to-day use needs none of them.
+- **Minimal device interaction** — configure once via web, glance forever. The only physical affordances are the green button (a tap flips orientation; a 5 s hold refreshes now) and the two white buttons (held 5 s, factory reset for Wi-Fi recovery); day-to-day use needs none of them.
 - **Drop survival** — designed for a 4-foot drop onto a hard surface (bumper layer, edge-radiused corners, recessed display).
 
 ## Package Architecture

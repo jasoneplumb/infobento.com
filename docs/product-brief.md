@@ -191,7 +191,7 @@ Solar is the durable differentiator, and it is narrower than it first appears: T
 ## Key Design Principles
 
 1. **Multi-Box Bento Dashboard** — The 5.76" panel hosts a multi-box dashboard (up to 10 boxes, depending on font size; multi-column) with big glanceable numbers.
-2. **Minimal Device Interaction** — No taps, no gestures, no screens to configure. The shipped firmware keeps two controls: the green button flips orientation, and holding the two white buttons for 5s factory-resets. Configure once at the web editor; the device just shows what matters.
+2. **Minimal Device Interaction** — No taps, no gestures, no screens to configure. The shipped firmware keeps two controls: the green button (a tap flips orientation; a 5s hold refreshes now), and holding the two white buttons for 5s factory-resets. Configure once at the web editor; the device just shows what matters.
 3. **Pure Function Architecture** — Rendering is a pure function: same config in, same frame out (`POST /api/render`). ⚠️ Superseded in part by epic #77 — the API as a whole is no longer stateless; accounts, device pairings, and per-device config live in SQLite, and the device-facing path renders from stored config given only a device id.
 4. **Free by Default** — All 18 dashboard box types work without accounts or API keys.
 5. **Visual Restraint** — Four shades used with intention. Hero data, body text, and metadata each earn their contrast level.
