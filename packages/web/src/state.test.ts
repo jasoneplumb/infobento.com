@@ -510,3 +510,39 @@ describe('in-row config edits persist (#192)', () => {
     expect(cloudSave).not.toHaveBeenCalled();
   });
 });
+
+describe('display profile always starts on the default (#283)', () => {
+  it('ignores a profile saved by an earlier visit, so saves carry the E1001 size', async () => {
+    localStorage.setItem(
+      'infobento-config',
+      JSON.stringify({ version: 2, boxes: [], profileId: 'gdeh0576-920x680' }),
+    );
+    // A fresh module load is a page load: it restores from localStorage.
+    vi.resetModules();
+    const freshState = await import('./state.js');
+    const { toBentoConfig } = await import('./config-map.js');
+    const { DEFAULT_PROFILE_ID } = await import('@infobento/core');
+
+    expect(freshState.getDeviceProfile().id).toBe(DEFAULT_PROFILE_ID);
+    expect(toBentoConfig()).toMatchObject({ width: 800, height: 480 });
+  });
+
+  it('keeps a previewed profile out of saves to a paired device', async () => {
+    vi.resetModules();
+    const freshState = await import('./state.js');
+    const { toBentoConfig } = await import('./config-map.js');
+    const cloudSave = vi.fn();
+    freshState.onCloudPersist(cloudSave);
+    freshState.enterCloudMode('device-1');
+
+    freshState.setDeviceProfile('gdeh0576-920x680');
+    expect(freshState.getDeviceProfile().id).toBe('gdeh0576-920x680');
+    // Switching the preview alone schedules no save to the device…
+    expect(cloudSave).not.toHaveBeenCalled();
+
+    // …and a save triggered by a real edit still carries the device's size.
+    freshState.addBox('quote');
+    expect(cloudSave).toHaveBeenCalled();
+    expect(toBentoConfig()).toMatchObject({ width: 800, height: 480 });
+  });
+});

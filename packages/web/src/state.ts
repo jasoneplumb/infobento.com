@@ -450,6 +450,8 @@ export function getActiveDeviceId(): string | null {
 export function enterCloudMode(deviceId: string, seed?: unknown): void {
   _persistenceMode = 'cloud';
   _activeDeviceId = deviceId;
+  // Preview the device as it will actually render (#283).
+  state.profileId = DEFAULT_PROFILE_ID;
   if (seed !== undefined) {
     _suppressPersist = true;
     try {
@@ -468,6 +470,7 @@ export function enterCloudMode(deviceId: string, seed?: unknown): void {
 export function exitToLocalMode(): void {
   _persistenceMode = 'local';
   _activeDeviceId = null;
+  state.profileId = DEFAULT_PROFILE_ID;
   // Restore the untouched local buffer; if there was none, keep current boxes.
   _suppressPersist = true;
   try {
@@ -480,6 +483,7 @@ export function exitToLocalMode(): void {
 
 /** Test-only: reset persistence mode/hooks between cases. */
 export function _resetPersistenceForTesting(): void {
+  state.profileId = DEFAULT_PROFILE_ID;
   _persistenceMode = 'local';
   _activeDeviceId = null;
   _cloudPersistFn = null;
@@ -865,8 +869,9 @@ export function getDeviceProfile(): DeviceProfilePreset {
 
 export function setDeviceProfile(id: string): void {
   if (DEVICE_PROFILES.some((p) => p.id === id)) {
+    // Preview-only (#283): nothing saved or sent to a device depends on it,
+    // so there is nothing to persist.
     state.profileId = id;
-    persist();
     renderPreview();
   }
 }
@@ -922,7 +927,6 @@ function persistToLocalStorage(): void {
       cornerRadius: state.cornerRadius,
       padding: state.padding,
       refreshesPerDay: state.refreshesPerDay,
-      profileId: state.profileId,
       tempUnit: state.tempUnit,
       locationIsFallback: state.locationIsFallback,
     };
@@ -1033,12 +1037,9 @@ function loadFromLocalStorage(): boolean {
       if (typeof obj.padding === 'number') state.padding = obj.padding;
       if (typeof obj.refreshesPerDay === 'number')
         state.refreshesPerDay = clampRefreshesPerDay(obj.refreshesPerDay);
-      if (
-        typeof obj.profileId === 'string' &&
-        DEVICE_PROFILES.some((p) => p.id === obj.profileId)
-      ) {
-        state.profileId = obj.profileId;
-      }
+      // profileId is deliberately NOT restored (#283): every page load starts
+      // the simulator on DEFAULT_PROFILE_ID, the only hardware in use. A
+      // profile picked for previewing lasts only for the session.
       if (obj.tempUnit === 'F' || obj.tempUnit === 'C') state.tempUnit = obj.tempUnit;
       if (typeof obj.locationIsFallback === 'boolean') {
         state.locationIsFallback = obj.locationIsFallback;
@@ -1189,8 +1190,8 @@ export function importJSON(): void {
 // -- Export -----------------------------------------------------------------
 
 export function exportJSON(): void {
-  // Emit a renderer BentoConfig (includes width/height from the active device
-  // profile) so the file drops straight into a device's config_json. importJSON
+  // Emit a renderer BentoConfig (width/height from the device target, not the
+  // preview profile) so the file drops straight into a device's config_json. importJSON
   // round-trips it back via loadConfig → fromBentoConfig.
   const data = toBentoConfig(state.boxes);
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });

@@ -12,7 +12,8 @@
  * targetDate↔date, label↔progressLabel, …) that are easy to get subtly wrong.
  */
 
-import type { BentoBox, BentoConfig, BentoBoxType } from '@infobento/core';
+import type { BentoBox, BentoConfig, BentoBoxType, DeviceProfilePreset } from '@infobento/core';
+import { DEVICE_PROFILES, DEFAULT_PROFILE_ID } from '@infobento/core';
 import type {
   EditorBox,
   EditorBoxType,
@@ -43,7 +44,6 @@ import {
   getCornerRadius,
   getPadding,
   getRefreshesPerDay,
-  getDeviceProfile,
 } from './state';
 
 // -- Editor → core ----------------------------------------------------------
@@ -224,9 +224,23 @@ export function toBentoBox(editor: EditorBox): BentoBox {
   }
 }
 
-/** Build a full core BentoConfig from the current editor boxes + style state. */
-export function toBentoConfig(boxes: readonly EditorBox[] = getBoxes()): BentoConfig {
-  const profile = getDeviceProfile();
+/**
+ * The panel every saved or exported config targets: the hardware in use (#283).
+ * Deliberately NOT the simulator's preview profile, which only the preview
+ * render passes in, so previewing another panel can never reach a device.
+ */
+const TARGET_PROFILE: DeviceProfilePreset =
+  DEVICE_PROFILES.find((p) => p.id === DEFAULT_PROFILE_ID) ?? DEVICE_PROFILES[0];
+
+/**
+ * Build a full core BentoConfig from the current editor boxes + style state.
+ * `profile` sets width/height; it defaults to the device target, and only the
+ * editor preview overrides it with the simulator's profile.
+ */
+export function toBentoConfig(
+  boxes: readonly EditorBox[] = getBoxes(),
+  profile: DeviceProfilePreset = TARGET_PROFILE,
+): BentoConfig {
   return {
     boxes: boxes.map(toBentoBox),
     refreshesPerDay: getRefreshesPerDay(),
