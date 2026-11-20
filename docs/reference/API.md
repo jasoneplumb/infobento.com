@@ -1,6 +1,6 @@
 # API Reference
 
-The InfoBento API is a **Hono** HTTP server. The rendering endpoints below are stateless pure functions; the auth, pairing, and device-config endpoints added by epic #77 are backed by SQLite and are **not** documented here yet (see the endpoint-coverage note at the end). In production, it serves both API routes and the built web UI from a single port (default 4000).
+The InfoBento API is a **Hono** HTTP server. The rendering endpoints below are stateless pure functions; the auth, pairing, and device-config endpoints added by epic #77 are backed by SQLite and are mostly **not** documented here yet (the device frame pulls are; see the endpoint-coverage note at the end). In production, it serves both API routes and the built web UI from a single port (default 4000).
 
 ## Design Principles
 
@@ -71,22 +71,73 @@ With `?dual=1` the response is JSON instead of a PNG: `{ landscape, portrait, la
 
 ---
 
+## Device frame pulls (firmware-facing)
+
+Unlike the endpoints above, these read the config stored for a device (SQLite), so the
+design principles above do not apply. The device id in the path is the bearer secret.
+Both endpoints are rate-limited to 10 requests per minute per device id (`429`, `Retry-After: 60`).
+
+### GET /api/device/:id/frames
+
+Render the device's stored config in **both** orientations and return them concatenated
+(landscape, then portrait) as one `application/octet-stream` body. The portrait frame is
+rotated into the panel's landscape raster, so both halves have the same geometry.
+`GET /api/device/:id/frame?orientation=landscape|portrait` returns one orientation and
+takes the same request headers and status codes.
+
+**Request headers** (all optional):
+
+| Header              | Meaning                                                                                                                                                                                                                                                                     |
+| ------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `X-Panel`           | The device's native landscape panel size, `WIDTHxHEIGHT` (e.g. `800x480`). When present, frames are rendered at this size whatever `width`/`height` the stored config carries. When absent (older firmware), the config's `width`/`height` decide, falling back to 920×680. |
+| `If-None-Match`     | An `ETag` from an earlier response. Takes precedence over `If-Modified-Since`.                                                                                                                                                                                              |
+| `If-Modified-Since` | A `Last-Modified` from an earlier response. Used only when `If-None-Match` is absent.                                                                                                                                                                                       |
+
+`X-Panel` must be one of the sizes in `DEVICE_PROFILES` (`packages/core/src/constants.ts`):
+currently `800x480` (Seeed reTerminal E1001) and `920x680` (GDEH0576T81). It is
+case-insensitive and must give the long side first.
+
+**Response headers:**
+
+| Header                                              | Sent on  | Meaning                                                                                                                 |
+| --------------------------------------------------- | -------- | ----------------------------------------------------------------------------------------------------------------------- |
+| `Last-Modified`                                     | 200, 304 | The later of the config's last edit and the current data-refresh boundary.                                              |
+| `ETag`                                              | 200, 304 | `"<unix-seconds>-<W>x<H>"` for a declared panel, `"<unix-seconds>-config"` otherwise. Changes whenever the frame would. |
+| `Vary`                                              | 200, 304 | `X-Panel`: the declared size is part of what a cached frame is valid for.                                               |
+| `X-Refresh-Interval`                                | 200, 304 | Seconds until the next pull. Omitted when scheduled refresh is disabled.                                                |
+| `X-Device-Forget`                                   | 200, 304 | `1` once, when the owner asked the device to forget its Wi-Fi.                                                          |
+| `X-Frame-{Landscape,Portrait}-{Width,Height,Bytes}` | 200      | Per-orientation geometry and byte length, so the device can split the body (`/frames`).                                 |
+| `X-Frame-Width`, `X-Frame-Height`                   | 200      | Geometry of the single frame (`/frame`).                                                                                |
+
+**Status codes:**
+
+| Status | Meaning                                                                                                                                                                                           |
+| ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `200`  | Frames in the body.                                                                                                                                                                               |
+| `304`  | The validator still matches. A validator issued for one panel size never matches a pull that declares another, so the device re-renders after a panel change.                                     |
+| `404`  | Unknown device id, or the device has no config yet.                                                                                                                                               |
+| `422`  | `X-Panel` is not a supported size. Body: `{ "error": "unsupported_panel", "panel": "<declared>", "supported": ["800x480", "920x680"] }`. The server also logs a warning naming the declared size. |
+| `429`  | Rate limited.                                                                                                                                                                                     |
+| `500`  | The stored config could not be parsed or rendered.                                                                                                                                                |
+
+---
+
 ## Endpoint coverage
 
-⚠️ **This reference documents 5 of the API's 28 routes.** The five above are the stateless
-endpoints — three rendering endpoints plus health and box-types. Undocumented, all added
-after this file was written:
+⚠️ **This reference documents 7 of the API's 28 routes.** The five stateless endpoints under
+Endpoints (three rendering endpoints plus health and box-types) and the two device frame
+pulls. Undocumented, all added after this file was written:
 
-| Group                    | Routes                                                                                                   |
-| ------------------------ | -------------------------------------------------------------------------------------------------------- |
-| Auth — passkey           | `POST /api/auth/passkey/{register,login}/{options,verify}`                                               |
-| Auth — OAuth             | `GET /api/auth/oauth/:provider/{start,callback}`                                                         |
-| Auth — session           | `GET /api/auth/session`, `POST /api/auth/signout`                                                        |
-| Pairing                  | `POST /api/pair`                                                                                         |
-| Account                  | `GET /api/me/devices`, `GET /api/me/device/:id/config` (session-gated), `DELETE /api/device/:id/owner`   |
-| Device (firmware-facing) | `GET /api/device/:id/{config,frame,frames}`, `PUT /api/device/:id/config`, `POST /api/device/:id/forget` |
-| Rendering                | `POST /api/render-dual`                                                                                  |
-| Data proxies             | `GET /api/{quote,horoscope,stocks,onthisday,geolocate}`                                                  |
+| Group                    | Routes                                                                                                 |
+| ------------------------ | ------------------------------------------------------------------------------------------------------ |
+| Auth — passkey           | `POST /api/auth/passkey/{register,login}/{options,verify}`                                             |
+| Auth — OAuth             | `GET /api/auth/oauth/:provider/{start,callback}`                                                       |
+| Auth — session           | `GET /api/auth/session`, `POST /api/auth/signout`                                                      |
+| Pairing                  | `POST /api/pair`                                                                                       |
+| Account                  | `GET /api/me/devices`, `GET /api/me/device/:id/config` (session-gated), `DELETE /api/device/:id/owner` |
+| Device (firmware-facing) | `GET /api/device/:id/config`, `PUT /api/device/:id/config`, `POST /api/device/:id/forget`              |
+| Rendering                | `POST /api/render-dual`                                                                                |
+| Data proxies             | `GET /api/{quote,horoscope,stocks,onthisday,geolocate}`                                                |
 
 Authoritative source is `packages/api/src/server.ts`. Documenting these matters most for
 self-hosters, since the auth env vars in the README are useless without the routes they

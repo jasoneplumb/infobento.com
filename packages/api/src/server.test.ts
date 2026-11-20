@@ -291,6 +291,63 @@ describe('GET /api/device/:id/frames', () => {
     const res = await app.request('/api/device/does-not-exist/frames');
     expect(res.status).toBe(404);
   });
+
+  // Device-declared panel size (#288).
+  it('renders at the X-Panel size and returns a size-scoped ETag', async () => {
+    const id = seedDevice('PANEL1'); // config carries no size → would be 920x680
+    const res = await app.request(`/api/device/${id}/frames`, {
+      headers: { 'X-Panel': '800x480' },
+    });
+    expect(res.status).toBe(200);
+    expect(res.headers.get('X-Frame-Landscape-Bytes')).toBe('96000');
+    expect(res.headers.get('X-Frame-Portrait-Bytes')).toBe('96000');
+    expect(res.headers.get('X-Frame-Landscape-Width')).toBe('800');
+    expect(res.headers.get('X-Frame-Landscape-Height')).toBe('480');
+    expect(res.headers.get('ETag')).toMatch(/^"\d+-800x480"$/);
+    expect(res.headers.get('Vary')).toBe('X-Panel');
+  });
+
+  it('304s a matching If-None-Match, but not one issued for another panel size', async () => {
+    const id = seedDevice('PANEL2');
+    const first = await app.request(`/api/device/${id}/frames`, {
+      headers: { 'X-Panel': '800x480' },
+    });
+    const etag = first.headers.get('ETag') ?? '';
+    const lastModified = first.headers.get('Last-Modified') ?? '';
+
+    const same = await app.request(`/api/device/${id}/frames`, {
+      headers: { 'X-Panel': '800x480', 'If-None-Match': etag, 'If-Modified-Since': lastModified },
+    });
+    expect(same.status).toBe(304);
+    expect(same.headers.get('ETag')).toBe(etag);
+
+    const other = await app.request(`/api/device/${id}/frames`, {
+      headers: { 'X-Panel': '920x680', 'If-None-Match': etag, 'If-Modified-Since': lastModified },
+    });
+    expect(other.status).toBe(200);
+    expect(other.headers.get('X-Frame-Landscape-Bytes')).toBe('156400');
+  });
+
+  it('422s a declared size outside DEVICE_PROFILES and logs it server-side', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    try {
+      const id = seedDevice('PANEL3');
+      const res = await app.request(`/api/device/${id}/frames`, {
+        headers: { 'X-Panel': '1024x600' },
+      });
+      expect(res.status).toBe(422);
+      expect(await res.json()).toEqual({
+        error: 'unsupported_panel',
+        panel: '1024x600',
+        supported: ['800x480', '920x680'],
+      });
+      expect(warn).toHaveBeenCalledWith(expect.stringContaining('"1024x600"'));
+      // The bearer-secret device id is never logged in full.
+      expect(warn).not.toHaveBeenCalledWith(expect.stringContaining(id));
+    } finally {
+      warn.mockRestore();
+    }
+  });
 });
 
 describe('GET /api/geolocate (#183)', () => {

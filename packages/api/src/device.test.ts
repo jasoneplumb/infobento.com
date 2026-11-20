@@ -2,13 +2,17 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { createDb, createDevice, setConfig, type DB } from './db.js';
 import {
   effectiveLastModified,
+  etagMatches,
   formatHttpDate,
+  frameETag,
   getDeviceConfigForPull,
   getDeviceFrameForPull,
   getDeviceFramesForPull,
   isNotModified,
   parseOrientation,
+  parsePanelDeclaration,
   refreshIntervalSeconds,
+  supportedPanels,
 } from './device.js';
 import { InMemoryCache } from '@infobento/data';
 import type { HydrateDeps } from './hydrate.js';
@@ -139,21 +143,21 @@ describe('getDeviceFrameForPull', () => {
   });
 
   it('returns 404 for unknown device id', async () => {
-    expect(await getDeviceFrameForPull(db, 'nope', 'landscape', null, makeDeps())).toEqual({
+    expect(await getDeviceFrameForPull(db, 'nope', 'landscape', {}, makeDeps())).toEqual({
       status: 404,
     });
   });
 
   it('returns 404 for a device that has no config', async () => {
     const d = createDevice(db, { pairCode: 'NOCONFIG2' });
-    expect(await getDeviceFrameForPull(db, d.id, 'landscape', null, makeDeps())).toEqual({
+    expect(await getDeviceFrameForPull(db, d.id, 'landscape', {}, makeDeps())).toEqual({
       status: 404,
     });
   });
 
   it('renders the landscape frame and returns 200 with bytes', async () => {
     const { id } = seedDeviceWithConfig(db);
-    const r = await getDeviceFrameForPull(db, id, 'landscape', null, makeDeps());
+    const r = await getDeviceFrameForPull(db, id, 'landscape', {}, makeDeps());
     expect(r.status).toBe(200);
     if (r.status !== 200) throw new Error('unreachable');
     expect(r.width).toBeGreaterThan(0);
@@ -168,7 +172,7 @@ describe('getDeviceFrameForPull', () => {
 
   it('returns a portrait frame with swapped width/height', async () => {
     const { id } = seedDeviceWithConfig(db);
-    const r = await getDeviceFrameForPull(db, id, 'portrait', null, makeDeps());
+    const r = await getDeviceFrameForPull(db, id, 'portrait', {}, makeDeps());
     expect(r.status).toBe(200);
     if (r.status !== 200) throw new Error('unreachable');
     expect(r.height).toBeGreaterThanOrEqual(r.width);
@@ -181,7 +185,7 @@ describe('getDeviceFrameForPull', () => {
       db,
       id,
       'landscape',
-      formatHttpDate(lastModifiedMs),
+      { ifModifiedSince: formatHttpDate(lastModifiedMs) },
       makeDeps(),
       lastModifiedMs,
     );
@@ -200,7 +204,7 @@ describe('getDeviceFrameForPull', () => {
       db,
       id,
       'landscape',
-      formatHttpDate(lastModifiedMs), // device's cached token (from the last draw)
+      { ifModifiedSince: formatHttpDate(lastModifiedMs) }, // device's cached token (from the last draw)
       makeDeps(),
       nextBoundary + 1000, // a wake just past the boundary
     );
@@ -227,7 +231,7 @@ describe('getDeviceFrameForPull', () => {
       },
       ...NULL_PROVIDERS,
     };
-    const r = await getDeviceFrameForPull(db, d.id, 'landscape', null, deps);
+    const r = await getDeviceFrameForPull(db, d.id, 'landscape', {}, deps);
     expect(r.status).toBe(200);
     expect(requested).toBe('Portland');
   });
@@ -235,7 +239,7 @@ describe('getDeviceFrameForPull', () => {
   it('returns 500 when stored config is corrupt JSON', async () => {
     const d = createDevice(db, { pairCode: 'BADJSON' });
     setConfig(db, d.id, '{ this is not json');
-    const r = await getDeviceFrameForPull(db, d.id, 'landscape', null, makeDeps());
+    const r = await getDeviceFrameForPull(db, d.id, 'landscape', {}, makeDeps());
     expect(r.status).toBe(500);
   });
 });
@@ -248,17 +252,17 @@ describe('getDeviceFramesForPull', () => {
   });
 
   it('returns 404 for unknown device id', async () => {
-    expect(await getDeviceFramesForPull(db, 'nope', null, makeDeps())).toEqual({ status: 404 });
+    expect(await getDeviceFramesForPull(db, 'nope', {}, makeDeps())).toEqual({ status: 404 });
   });
 
   it('returns 404 for a device that has no config', async () => {
     const d = createDevice(db, { pairCode: 'NOCONFIG3' });
-    expect(await getDeviceFramesForPull(db, d.id, null, makeDeps())).toEqual({ status: 404 });
+    expect(await getDeviceFramesForPull(db, d.id, {}, makeDeps())).toEqual({ status: 404 });
   });
 
   it('returns both orientations in the SAME panel raster (portrait pre-rotated)', async () => {
     const { id } = seedDeviceWithConfig(db);
-    const r = await getDeviceFramesForPull(db, id, null, makeDeps());
+    const r = await getDeviceFramesForPull(db, id, {}, makeDeps());
     expect(r.status).toBe(200);
     if (r.status !== 200) throw new Error('unreachable');
     // 920 x 680 at 2bpp packs to 156,400 bytes per orientation.
@@ -280,7 +284,7 @@ describe('getDeviceFramesForPull', () => {
     const r = await getDeviceFramesForPull(
       db,
       id,
-      formatHttpDate(lastModifiedMs),
+      { ifModifiedSince: formatHttpDate(lastModifiedMs) },
       makeDeps(),
       lastModifiedMs,
     );
@@ -297,7 +301,7 @@ describe('getDeviceFramesForPull', () => {
     const r = await getDeviceFramesForPull(
       db,
       id,
-      formatHttpDate(lastModifiedMs),
+      { ifModifiedSince: formatHttpDate(lastModifiedMs) },
       makeDeps(),
       nextBoundary + 1000,
     );
@@ -309,8 +313,133 @@ describe('getDeviceFramesForPull', () => {
   it('returns 500 when stored config is corrupt JSON', async () => {
     const d = createDevice(db, { pairCode: 'BADJSON2' });
     setConfig(db, d.id, '{ this is not json');
-    const r = await getDeviceFramesForPull(db, d.id, null, makeDeps());
+    const r = await getDeviceFramesForPull(db, d.id, {}, makeDeps());
     expect(r.status).toBe(500);
+  });
+});
+
+/**
+ * Device-declared panel size (#288): the firmware sends `X-Panel`, the server
+ * renders to it whatever size the stored config carries, and the validator
+ * encodes the size so a cached frame for one panel never answers for another.
+ */
+describe('parsePanelDeclaration', () => {
+  it('is absent when the header is missing (older firmware)', () => {
+    expect(parsePanelDeclaration(undefined)).toEqual({ kind: 'absent' });
+    expect(parsePanelDeclaration(null)).toEqual({ kind: 'absent' });
+  });
+
+  it('accepts every DEVICE_PROFILES size, tolerating case and surrounding space', () => {
+    expect(parsePanelDeclaration('800x480')).toEqual({
+      kind: 'supported',
+      panel: { widthPx: 800, heightPx: 480 },
+    });
+    expect(parsePanelDeclaration(' 920X680 ')).toEqual({
+      kind: 'supported',
+      panel: { widthPx: 920, heightPx: 680 },
+    });
+    expect(supportedPanels()).toEqual(['800x480', '920x680']);
+  });
+
+  it.each(['', '480x800', '1024x768', '800 x 480', '800x480x2', 'e1001', '-800x480'])(
+    'rejects %j as unsupported',
+    (raw) => {
+      expect(parsePanelDeclaration(raw)).toEqual({ kind: 'unsupported', raw });
+    },
+  );
+});
+
+describe('frameETag / etagMatches', () => {
+  const ms = 1_700_000_000_500;
+
+  it('encodes the freshness second and the render size', () => {
+    expect(frameETag(ms, { widthPx: 800, heightPx: 480 })).toBe('"1700000000-800x480"');
+    expect(frameETag(ms, null)).toBe('"1700000000-config"');
+  });
+
+  it('matches exact, weak, listed, and wildcard If-None-Match values', () => {
+    const tag = '"1700000000-800x480"';
+    expect(etagMatches(tag, tag)).toBe(true);
+    expect(etagMatches(`W/${tag}`, tag)).toBe(true);
+    expect(etagMatches(`"other", ${tag}`, tag)).toBe(true);
+    expect(etagMatches('*', tag)).toBe(true);
+    expect(etagMatches('"1700000000-920x680"', tag)).toBe(false);
+  });
+});
+
+describe('frame pulls with a declared panel (#288)', () => {
+  let db: DB;
+  const E1001 = { widthPx: 800, heightPx: 480 } as const;
+  beforeEach(() => {
+    db = createDb(':memory:');
+    delete process.env['INFOBENTO_DATA_BUCKET_SECONDS'];
+  });
+
+  it('renders both frames at the declared size, not the config default', async () => {
+    const { id } = seedDeviceWithConfig(db); // no width/height → would be 920x680
+    const r = await getDeviceFramesForPull(db, id, { panel: E1001 }, makeDeps());
+    expect(r.status).toBe(200);
+    if (r.status !== 200) throw new Error('unreachable');
+    expect(r.landscape).toMatchObject({ width: 800, height: 480 });
+    expect(r.portrait).toMatchObject({ width: 800, height: 480 });
+    // 800 x 480 at 2bpp = the firmware's IB_FRAME_LEN.
+    expect(r.landscape.data.byteLength).toBe(96_000);
+    expect(r.portrait.data.byteLength).toBe(96_000);
+  });
+
+  it('overrides a stored config width/height that disagrees with the hardware', async () => {
+    const d = createDevice(db, { pairCode: 'MISMATCH' });
+    setConfig(db, d.id, JSON.stringify({ ...SAMPLE_CONFIG, width: 920, height: 680 }));
+    const declared = await getDeviceFrameForPull(
+      db,
+      d.id,
+      'landscape',
+      { panel: E1001 },
+      makeDeps(),
+    );
+    expect(declared).toMatchObject({ status: 200, width: 800, height: 480 });
+    // Older firmware declares nothing and keeps today's behavior: the config's size.
+    const legacy = await getDeviceFrameForPull(db, d.id, 'landscape', {}, makeDeps());
+    expect(legacy).toMatchObject({ status: 200, width: 920, height: 680 });
+  });
+
+  it('answers 304 to a matching If-None-Match and carries the same ETag', async () => {
+    const { id, lastModifiedMs } = seedDeviceWithConfig(db);
+    const first = await getDeviceFramesForPull(
+      db,
+      id,
+      { panel: E1001 },
+      makeDeps(),
+      lastModifiedMs,
+    );
+    if (first.status !== 200) throw new Error('unreachable');
+    expect(first.etag).toBe(frameETag(lastModifiedMs, E1001));
+    const second = await getDeviceFramesForPull(
+      db,
+      id,
+      { panel: E1001, ifNoneMatch: first.etag },
+      makeDeps(),
+      lastModifiedMs,
+    );
+    expect(second).toMatchObject({ status: 304, etag: first.etag });
+  });
+
+  it('re-renders (200) when the validator was issued for a different panel size', async () => {
+    const { id, lastModifiedMs } = seedDeviceWithConfig(db);
+    const otherPanel = frameETag(lastModifiedMs, { widthPx: 920, heightPx: 680 });
+    const r = await getDeviceFramesForPull(
+      db,
+      id,
+      // If-Modified-Since alone would say 304; If-None-Match takes precedence.
+      {
+        panel: E1001,
+        ifNoneMatch: otherPanel,
+        ifModifiedSince: formatHttpDate(lastModifiedMs),
+      },
+      makeDeps(),
+      lastModifiedMs,
+    );
+    expect(r.status).toBe(200);
   });
 });
 

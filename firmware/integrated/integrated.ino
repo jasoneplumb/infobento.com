@@ -9,7 +9,7 @@
 //
 // Boot flow (setup()):
 //   not configured (no deviceid/ssid)  -> draw setup screen, AP mode + portal
-//   configured, cold/timer wake        -> Wi-Fi -> GET /frames -> draw -> sleep
+//   configured, cold/timer wake        -> Wi-Fi -> GET /frames (X-Panel) -> draw -> sleep
 //   configured, green tap wake          -> flip cached orientation, radio off
 //   configured, green held 5s           -> Wi-Fi -> unconditional GET /frames -> draw (#280)
 //   configured, white-combo wake        -> factory reset (draw screen, wipe NVS)
@@ -46,6 +46,11 @@
 #define EPD_W 800
 #define EPD_H 480
 #define IB_FRAME_LEN (EPD_W * EPD_H / 4)  // 96000
+// Declared on every /frames pull as X-Panel, so the server renders to this
+// panel's size rather than the config's width/height (#288).
+#define IB_STR2(x) #x
+#define IB_STR(x) IB_STR2(x)
+#define IB_PANEL IB_STR(EPD_W) "x" IB_STR(EPD_H)  // "800x480"
 
 #define GREEN_BTN_GPIO 3    // tap: orientation flip / 5s hold: pull now (dashboard); reset-screen flip (AP)
 #define WHITE_BTN_R_GPIO 4  // right white — the only ext1 wake-capable white button
@@ -71,6 +76,7 @@ static const char* DEFAULT_SERVER = "https://www.infobento.com";
 
 // ----- persisted across deep sleep (RTC slow memory) -----
 RTC_DATA_ATTR char g_lastModified[48] = {0};
+RTC_DATA_ATTR char g_etag[48] = {0};  // size-scoped validator; preferred over Last-Modified
 RTC_DATA_ATTR uint32_t g_bootCount = 0;
 RTC_DATA_ATTR uint32_t g_sleepSeconds = 0;
 RTC_DATA_ATTR uint8_t g_orientation = ORIENT_LANDSCAPE;
@@ -323,14 +329,23 @@ void pullFrames(bool unconditional = false) {
 
   HTTPClient http;
   http.begin(*client, url);
-  const char* collect[] = { "Last-Modified", "X-Refresh-Interval", "X-Frame-Landscape-Bytes", "X-Frame-Portrait-Bytes" };
-  http.collectHeaders(collect, 4);
+  const char* collect[] = { "Last-Modified", "ETag", "X-Refresh-Interval", "X-Frame-Landscape-Bytes", "X-Frame-Portrait-Bytes" };
+  http.collectHeaders(collect, 5);
+  http.addHeader("X-Panel", IB_PANEL);
+  // Both validators: a server that issues ETags compares If-None-Match (which
+  // also encodes the panel size); an older one falls back to If-Modified-Since.
   if (!unconditional && g_lastModified[0]) http.addHeader("If-Modified-Since", g_lastModified);
+  if (!unconditional && g_etag[0]) http.addHeader("If-None-Match", g_etag);
+  Serial.printf("[IB] X-Panel: %s\n", IB_PANEL);
   int code = http.GET();
   Serial.printf("[IB] GET /frames -> %d\n", code);
   adoptRefreshInterval(http);
 
   if (code == 304) { Serial.println("[IB] 304 -> keep cached frames"); http.end(); return; }
+  if (code == 422) {
+    Serial.printf("[IB] ERROR server does not support panel %s (422) -> keep last frame\n", IB_PANEL);
+    http.end(); return;
+  }
   if (code != 200) { Serial.printf("[IB] status %d -> keep last frame\n", code); http.end(); return; }
 
   long landBytes = http.header("X-Frame-Landscape-Bytes").toInt();
@@ -355,7 +370,11 @@ void pullFrames(bool unconditional = false) {
 
   String lm = http.header("Last-Modified");
   if (lm.length()) { strncpy(g_lastModified, lm.c_str(), sizeof(g_lastModified) - 1); g_lastModified[sizeof(g_lastModified) - 1] = '\0'; }
-  Serial.printf("[IB] stored both frames, Last-Modified: %s\n", g_lastModified);
+  // Replace (or clear) the ETag on every 200, so a validator from an older server
+  // response can never outlive the frames it described.
+  String et = http.header("ETag");
+  strncpy(g_etag, et.c_str(), sizeof(g_etag) - 1); g_etag[sizeof(g_etag) - 1] = '\0';
+  Serial.printf("[IB] stored both frames, Last-Modified: %s, ETag: %s\n", g_lastModified, g_etag[0] ? g_etag : "(none)");
   if (!drawOrientationFromFlash(g_orientation)) Serial.println("[IB] WARN: draw-after-store failed");
 }
 
