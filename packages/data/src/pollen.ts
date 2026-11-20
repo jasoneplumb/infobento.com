@@ -12,6 +12,7 @@
 import type { PollenData } from '@infobento/core';
 import { geocode } from './geocode.js';
 import { readCurrent } from './open-meteo.js';
+import { IDENTIFYING_HEADERS } from './user-agent.js';
 
 interface OpenMeteoPollen {
   current: Record<string, number | null | undefined>;
@@ -112,7 +113,7 @@ export async function fetchPollen(location: string): Promise<PollenData | null> 
       `?latitude=${String(place.latitude)}` +
       `&longitude=${String(place.longitude)}` +
       `&current=${fields}`;
-    const res = await fetch(url);
+    const res = await fetch(url, { headers: IDENTIFYING_HEADERS });
     if (!res.ok) return null;
 
     const current = readCurrent<OpenMeteoPollen['current']>(await res.json());

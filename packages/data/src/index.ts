@@ -1,10 +1,11 @@
 /**
  * @infobento/data — shared, pure box-data provider package (RFC 0001).
  *
- * All resolvers are `fetch`-only (no DOM/window), so the web editor (previews)
- * and the api (pull-time hydration + thin proxy routes) share one
- * implementation. Every resolver returns its result or `null` on failure — the
- * resilience primitive callers build on.
+ * All resolvers are `fetch`-only (no DOM/window), so they run anywhere. The api
+ * calls them for pull-time hydration and for the proxy routes the web editor
+ * previews through (/api/box-data, #287), so both share one implementation.
+ * Every resolver returns its result or `null` on failure — the resilience
+ * primitive callers build on.
  */
 
 // Caching + rate-limiting primitives
@@ -38,7 +39,7 @@ export {
 export { fetchHoroscope, VALID_ZODIAC_SIGNS, type HoroscopeResult } from './horoscope.js';
 export { fetchOnThisDay, VALID_ONTHISDAY_CATEGORIES, type OnThisDayResult } from './onthisday.js';
 export { fetchStocks, isValidStockSymbol, STOCK_RANGE_MAP, type StocksResult } from './stocks.js';
-export { fetchNextPublicHoliday } from './holidays.js';
+export { fetchNextPublicHoliday, isValidCountryCode } from './holidays.js';
 
 // The SSRF fetch guard is deliberately NOT re-exported here. It imports
 // `node:dns/promises`, and this barrel is consumed by `web` — re-exporting it

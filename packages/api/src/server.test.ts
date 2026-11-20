@@ -6,7 +6,7 @@
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { app, _resetGeolocateCacheForTesting } from './server.js';
+import { app, _resetBoxDataForTesting, _resetGeolocateCacheForTesting } from './server.js';
 import { USER_AGENT } from '@infobento/data';
 import {
   _resetSingletonForTesting,
@@ -375,5 +375,165 @@ describe('GET /api/geolocate (#183)', () => {
       countryCode: 'US',
     });
     expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe('GET /api/box-data/:type (#287)', () => {
+  const HOLIDAY = [{ date: '2026-12-25', localName: 'Christmas Day', name: 'Christmas Day' }];
+  const CLIENT = { 'x-forwarded-for': '203.0.113.7' };
+
+  /** Every distinct two-letter code, for tests that need many cache misses. */
+  const CODES = Array.from({ length: 26 * 26 }, (_, i) =>
+    String.fromCharCode(65 + Math.floor(i / 26), 65 + (i % 26)),
+  );
+
+  function stubHolidays(): ReturnType<typeof vi.fn> {
+    const mock = vi.fn(async () => new Response(JSON.stringify(HOLIDAY)));
+    vi.stubGlobal('fetch', mock);
+    return mock;
+  }
+
+  beforeEach(() => {
+    _resetBoxDataForTesting();
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it('geocodes server-side and sends the identifying User-Agent upstream', async () => {
+    const fetchMock = vi.fn(async (input: string | URL) => {
+      const url = String(input);
+      const body = url.includes('nominatim')
+        ? [{ lat: '45.5', lon: '-122.6', display_name: 'Portland' }]
+        : {
+            utc_offset_seconds: -25200,
+            current: { temperature_2m: 20, weather_code: 0 },
+            daily: { temperature_2m_max: [25], temperature_2m_min: [10] },
+          };
+      return new Response(JSON.stringify(body));
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    const res = await app.request('/api/box-data/weather?location=Portland&unit=C');
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({
+      data: { temperature: 20, condition: 'Clear', high: 25, low: 10, utcOffsetSeconds: -25200 },
+    });
+
+    const calls = fetchMock.mock.calls as unknown as [string, RequestInit][];
+    const nominatim = calls.find(([url]) => url.includes('nominatim.openstreetmap.org'));
+    const openMeteo = calls.find(([url]) => url.includes('api.open-meteo.com'));
+    expect(nominatim?.[1].headers).toMatchObject({ 'User-Agent': USER_AGENT });
+    expect(openMeteo?.[1]).toEqual({ headers: { 'User-Agent': USER_AGENT } });
+  });
+
+  it('returns 200 with data: null when the upstream fails (absence is normal)', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('upstream down')));
+
+    const res = await app.request('/api/box-data/holidays?country=GB');
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ data: null });
+  });
+
+  it('serves a repeat request from cache, keyed on the normalized input', async () => {
+    const fetchMock = stubHolidays();
+
+    const first = await app.request('/api/box-data/holidays?country=gb');
+    const second = await app.request('/api/box-data/holidays?country=%20GB%20');
+    const expected = { data: { name: 'Christmas Day', date: '2026-12-25' } };
+    expect(await first.json()).toEqual(expected);
+    expect(await second.json()).toEqual(expected);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(fetchMock).toHaveBeenCalledWith('https://date.nager.at/api/v3/NextPublicHolidays/GB', {
+      headers: { 'User-Agent': USER_AGENT },
+    });
+  });
+
+  it('does not cache failures — the next request retries upstream', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(new Response('slow down', { status: 429 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify(HOLIDAY)));
+    vi.stubGlobal('fetch', fetchMock);
+
+    const url = '/api/box-data/holidays?country=GB';
+    expect(await (await app.request(url)).json()).toEqual({ data: null });
+    expect(await (await app.request(url)).json()).toEqual({
+      data: { name: 'Christmas Day', date: '2026-12-25' },
+    });
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it.each([
+    ['/api/box-data/stocks?location=Portland', 'Unknown box type'],
+    ['/api/box-data/weather', 'Invalid or missing location'],
+    [`/api/box-data/sun?location=${'x'.repeat(201)}`, 'Invalid or missing location'],
+    ['/api/box-data/weather?location=Oslo&unit=K', 'Invalid unit'],
+    ['/api/box-data/forecast?location=Oslo&hours=99', 'Invalid hours'],
+    ['/api/box-data/forecast3d?location=Oslo&days=-1', 'Invalid days'],
+    ['/api/box-data/holidays?country=GB%2F..', 'Invalid or missing country'],
+  ])('400s %s without calling upstream', async (url, error) => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+
+    const res = await app.request(url);
+    expect(res.status).toBe(400);
+    expect(await res.json()).toEqual({ data: null, error });
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('rate-limits upstream-bound misses per client, but still serves cache hits', async () => {
+    const fetchMock = stubHolidays();
+    const get = async (code: string, headers: Record<string, string> = CLIENT): Promise<Response> =>
+      app.request(`/api/box-data/holidays?country=${code}`, { headers });
+
+    for (const code of CODES.slice(0, 30)) {
+      expect((await get(code)).status).toBe(200);
+    }
+    const limited = await get(CODES[30] ?? '');
+    expect(limited.status).toBe(429);
+    expect(limited.headers.get('Retry-After')).toBe('60');
+    expect(await limited.json()).toEqual({ data: null, error: 'rate_limited' });
+
+    // A cached key costs no upstream call, so it is not limited.
+    expect((await get(CODES[0] ?? '')).status).toBe(200);
+    // Another client has its own bucket.
+    expect((await get(CODES[30] ?? '', { 'x-forwarded-for': '198.51.100.9' })).status).toBe(200);
+    expect(fetchMock).toHaveBeenCalledTimes(31);
+  });
+
+  it('503s new misses while the global in-flight cap is full, then recovers', async () => {
+    // Upstream calls hang until the gate opens, then answer immediately.
+    let open!: () => void;
+    const gate = new Promise<void>((resolve) => (open = resolve));
+    const fetchMock = vi.fn(async () => {
+      await gate;
+      return new Response(JSON.stringify(HOLIDAY));
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    // Distinct clients, so the per-client limiter is not what trips.
+    const request = async (code: string, i: number): Promise<Response> =>
+      app.request(`/api/box-data/holidays?country=${code}`, {
+        headers: { 'x-forwarded-for': `203.0.113.${String(i)}` },
+      });
+    const inflight = CODES.slice(0, 8).map(request);
+    await vi.waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(8));
+
+    const busy = await request(CODES[8] ?? '', 8);
+    expect(busy.status).toBe(503);
+    expect(busy.headers.get('Retry-After')).toBe('8');
+    expect(await busy.json()).toEqual({ data: null, error: 'busy' });
+
+    // A request for a key already in flight joins it instead of being refused.
+    const joined = request(CODES[0] ?? '', 9);
+
+    open();
+    for (const res of await Promise.all([...inflight, joined])) expect(res.status).toBe(200);
+    expect(fetchMock).toHaveBeenCalledTimes(8);
+
+    expect((await request(CODES[8] ?? '', 8)).status).toBe(200);
+    expect(fetchMock).toHaveBeenCalledTimes(9);
   });
 });

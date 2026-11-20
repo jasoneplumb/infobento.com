@@ -74,23 +74,24 @@ export interface HydrateDeps {
 // device's configured pull interval by effectiveTtlMs (#193) so "Refresh every
 // 15 min" actually shows different content every 15 min — while the shared
 // single-flight cache still collapses the wake-herd of devices in one
-// city/sign/symbol into a single upstream call per window.
-const WEATHER_TTL_MS = 30 * 60 * 1000;
-const FORECAST_TTL_MS = 30 * 60 * 1000;
-const FORECAST3D_TTL_MS = 3 * 60 * 60 * 1000;
-const SUN_TTL_MS = 6 * 60 * 60 * 1000;
-const AQI_TTL_MS = 30 * 60 * 1000;
-const UV_TTL_MS = 30 * 60 * 1000;
+// city/sign/symbol into a single upstream call per window. The editor-facing
+// /api/box-data route (#287) caches at these base ceilings too.
+export const WEATHER_TTL_MS = 30 * 60 * 1000;
+export const FORECAST_TTL_MS = 30 * 60 * 1000;
+export const FORECAST3D_TTL_MS = 3 * 60 * 60 * 1000;
+export const SUN_TTL_MS = 6 * 60 * 60 * 1000;
+export const AQI_TTL_MS = 30 * 60 * 1000;
+export const UV_TTL_MS = 30 * 60 * 1000;
 // Pollen is a daily-resolution forecast upstream; a tighter TTL would just
 // re-fetch identical numbers.
-const POLLEN_TTL_MS = 3 * 60 * 60 * 1000;
+export const POLLEN_TTL_MS = 3 * 60 * 60 * 1000;
 const STOCKS_TTL_MS = 15 * 60 * 1000;
 const HOROSCOPE_TTL_MS = 6 * 60 * 60 * 1000;
 const ONTHISDAY_TTL_MS = 6 * 60 * 60 * 1000;
 const QUOTE_TTL_MS = 6 * 60 * 60 * 1000;
 // Holidays are stable within a day; re-fetching sooner would return identical
 // data until the holiday passes and the provider's next entry advances.
-const HOLIDAYS_TTL_MS = 12 * 60 * 60 * 1000;
+export const HOLIDAYS_TTL_MS = 12 * 60 * 60 * 1000;
 // A location's UTC offset is stable across a pull cycle; cache it like sun times.
 // Deliberately NOT scaled by the refresh interval: it's location metadata (not
 // content the user expects to rotate) and sits on the rate-limited Nominatim path.
@@ -119,10 +120,10 @@ export function effectiveTtlMs(baseTtlMs: number, refreshesPerDay: number | unde
 
 // Bound each upstream call well under the firmware's HTTP timeout, so a hung
 // provider yields a placeholder frame instead of hanging the pull (RFC §6).
-const PROVIDER_TIMEOUT_MS = 8000;
+export const PROVIDER_TIMEOUT_MS = 8000;
 
 /** Reject `work` if it doesn't settle within `ms`. Clears the timer either way. */
-function withTimeout<T>(work: Promise<T>, ms: number, label: string): Promise<T> {
+export function withTimeout<T>(work: Promise<T>, ms: number, label: string): Promise<T> {
   let timer: ReturnType<typeof setTimeout> | undefined;
   const timeout = new Promise<never>((_, reject) => {
     timer = setTimeout(() => reject(new Error(`${label} timed out after ${String(ms)}ms`)), ms);

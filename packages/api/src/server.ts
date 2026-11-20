@@ -16,6 +16,7 @@ import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { serveStatic } from '@hono/node-server/serve-static';
 import { serve } from '@hono/node-server';
+import { getConnInfo } from '@hono/node-server/conninfo';
 import {
   generateFrame,
   generatePreview,
@@ -35,7 +36,10 @@ import {
   isValidStockSymbol,
   STOCK_RANGE_MAP,
   VALID_ZODIAC_SIGNS,
+  type IpLocationResult,
 } from '@infobento/data';
+import { parseBoxDataRequest } from './box-data.js';
+import { SuccessCache } from './success-cache.js';
 import { createAccount, consumeForget, getDb, type OAuthProvider } from './db.js';
 import { clearSessionCookie, issueSessionCookie, readSession } from './auth/session.js';
 import {
@@ -58,8 +62,8 @@ import {
   getDeviceFramesForPull,
   parseOrientation,
 } from './device.js';
-import { defaultHydrateDeps } from './hydrate.js';
-import { consumeToken } from './rate-limit.js';
+import { defaultHydrateDeps, PROVIDER_TIMEOUT_MS, withTimeout } from './hydrate.js';
+import { consumeToken, createRateLimiter } from './rate-limit.js';
 import { createPairHandler } from './pair.js';
 import {
   createForgetWifiHandler,
@@ -229,17 +233,22 @@ function isPrivateIp(ip: string): boolean {
   );
 }
 
+/**
+ * First hop of x-forwarded-for: the client when deployed behind a proxy, or ''
+ * when the header is absent (a direct connection, e.g. local dev).
+ */
+function forwardedClient(c: import('hono').Context): string {
+  return (c.req.header('x-forwarded-for') ?? '').split(',')[0]?.trim() ?? '';
+}
+
 // Successful lookups cached per client IP: every server-side lookup shares the
 // server's source IP against ipapi.co's per-IP free-tier quota, so repeated
 // page loads must not each spend a request. Failures (rate limit, outage) are
-// deliberately NOT cached — the next request retries. Not InMemoryCache, which
-// stores whatever the fetcher returns, including those transient failures.
+// deliberately NOT cached — the next request retries. Bounded, because an
+// XFF-spoofing client chooses the key.
 const GEOLOCATE_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 const GEOLOCATE_CACHE_MAX_ENTRIES = 10_000;
-const geolocateCache = new Map<
-  string,
-  { value: { city: string | null; countryCode: string | null }; storedAtMs: number }
->();
+const geolocateCache = new SuccessCache<IpLocationResult>(GEOLOCATE_CACHE_MAX_ENTRIES);
 
 /** Test seam. */
 export function _resetGeolocateCacheForTesting(): void {
@@ -251,28 +260,90 @@ export function _resetGeolocateCacheForTesting(): void {
 // adblockers) block. Absence of a result is a normal outcome — always 200,
 // with nulls, and the client falls back to its UTC+0 default.
 app.get('/api/geolocate', async (c) => {
-  // First hop of x-forwarded-for is the client when deployed behind a proxy.
   // A private/loopback address (local dev, LAN self-host) → ip-less lookup,
   // which resolves the server's own egress IP — correct exactly when the
   // server and the user share a network.
-  const fwd = (c.req.header('x-forwarded-for') ?? '').split(',')[0]?.trim() ?? '';
+  const fwd = forwardedClient(c);
   const ip = fwd !== '' && !isPrivateIp(fwd) ? fwd : undefined;
 
   const key = ip ?? 'self';
-  const hit = geolocateCache.get(key);
-  if (hit && Date.now() - hit.storedAtMs < GEOLOCATE_CACHE_TTL_MS) {
-    return c.json(hit.value);
+  const loc = await (geolocateCache.peek(key, GEOLOCATE_CACHE_TTL_MS) ??
+    // ipapi.co rejects Node's default User-Agent with 429 "RateLimited" (#278).
+    geolocateCache.fill(key, () => fetchIpLocation(ip, { userAgent: USER_AGENT })));
+  return c.json({ city: loc?.city ?? null, countryCode: loc?.countryCode ?? null });
+});
+
+// Box data for the editor's live previews (issue #287): weather, forecasts,
+// sun, AQI, UV, pollen and holidays. The editor calls this same-origin route
+// instead of Open-Meteo / Nominatim / Nager.Date, which tracker blocklists
+// block in the browser. The @infobento/data fetchers do the work (the same ones
+// device hydration uses) and send the identifying USER_AGENT. Always
+// `{ data }`: 200 with `data: null` when the upstream fails or has nothing,
+// like /api/geolocate; 400 for a malformed request.
+//
+// Every location here is geocoded through the process-global Nominatim queue
+// (1 req/s) that device hydration also waits on, so cache misses (the only
+// requests that reach an upstream) are admitted twice over: per client, so one
+// editor cannot flood the queue, and globally, so a client rotating its
+// x-forwarded-for still cannot queue more than a few seconds of work ahead of
+// a device pull. Successes are cached per normalized request at hydration's
+// base TTLs; failures are not, so the next edit retries.
+const BOX_DATA_CACHE_MAX_ENTRIES = 2_000;
+/** Upstream-bound misses per client per minute. An editor opening a layout with
+ *  every location box costs about seven; typing a new city costs that again. */
+const BOX_DATA_MISSES_PER_MINUTE = 30;
+/** Distinct misses in flight at once, across all clients. */
+const BOX_DATA_MAX_INFLIGHT = 8;
+/** A full slot frees within one provider timeout, so retry no sooner. */
+const BOX_DATA_BUSY_RETRY_AFTER_S = String(Math.ceil(PROVIDER_TIMEOUT_MS / 1000));
+const boxDataCache = new SuccessCache<unknown>(BOX_DATA_CACHE_MAX_ENTRIES);
+const boxDataLimiter = createRateLimiter(BOX_DATA_MISSES_PER_MINUTE, 60_000);
+
+/**
+ * Rate-limit key for a client: the raw first x-forwarded-for hop (private
+ * addresses included, so LAN users behind a proxy stay distinct), else the TCP
+ * peer address for a direct connection (local dev, a proxy-less self-host).
+ * 'direct' only when neither is known, as under `app.request()` in tests.
+ */
+function clientKey(c: import('hono').Context): string {
+  const fwd = forwardedClient(c);
+  if (fwd !== '') return fwd;
+  try {
+    return getConnInfo(c).remote.address ?? 'direct';
+  } catch {
+    return 'direct';
+  }
+}
+
+/** Test seam. */
+export function _resetBoxDataForTesting(): void {
+  boxDataCache.clear();
+  boxDataLimiter.reset();
+}
+
+app.get('/api/box-data/:type', async (c) => {
+  const parsed = parseBoxDataRequest(c.req.param('type'), (name) => c.req.query(name));
+  if (!parsed.ok) return c.json({ data: null, error: parsed.error }, 400);
+  const { request } = parsed;
+
+  const cached = boxDataCache.peek(request.key, request.ttlMs);
+  if (cached) return c.json({ data: await cached });
+
+  // Checked before the per-client limiter so a refusal here costs no token.
+  if (boxDataCache.inflightCount >= BOX_DATA_MAX_INFLIGHT) {
+    return c.json({ data: null, error: 'busy' }, 503, {
+      'Retry-After': BOX_DATA_BUSY_RETRY_AFTER_S,
+    });
+  }
+  if (!boxDataLimiter.consume(clientKey(c))) {
+    return c.json({ data: null, error: 'rate_limited' }, 429, { 'Retry-After': '60' });
   }
 
-  // ipapi.co rejects Node's default User-Agent with 429 "RateLimited" (#278).
-  const loc = await fetchIpLocation(ip, { userAgent: USER_AGENT });
-  const value = { city: loc?.city ?? null, countryCode: loc?.countryCode ?? null };
-  if (loc) {
-    // Blunt cap so an XFF-spoofing client can't grow the map without bound.
-    if (geolocateCache.size >= GEOLOCATE_CACHE_MAX_ENTRIES) geolocateCache.clear();
-    geolocateCache.set(key, { value, storedAtMs: Date.now() });
-  }
-  return c.json(value);
+  // The timeout frees the in-flight slot even if an upstream hangs.
+  const data = await boxDataCache.fill(request.key, () =>
+    withTimeout(request.fetch(), PROVIDER_TIMEOUT_MS, `box-data ${request.key}`),
+  );
+  return c.json({ data });
 });
 
 app.get('/api/quote', async (c) => {

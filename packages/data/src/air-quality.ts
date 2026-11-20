@@ -8,6 +8,7 @@
 import type { AQIData } from '@infobento/core';
 import { geocode } from './geocode.js';
 import { readCurrent } from './open-meteo.js';
+import { IDENTIFYING_HEADERS } from './user-agent.js';
 
 interface OpenMeteoAirQuality {
   current: {
@@ -68,7 +69,7 @@ export async function fetchAirQuality(location: string): Promise<AQIData | null>
       `?latitude=${String(place.latitude)}` +
       `&longitude=${String(place.longitude)}` +
       `&current=european_aqi,pm2_5,pm10,nitrogen_dioxide,ozone,sulphur_dioxide,uv_index`;
-    const res = await fetch(url);
+    const res = await fetch(url, { headers: IDENTIFYING_HEADERS });
     if (!res.ok) return null;
 
     const current = readCurrent<OpenMeteoAirQuality['current']>(await res.json());

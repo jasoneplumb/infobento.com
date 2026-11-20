@@ -8,6 +8,7 @@
 
 import type { WeatherData, ForecastEntry, Forecast3DEntry, SunData } from '@infobento/core';
 import { geocode } from './geocode.js';
+import { IDENTIFYING_HEADERS } from './user-agent.js';
 
 /** Map WMO weather_code to a human-readable condition string. */
 function weatherCondition(code: number): string {
@@ -63,7 +64,7 @@ export async function fetchWeather(
       `&current=temperature_2m,weather_code` +
       `&daily=temperature_2m_max,temperature_2m_min` +
       `&timezone=auto&forecast_days=1`;
-    const weatherRes = await fetch(weatherUrl);
+    const weatherRes = await fetch(weatherUrl, { headers: IDENTIFYING_HEADERS });
     if (!weatherRes.ok) return null;
 
     const forecast = (await weatherRes.json()) as OpenMeteoForecast;
@@ -103,7 +104,7 @@ export async function fetchUtcOffset(location: string): Promise<number | null> {
       `?latitude=${String(place.latitude)}` +
       `&longitude=${String(place.longitude)}` +
       `&current=temperature_2m&timezone=auto&forecast_days=1`;
-    const res = await fetch(url);
+    const res = await fetch(url, { headers: IDENTIFYING_HEADERS });
     if (!res.ok) return null;
     const data = (await res.json()) as { utc_offset_seconds?: number };
     return data.utc_offset_seconds ?? null;
@@ -144,7 +145,7 @@ export async function fetchForecast(
       `&longitude=${String(place.longitude)}` +
       `&hourly=temperature_2m,weather_code` +
       `&timezone=auto&forecast_days=${String(forecastDays)}`;
-    const res = await fetch(url);
+    const res = await fetch(url, { headers: IDENTIFYING_HEADERS });
     if (!res.ok) return null;
 
     const data = (await res.json()) as OpenMeteoHourly;
@@ -220,7 +221,7 @@ export async function fetchForecast3D(
       `&longitude=${String(place.longitude)}` +
       `&daily=temperature_2m_max,temperature_2m_min,weather_code` +
       `&timezone=auto&forecast_days=${String(forecastDays)}`;
-    const res = await fetch(url);
+    const res = await fetch(url, { headers: IDENTIFYING_HEADERS });
     if (!res.ok) return null;
 
     const data = (await res.json()) as OpenMeteoDaily3D;
@@ -282,7 +283,7 @@ export async function fetchSunTimes(location: string): Promise<SunData | null> {
       `&longitude=${String(place.longitude)}` +
       `&daily=sunrise,sunset` +
       `&timezone=auto&forecast_days=1`;
-    const res = await fetch(url);
+    const res = await fetch(url, { headers: IDENTIFYING_HEADERS });
     if (!res.ok) return null;
 
     const data = (await res.json()) as OpenMeteoDailySun;
