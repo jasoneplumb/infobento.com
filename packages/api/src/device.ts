@@ -8,7 +8,7 @@
  *   can be unit-tested without standing up a server.
  */
 
-import type { BentoConfig } from '@infobento/core';
+import { DEVICE_PROFILES, type BentoConfig } from '@infobento/core';
 import { renderBoth, rotateFrameBuffer90 } from '@infobento/renderer';
 import { getDevice, type DB, type Device } from './db.js';
 import { hydrateConfig, type HydrateDeps } from './hydrate.js';
@@ -20,21 +20,23 @@ export type DeviceConfigResult =
   | { readonly status: 304; readonly lastModifiedMs: number }
   | { readonly status: 404 };
 
+/** Freshness metadata every 200/304 frame pull carries, whatever its body. */
+export interface FrameFreshness {
+  readonly lastModifiedMs: number;
+  /** Strong validator (`ETag`) — encodes the freshness timestamp AND the render size. */
+  readonly etag: string;
+  /** Seconds until the next pull (`X-Refresh-Interval`); null = disabled. */
+  readonly refreshIntervalSec: number | null;
+}
+
 export type DeviceFrameResult =
-  | {
+  | ({
       readonly status: 200;
       readonly data: Uint8Array;
       readonly width: number;
       readonly height: number;
-      readonly lastModifiedMs: number;
-      /** Seconds until the next pull (`X-Refresh-Interval`); null = disabled. */
-      readonly refreshIntervalSec: number | null;
-    }
-  | {
-      readonly status: 304;
-      readonly lastModifiedMs: number;
-      readonly refreshIntervalSec: number | null;
-    }
+    } & FrameFreshness)
+  | ({ readonly status: 304 } & FrameFreshness)
   | { readonly status: 404 }
   | { readonly status: 500; readonly error: string };
 
@@ -52,21 +54,101 @@ export interface FramePayload {
  * semantics stay identical.
  */
 export type DeviceFramesResult =
-  | {
+  | ({
       readonly status: 200;
       readonly landscape: FramePayload;
       readonly portrait: FramePayload;
-      readonly lastModifiedMs: number;
-      /** Seconds until the next pull (`X-Refresh-Interval`); null = disabled. */
-      readonly refreshIntervalSec: number | null;
-    }
-  | {
-      readonly status: 304;
-      readonly lastModifiedMs: number;
-      readonly refreshIntervalSec: number | null;
-    }
+    } & FrameFreshness)
+  | ({ readonly status: 304 } & FrameFreshness)
   | { readonly status: 404 }
   | { readonly status: 500; readonly error: string };
+
+/** Native landscape panel dimensions (long × short), as a device declares them. */
+export interface PanelSize {
+  readonly widthPx: number;
+  readonly heightPx: number;
+}
+
+/**
+ * What the device said about its panel in the `X-Panel` request header (#288).
+ * `absent` = older firmware, so the server falls back to the config's
+ * width/height; `unsupported` = a declared size outside `DEVICE_PROFILES`, which
+ * the route answers with a distinct 422 rather than rendering a frame the device
+ * would discard.
+ */
+export type PanelDeclaration =
+  | { readonly kind: 'absent' }
+  | { readonly kind: 'supported'; readonly panel: PanelSize }
+  | { readonly kind: 'unsupported'; readonly raw: string };
+
+/** The validators and panel size a device sent with a frame pull. */
+export interface FramePullRequest {
+  readonly ifModifiedSince?: string | null;
+  readonly ifNoneMatch?: string | null;
+  /** Declared panel size; null/omitted renders at the config's width/height. */
+  readonly panel?: PanelSize | null;
+}
+
+/** `WIDTHxHEIGHT` in decimal pixels without leading zeros, e.g. `800x480`. */
+const PANEL_RE = /^([1-9]\d{0,4})x([1-9]\d{0,4})$/;
+
+/**
+ * Parse the `X-Panel` header against `DEVICE_PROFILES`. Only an exact native
+ * landscape size from that list is accepted — the profiles are the panels the
+ * renderer is laid out for, so anything else (a typo, a swapped `480x800`, an
+ * unknown panel) is `unsupported`. A missing header is `absent`; a present but
+ * empty one is a firmware bug and counts as `unsupported`, so it surfaces.
+ */
+export function parsePanelDeclaration(raw: string | null | undefined): PanelDeclaration {
+  if (raw === null || raw === undefined) return { kind: 'absent' };
+  const m = PANEL_RE.exec(raw.trim().toLowerCase());
+  if (m) {
+    const widthPx = Number(m[1]);
+    const heightPx = Number(m[2]);
+    if (DEVICE_PROFILES.some((p) => p.widthPx === widthPx && p.heightPx === heightPx)) {
+      return { kind: 'supported', panel: { widthPx, heightPx } };
+    }
+  }
+  return { kind: 'unsupported', raw: raw.trim() };
+}
+
+/** A panel size in its `X-Panel` wire form, e.g. `800x480`. */
+function formatPanel(p: PanelSize): string {
+  return `${p.widthPx}x${p.heightPx}`;
+}
+
+/** The `X-Panel` values the server accepts, for the 422 body and log line. */
+export const SUPPORTED_PANELS: readonly string[] = DEVICE_PROFILES.map(formatPanel);
+
+/** Which representation a validator describes: the dual `/frames` body or one `/frame` orientation. */
+export type FrameVariant = 'both' | Orientation;
+
+/**
+ * The frame validator: the effective freshness second, the size the frame is
+ * rendered at, and which representation it is. A validator issued for one panel
+ * size, orientation, or endpoint can never answer 304 for another. Without a
+ * declared panel the size comes from the stored config, whose edits already
+ * advance `last_modified`, so the token `config` suffices — and keeps the 304
+ * path free of a `config_json` parse.
+ */
+export function frameETag(
+  effectiveMs: number,
+  panel: PanelSize | null,
+  variant: FrameVariant,
+): string {
+  const size = panel ? formatPanel(panel) : 'config';
+  return `"${Math.floor(effectiveMs / 1000)}-${size}-${variant}"`;
+}
+
+/** RFC 9110 `If-None-Match` evaluation for GET (weak comparison, `*` matches). */
+export function etagMatches(headerValue: string, etag: string): boolean {
+  // One entity-tag (optionally weak) or `*`; tags are quoted, so a comma inside
+  // one is not a separator. A literal here, so no `lastIndex` is shared.
+  for (const m of headerValue.matchAll(/(?:W\/)?("[^"]*")|\*/g)) {
+    if (m[0] === '*' || m[1] === etag) return true;
+  }
+  return false;
+}
 
 /**
  * Compare an `If-Modified-Since` header value to a stored ms timestamp.
@@ -162,38 +244,39 @@ export function getDeviceConfigForPull(
  * On 200 it hands back the full dual render; the caller projects what it needs.
  */
 type FramePullResult =
-  | {
-      readonly status: 200;
-      readonly dual: ReturnType<typeof renderBoth>;
-      readonly lastModifiedMs: number;
-      readonly refreshIntervalSec: number | null;
-    }
-  | {
-      readonly status: 304;
-      readonly lastModifiedMs: number;
-      readonly refreshIntervalSec: number | null;
-    }
+  | ({ readonly status: 200; readonly dual: ReturnType<typeof renderBoth> } & FrameFreshness)
+  | ({ readonly status: 304 } & FrameFreshness)
   | { readonly status: 404 }
   | { readonly status: 500; readonly error: string };
 
 async function pullDeviceFrames(
   db: DB,
   deviceId: string,
-  ifModifiedSince: string | null,
+  req: FramePullRequest,
+  variant: FrameVariant,
   deps: HydrateDeps,
   nowMs: number,
 ): Promise<FramePullResult> {
   const device = getDevice(db, deviceId);
   if (!device || !device.config_json) return { status: 404 };
+  const panel = req.panel ?? null;
   // Wake-cadence hint, sent on both 304 and 200 so the device's sleep tracks the
   // configured interval even on a battery-saving 304 skip.
   const refreshIntervalSec = refreshIntervalSeconds(device.refreshes_per_day);
-  // Gate on the effective timestamp (config edit OR data-bucket boundary). This
-  // runs before JSON.parse / hydrate, so a 304 wake stays allocation-free.
+  // Gate on the effective timestamp (config edit OR data-bucket boundary) and,
+  // via the ETag, the render size. This runs before JSON.parse / hydrate, so a
+  // 304 wake stays allocation-free. If-None-Match takes precedence over
+  // If-Modified-Since when both are sent (RFC 9110 §13.2.2); older firmware
+  // sends only the latter.
   const effectiveMs = effectiveLastModified(device, nowMs);
-  if (isNotModified(ifModifiedSince, effectiveMs)) {
-    return { status: 304, lastModifiedMs: effectiveMs, refreshIntervalSec };
-  }
+  const etag = frameETag(effectiveMs, panel, variant);
+  const fresh = { lastModifiedMs: effectiveMs, etag, refreshIntervalSec };
+  // An empty If-None-Match carries no validator, so it falls through to IMS.
+  const ifNoneMatch = req.ifNoneMatch?.trim();
+  const notModified = ifNoneMatch
+    ? etagMatches(ifNoneMatch, etag)
+    : isNotModified(req.ifModifiedSince ?? null, effectiveMs);
+  if (notModified) return { status: 304, ...fresh };
   let config: BentoConfig;
   try {
     config = JSON.parse(device.config_json) as BentoConfig;
@@ -209,9 +292,14 @@ async function pullDeviceFrames(
   } catch (e) {
     return { status: 500, error: e instanceof Error ? e.message : 'hydration failed' };
   }
+  // A declared panel is the hardware's own size, so it overrides whatever the
+  // editor saved (#288); older firmware declares nothing and gets the config's.
+  const sized: BentoConfig = panel
+    ? { ...hydrated, width: panel.widthPx, height: panel.heightPx }
+    : hydrated;
   try {
-    const dual = renderBoth(hydrated);
-    return { status: 200, dual, lastModifiedMs: effectiveMs, refreshIntervalSec };
+    const dual = renderBoth(sized);
+    return { status: 200, dual, ...fresh };
   } catch (e) {
     return { status: 500, error: e instanceof Error ? e.message : 'render failed' };
   }
@@ -221,11 +309,11 @@ export async function getDeviceFrameForPull(
   db: DB,
   deviceId: string,
   orientation: Orientation,
-  ifModifiedSince: string | null,
+  req: FramePullRequest,
   deps: HydrateDeps,
   nowMs: number = Date.now(),
 ): Promise<DeviceFrameResult> {
-  const r = await pullDeviceFrames(db, deviceId, ifModifiedSince, deps, nowMs);
+  const r = await pullDeviceFrames(db, deviceId, req, orientation, deps, nowMs);
   if (r.status !== 200) return r;
   const fb = orientation === 'portrait' ? r.dual.portrait : r.dual.landscape;
   return {
@@ -234,6 +322,7 @@ export async function getDeviceFrameForPull(
     width: fb.width,
     height: fb.height,
     lastModifiedMs: r.lastModifiedMs,
+    etag: r.etag,
     refreshIntervalSec: r.refreshIntervalSec,
   };
 }
@@ -252,11 +341,11 @@ export async function getDeviceFrameForPull(
 export async function getDeviceFramesForPull(
   db: DB,
   deviceId: string,
-  ifModifiedSince: string | null,
+  req: FramePullRequest,
   deps: HydrateDeps,
   nowMs: number = Date.now(),
 ): Promise<DeviceFramesResult> {
-  const r = await pullDeviceFrames(db, deviceId, ifModifiedSince, deps, nowMs);
+  const r = await pullDeviceFrames(db, deviceId, req, 'both', deps, nowMs);
   if (r.status !== 200) return r;
   const toPayload = (fb: ReturnType<typeof renderBoth>['landscape']): FramePayload => ({
     data: fb.data,
@@ -270,6 +359,7 @@ export async function getDeviceFramesForPull(
     // as landscape, so the device's uploadFrame is orientation-agnostic.
     portrait: toPayload(rotateFrameBuffer90(r.dual.portrait)),
     lastModifiedMs: r.lastModifiedMs,
+    etag: r.etag,
     refreshIntervalSec: r.refreshIntervalSec,
   };
 }

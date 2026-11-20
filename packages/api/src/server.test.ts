@@ -172,6 +172,28 @@ describe('X-Device-Forget delivery on device-pull', () => {
     expect(second.headers.get('X-Device-Forget')).toBe('1');
   });
 
+  // A 422 (unsupported X-Panel) is not a clean delivery point, same as 404/500:
+  // the forget stays queued for the device's next successful pull.
+  it('keeps a pending X-Device-Forget queued through a 422 /frames pull', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    try {
+      const { id } = seedForgottenDevice('PULLFGT422');
+      const rejected = await app.request(`/api/device/${id}/frames`, {
+        headers: { 'X-Panel': '1024x600' },
+      });
+      expect(rejected.status).toBe(422);
+      expect(rejected.headers.get('X-Device-Forget')).toBeNull();
+
+      const next = await app.request(`/api/device/${id}/frames`, {
+        headers: { 'X-Panel': '800x480' },
+      });
+      expect(next.status).toBe(200);
+      expect(next.headers.get('X-Device-Forget')).toBe('1');
+    } finally {
+      warn.mockRestore();
+    }
+  });
+
   it('omits X-Device-Forget when nothing is pending', async () => {
     const db = getDb();
     const owner = createAccount(db);
@@ -290,6 +312,92 @@ describe('GET /api/device/:id/frames', () => {
   it('404 for an unknown device id', async () => {
     const res = await app.request('/api/device/does-not-exist/frames');
     expect(res.status).toBe(404);
+  });
+
+  // Device-declared panel size (#288).
+  it('renders at the X-Panel size and returns a size-scoped ETag', async () => {
+    const id = seedDevice('PANEL1'); // config carries no size → would be 920x680
+    const res = await app.request(`/api/device/${id}/frames`, {
+      headers: { 'X-Panel': '800x480' },
+    });
+    expect(res.status).toBe(200);
+    expect(res.headers.get('X-Frame-Landscape-Bytes')).toBe('96000');
+    expect(res.headers.get('X-Frame-Portrait-Bytes')).toBe('96000');
+    expect(res.headers.get('X-Frame-Landscape-Width')).toBe('800');
+    expect(res.headers.get('X-Frame-Landscape-Height')).toBe('480');
+    expect(res.headers.get('ETag')).toMatch(/^"\d+-800x480-both"$/);
+    expect(res.headers.get('Vary')).toBe('X-Panel');
+  });
+
+  it('304s a matching If-None-Match, but not one issued for another panel size', async () => {
+    const id = seedDevice('PANEL2');
+    const first = await app.request(`/api/device/${id}/frames`, {
+      headers: { 'X-Panel': '800x480' },
+    });
+    const etag = first.headers.get('ETag') ?? '';
+    const lastModified = first.headers.get('Last-Modified') ?? '';
+
+    const same = await app.request(`/api/device/${id}/frames`, {
+      headers: { 'X-Panel': '800x480', 'If-None-Match': etag, 'If-Modified-Since': lastModified },
+    });
+    expect(same.status).toBe(304);
+    expect(same.headers.get('ETag')).toBe(etag);
+
+    const other = await app.request(`/api/device/${id}/frames`, {
+      headers: { 'X-Panel': '920x680', 'If-None-Match': etag, 'If-Modified-Since': lastModified },
+    });
+    expect(other.status).toBe(200);
+    expect(other.headers.get('X-Frame-Landscape-Bytes')).toBe('156400');
+  });
+
+  it('applies X-Panel, ETag, and the 422 to the single-orientation /frame pull too', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    try {
+      const id = seedDevice('PANEL4');
+      const res = await app.request(`/api/device/${id}/frame?orientation=landscape`, {
+        headers: { 'X-Panel': '800x480' },
+      });
+      expect(res.status).toBe(200);
+      expect(res.headers.get('X-Frame-Width')).toBe('800');
+      expect(res.headers.get('X-Frame-Height')).toBe('480');
+      expect(res.headers.get('Content-Length')).toBe('96000');
+      expect(res.headers.get('Vary')).toBe('X-Panel');
+      const etag = res.headers.get('ETag') ?? '';
+      expect(etag).toMatch(/^"\d+-800x480-landscape"$/);
+
+      const cached = await app.request(`/api/device/${id}/frame`, {
+        headers: { 'X-Panel': '800x480', 'If-None-Match': etag },
+      });
+      expect(cached.status).toBe(304);
+
+      const rejected = await app.request(`/api/device/${id}/frame`, {
+        headers: { 'X-Panel': '480x800' },
+      });
+      expect(rejected.status).toBe(422);
+    } finally {
+      warn.mockRestore();
+    }
+  });
+
+  it('422s a declared size outside DEVICE_PROFILES and logs it server-side', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    try {
+      const id = seedDevice('PANEL3');
+      const res = await app.request(`/api/device/${id}/frames`, {
+        headers: { 'X-Panel': '1024x600' },
+      });
+      expect(res.status).toBe(422);
+      expect(await res.json()).toEqual({
+        error: 'unsupported_panel',
+        panel: '1024x600',
+        supported: ['800x480', '920x680'],
+      });
+      expect(warn).toHaveBeenCalledWith(expect.stringContaining('"1024x600"'));
+      // The bearer-secret device id is never logged in full.
+      expect(warn).not.toHaveBeenCalledWith(expect.stringContaining(id));
+    } finally {
+      warn.mockRestore();
+    }
   });
 });
 

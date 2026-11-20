@@ -12,7 +12,7 @@ import { fileURLToPath } from 'node:url';
 // Read version from package.json at startup
 const __pkgPath = resolve(dirname(fileURLToPath(import.meta.url)), '../package.json');
 const __version = JSON.parse(readFileSync(__pkgPath, 'utf8')).version as string;
-import { Hono } from 'hono';
+import { Hono, type Context } from 'hono';
 import { cors } from 'hono/cors';
 import { serveStatic } from '@hono/node-server/serve-static';
 import { serve } from '@hono/node-server';
@@ -61,6 +61,10 @@ import {
   getDeviceFrameForPull,
   getDeviceFramesForPull,
   parseOrientation,
+  parsePanelDeclaration,
+  SUPPORTED_PANELS,
+  type FrameFreshness,
+  type FramePullRequest,
 } from './device.js';
 import { defaultHydrateDeps, PROVIDER_TIMEOUT_MS, withTimeout } from './hydrate.js';
 import { consumeToken, createRateLimiter } from './rate-limit.js';
@@ -596,26 +600,46 @@ app.get('/api/device/:id/config', (c) => {
   return new Response(result.configJson, { status: 200, headers });
 });
 
-app.get('/api/device/:id/frame', async (c) => {
-  const id = c.req.param('id');
-  if (!consumeToken(id)) {
-    return c.json({ error: 'rate_limited' }, 429, { 'Retry-After': '60' });
+/**
+ * Read a frame pull's validators and the device's `X-Panel` declaration (#288).
+ * A declared size outside `DEVICE_PROFILES` gets a distinct 422 instead of a
+ * frame the device would discard — and a server log line, so the mismatch is
+ * visible somewhere other than the device's serial console. The id is logged
+ * only as a short prefix: it is the device's bearer secret.
+ */
+function readFramePull(
+  c: Context,
+  id: string,
+):
+  | { readonly ok: true; readonly req: FramePullRequest }
+  | { readonly ok: false; readonly response: Response } {
+  const declared = parsePanelDeclaration(c.req.header('x-panel'));
+  if (declared.kind === 'unsupported') {
+    const panel = declared.raw.slice(0, 32);
+    console.warn(
+      `Frame pull rejected: device ${id.slice(0, 8)}… declared unsupported panel ` +
+        `${JSON.stringify(panel)} (supported: ${SUPPORTED_PANELS.join(', ')})`,
+    );
+    const body = { error: 'unsupported_panel', panel, supported: SUPPORTED_PANELS };
+    return { ok: false, response: c.json(body, 422) };
   }
-  const orientation = parseOrientation(c.req.query('orientation'));
-  const result = await getDeviceFrameForPull(
-    getDb(),
-    id,
-    orientation,
-    c.req.header('if-modified-since') ?? null,
-    defaultHydrateDeps(),
-  );
-  if (result.status === 404) return c.json({ error: 'not_found' }, 404);
-  if (result.status === 500) return c.json({ error: result.error }, 500);
-  // Deliver a pending "forget Wi-Fi" (issue #39) on this contact, read-and-clear.
-  // Only on 200/304 — never on the 404/500 above, where there's no frame poll to
-  // ride along with (and a 500 means we never reached a clean delivery point).
+  return {
+    ok: true,
+    req: {
+      ifModifiedSince: c.req.header('if-modified-since') ?? null,
+      ifNoneMatch: c.req.header('if-none-match') ?? null,
+      panel: declared.kind === 'supported' ? declared.panel : null,
+    },
+  };
+}
+
+/** Freshness headers shared by every 200/304 frame response. */
+function frameFreshnessHeaders(result: FrameFreshness): Record<string, string> {
   const headers: Record<string, string> = {
     'Last-Modified': formatHttpDate(result.lastModifiedMs),
+    ETag: result.etag,
+    // The declared panel decides the render size, so it is part of the cache key.
+    Vary: 'X-Panel',
   };
   // Wake-cadence hint so the device's deep-sleep tracks the configured interval
   // (issue #152). Omitted when scheduled refresh is disabled — the firmware then
@@ -623,6 +647,30 @@ app.get('/api/device/:id/frame', async (c) => {
   if (result.refreshIntervalSec !== null) {
     headers['X-Refresh-Interval'] = String(result.refreshIntervalSec);
   }
+  return headers;
+}
+
+app.get('/api/device/:id/frame', async (c) => {
+  const id = c.req.param('id');
+  if (!consumeToken(id)) {
+    return c.json({ error: 'rate_limited' }, 429, { 'Retry-After': '60' });
+  }
+  const pull = readFramePull(c, id);
+  if (!pull.ok) return pull.response;
+  const orientation = parseOrientation(c.req.query('orientation'));
+  const result = await getDeviceFrameForPull(
+    getDb(),
+    id,
+    orientation,
+    pull.req,
+    defaultHydrateDeps(),
+  );
+  if (result.status === 404) return c.json({ error: 'not_found' }, 404);
+  if (result.status === 500) return c.json({ error: result.error }, 500);
+  // Deliver a pending "forget Wi-Fi" (issue #39) on this contact, read-and-clear.
+  // Only on 200/304 — never on the 404/500 above, where there's no frame poll to
+  // ride along with (and a 500 means we never reached a clean delivery point).
+  const headers = frameFreshnessHeaders(result);
   if (consumeForget(getDb(), id)) headers['X-Device-Forget'] = '1';
   if (result.status === 304) {
     return new Response(null, { status: 304, headers });
@@ -636,26 +684,19 @@ app.get('/api/device/:id/frame', async (c) => {
 
 // Combined raw pull: BOTH orientations in one response so the device can flip
 // orientation locally with no network round trip (issue #160, RFC 0002). Shares
-// the /frame trust boundary, rate token, 304 gate, and forget ride-along.
+// the /frame trust boundary, rate token, X-Panel sizing, 304 gate, and forget
+// ride-along.
 app.get('/api/device/:id/frames', async (c) => {
   const id = c.req.param('id');
   if (!consumeToken(id)) {
     return c.json({ error: 'rate_limited' }, 429, { 'Retry-After': '60' });
   }
-  const result = await getDeviceFramesForPull(
-    getDb(),
-    id,
-    c.req.header('if-modified-since') ?? null,
-    defaultHydrateDeps(),
-  );
+  const pull = readFramePull(c, id);
+  if (!pull.ok) return pull.response;
+  const result = await getDeviceFramesForPull(getDb(), id, pull.req, defaultHydrateDeps());
   if (result.status === 404) return c.json({ error: 'not_found' }, 404);
   if (result.status === 500) return c.json({ error: result.error }, 500);
-  const headers: Record<string, string> = {
-    'Last-Modified': formatHttpDate(result.lastModifiedMs),
-  };
-  if (result.refreshIntervalSec !== null) {
-    headers['X-Refresh-Interval'] = String(result.refreshIntervalSec);
-  }
+  const headers = frameFreshnessHeaders(result);
   if (consumeForget(getDb(), id)) headers['X-Device-Forget'] = '1';
   if (result.status === 304) {
     return new Response(null, { status: 304, headers });
