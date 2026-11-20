@@ -534,11 +534,13 @@ export function enterCloudMode(deviceId: string, opts: CloudModeOptions = {}): v
  * Leave cloud mode and restore the local-only editor. Reloads the preserved
  * localStorage buffer into the editor so the user's pre-sign-in work reappears
  * exactly as they left it (sign-out must not lose the local edits buffer).
- * Also forgets the remembered device, so the next load starts local too.
+ * Also forgets the remembered device, so the next load starts local too —
+ * unless `forgetDevice` is false: an expired session says nothing about who
+ * owns the device, so the selection should come back after signing in again.
  */
-export function exitToLocalMode(): void {
+export function exitToLocalMode({ forgetDevice = true }: { forgetDevice?: boolean } = {}): void {
   _activeDevice = null;
-  forgetRememberedDevice();
+  if (forgetDevice) forgetRememberedDevice();
   state.profileId = DEFAULT_PROFILE_ID;
   // Restore the untouched local buffer; if there was none, keep current boxes.
   _suppressPersist = true;

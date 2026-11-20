@@ -10,13 +10,14 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { initCloudSync, restoreActiveDevice, selectDevice } from './cloud.js';
+import { initCloudSync, restoreActiveDevice, selectDevice, signOut } from './cloud.js';
 import {
   addBox,
   getActiveDevice,
   getBoxes,
   getPersistenceMode,
   getRememberedDevice,
+  onPersistenceChange,
   onRender,
   setState,
   _resetPersistenceForTesting,
@@ -49,6 +50,11 @@ function stubFetch(handler: (url: string, init?: RequestInit) => Response | Prom
 
 const json = (body: unknown, status = 200): Response =>
   new Response(JSON.stringify(body), { status, headers: { 'content-type': 'application/json' } });
+
+/** A device's stored (core BentoConfig) config: one text box. */
+const STORED_CONFIG = {
+  boxes: [{ id: '1', label: 'On device', type: 'text', config: { type: 'text', text: 'hello' } }],
+};
 
 beforeEach(() => {
   calls = [];
@@ -133,64 +139,88 @@ describe('selectDevice failure paths (#204 review)', () => {
     expect(getPersistenceMode()).toBe('local');
   });
 
-  // Round-2 review (#204): saveNow already calls exitToLocalMode() for 401/404,
-  // and selectDevice called it a second time on any falsy result. Each call
-  // re-runs loadFromLocalStorage() and the render hook, so the user saw the
-  // editor repaint twice — a visible flash. The render count IS the symptom.
-  it('drops to local mode exactly once when the seeding write is unauthorised', async () => {
-    for (const status of [401, 404]) {
+  // Round-2 review (#204) found a double exit to local mode — two repaints, a
+  // visible flash — when the seeding write failed. Since #284 the seed is
+  // written BEFORE entering cloud mode, so a failed seed changes nothing at
+  // all: no repaint, no "Saving to …" flash, and nothing remembered for a
+  // device that never accepted a config. The render count IS the symptom.
+  it('leaves the editor untouched when the seeding write fails', async () => {
+    const failures: Array<() => Response> = [
+      () => json({ error: 'nope' }, 401),
+      () => json({ error: 'nope' }, 404),
+      () => new Response('{}', { status: 429, headers: { 'Retry-After': '60' } }),
+      () => json({ error: 'boom' }, 503),
+    ];
+    for (const failPut of failures) {
       _resetPersistenceForTesting();
-      calls = [];
       let renders = 0;
+      let modeChanges = 0;
       onRender(() => {
         renders++;
       });
+      onPersistenceChange(() => {
+        modeChanges++;
+      });
+      stubFetch((_url, init) => (init?.method === 'PUT' ? failPut() : json({ config: null })));
 
-      stubFetch((_url, init) =>
-        init?.method === 'PUT' ? json({ error: 'nope' }, status) : json({ config: null }),
-      );
-
-      const ok = await selectDevice('device-1');
+      const ok = await selectDevice('device-1', 'ABC123');
 
       expect(ok).toBe(false);
       expect(getPersistenceMode()).toBe('local');
-      expect(renders, `status ${String(status)} should exit to local mode once`).toBe(1);
+      expect(renders).toBe(0);
+      expect(modeChanges).toBe(0);
+      expect(getRememberedDevice()).toBeNull();
     }
   });
 
-  // The other falsy paths do NOT exit inside saveNow, so selectDevice must still
-  // do it — the fix must not swing the bug the other way and strand the user in
-  // cloud mode on a device that never accepted a config.
-  it('still drops to local mode when the seeding write fails without exiting', async () => {
-    _resetPersistenceForTesting();
-    let renders = 0;
-    onRender(() => {
-      renders++;
+  it('keeps the current device active when seeding a new one fails', async () => {
+    stubFetch((url, init) => {
+      if (init?.method === 'PUT') return json({ error: 'boom' }, 503);
+      return url.includes('device-1') ? json({ config: STORED_CONFIG }) : json({ config: null });
     });
+    expect(await selectDevice('device-1', 'ABC123')).toBe(true);
 
-    // 429: retry scheduled, device still unconfigured, saveNow did not exit.
+    expect(await selectDevice('device-2', 'XYZ789')).toBe(false);
+    expect(getActiveDevice()).toEqual({ id: 'device-1', label: 'ABC123' });
+  });
+});
+
+describe('debounced save failures (#284 review)', () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  async function editAndSave(putStatus: number): Promise<void> {
+    vi.useFakeTimers();
+    initCloudSync();
     stubFetch((_url, init) =>
-      init?.method === 'PUT'
-        ? new Response('{}', { status: 429, headers: { 'Retry-After': '60' } })
-        : json({ config: null }),
+      init?.method === 'PUT' ? json({ error: 'nope' }, putStatus) : json({ config: STORED_CONFIG }),
     );
+    expect(await selectDevice('device-1', 'ABC123')).toBe(true);
+    addBox('quote');
+    await vi.advanceTimersByTimeAsync(600);
+  }
 
-    const ok = await selectDevice('device-1');
+  it('keeps the remembered device when the session expired (401)', async () => {
+    await editAndSave(401);
 
-    expect(ok).toBe(false);
     expect(getPersistenceMode()).toBe('local');
-    expect(renders).toBe(1);
+    // Signing in again (an OAuth round trip, so a reload) brings the device back.
+    expect(getRememberedDevice()).toEqual({ id: 'device-1', label: 'ABC123' });
+  });
+
+  it('forgets a device that is gone or no longer ours (404)', async () => {
+    await editAndSave(404);
+
+    expect(getPersistenceMode()).toBe('local');
+    expect(getRememberedDevice()).toBeNull();
   });
 });
 
 describe('restoreActiveDevice: the selection survives a reload (#284)', () => {
-  const STORED = {
-    boxes: [{ id: '1', label: 'On device', type: 'text', config: { type: 'text', text: 'hello' } }],
-  };
-
   /** A server where device-1 belongs to the account and has STORED as its config. */
   const ownedDevice = (_url: string, init?: RequestInit): Response =>
-    init?.method === 'PUT' ? json({ ok: true }) : json({ config: STORED });
+    init?.method === 'PUT' ? json({ ok: true }) : json({ config: STORED_CONFIG });
 
   const remember = (id = 'device-1', label = 'ABC123'): void =>
     localStorage.setItem('infobento-active-device', JSON.stringify({ id, label }));
@@ -295,5 +325,44 @@ describe('restoreActiveDevice: the selection survives a reload (#284)', () => {
 
     expect(await restoreActiveDevice()).toBe(true);
     expect(calls.filter((c) => c.method === 'PUT')).toHaveLength(1);
+  });
+
+  /** A fetch stub whose device-1 read stays pending until `release()` is called. */
+  function holdDevice1Read(): () => void {
+    let release!: () => void;
+    const held = new Promise<void>((r) => (release = r));
+    globalThis.fetch = vi.fn(async (input: unknown, init?: RequestInit) => {
+      const url = String(input);
+      calls.push({ url, method: init?.method ?? 'GET' });
+      if (url === '/api/me/device/device-1/config') await held;
+      return ownedDevice(url, init);
+    }) as unknown as typeof fetch;
+    return release;
+  }
+
+  it('does not override a device the user picks while the restore is in flight', async () => {
+    remember('device-1');
+    const release = holdDevice1Read();
+
+    const restoring = restoreActiveDevice();
+    expect(await selectDevice('device-2', 'XYZ789')).toBe(true);
+    release();
+
+    expect(await restoring).toBe(false);
+    expect(getActiveDevice()).toEqual({ id: 'device-2', label: 'XYZ789' });
+    expect(getRememberedDevice()).toEqual({ id: 'device-2', label: 'XYZ789' });
+  });
+
+  it('does not re-enter cloud mode when the user signs out during the restore', async () => {
+    remember('device-1');
+    const release = holdDevice1Read();
+
+    const restoring = restoreActiveDevice();
+    await signOut();
+    release();
+
+    expect(await restoring).toBe(false);
+    expect(getPersistenceMode()).toBe('local');
+    expect(getRememberedDevice()).toBeNull();
   });
 });

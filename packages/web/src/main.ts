@@ -172,14 +172,22 @@ function initEditor(): void {
 
   onPersistenceChange(renderSaveTarget);
 
+  // Each refresh takes a number; a refresh that resumes after a newer one
+  // started (e.g. sign-out during the reload restore) holds a stale session and
+  // must not overwrite the newer result.
+  let accountRefresh = 0;
+
   function refreshAccountMenu(options: { restoreDevice?: boolean } = {}): void {
+    const refresh = ++accountRefresh;
     void getSession().then(async (session) => {
+      if (refresh !== accountRefresh) return;
       setHidden('btn-signin', session.authenticated);
       setHidden('btn-devices', !session.authenticated);
       setHidden('btn-signout', !session.authenticated);
       // Re-select the device chosen before the reload. Awaited before the pill
       // appears so it doesn't flash "Local only" while the device loads.
       if (options.restoreDevice && session.authenticated) await restoreActiveDevice();
+      if (refresh !== accountRefresh) return;
       signedIn = session.authenticated;
       renderSaveTarget();
     });

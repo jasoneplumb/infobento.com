@@ -36,6 +36,10 @@ export interface DeviceSummary {
 
 const SAVE_DEBOUNCE_MS = 500;
 let _saveTimer: ReturnType<typeof setTimeout> | undefined;
+// Bumped by every activation and by sign-out. An activation that finds the
+// number changed after an await has been superseded — by a newer selection, or
+// by signing out — and must not touch the editor (#284 review).
+let _activationGeneration = 0;
 
 /** Read the current auth session. Network failures read as "signed out". */
 export async function getSession(): Promise<SessionInfo> {
@@ -90,8 +94,9 @@ export async function unpairDevice(id: string): Promise<boolean> {
  * `refused` means the server said the device is not this account's (403/404:
  * unpaired, claimed by someone else, or gone) — the only result that justifies
  * forgetting a remembered selection. Everything else that fails is `failed`:
- * a 401 is a session problem, not an ownership answer, and a network error or
- * undecodable body says nothing about the device at all.
+ * a 401 is a session problem, not an ownership answer, a network error or
+ * undecodable body says nothing about the device at all, and a superseded
+ * activation was simply overtaken by a newer selection or a sign-out.
  */
 type ActivateOutcome = 'active' | 'refused' | 'failed';
 
@@ -137,6 +142,8 @@ async function activateDevice(deviceId: string, label?: string): Promise<Activat
   // after the switch and PUT the editor's contents to B, clobbering the config
   // we just loaded.
   cancelPendingSave();
+  const generation = ++_activationGeneration;
+  const superseded = (): boolean => generation !== _activationGeneration;
 
   let res: Response;
   try {
@@ -151,6 +158,7 @@ async function activateDevice(deviceId: string, label?: string): Promise<Activat
   } catch {
     return 'failed';
   }
+  if (superseded()) return 'failed';
 
   // 404 now means what it says: not ours, or gone. It is no longer overloaded
   // with "no config yet" — that case is a 200 with config: null.
@@ -166,6 +174,7 @@ async function activateDevice(deviceId: string, label?: string): Promise<Activat
     // device really had — silent data loss on a transient blip. Bail instead.
     return 'failed';
   }
+  if (superseded()) return 'failed';
 
   // `== null` deliberately, to catch undefined as well: a body of `{}` yields
   // undefined, which a `=== null` test would let fall through into the mapping
@@ -176,21 +185,18 @@ async function activateDevice(deviceId: string, label?: string): Promise<Activat
     // Without this the device stays configless, /frames keeps returning 404,
     // and the physical unit sits on the "Set up InfoBento" screen forever even
     // though pairing and Wi-Fi provisioning both succeeded.
-    enterCloudMode(deviceId, { label });
-    // Report the selection as failed unless the seed was actually accepted.
-    // saveNow() reports `failed` for a swallowed network error and for a 429
-    // whose retry is merely scheduled — in both cases the device still has no
-    // config, so claiming success would leave the user staring at a setup screen
-    // while the UI says the device is live.
     //
-    // `exited` means saveNow already dropped us to local mode (401/404); exiting
-    // again would re-run loadFromLocalStorage() and the render hook for a
-    // visible flash.
-    const outcome = await saveNow();
-    if (outcome !== 'saved') {
-      if (outcome === 'failed') exitToLocalMode();
-      return 'failed';
-    }
+    // The seed is written BEFORE entering cloud mode, and the selection only
+    // takes effect once the server accepts it. A swallowed network error, a 429
+    // or a 401 all leave the device configless, so claiming success would strand
+    // the user on a setup screen while the UI says the device is live. Writing
+    // first also means a failure leaves the editor exactly as it was: no
+    // "Saving to …" flash, no repaint, and nothing remembered for a device that
+    // never accepted a config.
+    const { outcome } = await putConfig(deviceId);
+    if (superseded()) return 'failed';
+    if (outcome !== 'saved') return outcome === 'refused' ? 'refused' : 'failed';
+    enterCloudMode(deviceId, { label });
     return 'active';
   }
 
@@ -213,30 +219,26 @@ export async function signOut(): Promise<void> {
   } catch {
     // Even if the network call fails, drop the client back to local mode.
   }
-  // A queued save must not outlive the session that authorised it.
+  // A queued save must not outlive the session that authorised it, and nor
+  // may a device selection still in flight (e.g. the reload restore).
   cancelPendingSave();
+  _activationGeneration++;
   exitToLocalMode();
 }
 
 /**
- * Outcome of a config push.
- *
- * `exited` exists so callers can tell "the save failed" from "the save failed
- * AND I already dropped you to local mode". Collapsing the two into `false` made
- * selectDevice call exitToLocalMode() a second time, re-running
- * loadFromLocalStorage() and the render hook for a visible flash.
+ * Result of one config PUT. `unauthorized` (401: the session expired) and
+ * `refused` (404: the device is gone or no longer ours) are kept apart because
+ * only the second is a reason to forget the remembered device.
+ * `retryAfterMs` is set for a 429 so the caller can decide whether to retry.
  */
-type SaveOutcome = 'saved' | 'exited' | 'failed';
+interface PutResult {
+  outcome: 'saved' | 'unauthorized' | 'refused' | 'failed';
+  retryAfterMs?: number;
+}
 
-/**
- * Push the current editor config to the active device.
- * Returns `saved` only when the server accepted the write — callers that need
- * to report success to a user (selectDevice's initial push) must not treat a
- * scheduled retry or a swallowed network error as a completed save.
- */
-async function saveNow(): Promise<SaveOutcome> {
-  const deviceId = getActiveDeviceId();
-  if (!deviceId) return 'failed';
+/** PUT the editor's current config to `deviceId`. No mode side effects. */
+async function putConfig(deviceId: string): Promise<PutResult> {
   try {
     const res = await fetch(`/api/device/${encodeURIComponent(deviceId)}/config`, {
       method: 'PUT',
@@ -244,28 +246,44 @@ async function saveNow(): Promise<SaveOutcome> {
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify(toBentoConfig()),
     });
-    if (res.ok) return 'saved';
-    // The device can no longer accept this account's writes — session expired
-    // (401), or the device is gone / no longer ours (opaque 404 from the
-    // ownership check). Fall back to local mode so the user keeps editing
-    // locally instead of silently losing writes.
-    if (res.status === 401 || res.status === 404) {
-      exitToLocalMode();
-      return 'exited';
-    }
-    // Rate limited (429) — retry the latest config after the server cooldown
-    // rather than dropping this write. The retry re-reads current editor state.
+    if (res.ok) return { outcome: 'saved' };
+    if (res.status === 401) return { outcome: 'unauthorized' };
+    if (res.status === 404) return { outcome: 'refused' };
     if (res.status === 429) {
       const retry = Number(res.headers.get('Retry-After'));
-      const delayMs = Number.isFinite(retry) && retry > 0 ? retry * 1000 : 60_000;
-      cancelPendingSave();
-      _saveTimer = setTimeout(() => void saveNow(), delayMs);
+      return {
+        outcome: 'failed',
+        retryAfterMs: Number.isFinite(retry) && retry > 0 ? retry * 1000 : 60_000,
+      };
     }
-    // Other 5xx: transient; the next edit reschedules a save.
-    return 'failed';
+    // Other 5xx: transient.
+    return { outcome: 'failed' };
   } catch {
-    // Network hiccup — the next edit reschedules a save.
-    return 'failed';
+    // Network hiccup.
+    return { outcome: 'failed' };
+  }
+}
+
+/** Push the current editor config to the active device (the debounced save). */
+async function saveNow(): Promise<void> {
+  const deviceId = getActiveDeviceId();
+  if (!deviceId) return;
+  const { outcome, retryAfterMs } = await putConfig(deviceId);
+  // The user switched devices or signed out while the PUT was in flight; this
+  // result describes a device that is no longer the save target.
+  if (getActiveDeviceId() !== deviceId) return;
+  // The device can no longer accept this account's writes. Fall back to local
+  // mode so the user keeps editing locally instead of silently losing writes.
+  // An expired session keeps the remembered device, so it comes back after the
+  // user signs in again; a device that is gone or no longer ours is forgotten.
+  if (outcome === 'unauthorized') exitToLocalMode({ forgetDevice: false });
+  else if (outcome === 'refused') exitToLocalMode();
+  // Rate limited (429) — retry the latest config after the server cooldown
+  // rather than dropping this write. The retry re-reads current editor state.
+  // Any other failure: the next edit reschedules a save.
+  else if (retryAfterMs !== undefined) {
+    cancelPendingSave();
+    _saveTimer = setTimeout(() => void saveNow(), retryAfterMs);
   }
 }
 
