@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.38.6] - 2026-11-20
+
+### Changed
+
+- **Prod dependency bumps (#277).** `hono` 4.13.16 → 4.13.19, `@hono/node-server` 1.19.18 → 1.19.19, `jose` 6.2.15 → 6.2.17.
+- **Dev dependency and workflow-action bumps (#275, #276).** `prettier` 3.9.10 → 3.10.1, `typescript-eslint` 8.72.1 → 8.73.0, `vite` 6.4.5 → 6.4.6; `anthropics/claude-code-action` 1.0.268 → 1.0.271. Toolchain only.
+
 ## [0.38.5] - 2026-11-19
 
 ### Fixed
