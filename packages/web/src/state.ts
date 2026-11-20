@@ -421,9 +421,16 @@ export function onPreviewRender(fn: () => void): void {
 
 export type PersistenceMode = 'local' | 'cloud';
 
-let _persistenceMode: PersistenceMode = 'local';
-let _activeDeviceId: string | null = null;
+/** The device the editor is saving to. `label` is for display (the pair code). */
+export interface ActiveDevice {
+  id: string;
+  label?: string;
+}
+
+// Cloud mode is exactly "a device is active"; the mode is derived, not stored.
+let _activeDevice: ActiveDevice | null = null;
 let _cloudPersistFn: (() => void) | null = null;
+let _persistenceChangeFn: (() => void) | null = null;
 // Set while applying a config loaded FROM the cloud, so the load doesn't
 // immediately echo back as a save.
 let _suppressPersist = false;
@@ -433,12 +440,72 @@ export function onCloudPersist(fn: () => void): void {
   _cloudPersistFn = fn;
 }
 
+/**
+ * Register a callback fired whenever the persistence mode or active device
+ * changes, so the UI can show where edits are going (#284).
+ */
+export function onPersistenceChange(fn: () => void): void {
+  _persistenceChangeFn = fn;
+}
+
 export function getPersistenceMode(): PersistenceMode {
-  return _persistenceMode;
+  return _activeDevice ? 'cloud' : 'local';
 }
 
 export function getActiveDeviceId(): string | null {
-  return _activeDeviceId;
+  return _activeDevice?.id ?? null;
+}
+
+export function getActiveDevice(): ActiveDevice | null {
+  return _activeDevice ? { ..._activeDevice } : null;
+}
+
+// -- Remembered device (#284) -------------------------------------------------
+//
+// The active device used to live only in memory, so a reload silently dropped
+// the editor back to local mode and edits stopped reaching the device. The
+// selection is now mirrored to localStorage by the two mode transitions below,
+// and cloud.ts re-selects it on load. Only the choice is stored — never config.
+
+const ACTIVE_DEVICE_KEY = 'infobento-active-device';
+
+/** The device selected before the last reload, if any (not yet re-verified). */
+export function getRememberedDevice(): ActiveDevice | null {
+  try {
+    const raw = localStorage.getItem(ACTIVE_DEVICE_KEY);
+    if (!raw) return null;
+    const parsed: unknown = JSON.parse(raw);
+    if (typeof parsed !== 'object' || parsed === null) return null;
+    const { id, label } = parsed as Record<string, unknown>;
+    if (typeof id !== 'string' || id === '') return null;
+    return typeof label === 'string' ? { id, label } : { id };
+  } catch {
+    return null;
+  }
+}
+
+/** Drop the remembered device, e.g. once the server says it is no longer ours. */
+export function forgetRememberedDevice(): void {
+  try {
+    localStorage.removeItem(ACTIVE_DEVICE_KEY);
+  } catch {
+    // Storage unavailable — nothing was remembered either.
+  }
+}
+
+function rememberDevice(device: ActiveDevice): void {
+  try {
+    localStorage.setItem(ACTIVE_DEVICE_KEY, JSON.stringify(device));
+  } catch {
+    // Storage full or unavailable — the selection just won't survive a reload.
+  }
+}
+
+export interface CloudModeOptions {
+  /** A config the caller already fetched; applied without a save-back. */
+  seed?: unknown;
+  /** Human-readable device name for the UI (the pair code, never the id). */
+  label?: string;
 }
 
 /**
@@ -447,29 +514,31 @@ export function getActiveDeviceId(): string | null {
  * written or cleared. Optionally seeds the editor from a config the caller
  * already fetched (applied without triggering a redundant save-back).
  */
-export function enterCloudMode(deviceId: string, seed?: unknown): void {
-  _persistenceMode = 'cloud';
-  _activeDeviceId = deviceId;
+export function enterCloudMode(deviceId: string, opts: CloudModeOptions = {}): void {
+  _activeDevice = { id: deviceId, label: opts.label };
+  rememberDevice(_activeDevice);
   // Preview the device as it will actually render (#283).
   state.profileId = DEFAULT_PROFILE_ID;
-  if (seed !== undefined) {
+  if (opts.seed !== undefined) {
     _suppressPersist = true;
     try {
-      loadConfig(seed);
+      loadConfig(opts.seed);
     } finally {
       _suppressPersist = false;
     }
   }
+  _persistenceChangeFn?.();
 }
 
 /**
  * Leave cloud mode and restore the local-only editor. Reloads the preserved
  * localStorage buffer into the editor so the user's pre-sign-in work reappears
  * exactly as they left it (sign-out must not lose the local edits buffer).
+ * Also forgets the remembered device, so the next load starts local too.
  */
 export function exitToLocalMode(): void {
-  _persistenceMode = 'local';
-  _activeDeviceId = null;
+  _activeDevice = null;
+  forgetRememberedDevice();
   state.profileId = DEFAULT_PROFILE_ID;
   // Restore the untouched local buffer; if there was none, keep current boxes.
   _suppressPersist = true;
@@ -479,21 +548,22 @@ export function exitToLocalMode(): void {
     _suppressPersist = false;
   }
   _renderFn?.();
+  _persistenceChangeFn?.();
 }
 
 /** Test-only: reset persistence mode/hooks between cases. */
 export function _resetPersistenceForTesting(): void {
   state.profileId = DEFAULT_PROFILE_ID;
-  _persistenceMode = 'local';
-  _activeDeviceId = null;
+  _activeDevice = null;
   _cloudPersistFn = null;
+  _persistenceChangeFn = null;
   _suppressPersist = false;
 }
 
 /** Persist current state via the active mode (localStorage or cloud). */
 function persist(): void {
   if (_suppressPersist) return;
-  if (_persistenceMode === 'cloud') {
+  if (_activeDevice) {
     _cloudPersistFn?.();
   } else {
     persistToLocalStorage();

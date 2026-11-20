@@ -10,10 +10,13 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { selectDevice } from './cloud.js';
+import { initCloudSync, restoreActiveDevice, selectDevice } from './cloud.js';
 import {
   addBox,
+  getActiveDevice,
+  getBoxes,
   getPersistenceMode,
+  getRememberedDevice,
   onRender,
   setState,
   _resetPersistenceForTesting,
@@ -177,5 +180,120 @@ describe('selectDevice failure paths (#204 review)', () => {
     expect(ok).toBe(false);
     expect(getPersistenceMode()).toBe('local');
     expect(renders).toBe(1);
+  });
+});
+
+describe('restoreActiveDevice: the selection survives a reload (#284)', () => {
+  const STORED = {
+    boxes: [{ id: '1', label: 'On device', type: 'text', config: { type: 'text', text: 'hello' } }],
+  };
+
+  /** A server where device-1 belongs to the account and has STORED as its config. */
+  const ownedDevice = (_url: string, init?: RequestInit): Response =>
+    init?.method === 'PUT' ? json({ ok: true }) : json({ config: STORED });
+
+  const remember = (id = 'device-1', label = 'ABC123'): void =>
+    localStorage.setItem('infobento-active-device', JSON.stringify({ id, label }));
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('does nothing when no device was remembered', async () => {
+    stubFetch(ownedDevice);
+
+    expect(await restoreActiveDevice()).toBe(false);
+    expect(calls).toHaveLength(0);
+    expect(getPersistenceMode()).toBe('local');
+  });
+
+  it("re-selects the device from the device's stored config, without pushing the local buffer", async () => {
+    remember();
+    stubFetch(ownedDevice);
+
+    expect(await restoreActiveDevice()).toBe(true);
+
+    expect(getPersistenceMode()).toBe('cloud');
+    expect(getActiveDevice()).toEqual({ id: 'device-1', label: 'ABC123' });
+    // The device's config replaced the editor's local buffer (one quote box)...
+    expect(getBoxes().map((b) => b.type)).toEqual(['text']);
+    // ...and the local buffer was never written over it.
+    expect(calls.some((c) => c.method === 'PUT')).toBe(false);
+    expect(calls[0]?.url).toBe('/api/me/device/device-1/config');
+  });
+
+  it('sends edits made after a reload to the previously selected device', async () => {
+    vi.useFakeTimers();
+    // Page load 1: the user picks a device.
+    stubFetch(ownedDevice);
+    expect(await selectDevice('device-1', 'ABC123')).toBe(true);
+
+    // Reload: fresh modules, so nothing survives but localStorage.
+    vi.resetModules();
+    const cloud = await import('./cloud.js');
+    const state = await import('./state.js');
+    cloud.initCloudSync();
+    calls = [];
+
+    expect(await cloud.restoreActiveDevice()).toBe(true);
+    state.setRefreshesPerDay(24); // the edit from the bug report
+    await vi.advanceTimersByTimeAsync(600); // past the 500 ms save debounce
+
+    const puts = calls.filter((c) => c.method === 'PUT');
+    expect(puts).toEqual([{ url: '/api/device/device-1/config', method: 'PUT' }]);
+  });
+
+  it('forgets a device the server says is no longer ours', async () => {
+    for (const status of [403, 404]) {
+      remember();
+      stubFetch(() => json({ error: 'not_found' }, status));
+
+      expect(await restoreActiveDevice()).toBe(false);
+      expect(getPersistenceMode()).toBe('local');
+      expect(getRememberedDevice(), `status ${String(status)}`).toBeNull();
+      expect(calls.some((c) => c.method === 'PUT')).toBe(false);
+    }
+  });
+
+  it('keeps the device for the next load when the failure says nothing about ownership', async () => {
+    // 401 is an expired session (sign in again and it should come back); a
+    // network error or a 5xx is transient.
+    const failures: Array<() => Response> = [
+      () => json({ error: 'unauthorized' }, 401),
+      () => json({ error: 'boom' }, 503),
+      () => {
+        throw new TypeError('offline');
+      },
+    ];
+    for (const fail of failures) {
+      remember();
+      stubFetch(fail);
+
+      expect(await restoreActiveDevice()).toBe(false);
+      expect(getPersistenceMode()).toBe('local');
+      expect(getRememberedDevice()).toEqual({ id: 'device-1', label: 'ABC123' });
+    }
+  });
+
+  it('does not override a device the user selected while the page was loading', async () => {
+    remember('device-1');
+    stubFetch(ownedDevice);
+    expect(await selectDevice('device-2', 'XYZ789')).toBe(true);
+    calls = [];
+
+    expect(await restoreActiveDevice()).toBe(false);
+    expect(calls).toHaveLength(0);
+    expect(getActiveDevice()).toEqual({ id: 'device-2', label: 'XYZ789' });
+  });
+
+  it('only seeds the device from the local buffer when the server has no config for it', async () => {
+    remember();
+    stubFetch((_url, init) =>
+      init?.method === 'PUT' ? json({ ok: true }) : json({ config: null }),
+    );
+    initCloudSync();
+
+    expect(await restoreActiveDevice()).toBe(true);
+    expect(calls.filter((c) => c.method === 'PUT')).toHaveLength(1);
   });
 });
