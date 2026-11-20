@@ -10,12 +10,14 @@
 // Boot flow (setup()):
 //   not configured (no deviceid/ssid)  -> draw setup screen, AP mode + portal
 //   configured, cold/timer wake        -> Wi-Fi -> GET /frames -> draw -> sleep
-//   configured, green-button wake       -> flip cached orientation, radio off
+//   configured, green tap wake          -> flip cached orientation, radio off
+//   configured, green held 5s           -> Wi-Fi -> unconditional GET /frames -> draw (#280)
 //   configured, white-combo wake        -> factory reset (draw screen, wipe NVS)
 //
 // Reset: hold BOTH white buttons (GPIO4 + GPIO5) 5s — works awake (AP loop) and
 // from deep sleep (ext1 wakes on GPIO4, then we poll for the 5s combo). Green =
-// GPIO3 (orientation flip when configured; reset-screen flip in AP mode).
+// GPIO3 (configured: tap flips orientation, 5s hold pulls the latest config;
+// AP mode: flips the reset screen).
 //
 // ⚠️ BENCH-MVP, NOT hardware-verified. Highest-risk item: reset-from-deep-sleep
 // (ext1 GPIO3+GPIO4 + post-wake combo poll). Flash 8 MB:
@@ -45,10 +47,14 @@
 #define EPD_H 480
 #define IB_FRAME_LEN (EPD_W * EPD_H / 4)  // 96000
 
-#define GREEN_BTN_GPIO 3    // orientation flip (dashboard) / reset-screen flip (AP)
+#define GREEN_BTN_GPIO 3    // tap: orientation flip / 5s hold: pull now (dashboard); reset-screen flip (AP)
 #define WHITE_BTN_R_GPIO 4  // right white — the only ext1 wake-capable white button
 #define WHITE_BTN_L_GPIO 5  // left white
-#define RESET_HOLD_MS 5000
+#define LONG_PRESS_MS 5000             // shared by both long-press gestures, so they stay in step
+#define RESET_HOLD_MS LONG_PRESS_MS    // both white held this long -> factory reset
+#define REFRESH_HOLD_MS LONG_PRESS_MS  // green held this long -> pull the latest config now (#280)
+#define REFRESH_RELEASE_WAIT_MS 10000  // max wait for green release before re-arming ext1
+#define REARM_SLEEP_MAX_SECONDS 300    // longest sleep while a button is left disarmed (held/stuck)
 
 #define ORIENT_FILE "/frames.bin"
 #define ORIENT_TMP "/frames.tmp"
@@ -303,7 +309,9 @@ bool streamHalfToFile(WiFiClient* s, File& f) {
   if (!readExact(s, g_fb, IB_FRAME_LEN)) return false;
   return f.write(g_fb, IB_FRAME_LEN) == (size_t)IB_FRAME_LEN;
 }
-void pullFrames() {
+// unconditional: send no If-Modified-Since, so the server cannot answer 304. The
+// stored validator is left alone, and is replaced only by a successful 200.
+void pullFrames(bool unconditional = false) {
   if (!ensureWifi()) return;
   bool tls = g_server.startsWith("https");
   String url = g_server + "/api/device/" + g_deviceid + "/frames";
@@ -317,7 +325,7 @@ void pullFrames() {
   http.begin(*client, url);
   const char* collect[] = { "Last-Modified", "X-Refresh-Interval", "X-Frame-Landscape-Bytes", "X-Frame-Portrait-Bytes" };
   http.collectHeaders(collect, 4);
-  if (g_lastModified[0]) http.addHeader("If-Modified-Since", g_lastModified);
+  if (!unconditional && g_lastModified[0]) http.addHeader("If-Modified-Since", g_lastModified);
   int code = http.GET();
   Serial.printf("[IB] GET /frames -> %d\n", code);
   adoptRefreshInterval(http);
@@ -484,7 +492,19 @@ void handleOrientationFlip() {
   if (drawOrientationFromFlash(next)) persistOrientation(next);
   else Serial.println("[IB] no cached frame to flip to -> no-op");
 }
-// Deep-sleep button wake: distinguish a reset combo (both white, 5s) from a green flip.
+// Green held REFRESH_HOLD_MS (deep-sleep green-wake path): pull the latest config
+// now rather than at the next timer wake (#280). The GET is unconditional, so the
+// server cannot answer 304 and the redraw doubles as the confirmation that the
+// hold registered. A failed pull leaves the stored validator intact.
+void handleForcedRefresh() {
+  Serial.println("[IB] green held 5s -> pull latest config");
+  pullFrames(/*unconditional=*/true);
+  // Give the user time to let go; goToSleep() skips arming any pin still held.
+  unsigned long t0 = millis();
+  while (digitalRead(GREEN_BTN_GPIO) == LOW && millis() - t0 < REFRESH_RELEASE_WAIT_MS) delay(20);
+}
+// Deep-sleep button wake: a reset combo (both white, 5s), a green hold (5s, pull
+// now) or a green tap (orientation flip, acted on at release).
 void handleWakeButtons() {
   pinMode(GREEN_BTN_GPIO, INPUT_PULLUP);
   pinMode(WHITE_BTN_R_GPIO, INPUT_PULLUP);
@@ -493,27 +513,56 @@ void handleWakeButtons() {
   if (digitalRead(WHITE_BTN_R_GPIO) == LOW && digitalRead(WHITE_BTN_L_GPIO) == LOW) {
     Serial.println("[IB] both white down on wake — hold 5s to reset");
     unsigned long t0 = millis();
+    bool releasedEarly = false;
     while (millis() - t0 < RESET_HOLD_MS) {
       if (digitalRead(WHITE_BTN_R_GPIO) != LOW || digitalRead(WHITE_BTN_L_GPIO) != LOW) {
-        Serial.println("[IB] combo released early -> no reset"); return;
+        Serial.println("[IB] combo released early -> no reset");
+        releasedEarly = true;
+        break;
       }
       delay(20);
     }
-    factoryReset();  // does not return
+    if (!releasedEarly) factoryReset();  // does not return
+    // Released early: fall through, so a green pressed at the same time still counts.
   }
-  if (digitalRead(GREEN_BTN_GPIO) == LOW) handleOrientationFlip();
-  else Serial.println("[IB] button wake, no actionable button -> no-op");
+  // A tap can be released before boot reaches this point, so the ext1 wake
+  // status — not the live pin level — decides whether green was the trigger.
+  // A green that happens to be down during a white-right wake is not a gesture.
+  bool greenWoke = (esp_sleep_get_ext1_wakeup_status() & (1ULL << GREEN_BTN_GPIO)) != 0;
+  if (!greenWoke) {
+    Serial.println("[IB] button wake, no actionable button -> no-op");
+    return;
+  }
+  // The press is what woke us, so millis() since boot is the hold time so far;
+  // timing from here instead would demand ~300 ms of boot overhead on top.
+  while (digitalRead(GREEN_BTN_GPIO) == LOW) {
+    if (millis() >= REFRESH_HOLD_MS) { handleForcedRefresh(); return; }
+    delay(20);
+  }
+  handleOrientationFlip();
 }
 
 void goToSleep() {
   WiFi.disconnect(true);
   WiFi.mode(WIFI_OFF);
-  // Arm ext1 on green (orientation flip) AND white-right (reset combo entry). Keep
-  // both pull-ups powered so they idle HIGH and a press pulls LOW (ANY_LOW wake).
+  // Arm ext1 on green (orientation flip / 5s pull) AND white-right (reset combo
+  // entry). Keep both pull-ups powered so they idle HIGH and a press pulls LOW
+  // (ANY_LOW wake). A pin that is LOW right now (held past the release window, or
+  // stuck) is left out: ANY_LOW would wake straight back up and loop on it until
+  // the battery dies. The timer wake still runs, and re-arms it once released.
   rtc_gpio_pullup_en((gpio_num_t)GREEN_BTN_GPIO);   rtc_gpio_pulldown_dis((gpio_num_t)GREEN_BTN_GPIO);
   rtc_gpio_pullup_en((gpio_num_t)WHITE_BTN_R_GPIO); rtc_gpio_pulldown_dis((gpio_num_t)WHITE_BTN_R_GPIO);
-  esp_sleep_enable_ext1_wakeup((1ULL << GREEN_BTN_GPIO) | (1ULL << WHITE_BTN_R_GPIO), ESP_EXT1_WAKEUP_ANY_LOW);
+  uint64_t wakeMask = 0;
+  if (digitalRead(GREEN_BTN_GPIO) == HIGH) wakeMask |= (1ULL << GREEN_BTN_GPIO);
+  else Serial.println("[IB] green still down -> not armed for wake this sleep");
+  if (digitalRead(WHITE_BTN_R_GPIO) == HIGH) wakeMask |= (1ULL << WHITE_BTN_R_GPIO);
+  else Serial.println("[IB] white-right still down -> not armed for wake this sleep");
+  if (wakeMask) esp_sleep_enable_ext1_wakeup(wakeMask, ESP_EXT1_WAKEUP_ANY_LOW);
   uint32_t secs = g_sleepSeconds ? g_sleepSeconds : (uint32_t)IB_SLEEP_SECONDS;
+  // A disarmed button would otherwise stay dead until the next scheduled wake
+  // (8 h by default). Wake sooner to re-arm it once it has been released.
+  const uint64_t fullMask = (1ULL << GREEN_BTN_GPIO) | (1ULL << WHITE_BTN_R_GPIO);
+  if (wakeMask != fullMask) secs = min(secs, (uint32_t)REARM_SLEEP_MAX_SECONDS);
   esp_sleep_enable_timer_wakeup((uint64_t)secs * 1000000ULL);
   Serial.printf("[IB] deep sleep %us (or button)\n", (unsigned)secs);
   Serial.flush();
@@ -541,7 +590,7 @@ void setup() {
   loadConfig();
 
   if (haveConfig()) {
-    if (buttonWake) handleWakeButtons();  // reset combo or orientation flip, radio off
+    if (buttonWake) handleWakeButtons();  // reset combo, orientation flip, or 5s-hold pull
     else pullFrames();                    // cold/timer: fetch both, store, draw current
     free(g_fb); g_fb = nullptr;
     goToSleep();

@@ -337,6 +337,13 @@ obtains them from the user, so it compiles and runs with nothing pre-baked.
 4. **Phase 7 - integrated build (#173).** ✅ merged (PR #174, `integrated/`):
    provisioning + dual-orientation deep-sleep pull + green-button flip +
    two-white-button factory reset in one sketch.
+   A 5 s hold on the green button (#280) pulls the latest config immediately:
+   an unconditional `GET /frames` (no `If-Modified-Since`, so never a 304),
+   then store, draw and sleep. A shorter press still flips orientation, acted
+   on at release. Bench check, serial at 115200: a tap logs the orientation
+   flip with no `GET`; a 5 s hold logs `green held 5s -> pull latest config`
+   then `GET /frames -> 200` and redraws; a config saved in the web editor
+   appears after the hold.
 5. **Production port.** Re-point pins/dimensions to GDEH0576T81
    (920×680, 156,400-byte frame) on ESP32-C3 once the panel is sourced
    (#57 closed; gray rendering proven on the E1001).
