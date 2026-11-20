@@ -12,7 +12,7 @@ import {
   parseOrientation,
   parsePanelDeclaration,
   refreshIntervalSeconds,
-  supportedPanels,
+  SUPPORTED_PANELS,
 } from './device.js';
 import { InMemoryCache } from '@infobento/data';
 import type { HydrateDeps } from './hydrate.js';
@@ -338,10 +338,10 @@ describe('parsePanelDeclaration', () => {
       kind: 'supported',
       panel: { widthPx: 920, heightPx: 680 },
     });
-    expect(supportedPanels()).toEqual(['800x480', '920x680']);
+    expect(SUPPORTED_PANELS).toEqual(['800x480', '920x680']);
   });
 
-  it.each(['', '480x800', '1024x768', '800 x 480', '800x480x2', 'e1001', '-800x480'])(
+  it.each(['', '480x800', '1024x768', '800 x 480', '800x480x2', 'e1001', '-800x480', '0800x0480'])(
     'rejects %j as unsupported',
     (raw) => {
       expect(parsePanelDeclaration(raw)).toEqual({ kind: 'unsupported', raw });
@@ -356,18 +356,20 @@ describe('parsePanelDeclaration', () => {
 describe('frameETag / etagMatches', () => {
   const ms = 1_700_000_000_500;
 
-  it('encodes the freshness second and the render size', () => {
-    expect(frameETag(ms, { widthPx: 800, heightPx: 480 })).toBe('"1700000000-800x480"');
-    expect(frameETag(ms, null)).toBe('"1700000000-config"');
+  it('encodes the freshness second, the render size, and the representation', () => {
+    const panel = { widthPx: 800, heightPx: 480 };
+    expect(frameETag(ms, panel, 'both')).toBe('"1700000000-800x480-both"');
+    expect(frameETag(ms, panel, 'portrait')).toBe('"1700000000-800x480-portrait"');
+    expect(frameETag(ms, null, 'landscape')).toBe('"1700000000-config-landscape"');
   });
 
   it('matches exact, weak, listed, and wildcard If-None-Match values', () => {
-    const tag = '"1700000000-800x480"';
+    const tag = '"1700000000-800x480-both"';
     expect(etagMatches(tag, tag)).toBe(true);
     expect(etagMatches(`W/${tag}`, tag)).toBe(true);
     expect(etagMatches(`"other", ${tag}`, tag)).toBe(true);
     expect(etagMatches('*', tag)).toBe(true);
-    expect(etagMatches('"1700000000-920x680"', tag)).toBe(false);
+    expect(etagMatches('"1700000000-920x680-both"', tag)).toBe(false);
     // A comma inside a quoted tag is part of the tag, not a list separator.
     expect(etagMatches('"a,b"', '"a,b"')).toBe(true);
     expect(etagMatches('"a,b"', '"a"')).toBe(false);
@@ -421,7 +423,7 @@ describe('frame pulls with a declared panel (#288)', () => {
       lastModifiedMs,
     );
     if (first.status !== 200) throw new Error('unreachable');
-    expect(first.etag).toBe(frameETag(lastModifiedMs, E1001));
+    expect(first.etag).toBe(frameETag(lastModifiedMs, E1001, 'both'));
     const second = await getDeviceFramesForPull(
       db,
       id,
@@ -430,6 +432,15 @@ describe('frame pulls with a declared panel (#288)', () => {
       lastModifiedMs,
     );
     expect(second).toMatchObject({ status: 304, etag: first.etag });
+  });
+
+  it("never 304s one orientation with the other orientation's validator", async () => {
+    const { id, lastModifiedMs } = seedDeviceWithConfig(db);
+    const req = { panel: E1001, ifNoneMatch: frameETag(lastModifiedMs, E1001, 'landscape') };
+    const land = await getDeviceFrameForPull(db, id, 'landscape', req, makeDeps(), lastModifiedMs);
+    expect(land.status).toBe(304);
+    const port = await getDeviceFrameForPull(db, id, 'portrait', req, makeDeps(), lastModifiedMs);
+    expect(port.status).toBe(200);
   });
 
   it('treats an empty If-None-Match as absent and falls back to If-Modified-Since', async () => {
@@ -446,7 +457,7 @@ describe('frame pulls with a declared panel (#288)', () => {
 
   it('re-renders (200) when the validator was issued for a different panel size', async () => {
     const { id, lastModifiedMs } = seedDeviceWithConfig(db);
-    const otherPanel = frameETag(lastModifiedMs, { widthPx: 920, heightPx: 680 });
+    const otherPanel = frameETag(lastModifiedMs, { widthPx: 920, heightPx: 680 }, 'both');
     const r = await getDeviceFramesForPull(
       db,
       id,

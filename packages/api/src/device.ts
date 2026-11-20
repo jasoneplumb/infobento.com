@@ -89,8 +89,8 @@ export interface FramePullRequest {
   readonly panel?: PanelSize | null;
 }
 
-/** `WIDTHxHEIGHT` in decimal pixels, e.g. `800x480`. */
-const PANEL_RE = /^(\d{1,5})x(\d{1,5})$/;
+/** `WIDTHxHEIGHT` in decimal pixels without leading zeros, e.g. `800x480`. */
+const PANEL_RE = /^([1-9]\d{0,4})x([1-9]\d{0,4})$/;
 
 /**
  * Parse the `X-Panel` header against `DEVICE_PROFILES`. Only an exact native
@@ -117,29 +117,34 @@ function formatPanel(p: PanelSize): string {
   return `${p.widthPx}x${p.heightPx}`;
 }
 
-/** The `X-Panel` values the server accepts, for the 422 body and docs. */
-export function supportedPanels(): string[] {
-  return DEVICE_PROFILES.map(formatPanel);
-}
+/** The `X-Panel` values the server accepts, for the 422 body and log line. */
+export const SUPPORTED_PANELS: readonly string[] = DEVICE_PROFILES.map(formatPanel);
+
+/** Which representation a validator describes: the dual `/frames` body or one `/frame` orientation. */
+export type FrameVariant = 'both' | Orientation;
 
 /**
- * The frame validator: the effective freshness second plus the size the frame
- * is rendered at, so a validator issued for one panel size can never answer 304
- * for another. Without a declared panel the size comes from the stored config,
- * whose edits already advance `last_modified`, so the token `config` suffices —
- * and keeps the 304 path free of a `config_json` parse.
+ * The frame validator: the effective freshness second, the size the frame is
+ * rendered at, and which representation it is. A validator issued for one panel
+ * size, orientation, or endpoint can never answer 304 for another. Without a
+ * declared panel the size comes from the stored config, whose edits already
+ * advance `last_modified`, so the token `config` suffices — and keeps the 304
+ * path free of a `config_json` parse.
  */
-export function frameETag(effectiveMs: number, panel: PanelSize | null): string {
+export function frameETag(
+  effectiveMs: number,
+  panel: PanelSize | null,
+  variant: FrameVariant,
+): string {
   const size = panel ? formatPanel(panel) : 'config';
-  return `"${Math.floor(effectiveMs / 1000)}-${size}"`;
+  return `"${Math.floor(effectiveMs / 1000)}-${size}-${variant}"`;
 }
-
-/** One entity-tag (optionally weak) or `*`; quoted, so a comma inside a tag is safe. */
-const ENTITY_TAG_RE = /(?:W\/)?("[^"]*")|\*/g;
 
 /** RFC 9110 `If-None-Match` evaluation for GET (weak comparison, `*` matches). */
 export function etagMatches(headerValue: string, etag: string): boolean {
-  for (const m of headerValue.matchAll(ENTITY_TAG_RE)) {
+  // One entity-tag (optionally weak) or `*`; tags are quoted, so a comma inside
+  // one is not a separator. A literal here, so no `lastIndex` is shared.
+  for (const m of headerValue.matchAll(/(?:W\/)?("[^"]*")|\*/g)) {
     if (m[0] === '*' || m[1] === etag) return true;
   }
   return false;
@@ -248,6 +253,7 @@ async function pullDeviceFrames(
   db: DB,
   deviceId: string,
   req: FramePullRequest,
+  variant: FrameVariant,
   deps: HydrateDeps,
   nowMs: number,
 ): Promise<FramePullResult> {
@@ -263,7 +269,7 @@ async function pullDeviceFrames(
   // If-Modified-Since when both are sent (RFC 9110 §13.2.2); older firmware
   // sends only the latter.
   const effectiveMs = effectiveLastModified(device, nowMs);
-  const etag = frameETag(effectiveMs, panel);
+  const etag = frameETag(effectiveMs, panel, variant);
   const fresh = { lastModifiedMs: effectiveMs, etag, refreshIntervalSec };
   // An empty If-None-Match carries no validator, so it falls through to IMS.
   const ifNoneMatch = req.ifNoneMatch?.trim();
@@ -307,7 +313,7 @@ export async function getDeviceFrameForPull(
   deps: HydrateDeps,
   nowMs: number = Date.now(),
 ): Promise<DeviceFrameResult> {
-  const r = await pullDeviceFrames(db, deviceId, req, deps, nowMs);
+  const r = await pullDeviceFrames(db, deviceId, req, orientation, deps, nowMs);
   if (r.status !== 200) return r;
   const fb = orientation === 'portrait' ? r.dual.portrait : r.dual.landscape;
   return {
@@ -339,7 +345,7 @@ export async function getDeviceFramesForPull(
   deps: HydrateDeps,
   nowMs: number = Date.now(),
 ): Promise<DeviceFramesResult> {
-  const r = await pullDeviceFrames(db, deviceId, req, deps, nowMs);
+  const r = await pullDeviceFrames(db, deviceId, req, 'both', deps, nowMs);
   if (r.status !== 200) return r;
   const toPayload = (fb: ReturnType<typeof renderBoth>['landscape']): FramePayload => ({
     data: fb.data,

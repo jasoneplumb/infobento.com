@@ -95,19 +95,19 @@ takes the same request headers and status codes.
 
 `X-Panel` must be one of the sizes in `DEVICE_PROFILES` (`packages/core/src/constants.ts`):
 currently `800x480` (Seeed reTerminal E1001) and `920x680` (GDEH0576T81). It is
-case-insensitive and must give the long side first.
+case-insensitive, must give the long side first, and must not use leading zeros.
 
 **Response headers:**
 
-| Header                                              | Sent on  | Meaning                                                                                                                 |
-| --------------------------------------------------- | -------- | ----------------------------------------------------------------------------------------------------------------------- |
-| `Last-Modified`                                     | 200, 304 | The later of the config's last edit and the current data-refresh boundary.                                              |
-| `ETag`                                              | 200, 304 | `"<unix-seconds>-<W>x<H>"` for a declared panel, `"<unix-seconds>-config"` otherwise. Changes whenever the frame would. |
-| `Vary`                                              | 200, 304 | `X-Panel`: the declared size is part of what a cached frame is valid for.                                               |
-| `X-Refresh-Interval`                                | 200, 304 | Seconds until the next pull. Omitted when scheduled refresh is disabled.                                                |
-| `X-Device-Forget`                                   | 200, 304 | `1` once, when the owner asked the device to forget its Wi-Fi.                                                          |
-| `X-Frame-{Landscape,Portrait}-{Width,Height,Bytes}` | 200      | Per-orientation geometry and byte length, so the device can split the body (`/frames`).                                 |
-| `X-Frame-Width`, `X-Frame-Height`                   | 200      | Geometry of the single frame (`/frame`).                                                                                |
+| Header                                              | Sent on  | Meaning                                                                                                                                                                                                                                                                     |
+| --------------------------------------------------- | -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Last-Modified`                                     | 200, 304 | The later of the config's last edit and the current data-refresh boundary.                                                                                                                                                                                                  |
+| `ETag`                                              | 200, 304 | `"<unix-seconds>-<size>-<variant>"`: `<size>` is the declared `WxH`, or `config` when none is declared; `<variant>` is `both` (`/frames`), `landscape` or `portrait` (`/frame`). Changes whenever the frame would, and never matches another size, orientation or endpoint. |
+| `Vary`                                              | 200, 304 | `X-Panel`: the declared size is part of what a cached frame is valid for.                                                                                                                                                                                                   |
+| `X-Refresh-Interval`                                | 200, 304 | Seconds until the next pull. Omitted when scheduled refresh is disabled.                                                                                                                                                                                                    |
+| `X-Device-Forget`                                   | 200, 304 | `1` once, when the owner asked the device to forget its Wi-Fi.                                                                                                                                                                                                              |
+| `X-Frame-{Landscape,Portrait}-{Width,Height,Bytes}` | 200      | Per-orientation geometry and byte length, so the device can split the body (`/frames`).                                                                                                                                                                                     |
+| `X-Frame-Width`, `X-Frame-Height`                   | 200      | Geometry of the single frame (`/frame`).                                                                                                                                                                                                                                    |
 
 **Status codes:**
 

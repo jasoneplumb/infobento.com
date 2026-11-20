@@ -325,7 +325,7 @@ describe('GET /api/device/:id/frames', () => {
     expect(res.headers.get('X-Frame-Portrait-Bytes')).toBe('96000');
     expect(res.headers.get('X-Frame-Landscape-Width')).toBe('800');
     expect(res.headers.get('X-Frame-Landscape-Height')).toBe('480');
-    expect(res.headers.get('ETag')).toMatch(/^"\d+-800x480"$/);
+    expect(res.headers.get('ETag')).toMatch(/^"\d+-800x480-both"$/);
     expect(res.headers.get('Vary')).toBe('X-Panel');
   });
 
@@ -363,7 +363,7 @@ describe('GET /api/device/:id/frames', () => {
       expect(res.headers.get('Content-Length')).toBe('96000');
       expect(res.headers.get('Vary')).toBe('X-Panel');
       const etag = res.headers.get('ETag') ?? '';
-      expect(etag).toMatch(/^"\d+-800x480"$/);
+      expect(etag).toMatch(/^"\d+-800x480-landscape"$/);
 
       const cached = await app.request(`/api/device/${id}/frame`, {
         headers: { 'X-Panel': '800x480', 'If-None-Match': etag },

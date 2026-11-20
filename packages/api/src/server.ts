@@ -62,7 +62,7 @@ import {
   getDeviceFramesForPull,
   parseOrientation,
   parsePanelDeclaration,
-  supportedPanels,
+  SUPPORTED_PANELS,
   type FrameFreshness,
   type FramePullRequest,
 } from './device.js';
@@ -607,21 +607,29 @@ app.get('/api/device/:id/config', (c) => {
  * visible somewhere other than the device's serial console. The id is logged
  * only as a short prefix: it is the device's bearer secret.
  */
-function readFramePull(c: Context, id: string): FramePullRequest | Response {
+function readFramePull(
+  c: Context,
+  id: string,
+):
+  | { readonly ok: true; readonly req: FramePullRequest }
+  | { readonly ok: false; readonly response: Response } {
   const declared = parsePanelDeclaration(c.req.header('x-panel'));
   if (declared.kind === 'unsupported') {
     const panel = declared.raw.slice(0, 32);
-    const supported = supportedPanels();
     console.warn(
       `Frame pull rejected: device ${id.slice(0, 8)}… declared unsupported panel ` +
-        `${JSON.stringify(panel)} (supported: ${supported.join(', ')})`,
+        `${JSON.stringify(panel)} (supported: ${SUPPORTED_PANELS.join(', ')})`,
     );
-    return c.json({ error: 'unsupported_panel', panel, supported }, 422);
+    const body = { error: 'unsupported_panel', panel, supported: SUPPORTED_PANELS };
+    return { ok: false, response: c.json(body, 422) };
   }
   return {
-    ifModifiedSince: c.req.header('if-modified-since') ?? null,
-    ifNoneMatch: c.req.header('if-none-match') ?? null,
-    panel: declared.kind === 'supported' ? declared.panel : null,
+    ok: true,
+    req: {
+      ifModifiedSince: c.req.header('if-modified-since') ?? null,
+      ifNoneMatch: c.req.header('if-none-match') ?? null,
+      panel: declared.kind === 'supported' ? declared.panel : null,
+    },
   };
 }
 
@@ -648,9 +656,15 @@ app.get('/api/device/:id/frame', async (c) => {
     return c.json({ error: 'rate_limited' }, 429, { 'Retry-After': '60' });
   }
   const pull = readFramePull(c, id);
-  if (pull instanceof Response) return pull;
+  if (!pull.ok) return pull.response;
   const orientation = parseOrientation(c.req.query('orientation'));
-  const result = await getDeviceFrameForPull(getDb(), id, orientation, pull, defaultHydrateDeps());
+  const result = await getDeviceFrameForPull(
+    getDb(),
+    id,
+    orientation,
+    pull.req,
+    defaultHydrateDeps(),
+  );
   if (result.status === 404) return c.json({ error: 'not_found' }, 404);
   if (result.status === 500) return c.json({ error: result.error }, 500);
   // Deliver a pending "forget Wi-Fi" (issue #39) on this contact, read-and-clear.
@@ -678,8 +692,8 @@ app.get('/api/device/:id/frames', async (c) => {
     return c.json({ error: 'rate_limited' }, 429, { 'Retry-After': '60' });
   }
   const pull = readFramePull(c, id);
-  if (pull instanceof Response) return pull;
-  const result = await getDeviceFramesForPull(getDb(), id, pull, defaultHydrateDeps());
+  if (!pull.ok) return pull.response;
+  const result = await getDeviceFramesForPull(getDb(), id, pull.req, defaultHydrateDeps());
   if (result.status === 404) return c.json({ error: 'not_found' }, 404);
   if (result.status === 500) return c.json({ error: result.error }, 500);
   const headers = frameFreshnessHeaders(result);
