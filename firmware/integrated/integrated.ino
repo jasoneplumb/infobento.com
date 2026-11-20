@@ -54,7 +54,7 @@
 #define RESET_HOLD_MS LONG_PRESS_MS    // both white held this long -> factory reset
 #define REFRESH_HOLD_MS LONG_PRESS_MS  // green held this long -> pull the latest config now (#280)
 #define REFRESH_RELEASE_WAIT_MS 10000  // max wait for green release before re-arming ext1
-#define REARM_SLEEP_SECONDS 300        // sleep cap while a button is left disarmed (held/stuck)
+#define REARM_SLEEP_MAX_SECONDS 300    // longest sleep while a button is left disarmed (held/stuck)
 
 #define ORIENT_FILE "/frames.bin"
 #define ORIENT_TMP "/frames.tmp"
@@ -513,13 +513,17 @@ void handleWakeButtons() {
   if (digitalRead(WHITE_BTN_R_GPIO) == LOW && digitalRead(WHITE_BTN_L_GPIO) == LOW) {
     Serial.println("[IB] both white down on wake — hold 5s to reset");
     unsigned long t0 = millis();
+    bool releasedEarly = false;
     while (millis() - t0 < RESET_HOLD_MS) {
       if (digitalRead(WHITE_BTN_R_GPIO) != LOW || digitalRead(WHITE_BTN_L_GPIO) != LOW) {
-        Serial.println("[IB] combo released early -> no reset"); return;
+        Serial.println("[IB] combo released early -> no reset");
+        releasedEarly = true;
+        break;
       }
       delay(20);
     }
-    factoryReset();  // does not return
+    if (!releasedEarly) factoryReset();  // does not return
+    // Released early: fall through, so a green pressed at the same time still counts.
   }
   // A tap can be released before boot reaches this point, so the ext1 wake
   // status — not the live pin level — decides whether green was the trigger.
@@ -558,7 +562,7 @@ void goToSleep() {
   // A disarmed button would otherwise stay dead until the next scheduled wake
   // (8 h by default). Wake sooner to re-arm it once it has been released.
   const uint64_t fullMask = (1ULL << GREEN_BTN_GPIO) | (1ULL << WHITE_BTN_R_GPIO);
-  if (wakeMask != fullMask && secs > REARM_SLEEP_SECONDS) secs = REARM_SLEEP_SECONDS;
+  if (wakeMask != fullMask) secs = min(secs, (uint32_t)REARM_SLEEP_MAX_SECONDS);
   esp_sleep_enable_timer_wakeup((uint64_t)secs * 1000000ULL);
   Serial.printf("[IB] deep sleep %us (or button)\n", (unsigned)secs);
   Serial.flush();
