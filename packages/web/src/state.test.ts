@@ -259,6 +259,12 @@ describe('remembered device survives a reload (#284)', () => {
     expect(getRememberedDevice()).toEqual({ id: 'device-1', label: 'ABC123' });
   });
 
+  it('has the same shape with no label before and after a reload', () => {
+    enterCloudMode('device-1');
+    expect(getActiveDevice()).toStrictEqual({ id: 'device-1' });
+    expect(getRememberedDevice()).toStrictEqual({ id: 'device-1' });
+  });
+
   it('forgets it on the way back to local mode (sign-out, unpair, lost access)', () => {
     enterCloudMode('device-1', { label: 'ABC123' });
     exitToLocalMode();

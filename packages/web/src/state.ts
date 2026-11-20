@@ -515,7 +515,8 @@ export interface CloudModeOptions {
  * already fetched (applied without triggering a redundant save-back).
  */
 export function enterCloudMode(deviceId: string, opts: CloudModeOptions = {}): void {
-  _activeDevice = { id: deviceId, label: opts.label };
+  // No `label` key at all when there is none, matching getRememberedDevice().
+  _activeDevice = opts.label === undefined ? { id: deviceId } : { id: deviceId, label: opts.label };
   rememberDevice(_activeDevice);
   // Preview the device as it will actually render (#283).
   state.profileId = DEFAULT_PROFILE_ID;
@@ -560,6 +561,7 @@ export function _resetPersistenceForTesting(): void {
   _cloudPersistFn = null;
   _persistenceChangeFn = null;
   _suppressPersist = false;
+  forgetRememberedDevice();
 }
 
 /** Persist current state via the active mode (localStorage or cloud). */

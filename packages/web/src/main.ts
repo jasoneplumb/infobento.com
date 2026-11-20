@@ -196,6 +196,10 @@ function initEditor(): void {
   wireMenuItem('btn-signin', openSignInDialog);
   wireMenuItem('btn-devices', openDevicesDialog);
   wireMenuItem('btn-signout', () => {
+    // Hide the pill first: signOut's exit to local mode would otherwise render
+    // a brief amber "Local only" for a user who is no longer signed in.
+    signedIn = false;
+    renderSaveTarget();
     void signOut().then(() => refreshAccountMenu());
   });
 

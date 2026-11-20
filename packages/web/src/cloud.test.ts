@@ -366,3 +366,63 @@ describe('restoreActiveDevice: the selection survives a reload (#284)', () => {
     expect(getRememberedDevice()).toBeNull();
   });
 });
+
+describe('in-flight races (#284 review, round 2)', () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  /** A fetch stub that parks requests matching `pred` until `release(response)`. */
+  function holdRequests(
+    pred: (url: string, method: string) => boolean,
+    otherwise: (url: string, init?: RequestInit) => Response,
+  ): (res: Response) => void {
+    let release!: (res: Response) => void;
+    const held = new Promise<Response>((r) => (release = r));
+    globalThis.fetch = vi.fn((input: unknown, init?: RequestInit) => {
+      const url = String(input);
+      const method = init?.method ?? 'GET';
+      calls.push({ url, method });
+      return pred(url, method) ? held : Promise.resolve(otherwise(url, init));
+    }) as unknown as typeof fetch;
+    return release;
+  }
+
+  it('a stale 401 does not drop a device re-selected after sign-out', async () => {
+    vi.useFakeTimers();
+    initCloudSync();
+    let holdPut = true;
+    const releasePut = holdRequests(
+      (_url, method) => method === 'PUT' && holdPut,
+      (_url, init) =>
+        init?.method === 'PUT' ? json({ ok: true }) : json({ config: STORED_CONFIG }),
+    );
+    expect(await selectDevice('device-1', 'ABC123')).toBe(true);
+    addBox('quote');
+    await vi.advanceTimersByTimeAsync(600); // the debounced PUT is now in flight
+    holdPut = false;
+
+    await signOut();
+    expect(await selectDevice('device-1', 'ABC123')).toBe(true);
+    releasePut(json({ error: 'unauthorized' }, 401)); // answer for the OLD session
+    await vi.advanceTimersByTimeAsync(0);
+
+    expect(getActiveDevice()).toEqual({ id: 'device-1', label: 'ABC123' });
+  });
+
+  it('the reload restore yields to a selection the user already started', async () => {
+    localStorage.setItem('infobento-active-device', JSON.stringify({ id: 'device-1' }));
+    const releaseRead = holdRequests(
+      (url) => url === '/api/me/device/device-2/config',
+      () => json({ config: STORED_CONFIG }),
+    );
+
+    const selecting = selectDevice('device-2', 'XYZ789');
+    expect(await restoreActiveDevice()).toBe(false);
+    releaseRead(json({ config: STORED_CONFIG }));
+
+    expect(await selecting).toBe(true);
+    expect(calls.some((c) => c.url.includes('device-1'))).toBe(false);
+    expect(getActiveDevice()).toEqual({ id: 'device-2', label: 'XYZ789' });
+  });
+});

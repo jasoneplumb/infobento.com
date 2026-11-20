@@ -36,10 +36,13 @@ export interface DeviceSummary {
 
 const SAVE_DEBOUNCE_MS = 500;
 let _saveTimer: ReturnType<typeof setTimeout> | undefined;
-// Bumped by every activation and by sign-out. An activation that finds the
-// number changed after an await has been superseded — by a newer selection, or
-// by signing out — and must not touch the editor (#284 review).
+// Bumped by every activation and by sign-out. An activation or save that finds
+// the number changed after an await has been superseded — by a newer selection,
+// or by signing out — and must not touch the editor (#284 review).
 let _activationGeneration = 0;
+// Activations whose fetches have not settled yet. The reload restore yields to
+// any of them: a selection the user already started outranks a remembered one.
+let _activationsInFlight = 0;
 
 /** Read the current auth session. Network failures read as "signed out". */
 export async function getSession(): Promise<SessionInfo> {
@@ -129,14 +132,23 @@ export async function selectDevice(deviceId: string, label?: string): Promise<bo
  */
 export async function restoreActiveDevice(): Promise<boolean> {
   const remembered = getRememberedDevice();
-  // Nothing remembered, or the user already picked a device while we loaded.
-  if (!remembered || getActiveDeviceId() !== null) return false;
+  // Nothing remembered, or the user already picked (or is picking) a device.
+  if (!remembered || getActiveDeviceId() !== null || _activationsInFlight > 0) return false;
   const outcome = await activateDevice(remembered.id, remembered.label);
   if (outcome === 'refused') forgetRememberedDevice();
   return outcome === 'active';
 }
 
 async function activateDevice(deviceId: string, label?: string): Promise<ActivateOutcome> {
+  _activationsInFlight++;
+  try {
+    return await runActivation(deviceId, label);
+  } finally {
+    _activationsInFlight--;
+  }
+}
+
+async function runActivation(deviceId: string, label?: string): Promise<ActivateOutcome> {
   // Drop any debounced save still queued for the PREVIOUS device. Without this,
   // editing device A and immediately selecting device B lets A's timer fire
   // after the switch and PUT the editor's contents to B, clobbering the config
@@ -268,10 +280,12 @@ async function putConfig(deviceId: string): Promise<PutResult> {
 async function saveNow(): Promise<void> {
   const deviceId = getActiveDeviceId();
   if (!deviceId) return;
+  const generation = _activationGeneration;
   const { outcome, retryAfterMs } = await putConfig(deviceId);
-  // The user switched devices or signed out while the PUT was in flight; this
-  // result describes a device that is no longer the save target.
-  if (getActiveDeviceId() !== deviceId) return;
+  // The user switched devices, or signed out (and perhaps re-selected this
+  // same device), while the PUT was in flight: this result describes a save
+  // target that no longer exists, so it must not drop the current one.
+  if (generation !== _activationGeneration) return;
   // The device can no longer accept this account's writes. Fall back to local
   // mode so the user keeps editing locally instead of silently losing writes.
   // An expired session keeps the remembered device, so it comes back after the
