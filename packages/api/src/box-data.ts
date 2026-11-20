@@ -19,6 +19,7 @@ import {
   fetchSunTimes,
   fetchUvIndex,
   fetchWeather,
+  isValidCountryCode,
 } from '@infobento/data';
 import {
   AQI_TTL_MS,
@@ -40,8 +41,6 @@ export const MAX_LOCATION_LENGTH = 200;
 /** Same bounds as the core schema's forecast `hours` / forecast3d `days`. */
 const HOURS_RANGE = { min: 1, max: 24, fallback: 3 } as const;
 const DAYS_RANGE = { min: 1, max: 20, fallback: 3 } as const;
-
-const COUNTRY_CODE_RE = /^[A-Z]{2}$/;
 
 export interface BoxDataRequest {
   /** Provider-namespaced cache key, normalized so equivalent requests share it. */
@@ -175,7 +174,7 @@ export function parseBoxDataRequest(type: string, query: Query): BoxDataParseRes
       return locationOnly(type, POLLEN_TTL_MS, fetchPollen, query);
     case 'holidays': {
       const code = (query('country') ?? '').trim().toUpperCase();
-      if (!COUNTRY_CODE_RE.test(code)) return fail('Invalid or missing country');
+      if (!isValidCountryCode(code)) return fail('Invalid or missing country');
       return {
         ok: true,
         request: {

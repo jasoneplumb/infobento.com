@@ -16,6 +16,7 @@ import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { serveStatic } from '@hono/node-server/serve-static';
 import { serve } from '@hono/node-server';
+import { getConnInfo } from '@hono/node-server/conninfo';
 import {
   generateFrame,
   generatePreview,
@@ -293,8 +294,26 @@ const BOX_DATA_CACHE_MAX_ENTRIES = 2_000;
 const BOX_DATA_MISSES_PER_MINUTE = 30;
 /** Distinct misses in flight at once, across all clients. */
 const BOX_DATA_MAX_INFLIGHT = 8;
+/** A full slot frees within one provider timeout, so retry no sooner. */
+const BOX_DATA_BUSY_RETRY_AFTER_S = String(Math.ceil(PROVIDER_TIMEOUT_MS / 1000));
 const boxDataCache = new SuccessCache<unknown>(BOX_DATA_CACHE_MAX_ENTRIES);
 const boxDataLimiter = createRateLimiter(BOX_DATA_MISSES_PER_MINUTE, 60_000);
+
+/**
+ * Rate-limit key for a client: the raw first x-forwarded-for hop (private
+ * addresses included, so LAN users behind a proxy stay distinct), else the TCP
+ * peer address for a direct connection (local dev, a proxy-less self-host).
+ * 'direct' only when neither is known, as under `app.request()` in tests.
+ */
+function clientKey(c: import('hono').Context): string {
+  const fwd = forwardedClient(c);
+  if (fwd !== '') return fwd;
+  try {
+    return getConnInfo(c).remote.address ?? 'direct';
+  } catch {
+    return 'direct';
+  }
+}
 
 /** Test seam. */
 export function _resetBoxDataForTesting(): void {
@@ -312,11 +331,11 @@ app.get('/api/box-data/:type', async (c) => {
 
   // Checked before the per-client limiter so a refusal here costs no token.
   if (boxDataCache.inflightCount >= BOX_DATA_MAX_INFLIGHT) {
-    return c.json({ data: null, error: 'busy' }, 503, { 'Retry-After': '5' });
+    return c.json({ data: null, error: 'busy' }, 503, {
+      'Retry-After': BOX_DATA_BUSY_RETRY_AFTER_S,
+    });
   }
-  // Keyed on the raw first hop, private addresses included, so users on a LAN
-  // self-host get separate buckets.
-  if (!boxDataLimiter.consume(forwardedClient(c) || 'direct')) {
+  if (!boxDataLimiter.consume(clientKey(c))) {
     return c.json({ data: null, error: 'rate_limited' }, 429, { 'Retry-After': '60' });
   }
 

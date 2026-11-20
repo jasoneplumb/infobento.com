@@ -14,6 +14,15 @@ import { IDENTIFYING_HEADERS } from './user-agent.js';
 /** ISO 3166-1 alpha-2: exactly two ASCII letters, no URL-significant characters. */
 const COUNTRY_CODE_RE = /^[A-Z]{2}$/;
 
+/**
+ * Whether `code` (already trimmed and uppercased) has the ISO 3166-1 alpha-2
+ * shape. The single definition every caller validates against, so the editor,
+ * the API route and this fetcher cannot disagree.
+ */
+export function isValidCountryCode(code: string): boolean {
+  return COUNTRY_CODE_RE.test(code);
+}
+
 interface NagerHoliday {
   date: string;
   localName: string;
@@ -30,7 +39,7 @@ export async function fetchNextPublicHoliday(countryCode: string): Promise<Holid
   // /api/box-data route): this is the last stop before the URL is built, and
   // anything but two letters could steer the request to a different endpoint
   // on the upstream host.
-  if (!COUNTRY_CODE_RE.test(code)) return null;
+  if (!isValidCountryCode(code)) return null;
 
   try {
     // COUNTRY_CODE_RE above is the security guard, not this encode: [A-Z]{2}

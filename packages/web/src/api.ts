@@ -23,6 +23,7 @@ import type {
 // proxy routes return exactly these). Imported for the local annotations below
 // and re-exported, so the two packages never drift apart.
 import type { QuoteResult, HoroscopeResult, OnThisDayResult, StocksResult } from '@infobento/data';
+import { isValidCountryCode } from '@infobento/data';
 
 export type { QuoteResult, HoroscopeResult, OnThisDayResult, StocksResult };
 
@@ -101,7 +102,8 @@ export function fetchPollen(location: string): Promise<PollenData | null> {
 /** Next public holiday for an ISO 3166-1 alpha-2 country code. */
 export function fetchNextPublicHoliday(countryCode: string): Promise<HolidayData | null> {
   const code = countryCode.trim().toUpperCase();
-  if (!code) return Promise.resolve(null);
+  // Same check the route applies, so a malformed code costs no round trip.
+  if (!isValidCountryCode(code)) return Promise.resolve(null);
   return fetchBoxData<HolidayData>('holidays', { country: code });
 }
 

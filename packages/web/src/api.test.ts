@@ -59,10 +59,11 @@ describe('editor box-data helpers (#287)', () => {
     expect(await fetchUvIndex('Portland')).toBeNull();
   });
 
-  it('skips the request entirely for an empty location or country', async () => {
+  it('skips the request entirely for an empty location or a malformed country', async () => {
     const mock = stubFetch({ data: null });
     expect(await fetchWeather('   ')).toBeNull();
     expect(await fetchNextPublicHoliday('')).toBeNull();
+    expect(await fetchNextPublicHoliday('GBR')).toBeNull();
     expect(mock).not.toHaveBeenCalled();
   });
 });

@@ -69,7 +69,8 @@ export class SuccessCache<T> {
     const pending = (async (): Promise<T | null> => {
       try {
         const value = await fetcher();
-        if (value !== null && generation === this.generation) this.set(key, value);
+        // `!= null`: with T = unknown, `undefined` is as much a non-answer as `null`.
+        if (value != null && generation === this.generation) this.set(key, value);
         return value;
       } catch {
         return null;

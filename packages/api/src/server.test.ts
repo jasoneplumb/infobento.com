@@ -523,6 +523,7 @@ describe('GET /api/box-data/:type (#287)', () => {
 
     const busy = await request(CODES[8] ?? '', 8);
     expect(busy.status).toBe(503);
+    expect(busy.headers.get('Retry-After')).toBe('8');
     expect(await busy.json()).toEqual({ data: null, error: 'busy' });
 
     // A request for a key already in flight joins it instead of being refused.
