@@ -9,6 +9,7 @@
 
 import type { HolidayData } from '@infobento/core';
 import { isIsoDateString } from '@infobento/core';
+import { IDENTIFYING_HEADERS } from './user-agent.js';
 
 /** ISO 3166-1 alpha-2: exactly two ASCII letters, no URL-significant characters. */
 const COUNTRY_CODE_RE = /^[A-Z]{2}$/;
@@ -25,10 +26,10 @@ interface NagerHoliday {
  */
 export async function fetchNextPublicHoliday(countryCode: string): Promise<HolidayData | null> {
   const code = countryCode.trim().toUpperCase();
-  // Shape-check here, not only in the Zod schema: `web` imports this function
-  // and calls it straight from the browser, so the API's validation layer is
-  // not on that path. Anything but two letters could steer the request to a
-  // different endpoint on the upstream host.
+  // Shape-check here, not only at the callers (the Zod schema, the
+  // /api/box-data route): this is the last stop before the URL is built, and
+  // anything but two letters could steer the request to a different endpoint
+  // on the upstream host.
   if (!COUNTRY_CODE_RE.test(code)) return null;
 
   try {
@@ -37,6 +38,7 @@ export async function fetchNextPublicHoliday(countryCode: string): Promise<Holid
     // a second line of defence if that pattern is ever widened.
     const res = await fetch(
       `https://date.nager.at/api/v3/NextPublicHolidays/${encodeURIComponent(code)}`,
+      { headers: IDENTIFYING_HEADERS },
     );
     if (!res.ok) return null;
 

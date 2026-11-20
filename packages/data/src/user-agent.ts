@@ -15,3 +15,10 @@ export const USER_AGENT_PRODUCT = 'InfoBento/1.0';
  * one (Nominatim) or that reject anonymous runtime defaults (ipapi.co, #278).
  */
 export const USER_AGENT = `${USER_AGENT_PRODUCT} (https://github.com/jasoneplumb/infobento.com)`;
+
+/**
+ * `fetch` headers for the keyless box-data providers (Open-Meteo, Nager.Date).
+ * Their fetchers run only server-side — device hydration and the editor's
+ * `/api/box-data` route (#287) — so identifying ourselves costs nothing.
+ */
+export const IDENTIFYING_HEADERS: Readonly<Record<string, string>> = { 'User-Agent': USER_AGENT };

@@ -1,33 +1,109 @@
 /**
  * Client-side API helpers for the web editor's live previews.
  *
- * The location-based fetchers (weather, forecast, forecast3d, sun, air quality)
- * now live in @infobento/data and are re-exported here, so the editor preview
- * and the API's pull-time hydration share one implementation (RFC 0001 Phase 1).
- * The helpers below proxy through the Hono API, whose routes apply the
- * server-side provider logic + bundled quota fallbacks.
+ * Every helper calls a same-origin Hono route, never a third-party host:
+ * tracker blocklists (Firefox ETP, content blockers) block providers like
+ * Open-Meteo when the browser calls them directly (#183, #287). The routes run
+ * the shared @infobento/data fetchers — the same ones device hydration uses —
+ * and apply server-side caching plus, for quote/horoscope, bundled fallbacks.
  */
 
-import type { StockDuration } from '@infobento/core';
+import type {
+  AQIData,
+  Forecast3DEntry,
+  ForecastEntry,
+  HolidayData,
+  PollenData,
+  StockDuration,
+  SunData,
+  UVData,
+  WeatherData,
+} from '@infobento/core';
 // Proxy-fetcher result shapes are single-sourced in @infobento/data (the API's
 // proxy routes return exactly these). Imported for the local annotations below
 // and re-exported, so the two packages never drift apart.
 import type { QuoteResult, HoroscopeResult, OnThisDayResult, StocksResult } from '@infobento/data';
 
-// Location-based fetchers — re-exported from the shared data package. Geocoding
-// (Nominatim) + weather/AQI (Open-Meteo) are keyless and browser-safe.
-export {
-  fetchWeather,
-  fetchForecast,
-  fetchForecast3D,
-  fetchSunTimes,
-  fetchAirQuality,
-  fetchUvIndex,
-  fetchPollen,
-  fetchNextPublicHoliday,
-} from '@infobento/data';
-
 export type { QuoteResult, HoroscopeResult, OnThisDayResult, StocksResult };
+
+// -- Location-based + holiday box data (via /api/box-data) -------------------
+
+/**
+ * GET `/api/box-data/:type` and unwrap its `{ data }` envelope. Returns null on
+ * a network error, a non-2xx (bad request, rate limit), or when the upstream
+ * had nothing — the editor shows one "not found or fetch failed" state for all.
+ */
+async function fetchBoxData<T>(type: string, params: Record<string, string>): Promise<T | null> {
+  try {
+    const res = await fetch(`/api/box-data/${type}?${new URLSearchParams(params).toString()}`);
+    if (!res.ok) return null;
+    const body = (await res.json()) as { data?: T | null };
+    return body.data ?? null;
+  } catch {
+    return null;
+  }
+}
+
+/** Fetch a location-parameterized box's data; null without a request when empty. */
+function fetchForLocation<T>(
+  type: string,
+  location: string,
+  extra: Record<string, string> = {},
+): Promise<T | null> {
+  const trimmed = location.trim();
+  if (!trimmed) return Promise.resolve(null);
+  return fetchBoxData<T>(type, { location: trimmed, ...extra });
+}
+
+/** Current conditions + today's high/low. */
+export function fetchWeather(location: string, unit: 'F' | 'C' = 'F'): Promise<WeatherData | null> {
+  return fetchForLocation<WeatherData>('weather', location, { unit });
+}
+
+/** The next `hours` hourly forecast entries. */
+export function fetchForecast(
+  location: string,
+  hours = 3,
+  unit: 'F' | 'C' = 'F',
+): Promise<ForecastEntry[] | null> {
+  return fetchForLocation<ForecastEntry[]>('forecast', location, { hours: String(hours), unit });
+}
+
+/** The next `days` daily forecast entries (today excluded). */
+export function fetchForecast3D(
+  location: string,
+  days = 3,
+  unit: 'F' | 'C' = 'F',
+): Promise<Forecast3DEntry[] | null> {
+  return fetchForLocation<Forecast3DEntry[]>('forecast3d', location, { days: String(days), unit });
+}
+
+/** Today's sunrise, sunset and day length. */
+export function fetchSunTimes(location: string): Promise<SunData | null> {
+  return fetchForLocation<SunData>('sun', location);
+}
+
+/** Current air quality. */
+export function fetchAirQuality(location: string): Promise<AQIData | null> {
+  return fetchForLocation<AQIData>('aqi', location);
+}
+
+/** Current UV index. */
+export function fetchUvIndex(location: string): Promise<UVData | null> {
+  return fetchForLocation<UVData>('uv', location);
+}
+
+/** Current pollen load; null also when the location is outside coverage. */
+export function fetchPollen(location: string): Promise<PollenData | null> {
+  return fetchForLocation<PollenData>('pollen', location);
+}
+
+/** Next public holiday for an ISO 3166-1 alpha-2 country code. */
+export function fetchNextPublicHoliday(countryCode: string): Promise<HolidayData | null> {
+  const code = countryCode.trim().toUpperCase();
+  if (!code) return Promise.resolve(null);
+  return fetchBoxData<HolidayData>('holidays', { country: code });
+}
 
 // -- Quote (via Hono API proxy) ---------------------------------------------
 

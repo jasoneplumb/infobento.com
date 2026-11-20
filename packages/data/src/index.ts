@@ -1,10 +1,11 @@
 /**
  * @infobento/data — shared, pure box-data provider package (RFC 0001).
  *
- * All resolvers are `fetch`-only (no DOM/window), so the web editor (previews)
- * and the api (pull-time hydration + thin proxy routes) share one
- * implementation. Every resolver returns its result or `null` on failure — the
- * resilience primitive callers build on.
+ * All resolvers are `fetch`-only (no DOM/window), so they run anywhere. The api
+ * calls them for pull-time hydration and for the proxy routes the web editor
+ * previews through (/api/box-data, #287), so both share one implementation.
+ * Every resolver returns its result or `null` on failure — the resilience
+ * primitive callers build on.
  */
 
 // Caching + rate-limiting primitives
