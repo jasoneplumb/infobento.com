@@ -64,8 +64,8 @@ export const GUIDE_STEPS: readonly GuideStep[] = [
         place: 'device',
         text:
           'The "Set up InfoBento" screen: three numbered steps and a QR code that links to ' +
-          'www.infobento.com. Press the green button if you want to flip it between ' +
-          'landscape and portrait.',
+          'www.infobento.com. Tap the green button to flip it between landscape and ' +
+          'portrait.',
         image: {
           src: '/setup-guide/device-setup-screen.png',
           alt: 'InfoBento setup screen with three numbered steps and a help QR code',
@@ -180,7 +180,8 @@ export const GUIDE_STEPS: readonly GuideStep[] = [
         text:
           'The panel updates on its refresh schedule, not instantly. On battery and solar ' +
           'the default is three refreshes a day (configurable), so your changes appear at ' +
-          'the next scheduled refresh.',
+          'the next scheduled refresh. To see a change right away, hold the green button ' +
+          'for five seconds: the device fetches the latest config and redraws.',
       },
     ],
     tip:

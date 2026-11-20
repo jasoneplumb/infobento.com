@@ -60,7 +60,7 @@ The device does not render locally. On each refresh cycle it sends only its devi
 
 ## Recovery (pinhole reset)
 
-The shipped device has three buttons: a green orientation-flip button and two white buttons that, held together for 5 seconds, perform the factory reset (#171/#172). The pinhole reset described below remains on the provisioning-era sketch (GPIO2 on the E1001) and as the original design rationale.
+The shipped device has three buttons: a green button (a tap flips orientation; a 5-second hold refreshes immediately) and two white buttons that, held together for 5 seconds, perform the factory reset (#171/#172). The pinhole reset described below remains on the provisioning-era sketch (GPIO2 on the E1001) and as the original design rationale.
 
 - **Location:** back-lower (grip area), centered, ~2mm diameter, recessed
 - **Action:** press with paperclip for 5 seconds

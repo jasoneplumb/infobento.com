@@ -2,7 +2,7 @@
 
 > _Path to a first working firmware: prove the full loop on the reTerminal E1001 dev hardware, then port to the production GDEH0576T81._
 
-**Status (2026-08):** **Phases 0–6 are ✅ bench-verified on the reTerminal E1001** — the first-working-flash milestone (end of Phase 4) plus resilience (Phase 5) and captive-portal provisioning (Phase 6) — and **Phase 7 has ✅ shipped as the merged integrated build** (`firmware/integrated/`, PR #174, issue #173): provisioning + dual-orientation deep-sleep pull + green-button orientation flip + two-white-button factory reset in one sketch. What remains is porting to the production GDEH0576T81 + ESP32-C3 once the panel is sourced (**#57** is closed — 4-level gray is proven on the E1001). Authoritative per-phase sketch status, serial traces, and the bench power snapshot live in [`firmware/README.md`](../../firmware/README.md#phase-status); operator bench checklists in [PHASE4_BENCH_CHECKLIST.md](PHASE4_BENCH_CHECKLIST.md) and the [E1001 walkthrough](walkthrough-E1001-hw-setup.md).
+**Status (2026-08):** **Phases 0–6 are ✅ bench-verified on the reTerminal E1001** — the first-working-flash milestone (end of Phase 4) plus resilience (Phase 5) and captive-portal provisioning (Phase 6) — and **Phase 7 has ✅ shipped as the merged integrated build** (`firmware/integrated/`, PR #174, issue #173): provisioning + dual-orientation deep-sleep pull + green-button tap-to-flip and 5 s hold-to-refresh + two-white-button factory reset in one sketch. What remains is porting to the production GDEH0576T81 + ESP32-C3 once the panel is sourced (**#57** is closed — 4-level gray is proven on the E1001). Authoritative per-phase sketch status, serial traces, and the bench power snapshot live in [`firmware/README.md`](../../firmware/README.md#phase-status); operator bench checklists in [PHASE4_BENCH_CHECKLIST.md](PHASE4_BENCH_CHECKLIST.md) and the [E1001 walkthrough](walkthrough-E1001-hw-setup.md).
 
 ## Why dev-first
 
@@ -87,7 +87,7 @@ Each phase is independently verifiable on the bench. Do not advance until the pr
 
 ### Phase 7 — Integrated build ✅ merged (PR #174, issue #173)
 
-- `firmware/integrated/integrated.ino` folds the proven pieces into one sketch: captive-portal provisioning, the dual-orientation deep-sleep pull (`GET /api/device/:id/frames`), the green-button (GPIO3, ext1 wake) orientation flip, and factory reset via the two white buttons held 5 s (#171/#172).
+- `firmware/integrated/integrated.ino` folds the proven pieces into one sketch: captive-portal provisioning, the dual-orientation deep-sleep pull (`GET /api/device/:id/frames`), the green-button (GPIO3, ext1 wake) tap-to-flip and 5 s hold-to-refresh, and factory reset via the two white buttons held 5 s (#171/#172).
 
 ### Remaining — Port to production (GDEH0576T81 + ESP32-C3)
 

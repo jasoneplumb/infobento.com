@@ -25,7 +25,7 @@ InfoBento is a small, solar-powered eInk bento dashboard for counters, desks, an
 - **MCU:** ESP32-C3 (Wi-Fi + BLE; BLE reserved for a possible v2 bridge). Captive-portal setup; no companion app v1; config via the infobento.com web editor.
 - **Power:** ≈70×100 mm solar panel on the upper back + ≈100 mAh LiPo + AEM10941 solar harvester; 1–3 refreshes/day (default 3).
 - **Orientation:** two ball-in-tube tilt switches for orientation auto-rotate.
-- **Interaction:** minimal device interaction — two controls in the shipped firmware: a green button flips orientation, and holding the two white buttons for 5s factory-resets.
+- **Interaction:** minimal device interaction — two controls in the shipped firmware: the green button (a tap flips orientation; a 5s hold refreshes immediately), and holding the two white buttons for 5s factory-resets.
 
 Configure once at the infobento.com web editor; the display then runs quietly on solar power, refreshing on schedule.
 
@@ -117,7 +117,7 @@ Someone who wants to give a thoughtful, personalized tech gift that is useful wi
 
 > InfoBento has no buttons. The entire loop is configure once, glance often.
 
-Zero interaction remains the design ideal, but the shipped firmware keeps two deliberate controls: the green button flips orientation, and holding the two white buttons for 5s factory-resets. Nothing on the device configures content. The display charges via solar passively and refreshes on schedule; everything else happens in the web editor.
+Zero interaction remains the design ideal, but the shipped firmware keeps two deliberate controls: the green button (a tap flips orientation; a 5s hold refreshes immediately), and holding the two white buttons for 5s factory-resets. Nothing on the device configures content. The display charges via solar passively and refreshes on schedule; everything else happens in the web editor.
 
 | Do                                             | Don't                             |
 | ---------------------------------------------- | --------------------------------- |
@@ -176,7 +176,7 @@ White monolithic enclosure ≈14×11 cm sized to fit the GDEH0576T81 (5.76", 920
 | REQ-010 | Enclosure ≈14x11cm, fits GDEH0576T81 panel closely                        | Must     |
 | REQ-011 | Display >=198 DPI, <=4mm visible bezel                                    | Should   |
 | REQ-012 | Auto-rotate via two tilt switches, 4 orientations                         | Must     |
-| REQ-013 | Minimal interaction — orientation + factory reset buttons                 | Must     |
+| REQ-013 | Minimal interaction — green flip/refresh; white-button factory reset      | Must     |
 
 ---
 
