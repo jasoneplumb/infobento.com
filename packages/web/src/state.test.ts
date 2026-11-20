@@ -21,6 +21,10 @@ import {
   enterCloudMode,
   exitToLocalMode,
   onCloudPersist,
+  onPersistenceChange,
+  getActiveDevice,
+  getRememberedDevice,
+  forgetRememberedDevice,
   _resetPersistenceForTesting,
 } from './state.js';
 
@@ -206,11 +210,13 @@ describe('persistence mode (local vs cloud, issue #76)', () => {
     onCloudPersist(cloudSave);
 
     enterCloudMode('device-1', {
-      version: 2,
-      boxes: [
-        { type: 'text', label: 'A', config: { content: 'one' } },
-        { type: 'text', label: 'B', config: { content: 'two' } },
-      ],
+      seed: {
+        version: 2,
+        boxes: [
+          { type: 'text', label: 'A', config: { content: 'one' } },
+          { type: 'text', label: 'B', config: { content: 'two' } },
+        ],
+      },
     });
 
     // The seed was applied to the editor...
@@ -227,11 +233,13 @@ describe('persistence mode (local vs cloud, issue #76)', () => {
 
     // Switch to a device whose config differs.
     enterCloudMode('device-1', {
-      version: 2,
-      boxes: [
-        { type: 'quote', label: 'Q', config: { content: 'hi', author: '' } },
-        { type: 'onthisday', label: 'O', config: { content: 'ha', category: 'events' } },
-      ],
+      seed: {
+        version: 2,
+        boxes: [
+          { type: 'quote', label: 'Q', config: { content: 'hi', author: '' } },
+          { type: 'onthisday', label: 'O', config: { content: 'ha', category: 'events' } },
+        ],
+      },
     });
     expect(getBoxes()).toHaveLength(2);
 
@@ -241,6 +249,58 @@ describe('persistence mode (local vs cloud, issue #76)', () => {
     expect(getActiveDeviceId()).toBeNull();
     expect(getBoxes()).toHaveLength(1);
     expect(getBoxes()[0]!.type).toBe('weather');
+  });
+});
+
+describe('remembered device survives a reload (#284)', () => {
+  it('remembers the selected device and its label', () => {
+    enterCloudMode('device-1', { label: 'ABC123' });
+    expect(getActiveDevice()).toEqual({ id: 'device-1', label: 'ABC123' });
+    expect(getRememberedDevice()).toEqual({ id: 'device-1', label: 'ABC123' });
+  });
+
+  it('has the same shape with no label before and after a reload', () => {
+    enterCloudMode('device-1');
+    expect(getActiveDevice()).toStrictEqual({ id: 'device-1' });
+    expect(getRememberedDevice()).toStrictEqual({ id: 'device-1' });
+  });
+
+  it('forgets it on the way back to local mode (sign-out, unpair, lost access)', () => {
+    enterCloudMode('device-1', { label: 'ABC123' });
+    exitToLocalMode();
+    expect(getRememberedDevice()).toBeNull();
+  });
+
+  it('stores only the selection, never the device config', () => {
+    enterCloudMode('device-1', {
+      label: 'ABC123',
+      seed: { version: 2, boxes: [{ type: 'text', label: 'A', config: { content: 'x' } }] },
+    });
+    expect(JSON.parse(localStorage.getItem('infobento-active-device') ?? 'null')).toEqual({
+      id: 'device-1',
+      label: 'ABC123',
+    });
+  });
+
+  it('treats a missing, corrupt, or malformed record as nothing remembered', () => {
+    expect(getRememberedDevice()).toBeNull();
+    for (const raw of ['{ truncated', '"device-1"', '{"id":""}', '{"id":42}', 'null']) {
+      localStorage.setItem('infobento-active-device', raw);
+      expect(getRememberedDevice(), raw).toBeNull();
+    }
+    localStorage.setItem('infobento-active-device', '{"id":"device-1","label":7}');
+    expect(getRememberedDevice()).toEqual({ id: 'device-1' });
+    forgetRememberedDevice();
+    expect(localStorage.getItem('infobento-active-device')).toBeNull();
+  });
+
+  it('notifies the UI on every mode change so the save target stays accurate', () => {
+    const changed = vi.fn();
+    onPersistenceChange(changed);
+    enterCloudMode('device-1');
+    expect(changed).toHaveBeenCalledTimes(1);
+    exitToLocalMode();
+    expect(changed).toHaveBeenCalledTimes(2);
   });
 });
 
@@ -504,8 +564,10 @@ describe('in-row config edits persist (#192)', () => {
     const cloudSave = vi.fn();
     onCloudPersist(cloudSave);
     enterCloudMode('device-1', {
-      version: 2,
-      boxes: [{ type: 'text', label: 'A', config: { content: 'one' } }],
+      seed: {
+        version: 2,
+        boxes: [{ type: 'text', label: 'A', config: { content: 'one' } }],
+      },
     });
     expect(cloudSave).not.toHaveBeenCalled();
   });

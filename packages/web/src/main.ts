@@ -31,6 +31,8 @@ import {
   setDeviceProfile,
   getRefreshesPerDay,
   setRefreshesPerDay,
+  getActiveDevice,
+  onPersistenceChange,
 } from './state';
 import { DEVICE_PROFILES } from '@infobento/core';
 import { renderBoxList, decorateBoxList } from './components/box-list';
@@ -43,7 +45,7 @@ import {
 import { requireConsent } from './components/consent';
 import { openSignInDialog } from './components/sign-in';
 import { openDevicesDialog } from './components/devices';
-import { getSession, signOut, initCloudSync } from './cloud';
+import { getSession, signOut, initCloudSync, restoreActiveDevice } from './cloud';
 import { ensureLocationDefault } from './geolocation';
 import { showAuthErrorBanner } from './auth-error';
 
@@ -149,21 +151,59 @@ function initEditor(): void {
     document.getElementById(id)?.toggleAttribute('hidden', hidden);
   }
 
-  function refreshAccountMenu(): void {
-    void getSession().then((session) => {
+  // Save-target indicator (#284). A signed-in user can be saving to a device
+  // or only to this browser, and the difference used to be invisible: after a
+  // reload, edits silently stopped reaching the device. Signed out, local is
+  // the only option, so the pill stays hidden rather than adding noise.
+  let signedIn = false;
+
+  function renderSaveTarget(): void {
+    const el = document.getElementById('save-target');
+    if (!el) return;
+    const device = getActiveDevice();
+    el.toggleAttribute('hidden', !signedIn);
+    el.classList.toggle('is-local', device === null);
+    // The pair code, never the device id: the id is the firmware's bearer secret.
+    el.textContent = device ? `Saving to ${device.label ?? 'device'}` : 'Local only';
+    el.title = device
+      ? 'Edits are saved to this device.'
+      : 'Edits are saved in this browser only. Choose a device under Menu → Devices.';
+  }
+
+  onPersistenceChange(renderSaveTarget);
+
+  // Each refresh takes a number; a refresh that resumes after a newer one
+  // started (e.g. sign-out during the reload restore) holds a stale session and
+  // must not overwrite the newer result.
+  let accountRefresh = 0;
+
+  function refreshAccountMenu(options: { restoreDevice?: boolean } = {}): void {
+    const refresh = ++accountRefresh;
+    void getSession().then(async (session) => {
+      if (refresh !== accountRefresh) return;
       setHidden('btn-signin', session.authenticated);
       setHidden('btn-devices', !session.authenticated);
       setHidden('btn-signout', !session.authenticated);
+      // Re-select the device chosen before the reload. Awaited before the pill
+      // appears so it doesn't flash "Local only" while the device loads.
+      if (options.restoreDevice && session.authenticated) await restoreActiveDevice();
+      if (refresh !== accountRefresh) return;
+      signedIn = session.authenticated;
+      renderSaveTarget();
     });
   }
 
   wireMenuItem('btn-signin', openSignInDialog);
   wireMenuItem('btn-devices', openDevicesDialog);
   wireMenuItem('btn-signout', () => {
-    void signOut().then(refreshAccountMenu);
+    // Hide the pill first: signOut's exit to local mode would otherwise render
+    // a brief amber "Local only" for a user who is no longer signed in.
+    signedIn = false;
+    renderSaveTarget();
+    void signOut().then(() => refreshAccountMenu());
   });
 
-  refreshAccountMenu();
+  refreshAccountMenu({ restoreDevice: true });
 
   // -- Wire up Show Box Headers toggle --------------------------------------
 

@@ -74,6 +74,26 @@ header {
   text-decoration: underline;
 }
 
+/* Where edits are going (#284): a paired device, or this browser only. */
+.save-target {
+  align-self: center;
+  font-size: 12px;
+  padding: 3px 8px;
+  border: 1px solid #444;
+  border-radius: 999px;
+  color: #ddd;
+  white-space: nowrap;
+}
+
+.save-target.is-local {
+  border-color: #b45309;
+  color: #fbbf24;
+}
+
+.save-target[hidden] {
+  display: none;
+}
+
 /* -- Header menu dropdown -------------------------------------------------- */
 
 .menu-wrapper {
@@ -1159,6 +1179,12 @@ button {
 
   header h1 {
     font-size: 14px;
+  }
+
+  .save-target {
+    max-width: 40vw;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   /* Preview cell: compact */

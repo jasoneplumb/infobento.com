@@ -36,7 +36,7 @@ function deviceRow(
     use.textContent = 'Use';
     use.addEventListener('click', () => {
       use.disabled = true;
-      void selectDevice(device.id).then((ok) => {
+      void selectDevice(device.id, device.pairCode).then((ok) => {
         if (ok) close();
         else {
           use.disabled = false;
