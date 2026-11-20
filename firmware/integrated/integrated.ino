@@ -77,7 +77,9 @@ RTC_DATA_ATTR char g_lastModified[48] = {0};
 RTC_DATA_ATTR uint32_t g_bootCount = 0;
 RTC_DATA_ATTR uint32_t g_sleepSeconds = 0;
 RTC_DATA_ATTR uint8_t g_orientation = ORIENT_LANDSCAPE;
-RTC_DATA_ATTR bool g_wrongCodeShown = false;  // panel shows the wrong-code screen (#281)
+// Panel shows the wrong-code screen (#281). RTC memory, so it survives deep sleep
+// and is cleared only by a cold boot/reset or a successful 200 pull.
+RTC_DATA_ATTR bool g_wrongCodeShown = false;
 
 // ----- runtime config (loaded from NVS in setup) -----
 Preferences g_prefs;
@@ -205,6 +207,13 @@ void epdBegin() {
   pinMode(EPD_BUSY_PIN, INPUT);
   hspi.begin(EPD_SCK_PIN, -1, EPD_MOSI_PIN, -1);
 }
+
+// The baked screens are memcpy_P'd as whole frames: catch a regenerated header
+// with the wrong geometry at compile time, not as a garbled panel.
+static_assert(sizeof(RESET_SCREEN_LANDSCAPE) == IB_FRAME_LEN && sizeof(RESET_SCREEN_PORTRAIT) == IB_FRAME_LEN,
+              "reset_screen.h frame size != IB_FRAME_LEN");
+static_assert(sizeof(WRONG_CODE_SCREEN_LANDSCAPE) == IB_FRAME_LEN && sizeof(WRONG_CODE_SCREEN_PORTRAIT) == IB_FRAME_LEN,
+              "wrong_code_screen.h frame size != IB_FRAME_LEN");
 
 // Draw one baked screen pair from PROGMEM (into g_fb, then drawFrame).
 void drawBakedScreen(const uint8_t* landscape, const uint8_t* portrait, const char* name, uint8_t orientation) {
@@ -344,8 +353,9 @@ void pullFrames(bool unconditional = false) {
     // The server's answer to a pair-code-shaped id (#281): this device was set up
     // with the sticker's pair code instead of its Device ID, so no pull will ever
     // succeed. Say so on the panel instead of silently keeping the setup screen.
-    // Drawn once per boot session; a 5 s hold redraws it, since that asked for
-    // visible feedback.
+    // Drawn once, then left on the panel across deep-sleep wakes (g_wrongCodeShown);
+    // a 5 s hold redraws it, since that asked for visible feedback. The 422 also
+    // carries X-Refresh-Interval (a day), adopted above, so retries back off.
     Serial.println("[IB] 422 -> Device ID is a pair code -> wrong-code screen");
     http.end();
     if (!g_wrongCodeShown || unconditional) drawWrongCodeScreen(g_orientation);

@@ -583,9 +583,15 @@ app.post('/api/device/:id/forget', createForgetWifiHandler(getDb));
  * keeping its last frame on a 404. Decided by shape alone, before any lookup:
  * every pair-code-shaped id gets this same response, so it never reveals
  * whether that pair code exists. The firmware matches on the literal 422.
+ *
+ * A misprovisioned device cannot succeed until it is reset, so the response
+ * also asks it to sleep a full day between pulls (the firmware's maximum).
  */
+const WRONG_CODE_RETRY_SECONDS = 86_400;
 function rejectPairCodeId(c: Context): Response {
-  return c.json({ error: 'pair_code_not_device_id' }, 422);
+  return c.json({ error: 'pair_code_not_device_id' }, 422, {
+    'X-Refresh-Interval': String(WRONG_CODE_RETRY_SECONDS),
+  });
 }
 
 app.get('/api/device/:id/config', (c) => {

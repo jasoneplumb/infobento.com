@@ -330,6 +330,8 @@ describe('device-pull with a pair code instead of a Device ID (#281)', () => {
     const res = await app.request(`/api/device/${MINTED_CODE}/${route}`);
     expect(res.status).toBe(422);
     expect(await res.json()).toEqual({ error: 'pair_code_not_device_id' });
+    // Backs a device that cannot succeed off to one pull a day.
+    expect(res.headers.get('X-Refresh-Interval')).toBe('86400');
   });
 
   it.each(ROUTES)('/%s gives a lower-case pair code the same 422', async (route) => {
