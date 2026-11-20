@@ -65,7 +65,7 @@ export const GUIDE_STEPS: readonly GuideStep[] = [
         text:
           'The "Set up InfoBento" screen: three numbered steps and a QR code that links to ' +
           'www.infobento.com. Tap the green button to flip it between landscape and ' +
-          'portrait. Hold it for five seconds to refresh now.',
+          'portrait.',
         image: {
           src: '/setup-guide/device-setup-screen.png',
           alt: 'InfoBento setup screen with three numbered steps and a help QR code',
