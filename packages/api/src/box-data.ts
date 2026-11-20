@@ -84,6 +84,21 @@ function parseCount(
   return n >= range.min && n <= range.max ? n : undefined;
 }
 
+/**
+ * The location + unit every temperature box takes, with the cache-key prefix
+ * built from them, or a 400-worthy error message.
+ */
+function parseTemperatureTarget(
+  type: string,
+  query: Query,
+): { readonly location: string; readonly unit: 'F' | 'C'; readonly key: string } | string {
+  const location = parseLocation(query('location'));
+  if (!location) return 'Invalid or missing location';
+  const unit = parseUnit(query('unit'));
+  if (!unit) return 'Invalid unit';
+  return { location, unit, key: `${type}:${location.toLowerCase()}:${unit}` };
+}
+
 /** Bind a location-only box type (no unit or count parameters). */
 function locationOnly(
   type: string,
@@ -111,39 +126,40 @@ function locationOnly(
  */
 export function parseBoxDataRequest(type: string, query: Query): BoxDataParseResult {
   switch (type) {
-    case 'weather':
-    case 'forecast':
-    case 'forecast3d': {
-      const location = parseLocation(query('location'));
-      if (!location) return fail('Invalid or missing location');
-      const unit = parseUnit(query('unit'));
-      if (!unit) return fail('Invalid unit');
-      const base = `${type}:${location.toLowerCase()}:${unit}`;
-
-      if (type === 'weather') {
-        return {
-          ok: true,
-          request: { key: base, ttlMs: WEATHER_TTL_MS, fetch: () => fetchWeather(location, unit) },
-        };
-      }
-      if (type === 'forecast') {
-        const hours = parseCount(query('hours'), HOURS_RANGE);
-        if (hours === undefined) return fail('Invalid hours');
-        return {
-          ok: true,
-          request: {
-            key: `${base}:${String(hours)}`,
-            ttlMs: FORECAST_TTL_MS,
-            fetch: () => fetchForecast(location, hours, unit),
-          },
-        };
-      }
-      const days = parseCount(query('days'), DAYS_RANGE);
-      if (days === undefined) return fail('Invalid days');
+    case 'weather': {
+      const target = parseTemperatureTarget(type, query);
+      if (typeof target === 'string') return fail(target);
+      const { location, unit, key } = target;
+      return {
+        ok: true,
+        request: { key, ttlMs: WEATHER_TTL_MS, fetch: () => fetchWeather(location, unit) },
+      };
+    }
+    case 'forecast': {
+      const target = parseTemperatureTarget(type, query);
+      if (typeof target === 'string') return fail(target);
+      const hours = parseCount(query('hours'), HOURS_RANGE);
+      if (hours === undefined) return fail('Invalid hours');
+      const { location, unit, key } = target;
       return {
         ok: true,
         request: {
-          key: `${base}:${String(days)}`,
+          key: `${key}:${String(hours)}`,
+          ttlMs: FORECAST_TTL_MS,
+          fetch: () => fetchForecast(location, hours, unit),
+        },
+      };
+    }
+    case 'forecast3d': {
+      const target = parseTemperatureTarget(type, query);
+      if (typeof target === 'string') return fail(target);
+      const days = parseCount(query('days'), DAYS_RANGE);
+      if (days === undefined) return fail('Invalid days');
+      const { location, unit, key } = target;
+      return {
+        ok: true,
+        request: {
+          key: `${key}:${String(days)}`,
           ttlMs: FORECAST3D_TTL_MS,
           fetch: () => fetchForecast3D(location, days, unit),
         },

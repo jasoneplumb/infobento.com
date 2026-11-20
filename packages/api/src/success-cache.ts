@@ -19,6 +19,8 @@ interface Entry<T> {
 export class SuccessCache<T> {
   private readonly store = new Map<string, Entry<T>>();
   private readonly inflight = new Map<string, Promise<T | null>>();
+  /** Bumped by `clear()`, so a fetch started before it cannot touch state after it. */
+  private generation = 0;
 
   /**
    * @param maxEntries Cap on stored entries; the least recently used is evicted.
@@ -63,24 +65,33 @@ export class SuccessCache<T> {
     const existing = this.inflight.get(key);
     if (existing) return existing;
 
+    const generation = this.generation;
     const pending = (async (): Promise<T | null> => {
       try {
         const value = await fetcher();
-        if (value !== null) this.set(key, value);
+        if (value !== null && generation === this.generation) this.set(key, value);
         return value;
       } catch {
         return null;
       } finally {
-        this.inflight.delete(key);
+        // Within one generation `fill` joins rather than replaces, so the slot
+        // is still ours. After a `clear()` a newer fetch may own it — leave it.
+        if (generation === this.generation) this.inflight.delete(key);
       }
     })();
     this.inflight.set(key, pending);
     return pending;
   }
 
-  /** Drop every stored entry (in-flight fetches still settle). */
+  /**
+   * Drop every stored entry and forget in-flight fetches. Those still settle
+   * for their own callers, but neither store their result nor count toward
+   * `inflightCount`.
+   */
   clear(): void {
     this.store.clear();
+    this.inflight.clear();
+    this.generation += 1;
   }
 
   private set(key: string, value: T): void {

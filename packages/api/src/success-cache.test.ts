@@ -55,4 +55,27 @@ describe('SuccessCache', () => {
     expect(await cache.peek('a', 1000)).toBe('A');
     expect(await cache.peek('c', 1000)).toBe('C');
   });
+
+  it('clear() forgets in-flight fetches: they neither count nor store afterwards', async () => {
+    const cache = new SuccessCache<string>(10);
+    let releaseOld!: (v: string) => void;
+    const old = cache.fill('k', () => new Promise<string>((r) => (releaseOld = r)));
+    expect(cache.inflightCount).toBe(1);
+
+    cache.clear();
+    expect(cache.inflightCount).toBe(0);
+    expect(cache.peek('k', 1000)).toBeUndefined();
+
+    // A newer fetch for the same key owns the slot; the old one settling must
+    // not evict it or write its stale value.
+    let releaseNew!: (v: string) => void;
+    const fresh = cache.fill('k', () => new Promise<string>((r) => (releaseNew = r)));
+    releaseOld('old');
+    expect(await old).toBe('old');
+    expect(cache.inflightCount).toBe(1);
+
+    releaseNew('new');
+    expect(await fresh).toBe('new');
+    expect(await cache.peek('k', 1000)).toBe('new');
+  });
 });
