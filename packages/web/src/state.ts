@@ -450,6 +450,8 @@ export function getActiveDeviceId(): string | null {
 export function enterCloudMode(deviceId: string, seed?: unknown): void {
   _persistenceMode = 'cloud';
   _activeDeviceId = deviceId;
+  // Preview the device as it will actually render (#283).
+  state.profileId = DEFAULT_PROFILE_ID;
   if (seed !== undefined) {
     _suppressPersist = true;
     try {
@@ -468,6 +470,7 @@ export function enterCloudMode(deviceId: string, seed?: unknown): void {
 export function exitToLocalMode(): void {
   _persistenceMode = 'local';
   _activeDeviceId = null;
+  state.profileId = DEFAULT_PROFILE_ID;
   // Restore the untouched local buffer; if there was none, keep current boxes.
   _suppressPersist = true;
   try {
@@ -480,6 +483,7 @@ export function exitToLocalMode(): void {
 
 /** Test-only: reset persistence mode/hooks between cases. */
 export function _resetPersistenceForTesting(): void {
+  state.profileId = DEFAULT_PROFILE_ID;
   _persistenceMode = 'local';
   _activeDeviceId = null;
   _cloudPersistFn = null;

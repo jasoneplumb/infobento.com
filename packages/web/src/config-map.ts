@@ -229,9 +229,8 @@ export function toBentoBox(editor: EditorBox): BentoBox {
  * Deliberately NOT the simulator's preview profile, which only the preview
  * render passes in, so previewing another panel can never reach a device.
  */
-function targetProfile(): DeviceProfilePreset {
-  return DEVICE_PROFILES.find((p) => p.id === DEFAULT_PROFILE_ID) ?? DEVICE_PROFILES[0];
-}
+const TARGET_PROFILE: DeviceProfilePreset =
+  DEVICE_PROFILES.find((p) => p.id === DEFAULT_PROFILE_ID) ?? DEVICE_PROFILES[0];
 
 /**
  * Build a full core BentoConfig from the current editor boxes + style state.
@@ -240,7 +239,7 @@ function targetProfile(): DeviceProfilePreset {
  */
 export function toBentoConfig(
   boxes: readonly EditorBox[] = getBoxes(),
-  profile: DeviceProfilePreset = targetProfile(),
+  profile: DeviceProfilePreset = TARGET_PROFILE,
 ): BentoConfig {
   return {
     boxes: boxes.map(toBentoBox),
