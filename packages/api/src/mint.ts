@@ -16,6 +16,7 @@ import { createDevice, setConfig, getDevice, type DB, type Device } from './db.j
  */
 const PAIR_CODE_ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
 const PAIR_CODE_LENGTH = 6;
+const PAIR_CODE_SYMBOLS: ReadonlySet<string> = new Set(PAIR_CODE_ALPHABET);
 
 /** SQLite error code raised when the `pair_code` UNIQUE constraint is hit. */
 const UNIQUE_VIOLATION = 'SQLITE_CONSTRAINT_UNIQUE';
@@ -44,7 +45,7 @@ export function isPairCodeShaped(value: string): boolean {
   if (value.length !== PAIR_CODE_LENGTH) return false;
   const upper = value.toUpperCase();
   for (let i = 0; i < upper.length; i++) {
-    if (!PAIR_CODE_ALPHABET.includes(upper.charAt(i))) return false;
+    if (!PAIR_CODE_SYMBOLS.has(upper.charAt(i))) return false;
   }
   return true;
 }

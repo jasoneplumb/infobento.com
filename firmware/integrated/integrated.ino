@@ -77,8 +77,8 @@ RTC_DATA_ATTR char g_lastModified[48] = {0};
 RTC_DATA_ATTR uint32_t g_bootCount = 0;
 RTC_DATA_ATTR uint32_t g_sleepSeconds = 0;
 RTC_DATA_ATTR uint8_t g_orientation = ORIENT_LANDSCAPE;
-// Panel shows the wrong-code screen (#281). RTC memory, so it survives deep sleep
-// and is cleared only by a cold boot/reset or a successful 200 pull.
+// Panel shows the wrong-code screen (#281). RTC memory, so it survives deep sleep;
+// cleared by a cold boot, a factory reset (clearConfig) or a successful 200 pull.
 RTC_DATA_ATTR bool g_wrongCodeShown = false;
 
 // ----- runtime config (loaded from NVS in setup) -----
@@ -284,6 +284,7 @@ void clearConfig() {
   g_prefs.begin(NVS_NAMESPACE, false);
   g_prefs.clear();  // wipe the whole namespace so the device boots pristine
   g_prefs.end();
+  g_wrongCodeShown = false;  // belongs to the old Device ID; never carry it past a reset
   LittleFS.remove(ORIENT_FILE);  // the cached frames belonged to the old device
 }
 bool haveConfig() { return g_provisioned && g_deviceid.length() && g_ssid.length(); }

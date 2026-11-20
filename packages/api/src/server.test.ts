@@ -304,10 +304,13 @@ describe('device-pull with a pair code instead of a Device ID (#281)', () => {
   const UNMINTED_CODE = 'ZZZZ99';
   const ROUTES = ['frames', 'frame', 'config'] as const;
 
-  function headerPairs(res: Response): [string, string][] {
-    const pairs: [string, string][] = [];
-    res.headers.forEach((value, name) => pairs.push([name, value]));
-    return pairs;
+  // Keyed by name, so the comparison does not depend on header iteration order.
+  function headerMap(res: Response): Record<string, string> {
+    const map: Record<string, string> = {};
+    res.headers.forEach((value, name) => {
+      map[name] = value;
+    });
+    return map;
   }
 
   beforeEach(() => {
@@ -343,7 +346,7 @@ describe('device-pull with a pair code instead of a Device ID (#281)', () => {
     const minted = await app.request(`/api/device/${MINTED_CODE}/${route}`);
     const unminted = await app.request(`/api/device/${UNMINTED_CODE}/${route}`);
     expect(unminted.status).toBe(minted.status);
-    expect(headerPairs(unminted)).toEqual(headerPairs(minted));
+    expect(headerMap(unminted)).toEqual(headerMap(minted));
     expect(await unminted.text()).toBe(await minted.text());
   });
 
