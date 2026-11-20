@@ -347,6 +347,10 @@ describe('parsePanelDeclaration', () => {
       expect(parsePanelDeclaration(raw)).toEqual({ kind: 'unsupported', raw });
     },
   );
+
+  it('reports an unsupported value trimmed', () => {
+    expect(parsePanelDeclaration(' 1024x600 ')).toEqual({ kind: 'unsupported', raw: '1024x600' });
+  });
 });
 
 describe('frameETag / etagMatches', () => {
@@ -364,6 +368,10 @@ describe('frameETag / etagMatches', () => {
     expect(etagMatches(`"other", ${tag}`, tag)).toBe(true);
     expect(etagMatches('*', tag)).toBe(true);
     expect(etagMatches('"1700000000-920x680"', tag)).toBe(false);
+    // A comma inside a quoted tag is part of the tag, not a list separator.
+    expect(etagMatches('"a,b"', '"a,b"')).toBe(true);
+    expect(etagMatches('"a,b"', '"a"')).toBe(false);
+    expect(etagMatches('', tag)).toBe(false);
   });
 });
 
@@ -422,6 +430,18 @@ describe('frame pulls with a declared panel (#288)', () => {
       lastModifiedMs,
     );
     expect(second).toMatchObject({ status: 304, etag: first.etag });
+  });
+
+  it('treats an empty If-None-Match as absent and falls back to If-Modified-Since', async () => {
+    const { id, lastModifiedMs } = seedDeviceWithConfig(db);
+    const r = await getDeviceFramesForPull(
+      db,
+      id,
+      { panel: E1001, ifNoneMatch: '  ', ifModifiedSince: formatHttpDate(lastModifiedMs) },
+      makeDeps(),
+      lastModifiedMs,
+    );
+    expect(r.status).toBe(304);
   });
 
   it('re-renders (200) when the validator was issued for a different panel size', async () => {

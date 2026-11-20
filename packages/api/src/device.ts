@@ -109,7 +109,7 @@ export function parsePanelDeclaration(raw: string | null | undefined): PanelDecl
       return { kind: 'supported', panel: { widthPx, heightPx } };
     }
   }
-  return { kind: 'unsupported', raw };
+  return { kind: 'unsupported', raw: raw.trim() };
 }
 
 /** A panel size in its `X-Panel` wire form, e.g. `800x480`. */
@@ -134,12 +134,15 @@ export function frameETag(effectiveMs: number, panel: PanelSize | null): string 
   return `"${Math.floor(effectiveMs / 1000)}-${size}"`;
 }
 
+/** One entity-tag (optionally weak) or `*`; quoted, so a comma inside a tag is safe. */
+const ENTITY_TAG_RE = /(?:W\/)?("[^"]*")|\*/g;
+
 /** RFC 9110 `If-None-Match` evaluation for GET (weak comparison, `*` matches). */
 export function etagMatches(headerValue: string, etag: string): boolean {
-  return headerValue.split(',').some((tag) => {
-    const t = tag.trim();
-    return t === '*' || t.replace(/^W\//, '') === etag;
-  });
+  for (const m of headerValue.matchAll(ENTITY_TAG_RE)) {
+    if (m[0] === '*' || m[1] === etag) return true;
+  }
+  return false;
 }
 
 /**
@@ -262,10 +265,11 @@ async function pullDeviceFrames(
   const effectiveMs = effectiveLastModified(device, nowMs);
   const etag = frameETag(effectiveMs, panel);
   const fresh = { lastModifiedMs: effectiveMs, etag, refreshIntervalSec };
-  const notModified =
-    req.ifNoneMatch !== undefined && req.ifNoneMatch !== null
-      ? etagMatches(req.ifNoneMatch, etag)
-      : isNotModified(req.ifModifiedSince ?? null, effectiveMs);
+  // An empty If-None-Match carries no validator, so it falls through to IMS.
+  const ifNoneMatch = req.ifNoneMatch?.trim();
+  const notModified = ifNoneMatch
+    ? etagMatches(ifNoneMatch, etag)
+    : isNotModified(req.ifModifiedSince ?? null, effectiveMs);
   if (notModified) return { status: 304, ...fresh };
   let config: BentoConfig;
   try {
