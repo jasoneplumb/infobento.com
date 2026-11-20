@@ -51,6 +51,15 @@ describe('setup guide content', () => {
     }
   });
 
+  it('never says the Device ID is on the sticker, which carries only the pair code (#281)', () => {
+    const enterWifi = GUIDE_STEPS.find((s) => s.id === 'enter-wifi');
+    expect(enterWifi).toBeDefined();
+    const text = [...(enterWifi?.body ?? []), enterWifi?.tip ?? ''].join(' ');
+    expect(text).not.toMatch(/Device ID from the sticker/i);
+    expect(text).toMatch(/not the six-character pair code/i);
+    expect(text).toMatch(/Wrong code entered/);
+  });
+
   it('sets expectations about the eInk refresh cadence and the captive portal', () => {
     const allText = guideText();
     // The two most surprising behaviors for first-time users must be covered.

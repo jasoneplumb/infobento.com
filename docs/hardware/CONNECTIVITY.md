@@ -45,7 +45,7 @@ The captive-portal HTML is part of the firmware — small enough to fit in flash
 
 Config flows to the device in two stages:
 
-1. **First-time (captive portal):** During AP-mode setup, the user enters Wi-Fi credentials, the Device ID from the pairing sticker, and optionally a custom server URL for self-hosting. The device stores those three values in ESP32 NVS. The bento config itself is never uploaded to the device — it lives server-side, bound to the account that claimed the device.
+1. **First-time (captive portal):** During AP-mode setup, the user enters Wi-Fi credentials, the Device ID, and optionally a custom server URL for self-hosting. The device stores those three values in ESP32 NVS. The Device ID is the firmware's bearer secret, so it is never on the sticker (which carries only the pair code); in the bench era it comes from whoever minted the device. The portal rejects anything that is not UUID-shaped, and the pull endpoints answer a pair-code-shaped id with `422` so the firmware can draw a "wrong code" screen (#281). The bento config itself is never uploaded to the device — it lives server-side, bound to the account that claimed the device.
 2. **Ongoing (cloud poll):** The device polls `infobento.com/api/device/{device-id}/frames` on each refresh cycle, sending `If-Modified-Since` so an unchanged frame costs a 304. The server renders from the config it holds for that device; the device redraws only when the frame changes (a 304 sends it straight back to sleep without touching the panel).
 
 ### Server-side rendering

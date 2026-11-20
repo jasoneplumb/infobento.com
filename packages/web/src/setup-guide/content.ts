@@ -95,8 +95,13 @@ export const GUIDE_STEPS: readonly GuideStep[] = [
     id: 'enter-wifi',
     title: 'Enter your home Wi-Fi and the Device ID',
     body: [
-      'Fill in your home Wi-Fi network name and password, and the Device ID from the ' +
-        'sticker. Leave the Server field blank — it is only for self-hosted setups.',
+      'Fill in your home Wi-Fi network name and password, and your Device ID. Leave the ' +
+        'Server field blank — it is only for self-hosted setups.',
+      'The Device ID is 36 characters long, like xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx. It ' +
+        'is not the six-character pair code on the sticker; that code is only for claiming ' +
+        'the device in the next step. The Device ID works as a password for the device, so it ' +
+        'is never printed on the box. InfoBento is still in early bench testing: for now, ' +
+        'whoever registered your device gives you its Device ID.',
       'Press Connect.',
     ],
     expectations: [
@@ -104,8 +109,9 @@ export const GUIDE_STEPS: readonly GuideStep[] = [
         place: 'phone',
         text:
           'A plain black-and-white form with fields for Wi-Fi network, password, Device ID, ' +
-          'and an optional server. If something is wrong (for example an empty Device ID), ' +
-          'the page reloads with a message telling you what to fix.',
+          'and an optional server. If something is wrong (for example an empty Device ID, or ' +
+          'the pair code typed in its place), the page reloads with a message telling you ' +
+          'what to fix.',
         image: {
           src: '/setup-guide/captive-portal.png',
           alt: 'InfoBento captive setup page with Wi-Fi network, password, and Device ID fields',
@@ -120,6 +126,10 @@ export const GUIDE_STEPS: readonly GuideStep[] = [
           'the eInk panel redraws.',
       },
     ],
+    tip:
+      'If the display shows "Wrong code entered", the device was set up with the pair code ' +
+      'instead of the Device ID. Hold both white buttons for five seconds to reset it, then ' +
+      'set it up again with the Device ID.',
   },
   {
     id: 'claim-device',

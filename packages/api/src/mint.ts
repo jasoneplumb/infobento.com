@@ -17,6 +17,13 @@ import { createDevice, setConfig, getDevice, type DB, type Device } from './db.j
 const PAIR_CODE_ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
 const PAIR_CODE_LENGTH = 6;
 
+/**
+ * Matches any string `generatePairCode` could produce. Case-insensitive because a
+ * person retyping the sticker on a phone keyboard may not hold Shift; real device
+ * ids are 36-char UUIDs, so no valid id can ever match.
+ */
+const PAIR_CODE_SHAPE = new RegExp(`^[${PAIR_CODE_ALPHABET}]{${PAIR_CODE_LENGTH}}$`, 'i');
+
 /** SQLite error code raised when the `pair_code` UNIQUE constraint is hit. */
 const UNIQUE_VIOLATION = 'SQLITE_CONSTRAINT_UNIQUE';
 
@@ -28,6 +35,16 @@ export function generatePairCode(): string {
     code += PAIR_CODE_ALPHABET.charAt(randomInt(PAIR_CODE_ALPHABET.length));
   }
   return code;
+}
+
+/**
+ * True when `value` has the shape of a pair code — the sticker's six characters,
+ * which a user can mistake for the Device ID (#281). This is a shape test only;
+ * it never consults the database, so callers can act on it without revealing
+ * whether such a pair code exists.
+ */
+export function isPairCodeShaped(value: string): boolean {
+  return PAIR_CODE_SHAPE.test(value);
 }
 
 export interface MintDeviceOptions {

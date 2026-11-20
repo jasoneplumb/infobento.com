@@ -12,7 +12,7 @@ import { fileURLToPath } from 'node:url';
 // Read version from package.json at startup
 const __pkgPath = resolve(dirname(fileURLToPath(import.meta.url)), '../package.json');
 const __version = JSON.parse(readFileSync(__pkgPath, 'utf8')).version as string;
-import { Hono } from 'hono';
+import { Hono, type Context } from 'hono';
 import { cors } from 'hono/cors';
 import { serveStatic } from '@hono/node-server/serve-static';
 import { serve } from '@hono/node-server';
@@ -64,6 +64,7 @@ import {
 } from './device.js';
 import { defaultHydrateDeps, PROVIDER_TIMEOUT_MS, withTimeout } from './hydrate.js';
 import { consumeToken, createRateLimiter } from './rate-limit.js';
+import { isPairCodeShaped } from './mint.js';
 import { createPairHandler } from './pair.js';
 import {
   createForgetWifiHandler,
@@ -384,7 +385,7 @@ const PENDING_ACCOUNT_TTL = 15 * 60; // 15 minutes
  * account, the verification step finalizes the credential. Self-hosters that
  * want an invite-only model can layer policy on top.
  */
-function resolveOrCreatePendingAccount(c: import('hono').Context): string {
+function resolveOrCreatePendingAccount(c: Context): string {
   const session = readSession(c);
   if (session) return session.accountId;
   const pending = getCookie(c, PENDING_ACCOUNT_COOKIE);
@@ -575,11 +576,24 @@ app.post('/api/device/:id/forget', createForgetWifiHandler(getDb));
 // Rate-limited per device id to 10/min as a misbehaving-firmware guard;
 // normal traffic is 1-3/day per device.
 
+/**
+ * A device that pulls with a pair-code-shaped id was provisioned with the
+ * sticker's pair code instead of its Device ID (#281). Answer with a status of
+ * its own, so the firmware can show a "wrong code" screen instead of silently
+ * keeping its last frame on a 404. Decided by shape alone, before any lookup:
+ * every pair-code-shaped id gets this same response, so it never reveals
+ * whether that pair code exists. The firmware matches on the literal 422.
+ */
+function rejectPairCodeId(c: Context): Response {
+  return c.json({ error: 'pair_code_not_device_id' }, 422);
+}
+
 app.get('/api/device/:id/config', (c) => {
   const id = c.req.param('id');
   if (!consumeToken(id)) {
     return c.json({ error: 'rate_limited' }, 429, { 'Retry-After': '60' });
   }
+  if (isPairCodeShaped(id)) return rejectPairCodeId(c);
   const result = getDeviceConfigForPull(getDb(), id, c.req.header('if-modified-since') ?? null);
   if (result.status === 404) return c.json({ error: 'not_found' }, 404);
   // Deliver a pending "forget Wi-Fi" (issue #39) on this contact — read-and-clear
@@ -601,6 +615,7 @@ app.get('/api/device/:id/frame', async (c) => {
   if (!consumeToken(id)) {
     return c.json({ error: 'rate_limited' }, 429, { 'Retry-After': '60' });
   }
+  if (isPairCodeShaped(id)) return rejectPairCodeId(c);
   const orientation = parseOrientation(c.req.query('orientation'));
   const result = await getDeviceFrameForPull(
     getDb(),
@@ -642,6 +657,7 @@ app.get('/api/device/:id/frames', async (c) => {
   if (!consumeToken(id)) {
     return c.json({ error: 'rate_limited' }, 429, { 'Retry-After': '60' });
   }
+  if (isPairCodeShaped(id)) return rejectPairCodeId(c);
   const result = await getDeviceFramesForPull(
     getDb(),
     id,
