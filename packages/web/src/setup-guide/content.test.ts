@@ -3,6 +3,15 @@ import { existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { GUIDE_INTRO, GUIDE_STEPS, GUIDE_TITLE, PLACE_LABELS } from './content';
 
+// Every piece of guide prose (step bodies, expectation text, tips) as one string.
+function guideText(): string {
+  return GUIDE_STEPS.flatMap((s) => [
+    ...s.body,
+    ...s.expectations.map((e) => e.text),
+    s.tip ?? '',
+  ]).join(' ');
+}
+
 describe('setup guide content', () => {
   it('has a title, an intro, and at least the six core steps', () => {
     expect(GUIDE_TITLE.length).toBeGreaterThan(0);
@@ -43,14 +52,14 @@ describe('setup guide content', () => {
   });
 
   it('sets expectations about the eInk refresh cadence and the captive portal', () => {
-    const allText = GUIDE_STEPS.flatMap((s) => [
-      ...s.body,
-      ...s.expectations.map((e) => e.text),
-      s.tip ?? '',
-    ]).join(' ');
+    const allText = guideText();
     // The two most surprising behaviors for first-time users must be covered.
     expect(allText).toMatch(/refresh/i);
     expect(allText).toMatch(/opens by itself|opens automatically/i);
     expect(allText).toMatch(/192\.168\.4\.1/);
+  });
+
+  it('tells the user how to see a config change right away (green-button hold)', () => {
+    expect(guideText()).toMatch(/hold the green button for five seconds/i);
   });
 });
