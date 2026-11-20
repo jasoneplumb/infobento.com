@@ -922,7 +922,6 @@ function persistToLocalStorage(): void {
       cornerRadius: state.cornerRadius,
       padding: state.padding,
       refreshesPerDay: state.refreshesPerDay,
-      profileId: state.profileId,
       tempUnit: state.tempUnit,
       locationIsFallback: state.locationIsFallback,
     };
@@ -1033,12 +1032,10 @@ function loadFromLocalStorage(): boolean {
       if (typeof obj.padding === 'number') state.padding = obj.padding;
       if (typeof obj.refreshesPerDay === 'number')
         state.refreshesPerDay = clampRefreshesPerDay(obj.refreshesPerDay);
-      if (
-        typeof obj.profileId === 'string' &&
-        DEVICE_PROFILES.some((p) => p.id === obj.profileId)
-      ) {
-        state.profileId = obj.profileId;
-      }
+      // profileId is deliberately NOT restored (#283): the profile sets the
+      // width/height saved to the device, and the E1001 is the only hardware in
+      // use, so every page load starts on DEFAULT_PROFILE_ID. A profile picked
+      // for previewing lasts only for the session.
       if (obj.tempUnit === 'F' || obj.tempUnit === 'C') state.tempUnit = obj.tempUnit;
       if (typeof obj.locationIsFallback === 'boolean') {
         state.locationIsFallback = obj.locationIsFallback;

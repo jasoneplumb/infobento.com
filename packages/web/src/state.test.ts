@@ -510,3 +510,33 @@ describe('in-row config edits persist (#192)', () => {
     expect(cloudSave).not.toHaveBeenCalled();
   });
 });
+
+describe('display profile always starts on the default (#283)', () => {
+  it('ignores a profile saved by an earlier visit, so saves carry the E1001 size', async () => {
+    localStorage.setItem(
+      'infobento-config',
+      JSON.stringify({ version: 2, boxes: [], profileId: 'gdeh0576-920x680' }),
+    );
+    // A fresh module load is a page load: it restores from localStorage.
+    vi.resetModules();
+    const freshState = await import('./state.js');
+    const { toBentoConfig } = await import('./config-map.js');
+    const { DEFAULT_PROFILE_ID } = await import('@infobento/core');
+
+    expect(freshState.getDeviceProfile().id).toBe(DEFAULT_PROFILE_ID);
+    expect(toBentoConfig()).toMatchObject({ width: 800, height: 480 });
+  });
+
+  it('does not persist a profile picked during the session', async () => {
+    vi.resetModules();
+    const freshState = await import('./state.js');
+    freshState.setDeviceProfile('gdeh0576-920x680');
+    expect(freshState.getDeviceProfile().id).toBe('gdeh0576-920x680');
+
+    const saved = JSON.parse(localStorage.getItem('infobento-config') ?? '{}') as Record<
+      string,
+      unknown
+    >;
+    expect(saved).not.toHaveProperty('profileId');
+  });
+});
