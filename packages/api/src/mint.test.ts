@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { createDb, getDevice, type DB } from './db.js';
-import { generatePairCode, mintDevice } from './mint.js';
+import { generatePairCode, isPairCodeShaped, mintDevice } from './mint.js';
 
 let db: DB;
 
@@ -16,6 +16,35 @@ describe('generatePairCode', () => {
       // No 0/O/1/I/L — only the unambiguous symbols.
       expect(code).toMatch(/^[ABCDEFGHJKMNPQRSTUVWXYZ23456789]{6}$/);
     }
+  });
+});
+
+describe('isPairCodeShaped', () => {
+  it('accepts every code generatePairCode produces', () => {
+    for (let i = 0; i < 200; i++) expect(isPairCodeShaped(generatePairCode())).toBe(true);
+  });
+
+  it('accepts a pair code typed in lower case', () => {
+    expect(isPairCodeShaped('rj8m3q')).toBe(true);
+  });
+
+  it('rejects a real device id (UUID)', () => {
+    const device = mintDevice(db);
+    expect(isPairCodeShaped(device.id)).toBe(false);
+  });
+
+  it.each([
+    ['too short', 'RJ8M3'],
+    ['too long', 'RJ8M3QA'],
+    ['ambiguous symbol 0', 'RJ8M30'],
+    ['ambiguous symbol O', 'RJ8M3O'],
+    ['ambiguous symbol 1', 'RJ8M31'],
+    ['ambiguous symbol I', 'RJ8M3I'],
+    ['ambiguous symbol L', 'RJ8M3L'],
+    ['surrounding whitespace', ' RJ8M3Q'],
+    ['empty', ''],
+  ])('rejects %s', (_label, value) => {
+    expect(isPairCodeShaped(value)).toBe(false);
   });
 });
 

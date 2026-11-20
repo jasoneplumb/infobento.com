@@ -17,7 +17,7 @@ import {
   claimDevice,
   requestForget,
 } from './db.js';
-import { _resetForTesting as resetRateLimit } from './rate-limit.js';
+import { _resetForTesting as resetRateLimit, RATE_LIMIT_RATE } from './rate-limit.js';
 
 const OAUTH_ENV = [
   'GOOGLE_CLIENT_ID',
@@ -290,6 +290,76 @@ describe('GET /api/device/:id/frames', () => {
   it('404 for an unknown device id', async () => {
     const res = await app.request('/api/device/does-not-exist/frames');
     expect(res.status).toBe(404);
+  });
+});
+
+describe('device-pull with a pair code instead of a Device ID (#281)', () => {
+  const VALID_CONFIG = JSON.stringify({
+    boxes: [{ id: '1', label: 'Hi', type: 'text', config: { type: 'text', text: 'yo' } }],
+    refreshesPerDay: 1,
+  });
+  // RJ8M3Q is the published sample code (scripts/sample-devices.csv); ZZZZ99 is
+  // pair-code-shaped but never minted here.
+  const MINTED_CODE = 'RJ8M3Q';
+  const UNMINTED_CODE = 'ZZZZ99';
+  const ROUTES = ['frames', 'frame', 'config'] as const;
+
+  // Keyed by name, so the comparison does not depend on header iteration order.
+  function headerMap(res: Response): Record<string, string> {
+    const map: Record<string, string> = {};
+    res.headers.forEach((value, name) => {
+      map[name] = value;
+    });
+    return map;
+  }
+
+  beforeEach(() => {
+    process.env['SESSION_SECRET'] = 'test-secret-at-least-16-chars';
+    process.env['INFOBENTO_DB_PATH'] = ':memory:';
+    _resetSingletonForTesting();
+    resetRateLimit();
+    const db = getDb();
+    const device = createDevice(db, { pairCode: MINTED_CODE });
+    setConfig(db, device.id, VALID_CONFIG);
+  });
+
+  afterEach(() => {
+    Reflect.deleteProperty(process.env, 'SESSION_SECRET');
+    Reflect.deleteProperty(process.env, 'INFOBENTO_DB_PATH');
+    _resetSingletonForTesting();
+  });
+
+  it.each(ROUTES)('/%s answers 422 pair_code_not_device_id', async (route) => {
+    const res = await app.request(`/api/device/${MINTED_CODE}/${route}`);
+    expect(res.status).toBe(422);
+    expect(await res.json()).toEqual({ error: 'pair_code_not_device_id' });
+    // Backs a device that cannot succeed off to one pull a day.
+    expect(res.headers.get('X-Refresh-Interval')).toBe('86400');
+  });
+
+  it.each(ROUTES)('/%s gives a lower-case pair code the same 422', async (route) => {
+    const res = await app.request(`/api/device/${MINTED_CODE.toLowerCase()}/${route}`);
+    expect(res.status).toBe(422);
+  });
+
+  it.each(ROUTES)('/%s does not reveal whether the pair code exists', async (route) => {
+    const minted = await app.request(`/api/device/${MINTED_CODE}/${route}`);
+    const unminted = await app.request(`/api/device/${UNMINTED_CODE}/${route}`);
+    expect(unminted.status).toBe(minted.status);
+    expect(headerMap(unminted)).toEqual(headerMap(minted));
+    expect(await unminted.text()).toBe(await minted.text());
+  });
+
+  it('still answers 404 for an unknown id that is not pair-code-shaped', async () => {
+    const res = await app.request('/api/device/00000000-0000-4000-8000-000000000000/frames');
+    expect(res.status).toBe(404);
+  });
+
+  it('keeps the rate limit ahead of the shape check', async () => {
+    for (let i = 0; i < RATE_LIMIT_RATE; i++)
+      await app.request(`/api/device/${MINTED_CODE}/frames`);
+    const res = await app.request(`/api/device/${MINTED_CODE}/frames`);
+    expect(res.status).toBe(429);
   });
 });
 

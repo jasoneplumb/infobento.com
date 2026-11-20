@@ -10,6 +10,8 @@
 // Boot flow (setup()):
 //   not configured (no deviceid/ssid)  -> draw setup screen, AP mode + portal
 //   configured, cold/timer wake        -> Wi-Fi -> GET /frames -> draw -> sleep
+//                                         (422 = Device ID is the sticker's pair
+//                                          code -> draw wrong-code screen, #281)
 //   configured, green tap wake          -> flip cached orientation, radio off
 //   configured, green held 5s           -> Wi-Fi -> unconditional GET /frames -> draw (#280)
 //   configured, white-combo wake        -> factory reset (draw screen, wipe NVS)
@@ -35,6 +37,7 @@
 #include <Preferences.h>
 #include "driver/rtc_io.h"
 #include "reset_screen.h"
+#include "wrong_code_screen.h"
 
 // ----- Panel (UC8179) + buttons --------------------------------------------
 #define EPD_SCK_PIN 7
@@ -74,6 +77,9 @@ RTC_DATA_ATTR char g_lastModified[48] = {0};
 RTC_DATA_ATTR uint32_t g_bootCount = 0;
 RTC_DATA_ATTR uint32_t g_sleepSeconds = 0;
 RTC_DATA_ATTR uint8_t g_orientation = ORIENT_LANDSCAPE;
+// Panel shows the wrong-code screen (#281). RTC memory, so it survives deep sleep;
+// cleared by a cold boot, a factory reset (clearConfig) or a successful 200 pull.
+RTC_DATA_ATTR bool g_wrongCodeShown = false;
 
 // ----- runtime config (loaded from NVS in setup) -----
 Preferences g_prefs;
@@ -202,12 +208,24 @@ void epdBegin() {
   hspi.begin(EPD_SCK_PIN, -1, EPD_MOSI_PIN, -1);
 }
 
-// Draw one baked reset/setup screen from PROGMEM (into g_fb, then drawFrame).
-void drawResetScreen(uint8_t orientation) {
-  const uint8_t* src = (orientation == ORIENT_PORTRAIT) ? RESET_SCREEN_PORTRAIT : RESET_SCREEN_LANDSCAPE;
-  memcpy_P(g_fb, src, IB_FRAME_LEN);
+// The baked screens are memcpy_P'd as whole frames: catch a regenerated header
+// with the wrong geometry at compile time, not as a garbled panel.
+static_assert(sizeof(RESET_SCREEN_LANDSCAPE) == IB_FRAME_LEN && sizeof(RESET_SCREEN_PORTRAIT) == IB_FRAME_LEN,
+              "reset_screen.h frame size != IB_FRAME_LEN");
+static_assert(sizeof(WRONG_CODE_SCREEN_LANDSCAPE) == IB_FRAME_LEN && sizeof(WRONG_CODE_SCREEN_PORTRAIT) == IB_FRAME_LEN,
+              "wrong_code_screen.h frame size != IB_FRAME_LEN");
+
+// Draw one baked screen pair from PROGMEM (into g_fb, then drawFrame).
+void drawBakedScreen(const uint8_t* landscape, const uint8_t* portrait, const char* name, uint8_t orientation) {
+  memcpy_P(g_fb, orientation == ORIENT_PORTRAIT ? portrait : landscape, IB_FRAME_LEN);
   drawFrame();
-  Serial.printf("[IB] drew reset screen (%s)\n", orientation == ORIENT_PORTRAIT ? "portrait" : "landscape");
+  Serial.printf("[IB] drew %s screen (%s)\n", name, orientation == ORIENT_PORTRAIT ? "portrait" : "landscape");
+}
+void drawResetScreen(uint8_t orientation) {
+  drawBakedScreen(RESET_SCREEN_LANDSCAPE, RESET_SCREEN_PORTRAIT, "reset", orientation);
+}
+void drawWrongCodeScreen(uint8_t orientation) {
+  drawBakedScreen(WRONG_CODE_SCREEN_LANDSCAPE, WRONG_CODE_SCREEN_PORTRAIT, "wrong-code", orientation);
 }
 
 // ----- LittleFS cached frame pair (from firmware/orientation) ---------------
@@ -266,6 +284,7 @@ void clearConfig() {
   g_prefs.begin(NVS_NAMESPACE, false);
   g_prefs.clear();  // wipe the whole namespace so the device boots pristine
   g_prefs.end();
+  g_wrongCodeShown = false;  // belongs to the old Device ID; never carry it past a reset
   LittleFS.remove(ORIENT_FILE);  // the cached frames belonged to the old device
 }
 bool haveConfig() { return g_provisioned && g_deviceid.length() && g_ssid.length(); }
@@ -331,6 +350,19 @@ void pullFrames(bool unconditional = false) {
   adoptRefreshInterval(http);
 
   if (code == 304) { Serial.println("[IB] 304 -> keep cached frames"); http.end(); return; }
+  if (code == 422) {
+    // The server's answer to a pair-code-shaped id (#281): this device was set up
+    // with the sticker's pair code instead of its Device ID, so no pull will ever
+    // succeed. Say so on the panel instead of silently keeping the setup screen.
+    // Drawn once, then left on the panel across deep-sleep wakes (g_wrongCodeShown);
+    // a 5 s hold redraws it, since that asked for visible feedback. The 422 also
+    // carries X-Refresh-Interval (a day), adopted above, so retries back off.
+    Serial.println("[IB] 422 -> Device ID is a pair code -> wrong-code screen");
+    http.end();
+    if (!g_wrongCodeShown || unconditional) drawWrongCodeScreen(g_orientation);
+    g_wrongCodeShown = true;
+    return;
+  }
   if (code != 200) { Serial.printf("[IB] status %d -> keep last frame\n", code); http.end(); return; }
 
   long landBytes = http.header("X-Frame-Landscape-Bytes").toInt();
@@ -356,6 +388,7 @@ void pullFrames(bool unconditional = false) {
   String lm = http.header("Last-Modified");
   if (lm.length()) { strncpy(g_lastModified, lm.c_str(), sizeof(g_lastModified) - 1); g_lastModified[sizeof(g_lastModified) - 1] = '\0'; }
   Serial.printf("[IB] stored both frames, Last-Modified: %s\n", g_lastModified);
+  g_wrongCodeShown = false;
   if (!drawOrientationFromFlash(g_orientation)) Serial.println("[IB] WARN: draw-after-store failed");
 }
 
@@ -391,11 +424,29 @@ String setupPage(const String& err) {
   h += "<form method='POST' action='/save'>"
        "<label>Wi-Fi network</label><input name='ssid' placeholder='Your Wi-Fi name'>"
        "<label>Wi-Fi password</label><input name='pass' type='password' placeholder='(blank if open)'>"
-       "<label>Device ID (from the sticker / pairing page)</label><input name='deviceid' placeholder='xxxxxxxx-...'>"
+       "<label>Device ID (36 characters, not the pair code on the sticker)</label>"
+       "<input name='deviceid' placeholder='xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx' autocomplete='off' autocapitalize='off' autocorrect='off' spellcheck='false'>"
        "<label>Server (optional)</label><input name='server' placeholder='https://www.infobento.com'>"
        "<button type='submit'>Connect</button></form></body></html>";
   return h;
 }
+// A Device ID is a server-minted UUID: 36 chars, 8-4-4-4-12 hex. Anything else
+// (notably the sticker's six-character pair code, #281) can never pull frames,
+// so reject it here rather than let the device 404 forever.
+bool isUuidShaped(const String& s) {
+  if (s.length() != 36) return false;
+  for (unsigned i = 0; i < 36; i++) {
+    char c = s[i];
+    if (i == 8 || i == 13 || i == 18 || i == 23) { if (c != '-') return false; }
+    else if (!isxdigit((unsigned char)c)) return false;
+  }
+  return true;
+}
+static const char* DEVICE_ID_HELP =
+    "That is not a Device ID. The Device ID is 36 characters, like "
+    "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx. The 6-character code on the sticker is the "
+    "pair code: it is only for claiming the device at www.infobento.com. The Device ID "
+    "comes with your device; during early testing, from whoever registered it.";
 void redirectToPortal() {
   server.sendHeader("Location", String("http://") + AP_IP.toString() + "/");
   server.send(302, "text/plain", "");
@@ -419,7 +470,13 @@ void handleSave() {
   if (!ssid.length()) { server.send(200, "text/html", setupPage("Enter your Wi-Fi network name.")); return; }
   if (ssid.length() > 32) { server.send(200, "text/html", setupPage("Network name is too long (max 32).")); return; }
   if (pass.length() && (pass.length() < 8 || pass.length() > 63)) { server.send(200, "text/html", setupPage("Password must be 8-63 characters.")); return; }
-  if (!deviceid.length()) { server.send(200, "text/html", setupPage("Enter the Device ID from the sticker.")); return; }
+  if (!deviceid.length()) { server.send(200, "text/html", setupPage("Enter the Device ID.")); return; }
+  if (!isUuidShaped(deviceid)) {
+    // Log only the length: the value may be a live pair code or a mistyped secret.
+    Serial.printf("[IB] portal: Device ID rejected (not UUID-shaped, %u chars)\n", (unsigned)deviceid.length());
+    server.send(200, "text/html", setupPage(DEVICE_ID_HELP)); return;
+  }
+  deviceid.toLowerCase();  // the server mints lowercase UUIDs and matches the id exactly
   if (serverUrl.length() && !serverUrl.startsWith("http://") && !serverUrl.startsWith("https://")) {
     server.send(200, "text/html", setupPage("Server URL must start with http:// or https://.")); return;
   }
@@ -489,6 +546,8 @@ void checkGreenButton() {
 void handleOrientationFlip() {
   uint8_t next = (g_orientation == ORIENT_LANDSCAPE) ? ORIENT_PORTRAIT : ORIENT_LANDSCAPE;
   Serial.printf("[IB] green -> flip to %s\n", next == ORIENT_PORTRAIT ? "portrait" : "landscape");
+  // The panel shows the wrong-code screen, not cached frames: flip that instead.
+  if (g_wrongCodeShown) { drawWrongCodeScreen(next); persistOrientation(next); return; }
   if (drawOrientationFromFlash(next)) persistOrientation(next);
   else Serial.println("[IB] no cached frame to flip to -> no-op");
 }
