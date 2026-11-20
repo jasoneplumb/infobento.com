@@ -7,7 +7,7 @@
 
 import { describe, it, expect } from 'vitest';
 import type { BentoConfig } from '@infobento/core';
-import { validateBentoConfig } from '@infobento/core';
+import { validateBentoConfig, DEVICE_PROFILES } from '@infobento/core';
 import type { EditorBox } from './state';
 import { toBentoBox, fromBentoBox, fromBentoConfig, toBentoConfig } from './config-map';
 
@@ -92,6 +92,14 @@ describe('toBentoConfig (export = drop-in device config)', () => {
     expect(cfg.height).toBeGreaterThan(0);
     // And the whole thing must pass the same validation the device applies.
     expect(validateBentoConfig(cfg).valid).toBe(true);
+  });
+
+  it('targets the E1001 by default and uses an explicit profile only when given (#283)', () => {
+    const boxes: EditorBox[] = [{ id: 1, type: 'text', label: 'Note', config: { content: 'hi' } }];
+    expect(toBentoConfig(boxes)).toMatchObject({ width: 800, height: 480 });
+    const preview = DEVICE_PROFILES.find((p) => p.id === 'gdeh0576-920x680');
+    expect(preview).toBeDefined();
+    if (preview) expect(toBentoConfig(boxes, preview)).toMatchObject({ width: 920, height: 680 });
   });
 
   it('emits refreshesPerDay from editor state (default 3 = every 8h)', () => {

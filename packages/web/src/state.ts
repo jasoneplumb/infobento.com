@@ -865,8 +865,9 @@ export function getDeviceProfile(): DeviceProfilePreset {
 
 export function setDeviceProfile(id: string): void {
   if (DEVICE_PROFILES.some((p) => p.id === id)) {
+    // Preview-only (#283): nothing saved or sent to a device depends on it,
+    // so there is nothing to persist.
     state.profileId = id;
-    persist();
     renderPreview();
   }
 }
@@ -1032,10 +1033,9 @@ function loadFromLocalStorage(): boolean {
       if (typeof obj.padding === 'number') state.padding = obj.padding;
       if (typeof obj.refreshesPerDay === 'number')
         state.refreshesPerDay = clampRefreshesPerDay(obj.refreshesPerDay);
-      // profileId is deliberately NOT restored (#283): the profile sets the
-      // width/height saved to the device, and the E1001 is the only hardware in
-      // use, so every page load starts on DEFAULT_PROFILE_ID. A profile picked
-      // for previewing lasts only for the session.
+      // profileId is deliberately NOT restored (#283): every page load starts
+      // the simulator on DEFAULT_PROFILE_ID, the only hardware in use. A
+      // profile picked for previewing lasts only for the session.
       if (obj.tempUnit === 'F' || obj.tempUnit === 'C') state.tempUnit = obj.tempUnit;
       if (typeof obj.locationIsFallback === 'boolean') {
         state.locationIsFallback = obj.locationIsFallback;
@@ -1186,8 +1186,8 @@ export function importJSON(): void {
 // -- Export -----------------------------------------------------------------
 
 export function exportJSON(): void {
-  // Emit a renderer BentoConfig (includes width/height from the active device
-  // profile) so the file drops straight into a device's config_json. importJSON
+  // Emit a renderer BentoConfig (width/height from the device target, not the
+  // preview profile) so the file drops straight into a device's config_json. importJSON
   // round-trips it back via loadConfig → fromBentoConfig.
   const data = toBentoConfig(state.boxes);
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });

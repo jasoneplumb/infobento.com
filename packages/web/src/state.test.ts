@@ -527,16 +527,22 @@ describe('display profile always starts on the default (#283)', () => {
     expect(toBentoConfig()).toMatchObject({ width: 800, height: 480 });
   });
 
-  it('does not persist a profile picked during the session', async () => {
+  it('keeps a previewed profile out of saves to a paired device', async () => {
     vi.resetModules();
     const freshState = await import('./state.js');
+    const { toBentoConfig } = await import('./config-map.js');
+    const cloudSave = vi.fn();
+    freshState.onCloudPersist(cloudSave);
+    freshState.enterCloudMode('device-1');
+
     freshState.setDeviceProfile('gdeh0576-920x680');
     expect(freshState.getDeviceProfile().id).toBe('gdeh0576-920x680');
+    // Switching the preview alone schedules no save to the device…
+    expect(cloudSave).not.toHaveBeenCalled();
 
-    const saved = JSON.parse(localStorage.getItem('infobento-config') ?? '{}') as Record<
-      string,
-      unknown
-    >;
-    expect(saved).not.toHaveProperty('profileId');
+    // …and a save triggered by a real edit still carries the device's size.
+    freshState.addBox('quote');
+    expect(cloudSave).toHaveBeenCalled();
+    expect(toBentoConfig()).toMatchObject({ width: 800, height: 480 });
   });
 });

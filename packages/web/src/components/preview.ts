@@ -118,7 +118,8 @@ function renderPreviewNow(containerId: string): void {
   const emptyEl = display.querySelector('.eink-empty');
   if (emptyEl) emptyEl.remove();
 
-  const config = toBentoConfig(boxes);
+  // Render at the simulator's profile; saves and exports stay on the device target.
+  const config = toBentoConfig(boxes, getDeviceProfile());
 
   // Cancel any in-flight request
   if (_pendingRequest) _pendingRequest.abort();
